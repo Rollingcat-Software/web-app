@@ -1,0 +1,56 @@
+import type { Tenant } from '@domain/models/Tenant'
+import type { PaginatedResult, QueryParams } from './IRepository'
+
+/**
+ * Create tenant data (without generated fields)
+ */
+export interface CreateTenantData {
+    name: string
+    domain: string
+    status: string
+    maxUsers: number
+    currentUsers?: number
+}
+
+/**
+ * Update tenant data (all fields optional)
+ */
+export interface UpdateTenantData {
+    name?: string
+    domain?: string
+    status?: string
+    maxUsers?: number
+    currentUsers?: number
+}
+
+/**
+ * Tenant Repository interface
+ * Handles tenant data access operations
+ */
+export interface ITenantRepository {
+    /**
+     * Find all tenants with optional filters and pagination
+     */
+    findAll(params?: QueryParams): Promise<PaginatedResult<Tenant>>
+
+    /**
+     * Find tenant by ID
+     * @returns Tenant if found, null otherwise
+     */
+    findById(id: number): Promise<Tenant | null>
+
+    /**
+     * Create new tenant
+     */
+    create(data: CreateTenantData): Promise<Tenant>
+
+    /**
+     * Update existing tenant
+     */
+    update(id: number, data: UpdateTenantData): Promise<Tenant>
+
+    /**
+     * Delete tenant
+     */
+    delete(id: number): Promise<void>
+}
