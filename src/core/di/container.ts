@@ -7,12 +7,17 @@ import type { INotifier } from '@domain/interfaces/INotifier'
 import type { ISecureStorage } from '@domain/interfaces/IStorage'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
+import type { IAuthRepository } from '@domain/interfaces/IAuthRepository'
+import type { IAuthService } from '@domain/interfaces/IAuthService'
 import { LoggerService } from '@core/services/LoggerService'
 import { NotifierService } from '@core/services/NotifierService'
 import { SecureStorageService } from '@core/services/SecureStorageService'
 import { AxiosClient } from '@core/api/AxiosClient'
 import { TokenService } from '@core/services/TokenService'
 import { ErrorHandler } from '@core/errors/ErrorHandler'
+import { AuthRepository } from '@core/repositories/AuthRepository'
+import { MockAuthRepository } from '@core/repositories/__mocks__/MockAuthRepository'
+import { AuthService } from '@features/auth/services/AuthService'
 
 /**
  * Create and configure the IoC container
@@ -46,8 +51,15 @@ container.bind<IHttpClient>(TYPES.HttpClient).to(AxiosClient).inSingletonScope()
 container.bind<ITokenService>(TYPES.TokenService).to(TokenService).inSingletonScope()
 container.bind<ErrorHandler>(TYPES.ErrorHandler).to(ErrorHandler).inSingletonScope()
 
-// Repositories will be bound in Phase 3
-// Services will be bound in Phase 3
+// Bind repositories (Phase 3) - Choose between mock and real based on config
+if (config.useMockAPI) {
+    container.bind<IAuthRepository>(TYPES.AuthRepository).to(MockAuthRepository).inSingletonScope()
+} else {
+    container.bind<IAuthRepository>(TYPES.AuthRepository).to(AuthRepository).inSingletonScope()
+}
+
+// Bind services (Phase 3)
+container.bind<IAuthService>(TYPES.AuthService).to(AuthService).inSingletonScope()
 
 export { container }
 export type { Container }
