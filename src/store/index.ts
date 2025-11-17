@@ -1,14 +1,5 @@
-import { configureStore, combineReducers } from '@reduxjs/toolkit'
-import {
-  persistStore,
-  persistReducer,
-  FLUSH,
-  REHYDRATE,
-  PAUSE,
-  PERSIST,
-  PURGE,
-  REGISTER,
-} from 'redux-persist'
+import {combineReducers, configureStore} from '@reduxjs/toolkit'
+import {FLUSH, PAUSE, PERSIST, persistReducer, persistStore, PURGE, REGISTER, REHYDRATE,} from 'redux-persist'
 import storage from 'redux-persist/lib/storage'
 import authReducer from './slices/authSlice'
 import usersReducer from './slices/usersSlice'
@@ -18,31 +9,31 @@ import auditLogsReducer from './slices/auditLogsSlice'
 import dashboardReducer from './slices/dashboardSlice'
 
 const rootReducer = combineReducers({
-  auth: authReducer,
-  users: usersReducer,
-  tenants: tenantsReducer,
-  enrollments: enrollmentsReducer,
-  auditLogs: auditLogsReducer,
-  dashboard: dashboardReducer,
+    auth: authReducer,
+    users: usersReducer,
+    tenants: tenantsReducer,
+    enrollments: enrollmentsReducer,
+    auditLogs: auditLogsReducer,
+    dashboard: dashboardReducer,
 })
 
 const persistConfig = {
-  key: 'fivucsas-admin',
-  version: 1,
-  storage,
-  whitelist: ['auth'], // Only persist auth state
+    key: 'fivucsas-admin',
+    version: 1,
+    storage,
+    whitelist: ['auth'], // Only persist auth state
 }
 
 const persistedReducer = persistReducer(persistConfig, rootReducer)
 
 export const store = configureStore({
-  reducer: persistedReducer,
-  middleware: (getDefaultMiddleware) =>
-    getDefaultMiddleware({
-      serializableCheck: {
-        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
-      },
-    }),
+    reducer: persistedReducer,
+    middleware: (getDefaultMiddleware) =>
+        getDefaultMiddleware({
+            serializableCheck: {
+                ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+            },
+        }),
 })
 
 export const persistor = persistStore(store)

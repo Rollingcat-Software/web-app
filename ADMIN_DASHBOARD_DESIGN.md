@@ -25,13 +25,16 @@
 ## Executive Summary
 
 ### Purpose
+
 Build a web-based admin dashboard for FIVUCSAS that enables:
+
 - **System administrators** to manage the platform
 - **Tenant administrators** to manage their organization
 - **Security officers** to monitor audit logs and security events
 - **Support staff** to troubleshoot user issues
 
 ### Key Features (Phase 1)
+
 1. Authentication & Authorization
 2. User Management (CRUD)
 3. Tenant Management
@@ -41,6 +44,7 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 7. Settings & Configuration
 
 ### Success Criteria
+
 - ✅ Complete authentication flow (login, logout, token refresh)
 - ✅ Full user CRUD operations
 - ✅ Tenant isolation enforced in UI
@@ -56,12 +60,14 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 ### 1. System Administrator (Super Admin)
 
 **Profile:**
+
 - **Name**: Sarah Chen
 - **Role**: Platform Administrator at FIVUCSAS
 - **Age**: 32
 - **Tech Savvy**: High
 
 **Needs:**
+
 - Manage all tenants across the platform
 - View global system metrics
 - Manage system administrators
@@ -69,12 +75,14 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 - Configure platform-wide settings
 
 **Goals:**
+
 - Ensure platform stability and security
 - Quickly respond to security incidents
 - Onboard new tenants efficiently
 - Monitor system health proactively
 
 **Pain Points:**
+
 - Too many manual steps to onboard tenants
 - Hard to correlate security events across tenants
 - No real-time alerts for critical issues
@@ -85,12 +93,14 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 ### 2. Tenant Administrator
 
 **Profile:**
+
 - **Name**: Michael Rodriguez
 - **Role**: IT Manager at Acme Corp (tenant)
 - **Age**: 38
 - **Tech Savvy**: Medium-High
 
 **Needs:**
+
 - Manage users within their organization
 - Enroll employees for biometric authentication
 - View audit logs for their tenant
@@ -98,12 +108,14 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 - Configure tenant-specific settings
 
 **Goals:**
+
 - Streamline employee onboarding
 - Ensure compliance with security policies
 - Quickly investigate authentication issues
 - Maintain user privacy and data protection
 
 **Pain Points:**
+
 - Bulk user operations are tedious
 - No visibility into why authentications fail
 - Difficult to generate compliance reports
@@ -114,12 +126,14 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 ### 3. Security Officer
 
 **Profile:**
+
 - **Name**: Lisa Park
 - **Role**: Security Analyst at Enterprise Inc (tenant)
 - **Age**: 29
 - **Tech Savvy**: High
 
 **Needs:**
+
 - Monitor real-time security events
 - Investigate suspicious activities
 - Review audit trails
@@ -127,12 +141,14 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 - Track authentication patterns
 
 **Goals:**
+
 - Detect security threats early
 - Prove compliance during audits
 - Understand authentication patterns
 - Respond quickly to incidents
 
 **Pain Points:**
+
 - Too much noise in logs (need filtering)
 - No automated threat detection
 - Hard to correlate events across time
@@ -143,12 +159,14 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 ### 4. Support Staff
 
 **Profile:**
+
 - **Name**: David Kim
 - **Role**: Customer Support at Acme Corp
 - **Age**: 25
 - **Tech Savvy**: Medium
 
 **Needs:**
+
 - Look up user information
 - Troubleshoot authentication failures
 - Help users re-enroll biometrics
@@ -156,12 +174,14 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 - Reset user credentials (with approval)
 
 **Goals:**
+
 - Resolve user issues quickly
 - Provide accurate information
 - Minimize escalations
 - Maintain good customer satisfaction
 
 **Pain Points:**
+
 - Limited visibility into user data (privacy constraints)
 - Can't see why authentication failed
 - No guided troubleshooting flows
@@ -176,6 +196,7 @@ Build a web-based admin dashboard for FIVUCSAS that enables:
 #### User Stories
 
 **US-101: Login to Dashboard**
+
 ```
 As a system administrator
 I want to log in with my email and password
@@ -191,6 +212,7 @@ Acceptance Criteria:
 ```
 
 **US-102: Multi-Factor Authentication**
+
 ```
 As a security-conscious administrator
 I want to enable 2FA on my account
@@ -205,6 +227,7 @@ Acceptance Criteria:
 ```
 
 **US-103: Token Refresh**
+
 ```
 As a logged-in user
 I want my session to refresh automatically
@@ -218,6 +241,7 @@ Acceptance Criteria:
 ```
 
 **US-104: Logout**
+
 ```
 As a user
 I want to log out securely
@@ -238,6 +262,7 @@ Acceptance Criteria:
 #### User Stories
 
 **US-201: View User List**
+
 ```
 As a tenant administrator
 I want to see all users in my organization
@@ -254,6 +279,7 @@ Acceptance Criteria:
 ```
 
 **US-202: Create New User**
+
 ```
 As a tenant administrator
 I want to create a new user account
@@ -270,6 +296,7 @@ Acceptance Criteria:
 ```
 
 **US-203: Edit User Details**
+
 ```
 As a tenant administrator
 I want to update user information
@@ -285,6 +312,7 @@ Acceptance Criteria:
 ```
 
 **US-204: Deactivate User**
+
 ```
 As a tenant administrator
 I want to deactivate a user account
@@ -300,6 +328,7 @@ Acceptance Criteria:
 ```
 
 **US-205: Delete User**
+
 ```
 As a tenant administrator
 I want to permanently delete a user
@@ -315,6 +344,7 @@ Acceptance Criteria:
 ```
 
 **US-206: Bulk User Import**
+
 ```
 As a tenant administrator
 I want to import multiple users from CSV
@@ -331,6 +361,7 @@ Acceptance Criteria:
 ```
 
 **US-207: User Detail View**
+
 ```
 As a tenant administrator
 I want to see detailed user information
@@ -352,6 +383,7 @@ Acceptance Criteria:
 #### User Stories
 
 **US-301: View Tenant List**
+
 ```
 As a system administrator
 I want to see all tenants on the platform
@@ -366,6 +398,7 @@ Acceptance Criteria:
 ```
 
 **US-302: Create New Tenant**
+
 ```
 As a system administrator
 I want to onboard a new tenant
@@ -382,6 +415,7 @@ Acceptance Criteria:
 ```
 
 **US-303: Configure Tenant Settings**
+
 ```
 As a system administrator
 I want to configure tenant-specific settings
@@ -397,6 +431,7 @@ Acceptance Criteria:
 ```
 
 **US-304: Suspend Tenant**
+
 ```
 As a system administrator
 I want to suspend a tenant
@@ -418,6 +453,7 @@ Acceptance Criteria:
 #### User Stories
 
 **US-401: View Enrollments**
+
 ```
 As a tenant administrator
 I want to see biometric enrollments
@@ -432,6 +468,7 @@ Acceptance Criteria:
 ```
 
 **US-402: Enroll User Biometric**
+
 ```
 As a tenant administrator
 I want to enroll a user's face
@@ -448,6 +485,7 @@ Acceptance Criteria:
 ```
 
 **US-403: View Enrollment Details**
+
 ```
 As a tenant administrator
 I want to see enrollment details
@@ -463,6 +501,7 @@ Acceptance Criteria:
 ```
 
 **US-404: Delete Biometric Data**
+
 ```
 As a tenant administrator
 I want to delete a user's biometric data
@@ -478,6 +517,7 @@ Acceptance Criteria:
 ```
 
 **US-405: Test Verification**
+
 ```
 As a tenant administrator
 I want to test biometric verification
@@ -499,6 +539,7 @@ Acceptance Criteria:
 #### User Stories
 
 **US-501: View Audit Logs**
+
 ```
 As a security officer
 I want to view audit logs
@@ -514,6 +555,7 @@ Acceptance Criteria:
 ```
 
 **US-502: Filter Audit Logs**
+
 ```
 As a security officer
 I want to filter audit logs
@@ -529,6 +571,7 @@ Acceptance Criteria:
 ```
 
 **US-503: Search Audit Logs**
+
 ```
 As a security officer
 I want to search audit logs
@@ -544,6 +587,7 @@ Acceptance Criteria:
 ```
 
 **US-504: Export Audit Logs**
+
 ```
 As a security officer
 I want to export audit logs
@@ -559,6 +603,7 @@ Acceptance Criteria:
 ```
 
 **US-505: View Audit Log Details**
+
 ```
 As a security officer
 I want to see detailed audit log entry
@@ -580,6 +625,7 @@ Acceptance Criteria:
 #### User Stories
 
 **US-601: View System Overview**
+
 ```
 As a tenant administrator
 I want to see system overview
@@ -593,6 +639,7 @@ Acceptance Criteria:
 ```
 
 **US-602: Authentication Analytics**
+
 ```
 As a tenant administrator
 I want to see authentication statistics
@@ -607,6 +654,7 @@ Acceptance Criteria:
 ```
 
 **US-603: User Growth Chart**
+
 ```
 As a tenant administrator
 I want to see user growth over time
@@ -620,6 +668,7 @@ Acceptance Criteria:
 ```
 
 **US-604: Performance Metrics**
+
 ```
 As a system administrator
 I want to see system performance
@@ -640,6 +689,7 @@ Acceptance Criteria:
 #### User Stories
 
 **US-701: View Account Settings**
+
 ```
 As a user
 I want to update my account settings
@@ -654,6 +704,7 @@ Acceptance Criteria:
 ```
 
 **US-702: Tenant Settings (Admin)**
+
 ```
 As a tenant administrator
 I want to configure tenant settings
@@ -669,6 +720,7 @@ Acceptance Criteria:
 ```
 
 **US-703: Notification Preferences**
+
 ```
 As a user
 I want to manage notification preferences
@@ -766,6 +818,7 @@ FIVUCSAS Admin Dashboard
 ### Navigation Structure
 
 **Primary Navigation** (Left Sidebar)
+
 ```
 🏠 Dashboard
 👥 Users
@@ -777,11 +830,13 @@ FIVUCSAS Admin Dashboard
 ```
 
 **Top Bar**
+
 ```
 [Logo] [Search] [Notifications] [Profile Menu]
 ```
 
 **Breadcrumbs**
+
 ```
 Dashboard > Users > John Doe > Edit
 ```
@@ -795,6 +850,7 @@ Dashboard > Users > John Doe > Edit
 **URL**: `/login`
 
 **Layout**:
+
 ```
 ┌─────────────────────────────────────────────────┐
 │                                                 │
@@ -821,22 +877,25 @@ Dashboard > Users > John Doe > Edit
 ```
 
 **Components**:
+
 - Logo (top center)
 - Login Card (centered)
-  - Email input (with validation)
-  - Password input (with show/hide toggle)
-  - Remember me checkbox
-  - Sign in button (primary, full width)
-  - Forgot password link
+    - Email input (with validation)
+    - Password input (with show/hide toggle)
+    - Remember me checkbox
+    - Sign in button (primary, full width)
+    - Forgot password link
 - Footer (terms, privacy links)
 
 **Validation**:
+
 - Email format validation
 - Required field indicators
 - Error messages below fields
 - Loading state on button
 
 **Error States**:
+
 - Invalid credentials: "Email or password incorrect"
 - Account locked: "Account locked due to too many failed attempts"
 - Rate limited: "Too many login attempts. Try again in X minutes"
@@ -848,6 +907,7 @@ Dashboard > Users > John Doe > Edit
 **URL**: `/dashboard`
 
 **Layout**:
+
 ```
 ┌──────┬──────────────────────────────────────────────────┐
 │ Nav  │ 🏠 Dashboard                    [@] [🔔] [Profile]│
@@ -876,32 +936,34 @@ Dashboard > Users > John Doe > Edit
 ```
 
 **Components**:
+
 1. **Stats Cards** (4 across)
-   - Total Users (with trend)
-   - Active Users Today
-   - Total Enrollments
-   - Verifications Today
+    - Total Users (with trend)
+    - Active Users Today
+    - Total Enrollments
+    - Verifications Today
 
 2. **Authentication Chart**
-   - Line graph (last 24h)
-   - Success rate (green line)
-   - Failure rate (red line)
-   - Time selector (24h, 7d, 30d)
+    - Line graph (last 24h)
+    - Success rate (green line)
+    - Failure rate (red line)
+    - Time selector (24h, 7d, 30d)
 
 3. **Recent Activity Feed**
-   - Last 10 events
-   - Event type icon
-   - Timestamp (relative)
-   - Actor name
-   - Quick action links
+    - Last 10 events
+    - Event type icon
+    - Timestamp (relative)
+    - Actor name
+    - Quick action links
 
 4. **System Alerts**
-   - Current alerts (color-coded)
-   - Severity indicators
-   - Dismiss button
-   - View details link
+    - Current alerts (color-coded)
+    - Severity indicators
+    - Dismiss button
+    - View details link
 
 **Interactions**:
+
 - Cards are clickable (drill down)
 - Chart is interactive (hover for values)
 - Activity feed auto-updates (30s)
@@ -914,6 +976,7 @@ Dashboard > Users > John Doe > Edit
 **URL**: `/users`
 
 **Layout**:
+
 ```
 ┌──────┬──────────────────────────────────────────────────┐
 │ Nav  │ 👥 Users                        [@] [🔔] [Profile]│
@@ -936,31 +999,34 @@ Dashboard > Users > John Doe > Edit
 ```
 
 **Components**:
+
 1. **Top Actions Bar**
-   - Search box (instant search)
-   - Filter dropdown (role, status, enrollment status)
-   - Status filter (active, locked, pending)
-   - New User button (primary, top right)
+    - Search box (instant search)
+    - Filter dropdown (role, status, enrollment status)
+    - Status filter (active, locked, pending)
+    - New User button (primary, top right)
 
 2. **Data Table**
-   - Columns: Avatar, Name, Email, Role, Status, Last Login, Actions
-   - Sortable by each column
-   - Row actions: View, Edit, Deactivate
-   - Bulk select checkbox
-   - Responsive (stacks on mobile)
+    - Columns: Avatar, Name, Email, Role, Status, Last Login, Actions
+    - Sortable by each column
+    - Row actions: View, Edit, Deactivate
+    - Bulk select checkbox
+    - Responsive (stacks on mobile)
 
 3. **Pagination**
-   - Previous/Next buttons
-   - Page number indicator
-   - Items per page selector (20, 50, 100)
+    - Previous/Next buttons
+    - Page number indicator
+    - Items per page selector (20, 50, 100)
 
 **Interactions**:
+
 - Click row to view details
 - Hover row shows actions
 - Sort by clicking column header
 - Bulk actions toolbar appears when items selected
 
 **Empty State**:
+
 - "No users found" message
 - "Create your first user" button
 - Illustration
@@ -972,6 +1038,7 @@ Dashboard > Users > John Doe > Edit
 **URL**: `/users/:id`
 
 **Layout**:
+
 ```
 ┌──────┬──────────────────────────────────────────────────┐
 │ Nav  │ Dashboard > Users > John Doe     [@] [🔔] [Profile]│
@@ -1006,33 +1073,35 @@ Dashboard > Users > John Doe > Edit
 ```
 
 **Components**:
+
 1. **Header**
-   - Back button
-   - User name and email
-   - Status badge
-   - Action buttons (Edit, Delete)
+    - Back button
+    - User name and email
+    - Status badge
+    - Action buttons (Edit, Delete)
 
 2. **Tabs**
-   - Profile (default)
-   - Biometrics
-   - Sessions
-   - Activity
+    - Profile (default)
+    - Biometrics
+    - Sessions
+    - Activity
 
 3. **Profile Tab Content**
-   - Personal information (read-only)
-   - Account status
-   - Key dates
-   - Biometric summary
-   - Session summary
+    - Personal information (read-only)
+    - Account status
+    - Key dates
+    - Biometric summary
+    - Session summary
 
 4. **Quick Actions**
-   - Edit profile
-   - Reset password
-   - Deactivate account
-   - View audit log
-   - Test verification
+    - Edit profile
+    - Reset password
+    - Deactivate account
+    - View audit log
+    - Test verification
 
 **Other Tabs** (not shown):
+
 - **Biometrics**: List enrollments, add new, delete
 - **Sessions**: Active sessions with revoke option
 - **Activity**: Audit log filtered for this user
@@ -1044,6 +1113,7 @@ Dashboard > Users > John Doe > Edit
 **URL**: `/tenants`
 
 **Layout**:
+
 ```
 ┌──────┬──────────────────────────────────────────────────┐
 │ Nav  │ 🏢 Tenants                      [@] [🔔] [Profile]│
@@ -1066,6 +1136,7 @@ Dashboard > Users > John Doe > Edit
 ```
 
 **Components**:
+
 - Search and filter bar
 - Tenant table (name, domain, user count, status)
 - New tenant button
@@ -1078,6 +1149,7 @@ Dashboard > Users > John Doe > Edit
 **URL**: `/audit-logs`
 
 **Layout**:
+
 ```
 ┌──────┬──────────────────────────────────────────────────┐
 │ Nav  │ 🔍 Audit Logs                   [@] [🔔] [Profile]│
@@ -1101,31 +1173,33 @@ Dashboard > Users > John Doe > Edit
 ```
 
 **Components**:
+
 1. **Filter Bar**
-   - Date range picker
-   - Actor filter (dropdown)
-   - Action type filter
-   - Search box
-   - Export button
+    - Date range picker
+    - Actor filter (dropdown)
+    - Action type filter
+    - Search box
+    - Export button
 
 2. **Applied Filters**
-   - Shows active filters
-   - Remove individual filters
-   - Clear all button
+    - Shows active filters
+    - Remove individual filters
+    - Clear all button
 
 3. **Log Table**
-   - Timestamp (sortable)
-   - Actor name and icon
-   - Action (color-coded)
-   - Resource affected
-   - IP address
-   - Status indicator
+    - Timestamp (sortable)
+    - Actor name and icon
+    - Action (color-coded)
+    - Resource affected
+    - IP address
+    - Status indicator
 
 4. **Auto-refresh Toggle**
-   - Real-time updates via WebSocket
-   - Last updated timestamp
+    - Real-time updates via WebSocket
+    - Last updated timestamp
 
 **Interactions**:
+
 - Click row for details modal
 - Color coding: info (blue), warning (yellow), error (red)
 - Live updates with smooth animation
@@ -1138,6 +1212,7 @@ Dashboard > Users > John Doe > Edit
 **URL**: `/biometric/enroll`
 
 **Layout**:
+
 ```
 ┌──────┬──────────────────────────────────────────────────┐
 │ Nav  │ Dashboard > Biometric > Enroll  [@] [🔔] [Profile]│
@@ -1170,30 +1245,31 @@ Dashboard > Users > John Doe > Edit
 ```
 
 **Components**:
+
 1. **Wizard Steps**
-   - Step indicator (1/3, 2/3, 3/3)
-   - Progress bar
+    - Step indicator (1/3, 2/3, 3/3)
+    - Progress bar
 
 2. **User Selection**
-   - Search/select dropdown
-   - Shows current enrollments
+    - Search/select dropdown
+    - Shows current enrollments
 
 3. **Image Upload**
-   - Drag & drop zone
-   - File picker button
-   - Image previews
-   - Quality indicators
-   - Remove button per image
+    - Drag & drop zone
+    - File picker button
+    - Image previews
+    - Quality indicators
+    - Remove button per image
 
 4. **Validation**
-   - Minimum 3 images required
-   - Quality threshold (70%+)
-   - Face detection required
+    - Minimum 3 images required
+    - Quality threshold (70%+)
+    - Face detection required
 
 5. **Processing State**
-   - Progress indicator
-   - Status messages
-   - Success/error feedback
+    - Progress indicator
+    - Status messages
+    - Success/error feedback
 
 ---
 
@@ -1325,6 +1401,7 @@ User                Web App              Identity API         Database
 ```
 
 **Key Points:**
+
 - JWT access token (15 min expiry)
 - JWT refresh token (7 days expiry)
 - Tokens stored in localStorage (encrypted)
@@ -1332,6 +1409,7 @@ User                Web App              Identity API         Database
 - All API requests include `Authorization: Bearer <token>`
 
 **Token Structure:**
+
 ```json
 {
   "access_token": "eyJhbGc...",
@@ -1385,6 +1463,7 @@ Admin              Web App                Identity API        Database
 ```
 
 **Tenant Isolation:**
+
 - JWT contains `tenant_id`
 - Backend filters all queries by `tenant_id`
 - UI never shows cross-tenant data
@@ -1422,6 +1501,7 @@ Admin          Web App          Identity API      Biometric API      Queue
 ```
 
 **Async Processing:**
+
 - Upload returns job ID immediately
 - Processing happens in background
 - UI polls for status (or uses WebSocket)
@@ -1457,6 +1537,7 @@ Admin          Web App                  WebSocket Server        Database
 ```
 
 **WebSocket Events:**
+
 ```javascript
 // Client subscribes
 ws.send({
@@ -1499,6 +1580,7 @@ Component                 Action              Reducer              API
 ```
 
 **Redux Store Structure:**
+
 ```javascript
 {
   auth: {
@@ -1538,6 +1620,7 @@ Component                 Action              Reducer              API
 #### Identity Core API (Port 8080)
 
 **Authentication:**
+
 ```
 POST   /api/auth/login              - Login
 POST   /api/auth/logout             - Logout
@@ -1548,6 +1631,7 @@ POST   /api/auth/2fa/verify         - Verify 2FA code
 ```
 
 **Users:**
+
 ```
 GET    /api/users                   - List users (paginated)
 GET    /api/users/{id}              - Get user details
@@ -1562,6 +1646,7 @@ DELETE /api/users/{id}/sessions/{sessionId} - Revoke session
 ```
 
 **Tenants (System Admin):**
+
 ```
 GET    /api/tenants                 - List tenants
 GET    /api/tenants/{id}            - Get tenant
@@ -1575,6 +1660,7 @@ GET    /api/tenants/{id}/stats      - Tenant statistics
 ```
 
 **Audit Logs:**
+
 ```
 GET    /api/audit-logs              - List logs (filtered, paginated)
 GET    /api/audit-logs/{id}         - Get log details
@@ -1584,6 +1670,7 @@ GET    /api/audit-logs/correlation/{id} - Get related logs
 ```
 
 **Analytics:**
+
 ```
 GET    /api/analytics/overview      - Dashboard stats
 GET    /api/analytics/auth          - Auth statistics
@@ -1592,6 +1679,7 @@ GET    /api/analytics/performance   - Performance metrics
 ```
 
 **Settings:**
+
 ```
 GET    /api/settings/account        - Account settings
 PUT    /api/settings/account        - Update account
@@ -1605,6 +1693,7 @@ PUT    /api/settings/system         - Update system settings
 #### Biometric Processor API (Port 8000)
 
 **Enrollment:**
+
 ```
 POST   /api/biometric/enroll        - Start enrollment (async)
 GET    /api/biometric/enroll/{jobId}/status - Check status
@@ -1614,6 +1703,7 @@ DELETE /api/biometric/enrollments/{id} - Delete biometric data
 ```
 
 **Verification:**
+
 ```
 POST   /api/biometric/verify        - Verify face
 POST   /api/biometric/verify/test   - Test verification (admin)
@@ -1621,6 +1711,7 @@ GET    /api/biometric/verifications - Verification history
 ```
 
 **Health:**
+
 ```
 GET    /api/biometric/health        - Health check
 GET    /api/biometric/metrics       - ML metrics
@@ -1665,6 +1756,7 @@ API Error              Web App                     User
 ```
 
 **Error Handling Strategy:**
+
 - 401: Auto-refresh token, retry request
 - 403: Show access denied message
 - 404: Show not found page
@@ -1679,6 +1771,7 @@ API Error              Web App                     User
 ### Frontend Framework: React 18+
 
 **Why React:**
+
 - ✅ Mature ecosystem with extensive libraries
 - ✅ Strong community and corporate backing (Meta)
 - ✅ Excellent TypeScript support
@@ -1688,6 +1781,7 @@ API Error              Web App                     User
 - ✅ Great dev tools
 
 **Alternatives considered:**
+
 - Vue 3: Simpler but smaller ecosystem
 - Angular: Heavy, steep learning curve
 - Svelte: New, smaller community
@@ -1870,6 +1964,7 @@ web-app/
 ### Key Dependencies
 
 **package.json:**
+
 ```json
 {
   "name": "fivucsas-admin-dashboard",
@@ -1939,6 +2034,7 @@ web-app/
 ### Configuration Files
 
 **vite.config.ts:**
+
 ```typescript
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
@@ -1979,6 +2075,7 @@ export default defineConfig({
 ```
 
 **tsconfig.json:**
+
 ```json
 {
   "compilerOptions": {
@@ -2018,6 +2115,7 @@ export default defineConfig({
 ```
 
 **.env.example:**
+
 ```bash
 # API Configuration
 VITE_API_BASE_URL=http://localhost:8080
@@ -2051,6 +2149,7 @@ VITE_GA_ID=
 #### Day 1-2: Project Initialization (16 hours)
 
 **Tasks:**
+
 - [ ] Initialize Vite + React + TypeScript project
 - [ ] Install and configure all dependencies
 - [ ] Setup ESLint, Prettier, Husky (pre-commit hooks)
@@ -2061,6 +2160,7 @@ VITE_GA_ID=
 - [ ] Setup Git repository and .gitignore
 
 **Deliverables:**
+
 - ✅ Project builds successfully
 - ✅ Linting and formatting work
 - ✅ MUI theme applied
@@ -2071,26 +2171,29 @@ VITE_GA_ID=
 #### Day 3-4: Authentication (16 hours)
 
 **Tasks:**
+
 - [ ] Create Login page UI (MUI components)
 - [ ] Implement login form with validation (React Hook Form + Zod)
 - [ ] Setup Axios instance with interceptors
 - [ ] Create auth API service (login, logout, refresh)
 - [ ] Implement Redux auth slice
-  - Login async thunk
-  - Store tokens in localStorage
-  - Handle loading/error states
+    - Login async thunk
+    - Store tokens in localStorage
+    - Handle loading/error states
 - [ ] Create ProtectedRoute component
 - [ ] Implement automatic token refresh
 - [ ] Add logout functionality
 - [ ] Create auth middleware for Redux
 
 **Deliverables:**
+
 - ✅ Login page functional
 - ✅ JWT tokens stored securely
 - ✅ Protected routes work
 - ✅ Auto token refresh works
 
 **Code Example:**
+
 ```typescript
 // src/api/auth.api.ts
 export const authAPI = {
@@ -2119,6 +2222,7 @@ export const loginAsync = createAsyncThunk(
 #### Day 5: Dashboard Layout (8 hours)
 
 **Tasks:**
+
 - [ ] Create DashboardLayout component
 - [ ] Build Sidebar navigation
 - [ ] Build TopBar (search, notifications, profile menu)
@@ -2127,6 +2231,7 @@ export const loginAsync = createAsyncThunk(
 - [ ] Setup routing structure
 
 **Deliverables:**
+
 - ✅ Layout responsive (desktop + tablet + mobile)
 - ✅ Navigation works
 - ✅ Route transitions smooth
@@ -2138,12 +2243,13 @@ export const loginAsync = createAsyncThunk(
 #### Day 6-7: User List Page (16 hours)
 
 **Tasks:**
+
 - [ ] Create User list page
 - [ ] Build data table component (with MUI Table)
-  - Sortable columns
-  - Pagination
-  - Search functionality
-  - Status filters
+    - Sortable columns
+    - Pagination
+    - Search functionality
+    - Status filters
 - [ ] Implement users API service
 - [ ] Create users Redux slice
 - [ ] Add loading skeletons
@@ -2152,6 +2258,7 @@ export const loginAsync = createAsyncThunk(
 - [ ] Add bulk actions toolbar
 
 **Deliverables:**
+
 - ✅ User list displays correctly
 - ✅ Pagination works
 - ✅ Search and filters work
@@ -2162,6 +2269,7 @@ export const loginAsync = createAsyncThunk(
 #### Day 8: User Create/Edit (8 hours)
 
 **Tasks:**
+
 - [ ] Create UserForm modal
 - [ ] Implement form validation (email, role, etc.)
 - [ ] Wire up create user API
@@ -2170,6 +2278,7 @@ export const loginAsync = createAsyncThunk(
 - [ ] Handle form submission loading states
 
 **Deliverables:**
+
 - ✅ Can create new users
 - ✅ Can edit existing users
 - ✅ Validation works
@@ -2180,17 +2289,19 @@ export const loginAsync = createAsyncThunk(
 #### Day 9: User Details Page (8 hours)
 
 **Tasks:**
+
 - [ ] Create User detail page
 - [ ] Implement tabbed interface
-  - Profile tab
-  - Biometrics tab (placeholder)
-  - Sessions tab
-  - Activity tab
+    - Profile tab
+    - Biometrics tab (placeholder)
+    - Sessions tab
+    - Activity tab
 - [ ] Add quick actions (edit, deactivate, delete)
 - [ ] Fetch user details API
 - [ ] Show loading states
 
 **Deliverables:**
+
 - ✅ User details page complete
 - ✅ All tabs work
 - ✅ Actions functional
@@ -2200,18 +2311,20 @@ export const loginAsync = createAsyncThunk(
 #### Day 10: Dashboard Overview (8 hours)
 
 **Tasks:**
+
 - [ ] Create Dashboard page
 - [ ] Build stats cards component
-  - Total users
-  - Active users
-  - Enrollments
-  - Verifications
+    - Total users
+    - Active users
+    - Enrollments
+    - Verifications
 - [ ] Integrate Recharts for line graph
 - [ ] Create activity feed component
 - [ ] Add system alerts panel
 - [ ] Fetch dashboard data from API
 
 **Deliverables:**
+
 - ✅ Dashboard looks good
 - ✅ Charts render correctly
 - ✅ Real-time updates (polling)
@@ -2223,11 +2336,12 @@ export const loginAsync = createAsyncThunk(
 #### Day 11-12: Biometric Management (16 hours)
 
 **Tasks:**
+
 - [ ] Create Enrollment list page
 - [ ] Build enrollment wizard
-  - User selection step
-  - Image upload step
-  - Review/submit step
+    - User selection step
+    - Image upload step
+    - Review/submit step
 - [ ] Implement image upload with preview
 - [ ] Add progress indicator for processing
 - [ ] Create enrollment detail modal
@@ -2235,6 +2349,7 @@ export const loginAsync = createAsyncThunk(
 - [ ] Wire up biometric APIs
 
 **Deliverables:**
+
 - ✅ Can enroll users
 - ✅ Upload works
 - ✅ Status updates work
@@ -2245,11 +2360,12 @@ export const loginAsync = createAsyncThunk(
 #### Day 13-14: Audit Log Viewer (16 hours)
 
 **Tasks:**
+
 - [ ] Create Audit log page
 - [ ] Build filter bar
-  - Date range picker
-  - Actor filter
-  - Action type filter
+    - Date range picker
+    - Actor filter
+    - Action type filter
 - [ ] Implement log table
 - [ ] Add search functionality
 - [ ] Create log detail modal
@@ -2258,6 +2374,7 @@ export const loginAsync = createAsyncThunk(
 - [ ] Color-code by severity
 
 **Deliverables:**
+
 - ✅ Audit logs display
 - ✅ Filters work
 - ✅ Real-time updates work
@@ -2268,6 +2385,7 @@ export const loginAsync = createAsyncThunk(
 #### Day 15: Tenant Management (Admin Only) (8 hours)
 
 **Tasks:**
+
 - [ ] Create Tenant list page
 - [ ] Add create tenant form
 - [ ] Implement tenant detail page
@@ -2276,6 +2394,7 @@ export const loginAsync = createAsyncThunk(
 - [ ] Add role-based access control
 
 **Deliverables:**
+
 - ✅ System admins can manage tenants
 - ✅ Tenant admins don't see tenant menu
 - ✅ CRUD works
@@ -2285,23 +2404,25 @@ export const loginAsync = createAsyncThunk(
 #### Day 16-17: Settings & Polish (16 hours)
 
 **Tasks:**
+
 - [ ] Create Settings page
-  - Account settings tab
-  - Tenant settings tab
-  - System settings tab (super admin)
+    - Account settings tab
+    - Tenant settings tab
+    - System settings tab (super admin)
 - [ ] Implement password change
 - [ ] Add 2FA setup flow
 - [ ] Build notification preferences
 - [ ] Add session management
 - [ ] Polish all pages
-  - Fix responsive issues
-  - Improve loading states
-  - Add animations
-  - Improve error messages
+    - Fix responsive issues
+    - Improve loading states
+    - Add animations
+    - Improve error messages
 - [ ] Write unit tests for critical components
 - [ ] Write E2E tests for key flows
 
 **Deliverables:**
+
 - ✅ Settings complete
 - ✅ All pages polished
 - ✅ Tests passing
@@ -2312,6 +2433,7 @@ export const loginAsync = createAsyncThunk(
 #### Day 18: Testing & Documentation (8 hours)
 
 **Tasks:**
+
 - [ ] Full manual testing
 - [ ] Fix bugs found
 - [ ] Write README.md
@@ -2321,6 +2443,7 @@ export const loginAsync = createAsyncThunk(
 - [ ] Prepare demo
 
 **Deliverables:**
+
 - ✅ No critical bugs
 - ✅ Documentation complete
 - ✅ Ready for demo
@@ -2330,6 +2453,7 @@ export const loginAsync = createAsyncThunk(
 ### Development Workflow
 
 **Daily Workflow:**
+
 ```
 1. Morning
    ├─ Review tasks for the day
@@ -2355,6 +2479,7 @@ export const loginAsync = createAsyncThunk(
 ```
 
 **Git Branching:**
+
 ```
 main
  ├─ develop
@@ -2367,6 +2492,7 @@ main
 ```
 
 **Commit Convention:**
+
 ```
 feat: add user list page
 fix: resolve token refresh issue
@@ -2382,16 +2508,17 @@ style: format code with prettier
 
 **Potential Risks:**
 
-| Risk | Likelihood | Impact | Mitigation |
-|------|------------|--------|------------|
-| Backend API changes | Medium | High | API versioning, mock data for development |
-| Performance issues | Medium | Medium | Code splitting, lazy loading, memoization |
-| Browser compatibility | Low | Medium | Use babel, test in multiple browsers |
-| Security vulnerabilities | Medium | High | Security audit, OWASP guidelines, CSP |
-| Scope creep | High | High | Stick to Phase 1 features, defer Phase 2 |
-| Technical blockers | Medium | High | Time buffer, parallel work streams |
+| Risk                     | Likelihood | Impact | Mitigation                                |
+|--------------------------|------------|--------|-------------------------------------------|
+| Backend API changes      | Medium     | High   | API versioning, mock data for development |
+| Performance issues       | Medium     | Medium | Code splitting, lazy loading, memoization |
+| Browser compatibility    | Low        | Medium | Use babel, test in multiple browsers      |
+| Security vulnerabilities | Medium     | High   | Security audit, OWASP guidelines, CSP     |
+| Scope creep              | High       | High   | Stick to Phase 1 features, defer Phase 2  |
+| Technical blockers       | Medium     | High   | Time buffer, parallel work streams        |
 
 **Mitigation Strategies:**
+
 - **API Changes**: Use mock data during development
 - **Performance**: Profile with React DevTools, optimize as needed
 - **Security**: Follow OWASP top 10, use security linters
@@ -2404,6 +2531,7 @@ style: format code with prettier
 ### Performance Metrics
 
 **Page Load Times:**
+
 ```
 Initial Load (First Contentful Paint): < 1.5s
 Time to Interactive: < 2.5s
@@ -2414,6 +2542,7 @@ Audit Logs: < 2s (initial load)
 ```
 
 **Bundle Sizes:**
+
 ```
 Initial JS bundle: < 250KB (gzipped)
 CSS: < 50KB (gzipped)
@@ -2421,6 +2550,7 @@ Total page weight: < 500KB (excluding images)
 ```
 
 **Runtime Performance:**
+
 ```
 Table sort/filter: < 100ms
 Page navigation: < 50ms
@@ -2433,12 +2563,14 @@ Form validation: < 50ms
 ### Functionality Metrics
 
 **Phase 1 Completion:**
+
 - [x] ✅ 100% of user stories implemented
 - [x] ✅ All acceptance criteria met
 - [x] ✅ Zero critical bugs
 - [x] ✅ < 5 minor bugs
 
 **Test Coverage:**
+
 ```
 Unit tests: > 70% coverage
 Integration tests: Key flows covered
@@ -2446,6 +2578,7 @@ E2E tests: Happy paths covered
 ```
 
 **Browser Support:**
+
 ```
 Chrome: Latest 2 versions
 Firefox: Latest 2 versions
@@ -2460,6 +2593,7 @@ Mobile Chrome: Android 10+
 ### User Experience Metrics
 
 **Accessibility:**
+
 - ✅ WCAG 2.1 AA compliant
 - ✅ Keyboard navigation works
 - ✅ Screen reader compatible
@@ -2467,6 +2601,7 @@ Mobile Chrome: Android 10+
 - ✅ Focus indicators visible
 
 **Responsiveness:**
+
 ```
 Desktop: 1920x1080 to 1366x768
 Tablet: 1024x768 to 768x1024
@@ -2474,6 +2609,7 @@ Mobile: 375x667 to 414x896
 ```
 
 **Usability:**
+
 - ✅ Error messages are clear
 - ✅ Success feedback is immediate
 - ✅ Loading states are visible
@@ -2485,6 +2621,7 @@ Mobile: 375x667 to 414x896
 ### Quality Metrics
 
 **Code Quality:**
+
 ```
 ESLint: 0 errors, < 10 warnings
 TypeScript: Strict mode, no any types
@@ -2493,6 +2630,7 @@ Complexity: < 10 cyclomatic complexity
 ```
 
 **Security:**
+
 - ✅ No XSS vulnerabilities
 - ✅ CSRF protection enabled
 - ✅ JWT tokens secure (httpOnly cookies preferred)
@@ -2501,6 +2639,7 @@ Complexity: < 10 cyclomatic complexity
 - ✅ HTTPS enforced
 
 **Reliability:**
+
 ```
 Uptime: 99.9%
 Error rate: < 0.1%
@@ -2513,6 +2652,7 @@ MTTR (Mean Time To Recovery): < 1 hour
 ### Business Metrics
 
 **Adoption:**
+
 ```
 Week 1: 10 users (pilot)
 Week 2: 50 users (early adopters)
@@ -2521,6 +2661,7 @@ Month 1: 500+ users
 ```
 
 **User Satisfaction:**
+
 ```
 User feedback: > 4/5 stars
 Support tickets: < 10 per week
@@ -2529,6 +2670,7 @@ Bug reports: < 5 per week
 ```
 
 **Time Savings:**
+
 ```
 User creation: 50% faster than manual process
 Audit log search: 80% faster
@@ -2543,6 +2685,7 @@ Report generation: 90% faster
 ### Glossary
 
 **Terms:**
+
 - **Tenant**: Organization using the FIVUCSAS platform
 - **Biometric Enrollment**: Process of registering a user's face
 - **JWT**: JSON Web Token for authentication
@@ -2556,6 +2699,7 @@ Report generation: 90% faster
 ### References
 
 **Documentation:**
+
 - React: https://react.dev/
 - Material-UI: https://mui.com/
 - Redux Toolkit: https://redux-toolkit.js.org/
@@ -2563,6 +2707,7 @@ Report generation: 90% faster
 - Recharts: https://recharts.org/
 
 **Design Inspiration:**
+
 - Auth0 Dashboard
 - Firebase Console
 - AWS Console
@@ -2574,6 +2719,7 @@ Report generation: 90% faster
 ### Change Log
 
 **Version 1.0 (2025-11-12)**
+
 - Initial design document
 - User personas defined
 - User stories documented
@@ -2592,6 +2738,7 @@ Report generation: 90% faster
 **This design document is now COMPLETE! ✅**
 
 **What's included:**
+
 - ✅ Executive Summary
 - ✅ User Personas (4 types)
 - ✅ User Stories (40+ stories, 7 epics)
@@ -2604,6 +2751,7 @@ Report generation: 90% faster
 - ✅ Success Metrics (performance, quality, business)
 
 **Ready for:**
+
 1. **Stakeholder Review** - Share with team/clients for approval
 2. **Visual Design** - Create high-fidelity mockups in Figma
 3. **Implementation** - Start Week 1: Project Setup & Authentication

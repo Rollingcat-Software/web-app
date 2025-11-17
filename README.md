@@ -8,7 +8,8 @@
 
 ## 🎯 Overview
 
-Professional admin dashboard for the **FIVUCSAS** (Face and Identity Verification Using Cloud-based SaaS) platform. Built with React 18, TypeScript, Material-UI, and Redux Toolkit.
+Professional admin dashboard for the **FIVUCSAS** (Face and Identity Verification Using Cloud-based SaaS) platform.
+Built with React 18, TypeScript, Material-UI, and Redux Toolkit.
 
 Provides comprehensive user management, biometric enrollment tracking, audit logging, and system analytics.
 
@@ -19,63 +20,69 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for detailed progress
 ## ✨ Features
 
 ### Implemented ✅
+
 - **Authentication System**
-  - Secure login with JWT tokens
-  - Auto token refresh on 401
-  - Protected routes
-  - Redux state management
-  - Mock mode for development
+    - Secure login with JWT tokens
+    - Auto token refresh on 401
+    - Protected routes
+    - Redux state management
+    - Mock mode for development
 
 - **Professional UI/UX**
-  - Material-UI components
-  - Responsive design
-  - Custom theme
-  - Form validation with Zod
-  - Loading states and error handling
+    - Material-UI components
+    - Responsive design
+    - Custom theme
+    - Form validation with Zod
+    - Loading states and error handling
 
 - **Complete Dashboard**
-  - Dashboard layout with sidebar and top bar
-  - 6 statistics cards with real-time data
-  - System overview metrics
-  - Responsive design (mobile + desktop)
+    - Dashboard layout with sidebar and top bar
+    - 6 statistics cards with real-time data
+    - System overview metrics
+    - Responsive design (mobile + desktop)
 
 - **User Management**
-  - Users list with search and filter
-  - CRUD operations (view, edit, delete)
-  - Status and role badges
-  - Sample data with 5 users
+    - Users list with search and filter
+    - CRUD operations (view, edit, delete)
+    - Status and role badges
+    - Sample data with 5 users
 
 - **Navigation & Routing**
-  - 6 main pages (Dashboard, Users, Tenants, Enrollments, Audit Logs, Settings)
-  - Protected routes
-  - Active route highlighting
-  - Breadcrumb navigation
+    - 6 main pages (Dashboard, Users, Tenants, Enrollments, Audit Logs, Settings)
+    - Protected routes
+    - Active route highlighting
+    - Breadcrumb navigation
 
 ## Technology Stack
 
 ### Core
+
 - **React 18**: Modern UI framework
 - **TypeScript 5**: Type-safe development
 - **Vite**: Fast build tool and dev server
 - **React Router v6**: Client-side routing
 
 ### State Management
+
 - **Redux Toolkit**: Global state management
 - **RTK Query**: Data fetching and caching
 - **React Query**: Server state management (alternative)
 
 ### UI Framework
+
 - **Material-UI (MUI) v5**: Component library
 - **Tailwind CSS**: Utility-first CSS
 - **Framer Motion**: Animations
 - **Recharts**: Data visualization
 
 ### Forms & Validation
+
 - **React Hook Form**: Form management
 - **Yup**: Schema validation
 - **Zod**: TypeScript-first validation (alternative)
 
 ### Authentication & Security
+
 - **JWT**: Token-based authentication
 - **Axios**: HTTP client with interceptors
 - **React-Toastify**: Notifications
@@ -166,12 +173,14 @@ web-app/
 ## Key Features
 
 ### Dashboard
+
 - Real-time statistics
 - Recent authentication activities
 - User growth charts
 - Security alerts
 
 ### User Management
+
 ```typescript
 // Example: User Management Component
 const UserManagement: React.FC = () => {
@@ -189,11 +198,13 @@ const UserManagement: React.FC = () => {
 ```
 
 ### Role Management
+
 - Create custom roles
 - Assign permissions
 - Role hierarchy
 
 ### Analytics
+
 - Authentication trends
 - User activity heatmaps
 - Biometric enrollment statistics
