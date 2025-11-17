@@ -50,3 +50,5 @@ out
 # OS
 .DS_Store
 Thumbs.db
+
+pnpm-lock.yaml
