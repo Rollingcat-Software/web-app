@@ -15,3 +15,8 @@ export type {
     CreateEntity,
     UpdateEntity,
 } from './IRepository'
+export type {
+    ITokenService,
+    TokenPair,
+    JwtPayload,
+} from './ITokenService'

@@ -2,6 +2,17 @@ import { Container } from 'inversify'
 import 'reflect-metadata'
 import { TYPES } from './types'
 import type { IConfig } from '@domain/interfaces/IConfig'
+import type { ILogger } from '@domain/interfaces/ILogger'
+import type { INotifier } from '@domain/interfaces/INotifier'
+import type { ISecureStorage } from '@domain/interfaces/IStorage'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
+import { LoggerService } from '@core/services/LoggerService'
+import { NotifierService } from '@core/services/NotifierService'
+import { SecureStorageService } from '@core/services/SecureStorageService'
+import { AxiosClient } from '@core/api/AxiosClient'
+import { TokenService } from '@core/services/TokenService'
+import { ErrorHandler } from '@core/errors/ErrorHandler'
 
 /**
  * Create and configure the IoC container
@@ -27,10 +38,16 @@ const config: IConfig = {
 // Bind configuration
 container.bind<IConfig>(TYPES.Config).toConstantValue(config)
 
-// Infrastructure services will be bound here in Phase 2
-// Example:
-// container.bind<ILogger>(TYPES.Logger).to(LoggerService).inSingletonScope()
-// container.bind<IHttpClient>(TYPES.HttpClient).to(AxiosClient).inSingletonScope()
+// Bind infrastructure services (Phase 2)
+container.bind<ILogger>(TYPES.Logger).to(LoggerService).inSingletonScope()
+container.bind<INotifier>(TYPES.Notifier).to(NotifierService).inSingletonScope()
+container.bind<ISecureStorage>(TYPES.SecureStorage).to(SecureStorageService).inSingletonScope()
+container.bind<IHttpClient>(TYPES.HttpClient).to(AxiosClient).inSingletonScope()
+container.bind<ITokenService>(TYPES.TokenService).to(TokenService).inSingletonScope()
+container.bind<ErrorHandler>(TYPES.ErrorHandler).to(ErrorHandler).inSingletonScope()
+
+// Repositories will be bound in Phase 3
+// Services will be bound in Phase 3
 
 export { container }
 export type { Container }
