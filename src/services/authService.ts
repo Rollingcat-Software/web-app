@@ -1,7 +1,8 @@
 import { LoginRequest, LoginResponse, User, UserRole, UserStatus } from '../types'
+import api from './api'
 
-// Mock mode - set to false when backend is ready
-const MOCK_MODE = true
+// Mock mode - controlled by environment variable
+const MOCK_MODE = import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 // Mock user data
 const MOCK_USER: User = {
@@ -41,10 +42,9 @@ class AuthService {
       }
     }
 
-    // Real API call (when backend is ready)
-    // const response = await api.post<LoginResponse>('/auth/login', credentials)
-    // return response.data
-    throw new Error('Backend not implemented')
+    // Real API call
+    const response = await api.post<LoginResponse>('/auth/login', credentials)
+    return response.data
   }
 
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
@@ -58,10 +58,10 @@ class AuthService {
       }
     }
 
-    // Real API call
-    // const response = await api.post<LoginResponse>('/auth/refresh', { refreshToken })
-    // return response.data
-    throw new Error('Backend not implemented')
+    // Real API call - TODO: Backend needs to implement /auth/refresh endpoint
+    // For now, fallback to re-login flow
+    console.warn('Refresh token endpoint not implemented on backend yet')
+    throw new Error('Token refresh not available - please login again')
   }
 
   async logout(): Promise<void> {
@@ -70,8 +70,10 @@ class AuthService {
       return
     }
 
-    // Real API call
+    // Real API call - TODO: Backend needs to implement /auth/logout endpoint
+    // For now, just clear client-side tokens
     // await api.post('/auth/logout')
+    console.log('Logout - clearing local tokens')
   }
 
   // Utility function to simulate network delay
