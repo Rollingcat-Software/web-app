@@ -264,7 +264,7 @@ export default function DashboardPage() {
                       fill="#8884d8"
                       dataKey="value"
                     >
-                      {authMethodsData.map((entry, index) => (
+                      {authMethodsData.map((_entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                       ))}
                     </Pie>

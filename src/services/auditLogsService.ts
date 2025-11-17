@@ -1,5 +1,5 @@
 import { AuditLog, PaginatedResponse } from '../types'
-import api from './api'
+// import api from './api' // TODO: Uncomment when backend ready
 
 // Mock mode - controlled by environment variable
 // Keep in mock mode since backend doesn't have audit log endpoints yet

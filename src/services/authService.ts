@@ -47,7 +47,7 @@ class AuthService {
     return response.data
   }
 
-  async refreshToken(refreshToken: string): Promise<LoginResponse> {
+  async refreshToken(_refreshToken: string): Promise<LoginResponse> {
     if (MOCK_MODE) {
       await this.delay(300)
 

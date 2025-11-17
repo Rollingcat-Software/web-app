@@ -1,5 +1,5 @@
 import { EnrollmentJob, PaginatedResponse, EnrollmentStatus } from '../types'
-import api from './api'
+// import api from './api' // TODO: Uncomment when backend ready
 
 // Mock mode - controlled by environment variable  
 const MOCK_MODE = import.meta.env.VITE_ENABLE_MOCK_API === 'true'
