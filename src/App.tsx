@@ -1,27 +1,38 @@
-import {Navigate, Route, Routes} from 'react-router-dom'
-import {useSelector} from 'react-redux'
-import {RootState} from './store'
-import LoginPage from './pages/LoginPage'
+import { Navigate, Route, Routes } from 'react-router-dom'
+import { LoginPage } from './features/auth'
+import { useAuth } from './features/auth/hooks/useAuth'
 import DashboardLayout from './components/layout/DashboardLayout'
-import DashboardPage from './pages/DashboardPage'
-import UsersListPage from './pages/UsersListPage'
+import DashboardPage from './features/dashboard/components/DashboardPage'
+import UsersListPage from './features/users/components/UsersListPage'
 import UserDetailsPage from './pages/UserDetailsPage'
 import UserFormPage from './pages/UserFormPage'
 import TenantsListPage from './pages/TenantsListPage'
 import EnrollmentsListPage from './pages/EnrollmentsListPage'
 import AuditLogsPage from './pages/AuditLogsPage'
 import SettingsPage from './pages/SettingsPage'
+import { CircularProgress, Box } from '@mui/material'
 
-// Protected Route Component
+/**
+ * Protected Route Component
+ * Uses new auth architecture with useAuth hook
+ */
 interface ProtectedRouteProps {
     children: React.ReactNode
 }
 
-const ProtectedRoute = ({children}: ProtectedRouteProps) => {
-    const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated)
+const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
+    const { isAuthenticated, loading } = useAuth()
+
+    if (loading) {
+        return (
+            <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh' }}>
+                <CircularProgress />
+            </Box>
+        )
+    }
 
     if (!isAuthenticated) {
-        return <Navigate to="/login" replace/>
+        return <Navigate to="/login" replace />
     }
 
     return <>{children}</>
