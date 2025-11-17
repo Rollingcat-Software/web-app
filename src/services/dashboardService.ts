@@ -1,7 +1,8 @@
 import { DashboardStats } from '../types'
+import api from './api'
 
-// Mock mode
-const MOCK_MODE = true
+// Mock mode - controlled by environment variable
+const MOCK_MODE = import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 // Mock dashboard statistics
 const MOCK_STATS: DashboardStats = {
@@ -21,10 +22,9 @@ class DashboardService {
       return MOCK_STATS
     }
 
-    // Real API call
-    // const response = await api.get<DashboardStats>('/dashboard/stats')
-    // return response.data
-    throw new Error('Backend not implemented')
+    // Real API call - check StatisticsController
+    const response = await api.get<DashboardStats>('/statistics')
+    return response.data
   }
 
   private delay(ms: number): Promise<void> {

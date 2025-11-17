@@ -1,7 +1,9 @@
 import { Tenant, PaginatedResponse, TenantStatus } from '../types'
+import api from './api'
 
-// Mock mode
-const MOCK_MODE = true
+// Mock mode - controlled by environment variable
+// Keep in mock mode since backend doesn't have tenant endpoints yet
+const MOCK_MODE = true // TODO: Change to import.meta.env.VITE_ENABLE_MOCK_API === 'true' when backend ready
 
 // Mock tenants data
 const MOCK_TENANTS: Tenant[] = [

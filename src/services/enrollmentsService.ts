@@ -1,7 +1,8 @@
 import { EnrollmentJob, PaginatedResponse, EnrollmentStatus } from '../types'
+import api from './api'
 
-// Mock mode
-const MOCK_MODE = true
+// Mock mode - controlled by environment variable  
+const MOCK_MODE = import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 // Mock enrollments data
 const MOCK_ENROLLMENTS: EnrollmentJob[] = [

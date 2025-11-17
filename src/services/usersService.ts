@@ -1,7 +1,8 @@
 import { User, PaginatedResponse, UserRole, UserStatus } from '../types'
+import api from './api'
 
-// Mock mode
-const MOCK_MODE = true
+// Mock mode - controlled by environment variable
+const MOCK_MODE = import.meta.env.VITE_ENABLE_MOCK_API === 'true'
 
 // Mock users data
 const MOCK_USERS: User[] = [
@@ -85,9 +86,16 @@ class UsersService {
     }
 
     // Real API call
-    // const response = await api.get<PaginatedResponse<User>>(`/users?page=${page}&size=${size}`)
-    // return response.data
-    throw new Error('Backend not implemented')
+    const response = await api.get<User[]>('/users')
+    // Backend returns array, not paginated response yet
+    // TODO: Backend should implement pagination
+    return {
+      content: response.data,
+      totalElements: response.data.length,
+      totalPages: Math.ceil(response.data.length / size),
+      page,
+      size,
+    }
   }
 
   async getUserById(id: number): Promise<User> {
@@ -99,9 +107,8 @@ class UsersService {
     }
 
     // Real API call
-    // const response = await api.get<User>(`/users/${id}`)
-    // return response.data
-    throw new Error('Backend not implemented')
+    const response = await api.get<User>(`/users/${id}`)
+    return response.data
   }
 
   async createUser(user: Omit<User, 'id'>): Promise<User> {
@@ -116,9 +123,17 @@ class UsersService {
     }
 
     // Real API call
-    // const response = await api.post<User>('/users', user)
-    // return response.data
-    throw new Error('Backend not implemented')
+    // Map frontend User to backend CreateUserRequest format
+    const createRequest = {
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      password: 'DefaultPassword123!', // TODO: Should come from form
+      role: user.role,
+      tenantId: user.tenantId,
+    }
+    const response = await api.post<User>('/users', createRequest)
+    return response.data
   }
 
   async updateUser(id: number, user: User): Promise<User> {
@@ -131,9 +146,16 @@ class UsersService {
     }
 
     // Real API call
-    // const response = await api.put<User>(`/users/${id}`, user)
-    // return response.data
-    throw new Error('Backend not implemented')
+    // Map frontend User to backend UpdateUserRequest format
+    const updateRequest = {
+      email: user.email,
+      firstName: user.firstName,
+      lastName: user.lastName,
+      role: user.role,
+      status: user.status,
+    }
+    const response = await api.put<User>(`/users/${id}`, updateRequest)
+    return response.data
   }
 
   async deleteUser(id: number): Promise<void> {
@@ -148,7 +170,7 @@ class UsersService {
     }
 
     // Real API call
-    // await api.delete(`/users/${id}`)
+    await api.delete(`/users/${id}`)
   }
 
   private delay(ms: number): Promise<void> {
