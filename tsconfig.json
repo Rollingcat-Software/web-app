@@ -16,6 +16,9 @@
     "isolatedModules": true,
     "noEmit": true,
     "jsx": "react-jsx",
+    /* Decorators for dependency injection */
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     /* Linting */
     "strict": true,
     "noUnusedLocals": true,
@@ -47,6 +50,21 @@
       ],
       "@types/*": [
         "./src/types/*"
+      ],
+      "@core/*": [
+        "./src/core/*"
+      ],
+      "@domain/*": [
+        "./src/domain/*"
+      ],
+      "@features/*": [
+        "./src/features/*"
+      ],
+      "@shared/*": [
+        "./src/shared/*"
+      ],
+      "@app/*": [
+        "./src/app/*"
       ]
     }
   },
