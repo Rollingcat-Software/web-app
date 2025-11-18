@@ -1,31 +1,41 @@
 # FIVUCSAS Admin Dashboard
 
-![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)
+![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![React](https://img.shields.io/badge/React-18-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
-![Progress](https://img.shields.io/badge/progress-100%25-brightgreen.svg)
+![Architecture](https://img.shields.io/badge/Architecture-Clean-brightgreen.svg)
+![Tests](https://img.shields.io/badge/Tests-230%2B-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
-## 🎯 Overview
+## Overview
 
 Professional admin dashboard for the **FIVUCSAS** (Face and Identity Verification Using Cloud-based SaaS) platform.
-Built with React 18, TypeScript, Material-UI, and Redux Toolkit.
+
+Built with React 18, TypeScript, Material-UI, and **Clean Architecture** with dependency injection.
 
 Provides comprehensive user management, biometric enrollment tracking, audit logging, and system analytics.
 
-**Current Status:** ✅ Phase 1 - 100% COMPLETE
+## Architecture
 
-See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for detailed progress.
+This application follows enterprise-grade **Clean Architecture** principles:
 
-## ✨ Features
+- **Dependency Injection** with InversifyJS
+- **Repository Pattern** for data access abstraction
+- **Service Layer** for business logic
+- **Custom Hooks** for state management (no Redux)
+- **Zod** for runtime validation
 
-### Implemented ✅
+See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architecture documentation.
+
+## Features
+
+### Core Features
 
 - **Authentication System**
     - Secure login with JWT tokens
     - Auto token refresh on 401
     - Protected routes
-    - Redux state management
+    - Encrypted token storage
     - Mock mode for development
 
 - **Professional UI/UX**
@@ -34,60 +44,74 @@ See [IMPLEMENTATION_STATUS.md](./IMPLEMENTATION_STATUS.md) for detailed progress
     - Custom theme
     - Form validation with Zod
     - Loading states and error handling
+    - Code splitting for performance
 
 - **Complete Dashboard**
     - Dashboard layout with sidebar and top bar
-    - 6 statistics cards with real-time data
+    - Statistics cards with real-time data
     - System overview metrics
     - Responsive design (mobile + desktop)
 
 - **User Management**
-    - Users list with search and filter
-    - CRUD operations (view, edit, delete)
+    - Users list with search, filter, and pagination
+    - CRUD operations (create, view, edit, delete)
     - Status and role badges
-    - Sample data with 5 users
+    - Inline validation
 
-- **Navigation & Routing**
-    - 6 main pages (Dashboard, Users, Tenants, Enrollments, Audit Logs, Settings)
-    - Protected routes
-    - Active route highlighting
-    - Breadcrumb navigation
+- **Multi-tenancy Support**
+    - Tenant management
+    - Per-tenant configuration
+    - Isolated data access
+
+- **Audit Logging**
+    - Activity tracking
+    - Action history
+    - Filterable logs
 
 ## Technology Stack
 
 ### Core
 
-- **React 18**: Modern UI framework
-- **TypeScript 5**: Type-safe development
+- **React 18**: Modern UI framework with concurrent features
+- **TypeScript 5**: Strict type-safe development
 - **Vite**: Fast build tool and dev server
 - **React Router v6**: Client-side routing
 
-### State Management
+### Architecture & DI
 
-- **Redux Toolkit**: Global state management
-- **RTK Query**: Data fetching and caching
-- **React Query**: Server state management (alternative)
+- **InversifyJS**: Dependency injection container
+- **reflect-metadata**: Decorator metadata support
+- **Clean Architecture**: Layered architecture pattern
 
 ### UI Framework
 
 - **Material-UI (MUI) v5**: Component library
-- **Tailwind CSS**: Utility-first CSS
-- **Framer Motion**: Animations
-- **Recharts**: Data visualization
+- **Emotion**: CSS-in-JS styling
 
-### Forms & Validation
+### Validation & Forms
 
+- **Zod**: TypeScript-first schema validation
 - **React Hook Form**: Form management
-- **Yup**: Schema validation
-- **Zod**: TypeScript-first validation (alternative)
 
-### Authentication & Security
+### Testing
+
+- **Vitest**: Fast unit test runner
+- **React Testing Library**: Component and hook testing
+- **230+ tests**: Comprehensive test coverage
+
+### Authentication & HTTP
 
 - **JWT**: Token-based authentication
 - **Axios**: HTTP client with interceptors
-- **React-Toastify**: Notifications
 
-## Installation
+## Quick Start
+
+### Prerequisites
+
+- Node.js 18+
+- npm 9+
+
+### Installation
 
 ```bash
 # Clone repository
@@ -96,151 +120,126 @@ cd web-app
 
 # Install dependencies
 npm install
-# or
-yarn install
-# or
-pnpm install
 
-# Set up environment variables
-cp .env.example .env.local
+# Start development server
+npm run dev
 ```
+
+The app runs at http://localhost:3000
 
 ### Environment Configuration
 
+Create a `.env.local` file:
+
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api/v1
-VITE_BIOMETRIC_API_URL=http://localhost:8001/api/v1
-VITE_APP_NAME=FIVUCSAS Admin
-VITE_ENVIRONMENT=development
+VITE_ENABLE_MOCK_API=true
 ```
 
-## Running the Application
+### Mock Mode
+
+The app works fully offline with mock data. Set `VITE_ENABLE_MOCK_API=true` to use mock repositories.
+
+Mock users included:
+- `admin@fivucsas.com` - Admin user
+- `john.doe@example.com` - Regular user
+- And 3 more test users
+
+## Available Scripts
 
 ```bash
-# Development mode
-npm run dev
-
-# Build for production
-npm run build
-
-# Preview production build
-npm run preview
-
-# Run tests
-npm run test
-
-# Type checking
-npm run type-check
-
-# Linting
-npm run lint
-npm run lint:fix
+npm run dev       # Start development server
+npm run build     # Build for production
+npm run preview   # Preview production build
+npm run test      # Run tests in watch mode
+npm run lint      # Run ESLint
 ```
 
 ## Project Structure
 
 ```
-web-app/
-├── public/
-├── src/
-│   ├── assets/              # Static assets
-│   ├── components/
-│   │   ├── common/          # Reusable components
-│   │   ├── layout/          # Layout components
-│   │   └── features/        # Feature-specific components
-│   ├── features/
-│   │   ├── auth/
-│   │   ├── dashboard/
-│   │   ├── users/
-│   │   ├── roles/
-│   │   ├── biometrics/
-│   │   └── analytics/
-│   ├── hooks/               # Custom React hooks
-│   ├── services/            # API services
-│   ├── store/               # Redux store
-│   ├── types/               # TypeScript types
-│   ├── utils/               # Utility functions
-│   ├── App.tsx
-│   └── main.tsx
-├── tests/
-├── .env.example
-├── package.json
-├── tsconfig.json
-├── vite.config.ts
-└── README.md
+src/
+├── app/                      # Application bootstrap
+│   └── providers/            # React context providers
+│
+├── core/                     # Core infrastructure
+│   ├── api/                  # HTTP client
+│   ├── di/                   # Dependency injection container
+│   ├── errors/               # Error handling
+│   ├── repositories/         # Data access implementations
+│   └── services/             # Infrastructure services
+│
+├── domain/                   # Domain layer (pure business)
+│   ├── interfaces/           # Contracts (IUserService, etc.)
+│   ├── models/               # Domain entities (User, Tenant)
+│   └── validators/           # Zod validation schemas
+│
+├── features/                 # Feature modules
+│   ├── auth/                 # Authentication feature
+│   ├── users/                # User management
+│   ├── dashboard/            # Dashboard feature
+│   ├── tenants/              # Tenant management
+│   ├── enrollments/          # Enrollment tracking
+│   └── auditLogs/            # Audit logging
+│
+├── pages/                    # Page components
+├── components/               # Shared UI components
+└── test/                     # Test utilities
 ```
 
-## Key Features
+## Usage Examples
 
-### Dashboard
-
-- Real-time statistics
-- Recent authentication activities
-- User growth charts
-- Security alerts
-
-### User Management
+### Using a Service in a Component
 
 ```typescript
-// Example: User Management Component
-const UserManagement: React.FC = () => {
-  const { data: users, isLoading } = useGetUsersQuery({ page: 1, limit: 10 });
+import { useService } from '@app/providers'
+import { TYPES } from '@core/di/types'
+import type { IUserService } from '@domain/interfaces/IUserService'
 
-  return (
-    <DataGrid
-      rows={users?.data || []}
-      columns={userColumns}
-      onEdit={handleEdit}
-      onDelete={handleDelete}
-    />
-  );
-};
-```
+function MyComponent() {
+    const userService = useService<IUserService>(TYPES.UserService)
 
-### Role Management
-
-- Create custom roles
-- Assign permissions
-- Role hierarchy
-
-### Analytics
-
-- Authentication trends
-- User activity heatmaps
-- Biometric enrollment statistics
-
-## API Integration
-
-```typescript
-// services/api.ts
-import axios from 'axios';
-
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_BASE_URL,
-  timeout: 30000,
-});
-
-// Request interceptor for JWT
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('accessToken');
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Response interceptor for token refresh
-api.interceptors.response.use(
-  (response) => response,
-  async (error) => {
-    if (error.response?.status === 401) {
-      // Handle token refresh
-      await refreshToken();
+    const handleClick = async () => {
+        const users = await userService.getUsers()
     }
-    return Promise.reject(error);
-  }
-);
+}
 ```
+
+### Using a Feature Hook
+
+```typescript
+import { useUsers } from '@features/users'
+
+function UsersPage() {
+    const { users, loading, error, createUser, deleteUser } = useUsers()
+
+    if (loading) return <Spinner />
+    if (error) return <Error message={error.message} />
+
+    return <UserList users={users} onDelete={deleteUser} />
+}
+```
+
+## Testing
+
+```bash
+# Run all tests
+npm test
+
+# Run specific test file
+npm test -- UserService
+
+# Run with coverage
+npm test -- --coverage
+
+# Run once (CI mode)
+npm test -- --run
+```
+
+## Documentation
+
+- [Architecture Guide](./docs/ARCHITECTURE.md) - Detailed architecture documentation
+- [Developer Guide](./docs/DEVELOPER_GUIDE.md) - Quick reference for development tasks
 
 ## Building for Production
 
@@ -250,36 +249,26 @@ npm run build
 
 # Preview
 npm run preview
-
-# Deploy to Vercel
-vercel deploy
-
-# Deploy to Netlify
-netlify deploy --prod
 ```
 
-## Testing
+The build includes code splitting for optimal loading performance.
 
-```bash
-# Unit tests
-npm run test
+## CI/CD
 
-# Integration tests
-npm run test:integration
+This project includes GitHub Actions for automated testing and builds. See `.github/workflows/ci.yml`.
 
-# E2E tests
-npm run test:e2e
-
-# Coverage
-npm run test:coverage
-```
+The pipeline runs:
+- Linting
+- Type checking
+- Unit tests
+- Production build
 
 ## License
 
 Part of the FIVUCSAS platform developed at Marmara University.
 
-Copyright © 2025 FIVUCSAS Team. Licensed under MIT License.
+Copyright 2025 FIVUCSAS Team. Licensed under MIT License.
 
 ---
 
-**Built with React & TypeScript** | FIVUCSAS Web Team © 2025
+**Built with React, TypeScript & Clean Architecture** | FIVUCSAS Web Team 2025
