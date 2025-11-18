@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {
     Box,
@@ -19,8 +19,8 @@ import {
     Typography,
 } from '@mui/material'
 import {Autorenew, CheckCircle, Delete, Error, Refresh, Schedule, Search, Visibility,} from '@mui/icons-material'
-import enrollmentsService from '../services/enrollmentsService'
-import {EnrollmentJob, EnrollmentStatus} from '../types'
+import {useEnrollments} from '@features/enrollments'
+import {EnrollmentStatus} from '@domain/models/Enrollment'
 import {format} from 'date-fns'
 
 function getStatusColor(status: EnrollmentStatus): 'success' | 'warning' | 'error' | 'info' {
@@ -53,27 +53,11 @@ function getStatusIcon(status: EnrollmentStatus) {
 
 export default function EnrollmentsListPage() {
     const navigate = useNavigate()
-    const [enrollments, setEnrollments] = useState<EnrollmentJob[]>([])
-    const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | 'ALL'>('ALL')
 
-    const fetchEnrollments = async () => {
-        setLoading(true)
-        try {
-            const status = statusFilter === 'ALL' ? undefined : statusFilter
-            const data = await enrollmentsService.getEnrollments(0, 20, status)
-            setEnrollments(data.content)
-        } catch (error) {
-            console.error('Failed to fetch enrollments:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        fetchEnrollments()
-    }, [statusFilter])
+    const filters = statusFilter === 'ALL' ? undefined : {status: statusFilter}
+    const {enrollments, loading, retryEnrollment, deleteEnrollment} = useEnrollments(filters)
 
     const filteredEnrollments = enrollments.filter((enrollment) =>
         enrollment.id.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -82,8 +66,7 @@ export default function EnrollmentsListPage() {
 
     const handleRetry = async (id: string) => {
         try {
-            await enrollmentsService.retryEnrollment(id)
-            await fetchEnrollments()
+            await retryEnrollment(id)
         } catch (error) {
             console.error('Failed to retry enrollment:', error)
         }
@@ -92,8 +75,7 @@ export default function EnrollmentsListPage() {
     const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this enrollment job?')) {
             try {
-                await enrollmentsService.deleteEnrollment(id)
-                await fetchEnrollments()
+                await deleteEnrollment(id)
             } catch (error) {
                 console.error('Failed to delete enrollment:', error)
             }

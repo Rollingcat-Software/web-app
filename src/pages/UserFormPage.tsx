@@ -5,13 +5,14 @@ import {zodResolver} from '@hookform/resolvers/zod'
 import {z} from 'zod'
 import {Alert, Box, Button, CircularProgress, MenuItem, Paper, TextField, Typography,} from '@mui/material'
 import {Cancel, Save} from '@mui/icons-material'
-import usersService from '../services/usersService'
-import {User, UserRole, UserStatus} from '../types'
+import {useUsers, useUser} from '@features/users'
+import {UserRole, UserStatus} from '@domain/models/User'
 
 const userSchema = z.object({
     email: z.string().email('Invalid email address'),
     firstName: z.string().min(2, 'First name must be at least 2 characters'),
     lastName: z.string().min(2, 'Last name must be at least 2 characters'),
+    password: z.string().min(8, 'Password must be at least 8 characters').optional(),
     role: z.nativeEnum(UserRole),
     status: z.nativeEnum(UserStatus),
     tenantId: z.number().min(1, 'Tenant ID is required'),
@@ -24,8 +25,10 @@ export default function UserFormPage() {
     const {id} = useParams<{ id: string }>()
     const isEditMode = Boolean(id)
 
+    const {createUser, updateUser} = useUsers()
+    const {user: existingUser, loading: fetchLoading} = useUser(isEditMode ? parseInt(id!) : 0)
+
     const [loading, setLoading] = useState(false)
-    const [fetchLoading, setFetchLoading] = useState(isEditMode)
     const [error, setError] = useState<string | null>(null)
 
     const {
@@ -39,6 +42,7 @@ export default function UserFormPage() {
             email: '',
             firstName: '',
             lastName: '',
+            password: '',
             role: UserRole.USER,
             status: UserStatus.PENDING_ENROLLMENT,
             tenantId: 1,
@@ -46,28 +50,17 @@ export default function UserFormPage() {
     })
 
     useEffect(() => {
-        if (isEditMode && id) {
-            const fetchUser = async () => {
-                setFetchLoading(true)
-                try {
-                    const user = await usersService.getUserById(parseInt(id))
-                    reset({
-                        email: user.email,
-                        firstName: user.firstName,
-                        lastName: user.lastName,
-                        role: user.role,
-                        status: user.status,
-                        tenantId: user.tenantId,
-                    })
-                } catch (error: any) {
-                    setError(error.message || 'Failed to load user')
-                } finally {
-                    setFetchLoading(false)
-                }
-            }
-            fetchUser()
+        if (isEditMode && existingUser) {
+            reset({
+                email: existingUser.email,
+                firstName: existingUser.firstName,
+                lastName: existingUser.lastName,
+                role: existingUser.role,
+                status: existingUser.status,
+                tenantId: existingUser.tenantId,
+            })
         }
-    }, [id, isEditMode, reset])
+    }, [existingUser, isEditMode, reset])
 
     const onSubmit = async (data: UserFormData) => {
         setLoading(true)
@@ -75,20 +68,22 @@ export default function UserFormPage() {
 
         try {
             if (isEditMode && id) {
-                const updatedUser: User = {
-                    id: parseInt(id),
-                    ...data,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
-                }
-                await usersService.updateUser(parseInt(id), updatedUser)
+                const {password, ...updateData} = data
+                await updateUser(parseInt(id), updateData)
             } else {
-                const newUser: Omit<User, 'id'> = {
-                    ...data,
-                    createdAt: new Date().toISOString(),
-                    updatedAt: new Date().toISOString(),
+                if (!data.password) {
+                    setError('Password is required for new users')
+                    setLoading(false)
+                    return
                 }
-                await usersService.createUser(newUser)
+                await createUser({
+                    email: data.email,
+                    firstName: data.firstName,
+                    lastName: data.lastName,
+                    password: data.password,
+                    role: data.role,
+                    tenantId: data.tenantId,
+                })
             }
             navigate('/users')
         } catch (error: any) {
@@ -98,7 +93,7 @@ export default function UserFormPage() {
         }
     }
 
-    if (fetchLoading) {
+    if (isEditMode && fetchLoading) {
         return (
             <Box sx={{display: 'flex', justifyContent: 'center', py: 8}}>
                 <CircularProgress/>
@@ -172,6 +167,24 @@ export default function UserFormPage() {
                                 )}
                             />
                         </Box>
+
+                        {!isEditMode && (
+                            <Controller
+                                name="password"
+                                control={control}
+                                render={({field}) => (
+                                    <TextField
+                                        {...field}
+                                        label="Password"
+                                        type="password"
+                                        fullWidth
+                                        required
+                                        error={!!errors.password}
+                                        helperText={errors.password?.message}
+                                    />
+                                )}
+                            />
+                        )}
 
                         <Controller
                             name="role"

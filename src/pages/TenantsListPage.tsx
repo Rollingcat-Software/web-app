@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {
     Box,
@@ -19,8 +19,8 @@ import {
     Typography,
 } from '@mui/material'
 import {Add, Delete, Edit, Search, Visibility,} from '@mui/icons-material'
-import tenantsService from '../services/tenantsService'
-import {Tenant, TenantStatus} from '../types'
+import {useTenants} from '@features/tenants'
+import {TenantStatus} from '@domain/models/Tenant'
 import {format} from 'date-fns'
 
 function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
@@ -38,25 +38,8 @@ function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
 
 export default function TenantsListPage() {
     const navigate = useNavigate()
-    const [tenants, setTenants] = useState<Tenant[]>([])
-    const [loading, setLoading] = useState(true)
+    const {tenants, loading, deleteTenant} = useTenants()
     const [searchQuery, setSearchQuery] = useState('')
-
-    useEffect(() => {
-        const fetchTenants = async () => {
-            setLoading(true)
-            try {
-                const data = await tenantsService.getTenants(0, 20)
-                setTenants(data.content)
-            } catch (error) {
-                console.error('Failed to fetch tenants:', error)
-            } finally {
-                setLoading(false)
-            }
-        }
-
-        fetchTenants()
-    }, [])
 
     const filteredTenants = tenants.filter(
         (tenant) =>
@@ -67,9 +50,7 @@ export default function TenantsListPage() {
     const handleDelete = async (id: number) => {
         if (window.confirm('Are you sure you want to delete this tenant? All associated users will be affected.')) {
             try {
-                await tenantsService.deleteTenant(id)
-                const data = await tenantsService.getTenants(0, 20)
-                setTenants(data.content)
+                await deleteTenant(id)
             } catch (error) {
                 console.error('Failed to delete tenant:', error)
             }

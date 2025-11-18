@@ -8,13 +8,9 @@ import {CssBaseline, ThemeProvider} from '@mui/material'
 import {SnackbarProvider} from 'notistack'
 import App from './App'
 import {persistor, store} from './store'
-import {setupInterceptors} from './services/apiInterceptors'
 import {DependencyProvider} from '@app/providers'
 import theme from './theme'
 import './index.css'
-
-// Setup API interceptors with store
-setupInterceptors(store)
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
     <React.StrictMode>

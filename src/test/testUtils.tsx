@@ -5,6 +5,7 @@
 import { ReactElement, ReactNode } from 'react'
 import { render, RenderOptions } from '@testing-library/react'
 import { Container } from 'inversify'
+import { vi } from 'vitest'
 import { DependencyProvider } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IConfig } from '@domain/interfaces/IConfig'
@@ -105,19 +106,19 @@ export function createTestContainer(): Container {
  * Custom render function with DI provider
  */
 interface CustomRenderOptions extends Omit<RenderOptions, 'wrapper'> {
-    container?: Container
+    diContainer?: Container
 }
 
 export function renderWithProviders(
     ui: ReactElement,
-    { container = createTestContainer(), ...renderOptions }: CustomRenderOptions = {}
+    { diContainer = createTestContainer(), ...renderOptions }: CustomRenderOptions = {}
 ) {
     function Wrapper({ children }: { children: ReactNode }) {
-        return <DependencyProvider container={container}>{children}</DependencyProvider>
+        return <DependencyProvider container={diContainer}>{children}</DependencyProvider>
     }
 
     return {
-        container,
+        diContainer,
         ...render(ui, { wrapper: Wrapper, ...renderOptions }),
     }
 }

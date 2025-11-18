@@ -1,6 +1,5 @@
 import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
-import {useDispatch, useSelector} from 'react-redux'
 import {
     AppBar,
     Avatar,
@@ -15,8 +14,7 @@ import {
     Typography,
 } from '@mui/material'
 import {AccountCircle, Logout, Menu as MenuIcon, Notifications, Settings,} from '@mui/icons-material'
-import {logout} from '../../store/slices/authSlice'
-import {AppDispatch, RootState} from '../../store'
+import {useAuth} from '@features/auth/hooks/useAuth'
 
 interface TopBarProps {
     drawerWidth: number
@@ -25,8 +23,7 @@ interface TopBarProps {
 
 export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     const navigate = useNavigate()
-    const dispatch = useDispatch<AppDispatch>()
-    const user = useSelector((state: RootState) => state.auth.user)
+    const { user, logout } = useAuth()
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
     const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -38,7 +35,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     }
 
     const handleLogout = async () => {
-        await dispatch(logout())
+        await logout()
         navigate('/login')
     }
 
