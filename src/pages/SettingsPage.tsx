@@ -1,5 +1,4 @@
 import {useState} from 'react'
-import {useSelector} from 'react-redux'
 import {
     Alert,
     Avatar,
@@ -14,10 +13,10 @@ import {
     Typography,
 } from '@mui/material'
 import {Notifications, Palette, Person, Save, Security,} from '@mui/icons-material'
-import {RootState} from '../store'
+import {useAuth} from '@features/auth/hooks/useAuth'
 
 export default function SettingsPage() {
-    const user = useSelector((state: RootState) => state.auth.user)
+    const { user } = useAuth()
     const [saved, setSaved] = useState(false)
 
     // Profile settings

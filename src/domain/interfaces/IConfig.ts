@@ -9,7 +9,7 @@ export interface IConfig {
     useMockAPI: boolean
 
     // Environment
-    environment: 'development' | 'staging' | 'production'
+    environment: 'development' | 'staging' | 'production' | 'test'
 
     // Logging
     logLevel: 'debug' | 'info' | 'warn' | 'error'

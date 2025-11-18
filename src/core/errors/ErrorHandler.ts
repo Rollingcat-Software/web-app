@@ -1,4 +1,6 @@
+import { injectable, inject } from 'inversify'
 import { AxiosError } from 'axios'
+import { TYPES } from '@core/di/types'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { INotifier } from '@domain/interfaces/INotifier'
 import {
@@ -14,10 +16,11 @@ import {
  * Centralized error handler
  * Handles all types of errors and provides consistent error messages to users
  */
+@injectable()
 export class ErrorHandler {
     constructor(
-        private readonly logger: ILogger,
-        private readonly notifier: INotifier
+        @inject(TYPES.Logger) private readonly logger: ILogger,
+        @inject(TYPES.Notifier) private readonly notifier: INotifier
     ) {}
 
     /**

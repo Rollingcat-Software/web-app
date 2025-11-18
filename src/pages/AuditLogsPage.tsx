@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useState} from 'react'
 import {
     Accordion,
     AccordionDetails,
@@ -30,8 +30,7 @@ import {
     Settings,
     Warning,
 } from '@mui/icons-material'
-import auditLogsService from '../services/auditLogsService'
-import {AuditLog} from '../types'
+import {useAuditLogs} from '@features/auditLogs'
 import {format} from 'date-fns'
 
 function getActionIcon(action: string) {
@@ -68,27 +67,11 @@ const ACTION_TYPES = [
 ]
 
 export default function AuditLogsPage() {
-    const [auditLogs, setAuditLogs] = useState<AuditLog[]>([])
-    const [loading, setLoading] = useState(true)
     const [searchQuery, setSearchQuery] = useState('')
     const [actionFilter, setActionFilter] = useState<string>('ALL')
 
-    const fetchAuditLogs = async () => {
-        setLoading(true)
-        try {
-            const action = actionFilter === 'ALL' ? undefined : actionFilter
-            const data = await auditLogsService.getAuditLogs(0, 50, action)
-            setAuditLogs(data.content)
-        } catch (error) {
-            console.error('Failed to fetch audit logs:', error)
-        } finally {
-            setLoading(false)
-        }
-    }
-
-    useEffect(() => {
-        fetchAuditLogs()
-    }, [actionFilter])
+    const filters = actionFilter === 'ALL' ? undefined : {action: actionFilter}
+    const {auditLogs, loading} = useAuditLogs(filters)
 
     const filteredLogs = auditLogs.filter(
         (log) =>
