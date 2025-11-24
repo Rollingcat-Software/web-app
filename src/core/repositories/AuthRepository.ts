@@ -34,8 +34,9 @@ export class AuthRepository implements IAuthRepository {
             })
 
             const data = response.data
+            this.logger.debug('Auth response data:', data); // Added logging
 
-            // Transform API response to domain model
+            this.logger.debug('Access token from data:', data.accessToken); // Added logging
             const authResponse: AuthResponse = {
                 accessToken: data.accessToken,
                 refreshToken: data.refreshToken,

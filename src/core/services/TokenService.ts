@@ -170,6 +170,7 @@ export class TokenService implements ITokenService {
      * Ensures token can be decoded and has required fields
      */
     private validateToken(token: string): void {
+        this.logger.debug('Validating token: ' + token); // Added logging
         try {
             const decoded = jwtDecode<JwtPayload>(token)
 
