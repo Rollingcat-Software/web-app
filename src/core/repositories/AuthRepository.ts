@@ -7,7 +7,18 @@ import type {
     LoginCredentials,
     AuthResponse,
 } from '@domain/interfaces/IAuthRepository'
-import { User } from '@domain/models/User'
+import { User, type UserJSON } from '@domain/models/User'
+
+/**
+ * Auth API Response Types
+ * SECURITY: Explicit types prevent type confusion vulnerabilities
+ */
+interface AuthApiResponse {
+    accessToken: string
+    refreshToken: string
+    expiresIn?: number
+    user: UserJSON
+}
 
 /**
  * Auth Repository
@@ -27,16 +38,15 @@ export class AuthRepository implements IAuthRepository {
         try {
             this.logger.info('Attempting login', { email: credentials.email })
 
-            const response = await this.httpClient.post<any>('/auth/login', {
+            // SECURITY: Properly typed API response
+            const response = await this.httpClient.post<AuthApiResponse>('/auth/login', {
                 email: credentials.email,
                 password: credentials.password,
                 mfaCode: credentials.mfaCode,
             })
 
             const data = response.data
-            this.logger.debug('Auth response data:', data); // Added logging
 
-            this.logger.debug('Access token from data:', data.accessToken); // Added logging
             const authResponse: AuthResponse = {
                 accessToken: data.accessToken,
                 refreshToken: data.refreshToken,
@@ -73,7 +83,8 @@ export class AuthRepository implements IAuthRepository {
         try {
             this.logger.info('Refreshing token')
 
-            const response = await this.httpClient.post<any>('/auth/refresh', {
+            // SECURITY: Properly typed API response
+            const response = await this.httpClient.post<AuthApiResponse>('/auth/refresh', {
                 refreshToken,
             })
 
@@ -101,7 +112,8 @@ export class AuthRepository implements IAuthRepository {
         try {
             this.logger.debug('Fetching current user')
 
-            const response = await this.httpClient.get<any>('/auth/me')
+            // SECURITY: Properly typed API response
+            const response = await this.httpClient.get<UserJSON>('/auth/me')
 
             const user = User.fromJSON(response.data)
 

@@ -43,9 +43,11 @@ export default function LoginPage() {
         formState: { errors },
     } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
+        // SECURITY: Removed hardcoded credentials
+        // Default values are empty for security
         defaultValues: {
-            email: 'admin@fivucsas.com',
-            password: 'password123',
+            email: '',
+            password: '',
         },
     })
 
@@ -60,7 +62,10 @@ export default function LoginPage() {
             navigate('/')
         } catch (err) {
             // Error already handled by useAuth hook and ErrorHandler
-            console.error('Login failed:', err)
+            // SECURITY: Don't log sensitive error details in production
+            if (import.meta.env.DEV) {
+                console.error('Login failed:', err)
+            }
         }
     }
 
@@ -165,18 +170,24 @@ export default function LoginPage() {
                         </Button>
                     </form>
 
-                    {/* Demo Credentials */}
-                    <Box sx={{ mt: 3, p: 2, bgcolor: 'info.lighter', borderRadius: 1 }}>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                            <strong>Demo Credentials:</strong>
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary" display="block">
-                            Email: admin@fivucsas.com
-                        </Typography>
-                        <Typography variant="caption" color="text.secondary">
-                            Password: password123 (minimum 6 characters)
-                        </Typography>
-                    </Box>
+                    {/* SECURITY: Demo credentials removed for production security
+                        Only show demo credentials in development environment */}
+                    {import.meta.env.DEV && (
+                        <Box sx={{ mt: 3, p: 2, bgcolor: 'warning.lighter', borderRadius: 1, border: '1px solid', borderColor: 'warning.main' }}>
+                            <Typography variant="caption" color="warning.dark" display="block" fontWeight="bold">
+                                DEV MODE ONLY - Demo Credentials:
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                                Email: admin@fivucsas.com
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                Password: password123
+                            </Typography>
+                            <Typography variant="caption" color="error.main" display="block" sx={{ mt: 1 }}>
+                                This box will not appear in production
+                            </Typography>
+                        </Box>
+                    )}
                 </CardContent>
             </Card>
         </Box>

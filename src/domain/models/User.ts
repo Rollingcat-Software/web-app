@@ -98,8 +98,9 @@ export class User {
 
     /**
      * Create User from plain object (deserialization)
+     * SECURITY: Properly typed to prevent type confusion attacks
      */
-    static fromJSON(data: any): User {
+    static fromJSON(data: UserJSON): User {
         return new User(
             data.id,
             data.email,
@@ -114,4 +115,22 @@ export class User {
             data.lastLoginIp
         )
     }
+}
+
+/**
+ * User JSON representation (for API responses)
+ * SECURITY: Explicit typing prevents type confusion vulnerabilities
+ */
+export interface UserJSON {
+    id: number
+    email: string
+    firstName: string
+    lastName: string
+    role: UserRole
+    status: UserStatus
+    tenantId: number
+    createdAt: string | Date
+    updatedAt: string | Date
+    lastLoginAt?: string | Date
+    lastLoginIp?: string
 }

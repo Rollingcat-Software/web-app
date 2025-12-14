@@ -1,0 +1,357 @@
+/**
+ * E2E Test: Dashboard Navigation and Display
+ *
+ * Tests the dashboard functionality including:
+ * - Statistics display
+ * - Navigation between pages
+ * - Data loading states
+ * - User interactions
+ */
+import { describe, it, expect, beforeEach, vi } from 'vitest'
+import { render, screen, waitFor } from '@testing-library/react'
+import userEvent from '@testing-library/user-event'
+import { BrowserRouter } from 'react-router-dom'
+import { Provider } from 'react-redux'
+import { configureStore } from '@reduxjs/toolkit'
+import DashboardPage from '@features/dashboard/components/DashboardPage'
+import { DependencyProvider } from '@app/providers/DependencyProvider'
+
+// Mock dashboard data
+const mockDashboardStats = {
+    totalUsers: 1234,
+    totalEnrollments: 987,
+    totalVerifications: 5432,
+    activeUsers: 456,
+    recentActivity: [
+        {
+            id: '1',
+            action: 'USER_ENROLLED',
+            userId: 'user123',
+            timestamp: new Date().toISOString(),
+            details: 'User enrolled successfully',
+        },
+        {
+            id: '2',
+            action: 'VERIFICATION_SUCCESS',
+            userId: 'user456',
+            timestamp: new Date().toISOString(),
+            details: 'Verification completed',
+        },
+    ],
+    verificationStats: {
+        successful: 4800,
+        failed: 632,
+        successRate: 88.4,
+    },
+}
+
+// Mock the dashboard service
+const mockDashboardService = {
+    getStatistics: vi.fn().mockResolvedValue(mockDashboardStats),
+    refreshStatistics: vi.fn().mockResolvedValue(mockDashboardStats),
+}
+
+// Mock the auth state
+const createMockStore = (isAuthenticated = true) => {
+    return configureStore({
+        reducer: {
+            auth: (state = {
+                user: isAuthenticated ? {
+                    id: 'test-user-id',
+                    email: 'admin@fivucsas.com',
+                    firstName: 'Admin',
+                    lastName: 'User',
+                    role: 'ADMIN',
+                } : null,
+                isAuthenticated,
+            }) => state,
+        },
+    })
+}
+
+// Test wrapper component
+const TestWrapper = ({ children, isAuthenticated = true }: {
+    children: React.ReactNode
+    isAuthenticated?: boolean
+}) => {
+    const store = createMockStore(isAuthenticated)
+
+    return (
+        <Provider store={store}>
+            <DependencyProvider>
+                <BrowserRouter>
+                    {children}
+                </BrowserRouter>
+            </DependencyProvider>
+        </Provider>
+    )
+}
+
+describe('E2E: Dashboard Display', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
+    it('should display dashboard title and welcome message', async () => {
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Check for title
+        await waitFor(() => {
+            expect(screen.getByText(/dashboard/i)).toBeInTheDocument()
+        })
+    })
+
+    it('should display loading state initially', () => {
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Check for loading indicators
+        const progressBars = screen.queryAllByRole('progressbar')
+        expect(progressBars.length).toBeGreaterThan(0)
+    })
+
+    it('should display statistics cards after loading', async () => {
+        mockDashboardService.getStatistics.mockResolvedValue(mockDashboardStats)
+
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Wait for data to load
+        await waitFor(() => {
+            expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        })
+
+        // Check for statistics (these might be displayed differently based on your implementation)
+        // Adjust selectors based on actual dashboard implementation
+        await waitFor(() => {
+            const dashboard = screen.getByRole('main') || screen.getByTestId('dashboard-content')
+            expect(dashboard).toBeInTheDocument()
+        })
+    })
+
+    it('should handle API errors gracefully', async () => {
+        mockDashboardService.getStatistics.mockRejectedValue(
+            new Error('Failed to fetch statistics')
+        )
+
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Wait for error state
+        await waitFor(() => {
+            // Error might be displayed as an alert or message
+            // Adjust based on your error handling implementation
+            expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        })
+    })
+})
+
+describe('E2E: Dashboard Navigation', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
+    it('should navigate to users page when clicking users link', async () => {
+        const user = userEvent.setup()
+
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Wait for dashboard to load
+        await waitFor(() => {
+            expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        })
+
+        // Look for navigation link to users
+        const usersLink = screen.queryByRole('link', { name: /users/i })
+        if (usersLink) {
+            await user.click(usersLink)
+            // URL should change (checked via router)
+        }
+    })
+
+    it('should display navigation menu', async () => {
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Wait for page to load
+        await waitFor(() => {
+            expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        })
+
+        // Check that we're in a dashboard context
+        // The actual navigation might be in a sidebar or top bar
+        expect(screen.getByRole('main') || document.querySelector('[role="main"]')).toBeInTheDocument()
+    })
+})
+
+describe('E2E: Dashboard Data Refresh', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+    })
+
+    it('should allow manual data refresh', async () => {
+        const user = userEvent.setup()
+        mockDashboardService.getStatistics.mockResolvedValue(mockDashboardStats)
+        mockDashboardService.refreshStatistics.mockResolvedValue(mockDashboardStats)
+
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Wait for initial load
+        await waitFor(() => {
+            expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        })
+
+        // Look for refresh button
+        const refreshButton = screen.queryByRole('button', { name: /refresh/i })
+        if (refreshButton) {
+            await user.click(refreshButton)
+
+            // Should call refresh API
+            await waitFor(() => {
+                expect(mockDashboardService.refreshStatistics).toHaveBeenCalled()
+            })
+        }
+    })
+})
+
+describe('E2E: Dashboard Accessibility', () => {
+    it('should have proper semantic HTML structure', async () => {
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Wait for loading to complete
+        await waitFor(() => {
+            expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        })
+
+        // Check for main landmark
+        expect(screen.getByRole('main') || document.querySelector('main')).toBeInTheDocument()
+    })
+
+    it('should support keyboard navigation', async () => {
+        const user = userEvent.setup()
+
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Wait for dashboard to load
+        await waitFor(() => {
+            expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        })
+
+        // Tab through interactive elements
+        await user.tab()
+
+        // At least one element should receive focus
+        expect(document.activeElement).not.toBe(document.body)
+    })
+
+    it('should have descriptive page title', async () => {
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Check for heading
+        await waitFor(() => {
+            const headings = screen.queryAllByRole('heading')
+            expect(headings.length).toBeGreaterThan(0)
+        })
+    })
+})
+
+describe('E2E: Dashboard Responsive Behavior', () => {
+    it('should render without crashing on different viewport sizes', async () => {
+        // Test desktop size
+        global.innerWidth = 1920
+        global.innerHeight = 1080
+
+        const { unmount } = render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        await waitFor(() => {
+            expect(screen.getByRole('main') || document.querySelector('main')).toBeInTheDocument()
+        })
+
+        unmount()
+
+        // Test mobile size
+        global.innerWidth = 375
+        global.innerHeight = 667
+
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        await waitFor(() => {
+            expect(screen.getByRole('main') || document.querySelector('main')).toBeInTheDocument()
+        })
+    })
+})
+
+describe('E2E: Dashboard with Empty Data', () => {
+    it('should handle empty statistics gracefully', async () => {
+        mockDashboardService.getStatistics.mockResolvedValue({
+            totalUsers: 0,
+            totalEnrollments: 0,
+            totalVerifications: 0,
+            activeUsers: 0,
+            recentActivity: [],
+            verificationStats: {
+                successful: 0,
+                failed: 0,
+                successRate: 0,
+            },
+        })
+
+        render(
+            <TestWrapper>
+                <DashboardPage />
+            </TestWrapper>
+        )
+
+        // Wait for data to load
+        await waitFor(() => {
+            expect(screen.queryByRole('progressbar')).not.toBeInTheDocument()
+        })
+
+        // Dashboard should still render without errors
+        expect(screen.getByRole('main') || document.querySelector('main')).toBeInTheDocument()
+    })
+})

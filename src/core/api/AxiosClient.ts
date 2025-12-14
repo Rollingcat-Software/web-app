@@ -8,17 +8,30 @@ import type {
 } from '@domain/interfaces/IHttpClient'
 import type { IConfig } from '@domain/interfaces/IConfig'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import { getCsrfToken } from '@utils/auth'
 
 /**
- * Axios HTTP Client
- * Provides HTTP communication with the backend API
- * Wraps Axios to provide our IHttpClient interface
+ * Axios HTTP Client (Secure Implementation)
+ *
+ * SECURITY UPGRADES:
+ * - Uses httpOnly cookies for authentication (credentials: 'include')
+ * - Includes CSRF tokens in state-changing requests
+ * - No direct token manipulation in JavaScript
+ * - Automatic cookie handling by browser
+ *
+ * OWASP Security Best Practices:
+ * - httpOnly cookies prevent XSS token theft
+ * - CSRF tokens prevent Cross-Site Request Forgery
+ * - Credentials 'include' sends cookies with requests
+ * - CORS configuration required on backend
  *
  * Features:
  * - Request/response logging
  * - Automatic timeout handling
  * - Error transformation
  * - Type-safe responses
+ * - CSRF protection
+ * - Automatic token refresh via cookies
  */
 @injectable()
 export class AxiosClient implements IHttpClient {
@@ -31,6 +44,8 @@ export class AxiosClient implements IHttpClient {
         this.client = axios.create({
             baseURL: config.apiBaseUrl,
             timeout: config.apiTimeout,
+            // SECURITY: Send cookies with requests (required for httpOnly cookies)
+            withCredentials: true,
             headers: {
                 'Content-Type': 'application/json',
             },
@@ -101,16 +116,34 @@ export class AxiosClient implements IHttpClient {
 
     /**
      * Set up request and response interceptors
+     *
+     * SECURITY: Implements CSRF protection and httpOnly cookie authentication
      */
     private setupInterceptors(): void {
-        // Request interceptor - log outgoing requests
+        // Request interceptor - add CSRF token and log outgoing requests
         this.client.interceptors.request.use(
-            (config) => {
+            async (config) => {
                 const method = config.method?.toUpperCase() || 'UNKNOWN'
                 const url = config.url || 'unknown'
+
+                // SECURITY: Add CSRF token to state-changing requests
+                // CSRF tokens prevent Cross-Site Request Forgery attacks
+                if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
+                    const csrfToken = getCsrfToken()
+                    if (csrfToken) {
+                        config.headers['X-CSRF-Token'] = csrfToken
+                    } else {
+                        this.logger.warn(`CSRF token not found for ${method} ${url}`)
+                    }
+                }
+
+                // SECURITY NOTE: No Authorization header needed!
+                // Tokens are in httpOnly cookies and sent automatically by browser
+
                 this.logger.debug(`HTTP ${method} ${url}`, {
                     params: config.params,
-                    headers: config.headers,
+                    hasCsrfToken: !!(config.headers['X-CSRF-Token']),
+                    withCredentials: config.withCredentials,
                 })
                 return config
             },
@@ -120,7 +153,7 @@ export class AxiosClient implements IHttpClient {
             }
         )
 
-        // Response interceptor - log responses and errors
+        // Response interceptor - log responses and handle errors
         this.client.interceptors.response.use(
             (response) => {
                 const method = response.config.method?.toUpperCase() || 'UNKNOWN'
@@ -134,7 +167,7 @@ export class AxiosClient implements IHttpClient {
 
                 return response
             },
-            (error) => {
+            async (error) => {
                 if (axios.isAxiosError(error)) {
                     const method = error.config?.method?.toUpperCase() || 'UNKNOWN'
                     const url = error.config?.url || 'unknown'
@@ -146,6 +179,45 @@ export class AxiosClient implements IHttpClient {
                         message: error.message,
                         data: error.response?.data,
                     })
+
+                    // SECURITY: Handle 401 Unauthorized
+                    // With httpOnly cookies, token refresh is handled automatically by backend
+                    // When backend refreshes tokens, it sets new cookies automatically
+                    if (error.response?.status === 401 && error.config) {
+                        const originalRequest = error.config
+
+                        // Prevent infinite loop - don't retry auth endpoints
+                        if (!originalRequest.url?.includes('/auth/refresh') &&
+                            !originalRequest.url?.includes('/auth/login') &&
+                            !originalRequest.url?.includes('/auth/logout')) {
+
+                            try {
+                                this.logger.info('Attempting automatic token refresh via httpOnly cookies')
+
+                                // Call refresh endpoint - backend uses refresh_token cookie automatically
+                                // No need to send token in request body
+                                await this.client.post('/auth/refresh', {})
+
+                                // Backend has set new cookies, retry original request
+                                // Cookies are sent automatically by browser
+                                return this.client.request(originalRequest)
+                            } catch (refreshError) {
+                                this.logger.error('Token refresh failed, user needs to login', refreshError)
+
+                                // Redirect to login - handled by error handler
+                                // Backend should clear cookies on refresh failure
+                                return Promise.reject(error)
+                            }
+                        }
+                    }
+
+                    // SECURITY: Handle 403 Forbidden (CSRF validation failure)
+                    if (error.response?.status === 403) {
+                        const errorMessage = error.response?.data?.message || ''
+                        if (errorMessage.toLowerCase().includes('csrf')) {
+                            this.logger.error('CSRF validation failed - possible attack or expired token')
+                        }
+                    }
                 } else {
                     this.logger.error('Non-Axios error in response interceptor', error)
                 }
