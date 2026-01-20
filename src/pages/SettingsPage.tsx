@@ -1,9 +1,14 @@
-import {useState} from 'react'
+import { useState, useEffect } from 'react'
 import {
     Alert,
     Avatar,
     Box,
     Button,
+    CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     Divider,
     FormControlLabel,
     Grid,
@@ -12,17 +17,27 @@ import {
     TextField,
     Typography,
 } from '@mui/material'
-import {Notifications, Palette, Person, Save, Security,} from '@mui/icons-material'
-import {useAuth} from '@features/auth/hooks/useAuth'
+import { Notifications, Palette, Person, Save, Security } from '@mui/icons-material'
+import { useAuth } from '@features/auth/hooks/useAuth'
+import { useSettings } from '@features/settings/hooks/useSettings'
 
 export default function SettingsPage() {
     const { user } = useAuth()
-    const [saved, setSaved] = useState(false)
+    const {
+        settings,
+        loading,
+        error,
+        updateProfile,
+        updateNotifications,
+        updateSecurity,
+        updateAppearance,
+        changePassword,
+        validatePassword,
+    } = useSettings()
 
     // Profile settings
-    const [firstName, setFirstName] = useState(user?.firstName || '')
-    const [lastName, setLastName] = useState(user?.lastName || '')
-    const [email, setEmail] = useState(user?.email || '')
+    const [firstName, setFirstName] = useState('')
+    const [lastName, setLastName] = useState('')
 
     // Notification settings
     const [emailNotifications, setEmailNotifications] = useState(true)
@@ -38,37 +53,133 @@ export default function SettingsPage() {
     const [darkMode, setDarkMode] = useState(false)
     const [compactView, setCompactView] = useState(false)
 
-    const handleSaveProfile = () => {
-        // Save profile settings
-        console.log('Saving profile settings:', {firstName, lastName, email})
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
+    // Password change dialog
+    const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
+    const [currentPassword, setCurrentPassword] = useState('')
+    const [newPassword, setNewPassword] = useState('')
+    const [confirmPassword, setConfirmPassword] = useState('')
+    const [passwordErrors, setPasswordErrors] = useState<string[]>([])
+
+    // Save states
+    const [saving, setSaving] = useState<string | null>(null)
+    const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+
+    // Sync local state with settings from API
+    useEffect(() => {
+        if (settings) {
+            setFirstName(settings.firstName || user?.firstName || '')
+            setLastName(settings.lastName || user?.lastName || '')
+            setEmailNotifications(settings.emailNotifications)
+            setLoginAlerts(settings.loginAlerts)
+            setSecurityAlerts(settings.securityAlerts)
+            setWeeklyReports(settings.weeklyReports)
+            setTwoFactorAuth(settings.twoFactorEnabled)
+            setSessionTimeout(String(settings.sessionTimeoutMinutes))
+            setDarkMode(settings.darkMode)
+            setCompactView(settings.compactView)
+        }
+    }, [settings, user])
+
+    const handleSaveProfile = async () => {
+        try {
+            setSaving('profile')
+            await updateProfile({ firstName, lastName })
+            setSaveSuccess('profile')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch {
+            // Error handled by hook
+        } finally {
+            setSaving(null)
+        }
     }
 
-    const handleSaveNotifications = () => {
-        // Save notification settings
-        console.log('Saving notification settings:', {
-            emailNotifications,
-            loginAlerts,
-            weeklyReports,
-            securityAlerts,
-        })
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
+    const handleSaveNotifications = async () => {
+        try {
+            setSaving('notifications')
+            await updateNotifications({
+                emailNotifications,
+                loginAlerts,
+                weeklyReports,
+                securityAlerts,
+            })
+            setSaveSuccess('notifications')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch {
+            // Error handled by hook
+        } finally {
+            setSaving(null)
+        }
     }
 
-    const handleSaveSecurity = () => {
-        // Save security settings
-        console.log('Saving security settings:', {twoFactorAuth, sessionTimeout})
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
+    const handleSaveSecurity = async () => {
+        try {
+            setSaving('security')
+            await updateSecurity({
+                twoFactorEnabled: twoFactorAuth,
+                sessionTimeoutMinutes: parseInt(sessionTimeout, 10),
+            })
+            setSaveSuccess('security')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch {
+            // Error handled by hook
+        } finally {
+            setSaving(null)
+        }
     }
 
-    const handleSaveAppearance = () => {
-        // Save appearance settings
-        console.log('Saving appearance settings:', {darkMode, compactView})
-        setSaved(true)
-        setTimeout(() => setSaved(false), 3000)
+    const handleSaveAppearance = async () => {
+        try {
+            setSaving('appearance')
+            await updateAppearance({ darkMode, compactView })
+            setSaveSuccess('appearance')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch {
+            // Error handled by hook
+        } finally {
+            setSaving(null)
+        }
+    }
+
+    const handlePasswordChange = async () => {
+        // Validate new password
+        const validation = validatePassword(newPassword)
+        if (!validation.valid) {
+            setPasswordErrors(validation.errors)
+            return
+        }
+
+        if (newPassword !== confirmPassword) {
+            setPasswordErrors(['Passwords do not match'])
+            return
+        }
+
+        try {
+            setSaving('password')
+            await changePassword({
+                currentPassword,
+                newPassword,
+                confirmPassword,
+            })
+            setPasswordDialogOpen(false)
+            setCurrentPassword('')
+            setNewPassword('')
+            setConfirmPassword('')
+            setPasswordErrors([])
+            setSaveSuccess('password')
+            setTimeout(() => setSaveSuccess(null), 3000)
+        } catch {
+            // Error handled by hook
+        } finally {
+            setSaving(null)
+        }
+    }
+
+    if (loading && !settings) {
+        return (
+            <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
+                <CircularProgress />
+            </Box>
+        )
     }
 
     return (
@@ -76,28 +187,36 @@ export default function SettingsPage() {
             <Typography variant="h4" gutterBottom fontWeight={600}>
                 Settings
             </Typography>
-            <Typography variant="body1" color="text.secondary" sx={{mb: 3}}>
+            <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
                 Manage your account preferences and settings
             </Typography>
 
-            {saved && (
-                <Alert severity="success" sx={{mb: 3}}>
-                    Settings saved successfully!
+            {error && (
+                <Alert severity="error" sx={{ mb: 3 }}>
+                    {error}
+                </Alert>
+            )}
+
+            {saveSuccess && (
+                <Alert severity="success" sx={{ mb: 3 }}>
+                    {saveSuccess === 'password'
+                        ? 'Password changed successfully!'
+                        : `${saveSuccess.charAt(0).toUpperCase() + saveSuccess.slice(1)} settings saved successfully!`}
                 </Alert>
             )}
 
             <Grid container spacing={3}>
                 {/* Profile Settings */}
                 <Grid item xs={12}>
-                    <Paper sx={{p: 3}}>
-                        <Box sx={{display: 'flex', alignItems: 'center', mb: 3}}>
-                            <Person sx={{mr: 1, color: 'primary.main'}}/>
+                    <Paper sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                            <Person sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
                                 Profile Information
                             </Typography>
                         </Box>
 
-                        <Box sx={{display: 'flex', alignItems: 'center', mb: 3}}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                             <Avatar
                                 sx={{
                                     width: 80,
@@ -107,7 +226,8 @@ export default function SettingsPage() {
                                     fontSize: '2rem',
                                 }}
                             >
-                                {user?.firstName?.[0]}{user?.lastName?.[0]}
+                                {firstName?.[0]}
+                                {lastName?.[0]}
                             </Avatar>
                             <Button variant="outlined" size="small">
                                 Change Avatar
@@ -121,6 +241,7 @@ export default function SettingsPage() {
                                     label="First Name"
                                     value={firstName}
                                     onChange={(e) => setFirstName(e.target.value)}
+                                    disabled={saving === 'profile'}
                                 />
                             </Grid>
                             <Grid item xs={12} md={6}>
@@ -129,6 +250,7 @@ export default function SettingsPage() {
                                     label="Last Name"
                                     value={lastName}
                                     onChange={(e) => setLastName(e.target.value)}
+                                    disabled={saving === 'profile'}
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -136,8 +258,7 @@ export default function SettingsPage() {
                                     fullWidth
                                     label="Email"
                                     type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
+                                    value={user?.email || ''}
                                     disabled
                                     helperText="Email cannot be changed"
                                 />
@@ -153,11 +274,12 @@ export default function SettingsPage() {
                             </Grid>
                         </Grid>
 
-                        <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
+                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                             <Button
                                 variant="contained"
-                                startIcon={<Save/>}
+                                startIcon={saving === 'profile' ? <CircularProgress size={16} /> : <Save />}
                                 onClick={handleSaveProfile}
+                                disabled={saving === 'profile'}
                             >
                                 Save Profile
                             </Button>
@@ -167,30 +289,31 @@ export default function SettingsPage() {
 
                 {/* Security Settings */}
                 <Grid item xs={12} md={6}>
-                    <Paper sx={{p: 3, height: '100%'}}>
-                        <Box sx={{display: 'flex', alignItems: 'center', mb: 3}}>
-                            <Security sx={{mr: 1, color: 'primary.main'}}/>
+                    <Paper sx={{ p: 3, height: '100%' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                            <Security sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
                                 Security
                             </Typography>
                         </Box>
 
-                        <Box sx={{mb: 3}}>
+                        <Box sx={{ mb: 3 }}>
                             <FormControlLabel
                                 control={
                                     <Switch
                                         checked={twoFactorAuth}
                                         onChange={(e) => setTwoFactorAuth(e.target.checked)}
+                                        disabled={saving === 'security'}
                                     />
                                 }
                                 label="Enable Two-Factor Authentication"
                             />
-                            <Typography variant="caption" color="text.secondary" display="block" sx={{ml: 4}}>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
                                 Add an extra layer of security to your account
                             </Typography>
                         </Box>
 
-                        <Divider sx={{my: 2}}/>
+                        <Divider sx={{ my: 2 }} />
 
                         <TextField
                             fullWidth
@@ -198,8 +321,9 @@ export default function SettingsPage() {
                             label="Session Timeout"
                             value={sessionTimeout}
                             onChange={(e) => setSessionTimeout(e.target.value)}
-                            SelectProps={{native: true}}
-                            sx={{mb: 2}}
+                            SelectProps={{ native: true }}
+                            sx={{ mb: 2 }}
+                            disabled={saving === 'security'}
                         >
                             <option value="15">15 minutes</option>
                             <option value="30">30 minutes</option>
@@ -208,17 +332,23 @@ export default function SettingsPage() {
                             <option value="480">8 hours</option>
                         </TextField>
 
-                        <Divider sx={{my: 2}}/>
+                        <Divider sx={{ my: 2 }} />
 
-                        <Button variant="outlined" fullWidth sx={{mb: 1}}>
+                        <Button
+                            variant="outlined"
+                            fullWidth
+                            sx={{ mb: 1 }}
+                            onClick={() => setPasswordDialogOpen(true)}
+                        >
                             Change Password
                         </Button>
 
-                        <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
+                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                             <Button
                                 variant="contained"
-                                startIcon={<Save/>}
+                                startIcon={saving === 'security' ? <CircularProgress size={16} /> : <Save />}
                                 onClick={handleSaveSecurity}
+                                disabled={saving === 'security'}
                             >
                                 Save Security
                             </Button>
@@ -228,20 +358,21 @@ export default function SettingsPage() {
 
                 {/* Notification Settings */}
                 <Grid item xs={12} md={6}>
-                    <Paper sx={{p: 3, height: '100%'}}>
-                        <Box sx={{display: 'flex', alignItems: 'center', mb: 3}}>
-                            <Notifications sx={{mr: 1, color: 'primary.main'}}/>
+                    <Paper sx={{ p: 3, height: '100%' }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                            <Notifications sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
                                 Notifications
                             </Typography>
                         </Box>
 
-                        <Box sx={{display: 'flex', flexDirection: 'column', gap: 2}}>
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <FormControlLabel
                                 control={
                                     <Switch
                                         checked={emailNotifications}
                                         onChange={(e) => setEmailNotifications(e.target.checked)}
+                                        disabled={saving === 'notifications'}
                                     />
                                 }
                                 label="Email Notifications"
@@ -252,6 +383,7 @@ export default function SettingsPage() {
                                     <Switch
                                         checked={loginAlerts}
                                         onChange={(e) => setLoginAlerts(e.target.checked)}
+                                        disabled={saving === 'notifications'}
                                     />
                                 }
                                 label="Login Alerts"
@@ -262,6 +394,7 @@ export default function SettingsPage() {
                                     <Switch
                                         checked={securityAlerts}
                                         onChange={(e) => setSecurityAlerts(e.target.checked)}
+                                        disabled={saving === 'notifications'}
                                     />
                                 }
                                 label="Security Alerts"
@@ -272,17 +405,21 @@ export default function SettingsPage() {
                                     <Switch
                                         checked={weeklyReports}
                                         onChange={(e) => setWeeklyReports(e.target.checked)}
+                                        disabled={saving === 'notifications'}
                                     />
                                 }
                                 label="Weekly Reports"
                             />
                         </Box>
 
-                        <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
+                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                             <Button
                                 variant="contained"
-                                startIcon={<Save/>}
+                                startIcon={
+                                    saving === 'notifications' ? <CircularProgress size={16} /> : <Save />
+                                }
                                 onClick={handleSaveNotifications}
+                                disabled={saving === 'notifications'}
                             >
                                 Save Notifications
                             </Button>
@@ -292,9 +429,9 @@ export default function SettingsPage() {
 
                 {/* Appearance Settings */}
                 <Grid item xs={12}>
-                    <Paper sx={{p: 3}}>
-                        <Box sx={{display: 'flex', alignItems: 'center', mb: 3}}>
-                            <Palette sx={{mr: 1, color: 'primary.main'}}/>
+                    <Paper sx={{ p: 3 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
+                            <Palette sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
                                 Appearance
                             </Typography>
@@ -307,11 +444,12 @@ export default function SettingsPage() {
                                         <Switch
                                             checked={darkMode}
                                             onChange={(e) => setDarkMode(e.target.checked)}
+                                            disabled={saving === 'appearance'}
                                         />
                                     }
                                     label="Dark Mode"
                                 />
-                                <Typography variant="caption" color="text.secondary" display="block" sx={{ml: 4}}>
+                                <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
                                     Use dark theme for reduced eye strain
                                 </Typography>
                             </Grid>
@@ -322,21 +460,23 @@ export default function SettingsPage() {
                                         <Switch
                                             checked={compactView}
                                             onChange={(e) => setCompactView(e.target.checked)}
+                                            disabled={saving === 'appearance'}
                                         />
                                     }
                                     label="Compact View"
                                 />
-                                <Typography variant="caption" color="text.secondary" display="block" sx={{ml: 4}}>
+                                <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
                                     Show more content with reduced spacing
                                 </Typography>
                             </Grid>
                         </Grid>
 
-                        <Box sx={{mt: 3, display: 'flex', justifyContent: 'flex-end'}}>
+                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                             <Button
                                 variant="contained"
-                                startIcon={<Save/>}
+                                startIcon={saving === 'appearance' ? <CircularProgress size={16} /> : <Save />}
                                 onClick={handleSaveAppearance}
+                                disabled={saving === 'appearance'}
                             >
                                 Save Appearance
                             </Button>
@@ -344,6 +484,67 @@ export default function SettingsPage() {
                     </Paper>
                 </Grid>
             </Grid>
+
+            {/* Password Change Dialog */}
+            <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)} maxWidth="sm" fullWidth>
+                <DialogTitle>Change Password</DialogTitle>
+                <DialogContent>
+                    {passwordErrors.length > 0 && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {passwordErrors.map((err, i) => (
+                                <div key={i}>{err}</div>
+                            ))}
+                        </Alert>
+                    )}
+                    <TextField
+                        fullWidth
+                        type="password"
+                        label="Current Password"
+                        value={currentPassword}
+                        onChange={(e) => setCurrentPassword(e.target.value)}
+                        margin="normal"
+                        disabled={saving === 'password'}
+                    />
+                    <TextField
+                        fullWidth
+                        type="password"
+                        label="New Password"
+                        value={newPassword}
+                        onChange={(e) => {
+                            setNewPassword(e.target.value)
+                            setPasswordErrors([])
+                        }}
+                        margin="normal"
+                        disabled={saving === 'password'}
+                        helperText="Min 8 chars, uppercase, lowercase, number, special character"
+                    />
+                    <TextField
+                        fullWidth
+                        type="password"
+                        label="Confirm New Password"
+                        value={confirmPassword}
+                        onChange={(e) => {
+                            setConfirmPassword(e.target.value)
+                            setPasswordErrors([])
+                        }}
+                        margin="normal"
+                        disabled={saving === 'password'}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={() => setPasswordDialogOpen(false)} disabled={saving === 'password'}>
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        onClick={handlePasswordChange}
+                        disabled={saving === 'password' || !currentPassword || !newPassword || !confirmPassword}
+                        startIcon={saving === 'password' ? <CircularProgress size={16} /> : null}
+                    >
+                        Change Password
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     )
 }

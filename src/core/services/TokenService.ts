@@ -9,7 +9,6 @@ import type {
 import type { ISecureStorage } from '@domain/interfaces/IStorage'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import {
-    getCsrfToken,
     hasLegacyTokens,
     clearLegacyTokens,
     validateSecureContext,

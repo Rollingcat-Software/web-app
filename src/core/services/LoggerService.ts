@@ -125,7 +125,7 @@ export class LoggerService implements ILogger {
      * SECURITY: Production logs go to monitoring service, not console
      * TODO: Integrate with CloudWatch, Datadog, or similar service
      */
-    private sendToLogService(level: LogLevel, message: string, meta?: unknown): void {
+    private sendToLogService(_level: LogLevel, _message: string, _meta?: unknown): void {
         // Implementation would go here
         // Example: CloudWatch.putLogEvents({ level, message, meta })
         // For now, no console logging in production for security
@@ -136,7 +136,7 @@ export class LoggerService implements ILogger {
      * SECURITY: Error tracking in production without exposing details in console
      * TODO: Integrate with Sentry, LogRocket, or similar service
      */
-    private sendToErrorTracking(message: string, error?: unknown): void {
+    private sendToErrorTracking(_message: string, _error?: unknown): void {
         // Implementation would go here
         // Example: Sentry.captureException(error, { extra: { message } })
         // Note: NO console.log in production for security

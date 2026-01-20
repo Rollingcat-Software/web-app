@@ -19,6 +19,8 @@ import type { IAuditLogRepository } from '@domain/interfaces/IAuditLogRepository
 import type { IAuditLogService } from '@domain/interfaces/IAuditLogService'
 import type { IEnrollmentRepository } from '@domain/interfaces/IEnrollmentRepository'
 import type { IEnrollmentService } from '@domain/interfaces/IEnrollmentService'
+import type { ISettingsRepository } from '@domain/interfaces/ISettingsRepository'
+import type { ISettingsService } from '@domain/interfaces/ISettingsService'
 import { LoggerService } from '@core/services/LoggerService'
 import { NotifierService } from '@core/services/NotifierService'
 import { SecureStorageService } from '@core/services/SecureStorageService'
@@ -37,12 +39,14 @@ import { AuditLogRepository } from '@core/repositories/AuditLogRepository'
 import { MockAuditLogRepository } from '@core/repositories/__mocks__/MockAuditLogRepository'
 import { EnrollmentRepository } from '@core/repositories/EnrollmentRepository'
 import { MockEnrollmentRepository } from '@core/repositories/__mocks__/MockEnrollmentRepository'
+import { SettingsRepository } from '@core/repositories/SettingsRepository'
 import { AuthService } from '@features/auth/services/AuthService'
 import { UserService } from '@features/users/services/UserService'
 import { TenantService } from '@features/tenants/services/TenantService'
 import { DashboardService } from '@features/dashboard/services/DashboardService'
 import { AuditLogService } from '@features/auditLogs/services/AuditLogService'
 import { EnrollmentService } from '@features/enrollments/services/EnrollmentService'
+import { SettingsService } from '@features/settings/services/SettingsService'
 
 /**
  * Create and configure the IoC container
@@ -111,6 +115,9 @@ if (config.useMockAPI) {
         .inSingletonScope()
 }
 
+// Bind SettingsRepository (always real, no mock - user settings are per-user)
+container.bind<ISettingsRepository>(TYPES.SettingsRepository).to(SettingsRepository).inSingletonScope()
+
 // Bind services (Phase 3)
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService).inSingletonScope()
 container.bind<IUserService>(TYPES.UserService).to(UserService).inSingletonScope()
@@ -118,6 +125,7 @@ container.bind<ITenantService>(TYPES.TenantService).to(TenantService).inSingleto
 container.bind<IDashboardService>(TYPES.DashboardService).to(DashboardService).inSingletonScope()
 container.bind<IAuditLogService>(TYPES.AuditLogService).to(AuditLogService).inSingletonScope()
 container.bind<IEnrollmentService>(TYPES.EnrollmentService).to(EnrollmentService).inSingletonScope()
+container.bind<ISettingsService>(TYPES.SettingsService).to(SettingsService).inSingletonScope()
 
 export { container }
 export type { Container }

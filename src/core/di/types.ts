@@ -22,6 +22,7 @@ export const TYPES = {
     AuditLogRepository: Symbol.for('AuditLogRepository'),
     AuthRepository: Symbol.for('AuthRepository'),
     DashboardRepository: Symbol.for('DashboardRepository'),
+    SettingsRepository: Symbol.for('SettingsRepository'),
 
     // Services
     AuthService: Symbol.for('AuthService'),
@@ -31,6 +32,7 @@ export const TYPES = {
     AuditLogService: Symbol.for('AuditLogService'),
     DashboardService: Symbol.for('DashboardService'),
     TokenService: Symbol.for('TokenService'),
+    SettingsService: Symbol.for('SettingsService'),
 
     // Validators
     UserValidator: Symbol.for('UserValidator'),
