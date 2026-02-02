@@ -499,7 +499,13 @@ export default function SettingsPage() {
             </Grid>
 
             {/* Password Change Dialog */}
-            <Dialog open={passwordDialogOpen} onClose={() => setPasswordDialogOpen(false)} maxWidth="sm" fullWidth>
+            <Dialog open={passwordDialogOpen} onClose={() => {
+                setPasswordDialogOpen(false)
+                setCurrentPassword('')
+                setNewPassword('')
+                setConfirmPassword('')
+                setPasswordErrors([])
+            }} maxWidth="sm" fullWidth>
                 <DialogTitle>Change Password</DialogTitle>
                 <DialogContent>
                     {passwordErrors.length > 0 && (

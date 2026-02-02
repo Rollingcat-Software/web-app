@@ -12,7 +12,7 @@ export default function DashboardLayout() {
     const [mobileOpen, setMobileOpen] = useState(false)
 
     const handleDrawerToggle = () => {
-        setMobileOpen(!mobileOpen)
+        setMobileOpen(prev => !prev)
     }
 
     return (
@@ -38,9 +38,9 @@ export default function DashboardLayout() {
                     flexGrow: 1,
                     p: 3,
                     width: {md: `calc(100% - ${DRAWER_WIDTH}px)`},
-                    mt: '64px', // Height of TopBar
+                    mt: {xs: '56px', sm: '64px'},
                     backgroundColor: 'background.default',
-                    minHeight: 'calc(100vh - 64px)',
+                    minHeight: {xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)'},
                 }}
             >
                 <Outlet/>

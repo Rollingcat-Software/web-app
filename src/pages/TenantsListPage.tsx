@@ -5,6 +5,11 @@ import {
     Button,
     Chip,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
     IconButton,
     InputAdornment,
     LinearProgress,
@@ -40,6 +45,8 @@ export default function TenantsListPage() {
     const navigate = useNavigate()
     const {tenants, loading, deleteTenant} = useTenants()
     const [searchQuery, setSearchQuery] = useState('')
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
 
     const filteredTenants = tenants.filter(
         (tenant) =>
@@ -47,17 +54,30 @@ export default function TenantsListPage() {
             tenant.domain.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this tenant? All associated users will be affected.')) {
+    const handleDeleteClick = (id: string) => {
+        setDeletingId(id)
+        setDeleteDialogOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (deletingId) {
             try {
-                await deleteTenant(id)
-            } catch (error) {
-                console.error('Failed to delete tenant:', error)
+                await deleteTenant(deletingId)
+            } catch {
+                // Error handled by hook
             }
         }
+        setDeleteDialogOpen(false)
+        setDeletingId(null)
+    }
+
+    const handleDeleteCancel = () => {
+        setDeleteDialogOpen(false)
+        setDeletingId(null)
     }
 
     const getUserPercentage = (current: number, max: number): number => {
+        if (max === 0) return 0
         return (current / max) * 100
     }
 
@@ -160,22 +180,22 @@ export default function TenantsListPage() {
                                             <IconButton
                                                 size="small"
                                                 onClick={() => navigate(`/tenants/${tenant.id}`)}
-                                                title="View details"
+                                                aria-label="View details"
                                             >
                                                 <Visibility fontSize="small"/>
                                             </IconButton>
                                             <IconButton
                                                 size="small"
                                                 onClick={() => navigate(`/tenants/${tenant.id}/edit`)}
-                                                title="Edit tenant"
+                                                aria-label="Edit tenant"
                                             >
                                                 <Edit fontSize="small"/>
                                             </IconButton>
                                             <IconButton
                                                 size="small"
-                                                onClick={() => handleDelete(tenant.id)}
+                                                onClick={() => handleDeleteClick(tenant.id)}
                                                 color="error"
-                                                title="Delete tenant"
+                                                aria-label="Delete tenant"
                                             >
                                                 <Delete fontSize="small"/>
                                             </IconButton>
@@ -187,6 +207,25 @@ export default function TenantsListPage() {
                     </Table>
                 </TableContainer>
             )}
+
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={handleDeleteCancel}
+                aria-labelledby="delete-tenant-dialog-title"
+            >
+                <DialogTitle id="delete-tenant-dialog-title">Delete Tenant</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you want to delete this tenant? All associated users will be affected.
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeleteCancel}>Cancel</Button>
+                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     )
 }

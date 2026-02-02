@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { container } from '@core/di/container'
+import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { ISettingsService } from '@domain/interfaces/ISettingsService'
 import type {
@@ -33,8 +33,8 @@ export function useSettings(): UseSettingsReturn {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
-    const settingsService = container.get<ISettingsService>(TYPES.SettingsService)
-    const errorHandler = container.get<ErrorHandler>(TYPES.ErrorHandler)
+    const settingsService = useService<ISettingsService>(TYPES.SettingsService)
+    const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
 
     const fetchSettings = useCallback(async () => {
         try {

@@ -1,5 +1,14 @@
 import {createTheme} from '@mui/material/styles'
 
+declare module '@mui/material/styles' {
+    interface PaletteColor {
+        lighter?: string
+    }
+    interface SimplePaletteColorOptions {
+        lighter?: string
+    }
+}
+
 const theme = createTheme({
     palette: {
         mode: 'light',
@@ -7,6 +16,7 @@ const theme = createTheme({
             main: '#1976d2',
             light: '#42a5f5',
             dark: '#1565c0',
+            lighter: '#e3f2fd',
             contrastText: '#ffffff',
         },
         secondary: {
@@ -24,6 +34,7 @@ const theme = createTheme({
             main: '#ed6c02',
             light: '#ff9800',
             dark: '#e65100',
+            lighter: '#fff3e0',
         },
         info: {
             main: '#0288d1',
@@ -88,10 +99,10 @@ const theme = createTheme({
         },
         MuiTableCell: {
             styleOverrides: {
-                head: {
+                head: ({theme}) => ({
                     fontWeight: 600,
-                    backgroundColor: '#f5f5f5',
-                },
+                    backgroundColor: theme.palette.background.default,
+                }),
             },
         },
     },

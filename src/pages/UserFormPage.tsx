@@ -26,7 +26,7 @@ export default function UserFormPage() {
     const isEditMode = Boolean(id)
 
     const {createUser, updateUser} = useUsers()
-    const {user: existingUser, loading: fetchLoading} = useUser(isEditMode ? id! : '')
+    const {user: existingUser, loading: fetchLoading} = useUser(id ?? '')
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)

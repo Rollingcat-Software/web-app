@@ -2,6 +2,17 @@
  * Dashboard Statistics Model
  * Represents platform statistics and metrics
  */
+
+interface DashboardStatsJSON {
+    totalUsers?: number
+    activeUsers?: number
+    pendingEnrollments?: number
+    successfulEnrollments?: number
+    failedEnrollments?: number
+    authSuccessRate?: number
+    verificationSuccessRate?: number
+}
+
 export class DashboardStats {
     constructor(
         public readonly totalUsers: number,
@@ -39,15 +50,15 @@ export class DashboardStats {
     /**
      * Create DashboardStats from JSON response
      */
-    static fromJSON(data: any): DashboardStats {
+    static fromJSON(data: DashboardStatsJSON): DashboardStats {
         return new DashboardStats(
-            data.totalUsers || 0,
-            data.activeUsers || 0,
-            data.pendingEnrollments || 0,
-            data.successfulEnrollments || 0,
-            data.failedEnrollments || 0,
-            data.authSuccessRate || 0,
-            data.verificationSuccessRate || 0
+            data.totalUsers ?? 0,
+            data.activeUsers ?? 0,
+            data.pendingEnrollments ?? 0,
+            data.successfulEnrollments ?? 0,
+            data.failedEnrollments ?? 0,
+            data.authSuccessRate ?? 0,
+            data.verificationSuccessRate ?? 0
         )
     }
 }

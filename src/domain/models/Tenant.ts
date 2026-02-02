@@ -9,6 +9,17 @@ export enum TenantStatus {
     SUSPENDED = 'SUSPENDED',
 }
 
+interface TenantJSON {
+    id: string
+    name: string
+    domain: string
+    status: TenantStatus
+    maxUsers: number
+    currentUsers: number
+    createdAt: string
+    updatedAt: string
+}
+
 /**
  * Tenant entity
  */
@@ -88,7 +99,7 @@ export class Tenant {
     /**
      * Create Tenant from plain object (deserialization)
      */
-    static fromJSON(data: any): Tenant {
+    static fromJSON(data: TenantJSON): Tenant {
         return new Tenant(
             data.id,
             data.name,

@@ -142,8 +142,10 @@ export class ErrorHandler {
         } catch (error) {
             if (options?.errorMessage) {
                 this.notifier.error(options.errorMessage)
+                this.logger.error(options.errorMessage, error)
+            } else {
+                this.handle(error)
             }
-            this.handle(error)
             options?.onError?.(error)
             return null
         }

@@ -29,7 +29,7 @@ function PageLoader() {
                 minHeight: 400,
             }}
         >
-            <CircularProgress />
+            <CircularProgress aria-label="Loading page" />
         </Box>
     )
 }
