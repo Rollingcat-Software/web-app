@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Box,
@@ -60,29 +60,28 @@ export default function UsersListPage() {
             user.lastName.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const handleDelete = async (id: string) => {
+    const handleDelete = useCallback(async (id: string) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
                 await deleteUser(id)
                 await refetch()
-            } catch (error) {
+            } catch {
                 // Error is handled by the hook
-                console.error('Failed to delete user:', error)
             }
         }
-    }
+    }, [deleteUser, refetch])
 
     return (
         <Box>
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
-                <div>
+                <Box component="header">
                     <Typography variant="h4" gutterBottom fontWeight={600}>
                         Users
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
                         Manage user accounts and permissions
                     </Typography>
-                </div>
+                </Box>
                 <Button
                     variant="contained"
                     startIcon={<Add />}
@@ -113,7 +112,7 @@ export default function UsersListPage() {
                     <CircularProgress />
                 </Box>
             ) : (
-                <TableContainer component={Paper}>
+                <TableContainer component={Paper} sx={{ overflowX: 'auto' }}>
                     <Table>
                         <TableHead>
                             <TableRow>
@@ -162,14 +161,14 @@ export default function UsersListPage() {
                                             <IconButton
                                                 size="small"
                                                 onClick={() => navigate(`/users/${user.id}`)}
-                                                title="View details"
+                                                aria-label={`View details for ${user.fullName}`}
                                             >
                                                 <Visibility fontSize="small" />
                                             </IconButton>
                                             <IconButton
                                                 size="small"
                                                 onClick={() => navigate(`/users/${user.id}/edit`)}
-                                                title="Edit user"
+                                                aria-label={`Edit ${user.fullName}`}
                                             >
                                                 <Edit fontSize="small" />
                                             </IconButton>
@@ -177,7 +176,7 @@ export default function UsersListPage() {
                                                 size="small"
                                                 onClick={() => handleDelete(user.id)}
                                                 color="error"
-                                                title="Delete user"
+                                                aria-label={`Delete ${user.fullName}`}
                                             >
                                                 <Delete fontSize="small" />
                                             </IconButton>

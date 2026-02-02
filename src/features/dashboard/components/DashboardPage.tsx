@@ -1,3 +1,4 @@
+import { memo } from 'react'
 import { Box, Card, CardContent, CircularProgress, Grid, Typography } from '@mui/material'
 import {
     CheckCircle,
@@ -32,7 +33,7 @@ interface StatCardProps {
     subtitle?: string
 }
 
-function StatCard({ title, value, icon, color, subtitle }: StatCardProps) {
+const StatCard = memo(function StatCard({ title, value, icon, color, subtitle }: StatCardProps) {
     return (
         <Card sx={{ height: '100%' }}>
             <CardContent>
@@ -66,7 +67,7 @@ function StatCard({ title, value, icon, color, subtitle }: StatCardProps) {
             </CardContent>
         </Card>
     )
-}
+})
 
 // Mock data for charts
 const userGrowthData = [
@@ -240,9 +241,9 @@ export default function DashboardPage() {
                                             fill="#8884d8"
                                             dataKey="value"
                                         >
-                                            {authMethodsData.map((_entry, index) => (
+                                            {authMethodsData.map((entry, index) => (
                                                 <Cell
-                                                    key={`cell-${index}`}
+                                                    key={entry.name}
                                                     fill={COLORS[index % COLORS.length]}
                                                 />
                                             ))}

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
     Alert,
     Avatar,
@@ -63,6 +63,24 @@ export default function SettingsPage() {
     // Save states
     const [saving, setSaving] = useState<string | null>(null)
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+    const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    // Clear success timer on unmount to prevent state updates after unmount
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current) {
+                clearTimeout(successTimerRef.current)
+            }
+        }
+    }, [])
+
+    const showSuccessMessage = useCallback((section: string) => {
+        setSaveSuccess(section)
+        if (successTimerRef.current) {
+            clearTimeout(successTimerRef.current)
+        }
+        successTimerRef.current = setTimeout(() => setSaveSuccess(null), 3000)
+    }, [])
 
     // Sync local state with settings from API
     useEffect(() => {
@@ -80,20 +98,19 @@ export default function SettingsPage() {
         }
     }, [settings, user])
 
-    const handleSaveProfile = async () => {
+    const handleSaveProfile = useCallback(async () => {
         try {
             setSaving('profile')
             await updateProfile({ firstName, lastName })
-            setSaveSuccess('profile')
-            setTimeout(() => setSaveSuccess(null), 3000)
+            showSuccessMessage('profile')
         } catch {
             // Error handled by hook
         } finally {
             setSaving(null)
         }
-    }
+    }, [firstName, lastName, updateProfile, showSuccessMessage])
 
-    const handleSaveNotifications = async () => {
+    const handleSaveNotifications = useCallback(async () => {
         try {
             setSaving('notifications')
             await updateNotifications({
@@ -102,45 +119,42 @@ export default function SettingsPage() {
                 weeklyReports,
                 securityAlerts,
             })
-            setSaveSuccess('notifications')
-            setTimeout(() => setSaveSuccess(null), 3000)
+            showSuccessMessage('notifications')
         } catch {
             // Error handled by hook
         } finally {
             setSaving(null)
         }
-    }
+    }, [emailNotifications, loginAlerts, weeklyReports, securityAlerts, updateNotifications, showSuccessMessage])
 
-    const handleSaveSecurity = async () => {
+    const handleSaveSecurity = useCallback(async () => {
         try {
             setSaving('security')
             await updateSecurity({
                 twoFactorEnabled: twoFactorAuth,
                 sessionTimeoutMinutes: parseInt(sessionTimeout, 10),
             })
-            setSaveSuccess('security')
-            setTimeout(() => setSaveSuccess(null), 3000)
+            showSuccessMessage('security')
         } catch {
             // Error handled by hook
         } finally {
             setSaving(null)
         }
-    }
+    }, [twoFactorAuth, sessionTimeout, updateSecurity, showSuccessMessage])
 
-    const handleSaveAppearance = async () => {
+    const handleSaveAppearance = useCallback(async () => {
         try {
             setSaving('appearance')
             await updateAppearance({ darkMode, compactView })
-            setSaveSuccess('appearance')
-            setTimeout(() => setSaveSuccess(null), 3000)
+            showSuccessMessage('appearance')
         } catch {
             // Error handled by hook
         } finally {
             setSaving(null)
         }
-    }
+    }, [darkMode, compactView, updateAppearance, showSuccessMessage])
 
-    const handlePasswordChange = async () => {
+    const handlePasswordChange = useCallback(async () => {
         // Validate new password
         const validation = validatePassword(newPassword)
         if (!validation.valid) {
@@ -165,14 +179,13 @@ export default function SettingsPage() {
             setNewPassword('')
             setConfirmPassword('')
             setPasswordErrors([])
-            setSaveSuccess('password')
-            setTimeout(() => setSaveSuccess(null), 3000)
+            showSuccessMessage('password')
         } catch {
             // Error handled by hook
         } finally {
             setSaving(null)
         }
-    }
+    }, [newPassword, confirmPassword, currentPassword, changePassword, validatePassword, showSuccessMessage])
 
     if (loading && !settings) {
         return (

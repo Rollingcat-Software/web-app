@@ -59,6 +59,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                 {/* Mobile menu button */}
                 <IconButton
                     color="inherit"
+                    aria-label="Open navigation menu"
                     edge="start"
                     onClick={onMenuClick}
                     sx={{mr: 2, display: {md: 'none'}}}
@@ -74,7 +75,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                 {/* Right side icons */}
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
                     {/* Notifications */}
-                    <IconButton color="inherit">
+                    <IconButton color="inherit" aria-label="Notifications">
                         <Badge badgeContent={3} color="error">
                             <Notifications/>
                         </Badge>
@@ -84,6 +85,8 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                     <IconButton
                         onClick={handleMenu}
                         sx={{p: 0.5}}
+                        aria-label="User menu"
+                        aria-haspopup="true"
                     >
                         <Avatar
                             sx={{width: 36, height: 36, bgcolor: 'primary.main'}}

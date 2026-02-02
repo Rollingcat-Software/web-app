@@ -81,8 +81,10 @@ export default function LoginPage() {
         >
             <Card
                 sx={{
-                    minWidth: 400,
+                    width: '100%',
+                    minWidth: { xs: 'auto', sm: 400 },
                     maxWidth: 500,
+                    mx: 2,
                     boxShadow: '0 8px 32px rgba(0,0,0,0.2)',
                 }}
             >
@@ -147,6 +149,7 @@ export default function LoginPage() {
                                                     onClick={() => setShowPassword(!showPassword)}
                                                     edge="end"
                                                     disabled={loading}
+                                                    aria-label={showPassword ? 'Hide password' : 'Show password'}
                                                 >
                                                     {showPassword ? <VisibilityOff /> : <Visibility />}
                                                 </IconButton>

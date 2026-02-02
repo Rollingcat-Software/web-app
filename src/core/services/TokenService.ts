@@ -46,7 +46,10 @@ export class TokenService implements ITokenService {
     // Refresh token 5 minutes before expiration
     private readonly REFRESH_THRESHOLD_MS = 5 * 60 * 1000
 
-    // Cached tokens for API requests (Bearer token auth, not httpOnly cookies)
+    // SECURITY: Only cache what's strictly needed.
+    // Access token cached for Bearer Authorization header (also sent as httpOnly cookie).
+    // Refresh token cached only for token refresh flow.
+    // Expiration time cached for proactive refresh checks.
     private cachedAccessToken: string | null = null
     private cachedRefreshToken: string | null = null
     private tokenExpirationTime: number | null = null

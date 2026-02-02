@@ -86,8 +86,9 @@ export default function UserFormPage() {
                 })
             }
             navigate('/users')
-        } catch (error: any) {
-            setError(error.message || `Failed to ${isEditMode ? 'update' : 'create'} user`)
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'create'} user`
+            setError(message)
         } finally {
             setLoading(false)
         }

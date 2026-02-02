@@ -62,7 +62,7 @@ export class ErrorHandler {
      */
     private handleApiError(error: AxiosError): void {
         const status = error.response?.status
-        const data = error.response?.data as any
+        const data = error.response?.data as { message?: string } | undefined
         const message = data?.message || error.message
 
         this.logger.error('API Error', {
@@ -155,7 +155,7 @@ export class ErrorHandler {
  */
 export function axiosErrorToAppError(error: AxiosError): AppError {
     const status = error.response?.status
-    const message = (error.response?.data as any)?.message || error.message
+    const message = (error.response?.data as { message?: string } | undefined)?.message || error.message
 
     if (!error.response) {
         return new NetworkError('Network error occurred')

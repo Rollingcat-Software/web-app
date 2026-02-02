@@ -53,7 +53,13 @@ export function getCsrfToken(): string | null {
 
     if (!csrfCookie) return null
 
-    return csrfCookie.split('=')[1]?.trim() || null
+    // Handle URL-encoded cookie values by using decodeURIComponent
+    const value = csrfCookie.substring(csrfCookie.indexOf('=') + 1).trim()
+    try {
+        return decodeURIComponent(value) || null
+    } catch {
+        return value || null
+    }
 }
 
 /**

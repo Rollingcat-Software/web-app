@@ -45,12 +45,21 @@ function cspPlugin(): Plugin {
                 next()
             })
         },
-        transformIndexHtml(html) {
-            // Add CSP meta tag as fallback
+        transformIndexHtml(html, ctx) {
+            // SECURITY: Production CSP is strict (no unsafe-inline/eval)
+            // Development CSP allows unsafe-inline/eval for HMR
+            const isProduction = ctx.server === undefined
+            const scriptSrc = isProduction
+                ? "script-src 'self'"
+                : "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
+            const connectSrc = isProduction
+                ? "connect-src 'self' https://ica-fivucsas.rollingcatsoftware.com"
+                : "connect-src 'self' http://localhost:8080 http://34.116.233.134:8080 ws://localhost:*"
+
             return html.replace(
                 '<head>',
                 `<head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' http://localhost:8080 ws://localhost:*; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">`
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; ${connectSrc}; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">`
             )
         },
     }

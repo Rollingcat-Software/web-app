@@ -204,7 +204,7 @@ export class AxiosClient implements IHttpClient {
                                 })
 
                                 // Store new tokens
-                                const data = refreshResponse.data as any
+                                const data = refreshResponse.data as { accessToken?: string; refreshToken?: string }
                                 if (data.accessToken && data.refreshToken) {
                                     await this.tokenService.storeTokens({
                                         accessToken: data.accessToken,
