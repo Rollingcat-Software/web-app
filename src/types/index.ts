@@ -3,13 +3,13 @@
 // ============================================================================
 
 export interface User {
-    id: number
+    id: string
     email: string
     firstName: string
     lastName: string
     role: UserRole
     status: UserStatus
-    tenantId: number
+    tenantId: string
     createdAt: string
     updatedAt: string
     lastLoginAt?: string
@@ -31,7 +31,7 @@ export enum UserStatus {
 }
 
 export interface Tenant {
-    id: number
+    id: string
     name: string
     domain: string
     status: TenantStatus
@@ -49,8 +49,8 @@ export enum TenantStatus {
 
 export interface EnrollmentJob {
     id: string
-    userId: number
-    tenantId: number
+    userId: string
+    tenantId: string
     status: EnrollmentStatus
     faceImageUrl: string
     qualityScore?: number
@@ -70,12 +70,12 @@ export enum EnrollmentStatus {
 }
 
 export interface AuditLog {
-    id: number
-    userId: number
-    tenantId: number
+    id: string
+    userId: string
+    tenantId: string
     action: string
     entityType: string
-    entityId?: number
+    entityId?: string
     ipAddress: string
     userAgent: string
     details?: Record<string, unknown>

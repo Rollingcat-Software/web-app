@@ -46,7 +46,7 @@ export class UserService implements IUserService {
     /**
      * Get user by ID
      */
-    async getUserById(id: number): Promise<User> {
+    async getUserById(id: string): Promise<User> {
         this.logger.debug(`Getting user ${id}`)
 
         const user = await this.userRepository.findById(id)
@@ -96,7 +96,7 @@ export class UserService implements IUserService {
     /**
      * Update user
      */
-    async updateUser(id: number, data: UpdateUserData): Promise<User> {
+    async updateUser(id: string, data: UpdateUserData): Promise<User> {
         // Validate input
         const validation = validateUpdateUser(data)
         if (!validation.success) {
@@ -138,7 +138,7 @@ export class UserService implements IUserService {
     /**
      * Delete user
      */
-    async deleteUser(id: number): Promise<void> {
+    async deleteUser(id: string): Promise<void> {
         // Check if user exists
         const existingUser = await this.userRepository.findById(id)
         if (!existingUser) {
@@ -165,7 +165,7 @@ export class UserService implements IUserService {
     /**
      * Activate user
      */
-    async activateUser(id: number): Promise<User> {
+    async activateUser(id: string): Promise<User> {
         const user = await this.getUserById(id)
 
         if (user.status === UserStatus.ACTIVE) {
@@ -182,7 +182,7 @@ export class UserService implements IUserService {
     /**
      * Suspend user
      */
-    async suspendUser(id: number, reason?: string): Promise<User> {
+    async suspendUser(id: string, reason?: string): Promise<User> {
         const user = await this.getUserById(id)
 
         if (user.status === UserStatus.SUSPENDED) {

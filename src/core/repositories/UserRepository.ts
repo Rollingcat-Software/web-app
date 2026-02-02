@@ -55,7 +55,7 @@ export class UserRepository implements IUserRepository {
     /**
      * Find user by ID
      */
-    async findById(id: number): Promise<User | null> {
+    async findById(id: string): Promise<User | null> {
         try {
             this.logger.debug(`Fetching user ${id}`)
 
@@ -115,7 +115,7 @@ export class UserRepository implements IUserRepository {
     /**
      * Update user
      */
-    async update(id: number, data: UpdateUserData): Promise<User> {
+    async update(id: string, data: UpdateUserData): Promise<User> {
         try {
             this.logger.info(`Updating user ${id}`)
 
@@ -134,7 +134,7 @@ export class UserRepository implements IUserRepository {
     /**
      * Delete user
      */
-    async delete(id: number): Promise<void> {
+    async delete(id: string): Promise<void> {
         try {
             this.logger.info(`Deleting user ${id}`)
 

@@ -6,7 +6,7 @@ import type { PaginatedResult } from './IRepository'
  */
 export interface AuditLogFilters {
     action?: string
-    userId?: number
+    userId?: string
     entityType?: string
     startDate?: Date
     endDate?: Date
@@ -30,5 +30,5 @@ export interface IAuditLogService {
      * Get audit log by ID
      * @throws NotFoundError if audit log doesn't exist
      */
-    getAuditLogById(id: number): Promise<AuditLog>
+    getAuditLogById(id: string): Promise<AuditLog>
 }

@@ -24,7 +24,7 @@ export interface ITenantService {
      * Get tenant by ID
      * @throws NotFoundError if tenant doesn't exist
      */
-    getTenantById(id: number): Promise<Tenant>
+    getTenantById(id: string): Promise<Tenant>
 
     /**
      * Create new tenant
@@ -38,11 +38,11 @@ export interface ITenantService {
      * @throws NotFoundError if tenant doesn't exist
      * @throws ValidationError if data is invalid
      */
-    updateTenant(id: number, data: UpdateTenantData): Promise<Tenant>
+    updateTenant(id: string, data: UpdateTenantData): Promise<Tenant>
 
     /**
      * Delete tenant
      * @throws NotFoundError if tenant doesn't exist
      */
-    deleteTenant(id: number): Promise<void>
+    deleteTenant(id: string): Promise<void>
 }

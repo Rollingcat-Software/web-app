@@ -37,7 +37,7 @@ export interface ITenantRepository {
      * Find tenant by ID
      * @returns Tenant if found, null otherwise
      */
-    findById(id: number): Promise<Tenant | null>
+    findById(id: string): Promise<Tenant | null>
 
     /**
      * Create new tenant
@@ -47,10 +47,10 @@ export interface ITenantRepository {
     /**
      * Update existing tenant
      */
-    update(id: number, data: UpdateTenantData): Promise<Tenant>
+    update(id: string, data: UpdateTenantData): Promise<Tenant>
 
     /**
      * Delete tenant
      */
-    delete(id: number): Promise<void>
+    delete(id: string): Promise<void>
 }

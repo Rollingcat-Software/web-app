@@ -16,8 +16,8 @@ export enum EnrollmentStatus {
 export class Enrollment {
     constructor(
         public readonly id: string,
-        public readonly userId: number,
-        public readonly tenantId: number,
+        public readonly userId: string,
+        public readonly tenantId: string,
         public readonly status: EnrollmentStatus,
         public readonly faceImageUrl: string,
         public readonly createdAt: Date,

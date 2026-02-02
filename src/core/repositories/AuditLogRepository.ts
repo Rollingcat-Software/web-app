@@ -69,7 +69,7 @@ export class AuditLogRepository implements IAuditLogRepository {
     /**
      * Find audit log by ID
      */
-    async findById(id: number): Promise<AuditLog | null> {
+    async findById(id: string): Promise<AuditLog | null> {
         try {
             this.logger.debug(`Fetching audit log ${id}`)
 

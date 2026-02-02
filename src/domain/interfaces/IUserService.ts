@@ -9,7 +9,7 @@ export interface UserFilters {
     search?: string
     status?: string
     role?: string
-    tenantId?: number
+    tenantId?: string
 }
 
 /**
@@ -26,7 +26,7 @@ export interface IUserService {
      * Get user by ID
      * @throws NotFoundError if user doesn't exist
      */
-    getUserById(id: number): Promise<User>
+    getUserById(id: string): Promise<User>
 
     /**
      * Create new user
@@ -40,21 +40,21 @@ export interface IUserService {
      * @throws NotFoundError if user doesn't exist
      * @throws ValidationError if data is invalid
      */
-    updateUser(id: number, data: UpdateUserData): Promise<User>
+    updateUser(id: string, data: UpdateUserData): Promise<User>
 
     /**
      * Delete user
      * @throws NotFoundError if user doesn't exist
      */
-    deleteUser(id: number): Promise<void>
+    deleteUser(id: string): Promise<void>
 
     /**
      * Activate user (change status to ACTIVE)
      */
-    activateUser(id: number): Promise<User>
+    activateUser(id: string): Promise<User>
 
     /**
      * Suspend user (change status to SUSPENDED)
      */
-    suspendUser(id: number, reason?: string): Promise<User>
+    suspendUser(id: string, reason?: string): Promise<User>
 }

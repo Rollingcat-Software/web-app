@@ -28,7 +28,7 @@ function cspPlugin(): Plugin {
                         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                         "font-src 'self' https://fonts.gstatic.com",
                         "img-src 'self' data: https:",
-                        "connect-src 'self' http://localhost:8080 ws://localhost:*",
+                        "connect-src 'self' http://localhost:8080 http://34.116.233.134:8080 ws://localhost:*",
                         "frame-ancestors 'none'",
                         "base-uri 'self'",
                         "form-action 'self'",

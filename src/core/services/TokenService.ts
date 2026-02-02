@@ -46,8 +46,9 @@ export class TokenService implements ITokenService {
     // Refresh token 5 minutes before expiration
     private readonly REFRESH_THRESHOLD_MS = 5 * 60 * 1000
 
-    // Cached token for expiration checks (since we can't read httpOnly cookies)
+    // Cached tokens for API requests (Bearer token auth, not httpOnly cookies)
     private cachedAccessToken: string | null = null
+    private cachedRefreshToken: string | null = null
     private tokenExpirationTime: number | null = null
 
     constructor(
@@ -83,11 +84,10 @@ export class TokenService implements ITokenService {
         try {
             // Validate tokens before caching
             this.validateToken(tokens.accessToken)
-            this.validateToken(tokens.refreshToken)
 
-            // Cache access token for expiration checks
-            // We can't read httpOnly cookies, but we need to check expiration
+            // Cache both tokens for API requests
             this.cachedAccessToken = tokens.accessToken
+            this.cachedRefreshToken = tokens.refreshToken
 
             // Extract and cache expiration time
             const decoded = jwtDecode<JwtPayload>(tokens.accessToken)
@@ -97,9 +97,9 @@ export class TokenService implements ITokenService {
             await this.storage.removeItem(this.ACCESS_TOKEN_KEY)
             await this.storage.removeItem(this.REFRESH_TOKEN_KEY)
 
-            this.logger.info('Token metadata cached successfully (httpOnly cookies used)')
+            this.logger.info('Tokens cached successfully')
         } catch (error) {
-            this.logger.error('Failed to cache token metadata', error)
+            this.logger.error('Failed to cache tokens', error)
             throw new Error('Failed to process authentication tokens')
         }
     }
@@ -124,15 +124,9 @@ export class TokenService implements ITokenService {
 
     /**
      * Get refresh token
-     *
-     * SECURITY NOTE: Refresh tokens are in httpOnly cookies and not accessible.
-     * The backend handles refresh automatically via cookie.
      */
     async getRefreshToken(): Promise<string | null> {
-        // Refresh token is httpOnly and not accessible from JavaScript
-        // Backend will use it automatically from cookie
-        this.logger.debug('Refresh token is in httpOnly cookie (not accessible)')
-        return null
+        return this.cachedRefreshToken
     }
 
     /**
@@ -145,6 +139,7 @@ export class TokenService implements ITokenService {
         try {
             // Clear cached token data
             this.cachedAccessToken = null
+            this.cachedRefreshToken = null
             this.tokenExpirationTime = null
 
             // Clear legacy storage if present

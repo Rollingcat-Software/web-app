@@ -22,7 +22,7 @@ export class MockTenantRepository implements ITenantRepository {
         // Initialize with mock tenants
         this.tenants = [
             new Tenant(
-                1,
+                '1',
                 'Acme Corporation',
                 'acme.com',
                 TenantStatus.ACTIVE,
@@ -32,7 +32,7 @@ export class MockTenantRepository implements ITenantRepository {
                 new Date('2025-01-10T10:00:00Z')
             ),
             new Tenant(
-                2,
+                '2',
                 'TechStart Inc',
                 'techstart.io',
                 TenantStatus.TRIAL,
@@ -42,7 +42,7 @@ export class MockTenantRepository implements ITenantRepository {
                 new Date('2025-02-15T10:00:00Z')
             ),
             new Tenant(
-                3,
+                '3',
                 'Global Enterprises',
                 'globalent.com',
                 TenantStatus.ACTIVE,
@@ -52,7 +52,7 @@ export class MockTenantRepository implements ITenantRepository {
                 new Date('2024-12-01T10:00:00Z')
             ),
             new Tenant(
-                4,
+                '4',
                 'Startup XYZ',
                 'startupxyz.com',
                 TenantStatus.SUSPENDED,
@@ -103,7 +103,7 @@ export class MockTenantRepository implements ITenantRepository {
         }
     }
 
-    async findById(id: number): Promise<Tenant | null> {
+    async findById(id: string): Promise<Tenant | null> {
         this.logger.debug(`Mock: Fetching tenant ${id}`)
         await this.delay(300)
 
@@ -116,7 +116,7 @@ export class MockTenantRepository implements ITenantRepository {
         await this.delay(500)
 
         const tenant = new Tenant(
-            this.nextId++,
+            String(this.nextId++),
             data.name,
             data.domain,
             data.status as TenantStatus,
@@ -131,7 +131,7 @@ export class MockTenantRepository implements ITenantRepository {
         return tenant
     }
 
-    async update(id: number, data: UpdateTenantData): Promise<Tenant> {
+    async update(id: string, data: UpdateTenantData): Promise<Tenant> {
         this.logger.info(`Mock: Updating tenant ${id}`)
         await this.delay(400)
 
@@ -159,7 +159,7 @@ export class MockTenantRepository implements ITenantRepository {
         return updatedTenant
     }
 
-    async delete(id: number): Promise<void> {
+    async delete(id: string): Promise<void> {
         this.logger.info(`Mock: Deleting tenant ${id}`)
         await this.delay(300)
 

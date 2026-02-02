@@ -6,7 +6,7 @@ import {useUser} from '@features/users'
 export default function UserDetailsPage() {
     const {id} = useParams()
     const navigate = useNavigate()
-    const {user, loading, error} = useUser(parseInt(id || '0'))
+    const {user, loading, error} = useUser(id || '')
 
     if (loading) {
         return (

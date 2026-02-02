@@ -19,13 +19,13 @@ export class MockAuthRepository implements IAuthRepository {
     constructor(@inject(TYPES.Logger) private readonly logger: ILogger) {
         // Create mock user
         this.mockUser = new User(
-            1,
+            '1',
             'admin@fivucsas.com',
             'Admin',
             'User',
             UserRole.ADMIN,
             UserStatus.ACTIVE,
-            1,
+            '1',
             new Date(),
             new Date(),
             new Date(),

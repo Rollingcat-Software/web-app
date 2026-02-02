@@ -14,7 +14,7 @@ export enum TenantStatus {
  */
 export class Tenant {
     constructor(
-        public readonly id: number,
+        public readonly id: string,
         public readonly name: string,
         public readonly domain: string,
         public readonly status: TenantStatus,

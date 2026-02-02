@@ -22,8 +22,8 @@ interface TenantsState {
 interface UseTenantsReturn extends TenantsState {
     refetch: (filters?: TenantFilters) => Promise<void>
     createTenant: (data: CreateTenantData) => Promise<Tenant>
-    updateTenant: (id: number, data: UpdateTenantData) => Promise<Tenant>
-    deleteTenant: (id: number) => Promise<void>
+    updateTenant: (id: string, data: UpdateTenantData) => Promise<Tenant>
+    deleteTenant: (id: string) => Promise<void>
 }
 
 /**
@@ -103,7 +103,7 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
      * Update tenant
      */
     const updateTenant = useCallback(
-        async (id: number, data: UpdateTenantData): Promise<Tenant> => {
+        async (id: string, data: UpdateTenantData): Promise<Tenant> => {
             try {
                 const tenant = await tenantService.updateTenant(id, data)
 
@@ -123,7 +123,7 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
      * Delete tenant
      */
     const deleteTenant = useCallback(
-        async (id: number): Promise<void> => {
+        async (id: string): Promise<void> => {
             try {
                 await tenantService.deleteTenant(id)
 
@@ -149,7 +149,7 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
 /**
  * Hook to get a single tenant by ID
  */
-export function useTenant(id: number) {
+export function useTenant(id: string) {
     const tenantService = useService<ITenantService>(TYPES.TenantService)
     const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
 

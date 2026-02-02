@@ -8,6 +8,7 @@ import type {
 } from '@domain/interfaces/IHttpClient'
 import type { IConfig } from '@domain/interfaces/IConfig'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
 import { getCsrfToken } from '@utils/auth'
 
 /**
@@ -39,7 +40,8 @@ export class AxiosClient implements IHttpClient {
 
     constructor(
         @inject(TYPES.Config) config: IConfig,
-        @inject(TYPES.Logger) private readonly logger: ILogger
+        @inject(TYPES.Logger) private readonly logger: ILogger,
+        @inject(TYPES.TokenService) private readonly tokenService: ITokenService
     ) {
         this.client = axios.create({
             baseURL: config.apiBaseUrl,
@@ -120,30 +122,29 @@ export class AxiosClient implements IHttpClient {
      * SECURITY: Implements CSRF protection and httpOnly cookie authentication
      */
     private setupInterceptors(): void {
-        // Request interceptor - add CSRF token and log outgoing requests
+        // Request interceptor - add Authorization header and CSRF token
         this.client.interceptors.request.use(
             async (config) => {
                 const method = config.method?.toUpperCase() || 'UNKNOWN'
                 const url = config.url || 'unknown'
 
-                // SECURITY: Add CSRF token to state-changing requests
-                // CSRF tokens prevent Cross-Site Request Forgery attacks
+                // Add Bearer token Authorization header
+                const accessToken = await this.tokenService.getAccessToken()
+                if (accessToken) {
+                    config.headers['Authorization'] = `Bearer ${accessToken}`
+                }
+
+                // Add CSRF token to state-changing requests
                 if (method === 'POST' || method === 'PUT' || method === 'DELETE' || method === 'PATCH') {
                     const csrfToken = getCsrfToken()
                     if (csrfToken) {
                         config.headers['X-CSRF-Token'] = csrfToken
-                    } else {
-                        this.logger.warn(`CSRF token not found for ${method} ${url}`)
                     }
                 }
 
-                // SECURITY NOTE: No Authorization header needed!
-                // Tokens are in httpOnly cookies and sent automatically by browser
-
                 this.logger.debug(`HTTP ${method} ${url}`, {
                     params: config.params,
-                    hasCsrfToken: !!(config.headers['X-CSRF-Token']),
-                    withCredentials: config.withCredentials,
+                    hasAuth: !!accessToken,
                 })
                 return config
             },
@@ -180,9 +181,7 @@ export class AxiosClient implements IHttpClient {
                         data: error.response?.data,
                     })
 
-                    // SECURITY: Handle 401 Unauthorized
-                    // With httpOnly cookies, token refresh is handled automatically by backend
-                    // When backend refreshes tokens, it sets new cookies automatically
+                    // Handle 401 Unauthorized - attempt token refresh
                     if (error.response?.status === 401 && error.config) {
                         const originalRequest = error.config
 
@@ -192,20 +191,33 @@ export class AxiosClient implements IHttpClient {
                             !originalRequest.url?.includes('/auth/logout')) {
 
                             try {
-                                this.logger.info('Attempting automatic token refresh via httpOnly cookies')
+                                this.logger.info('Attempting automatic token refresh')
 
-                                // Call refresh endpoint - backend uses refresh_token cookie automatically
-                                // No need to send token in request body
-                                await this.client.post('/auth/refresh', {})
+                                const refreshToken = await this.tokenService.getRefreshToken()
+                                if (!refreshToken) {
+                                    return Promise.reject(error)
+                                }
 
-                                // Backend has set new cookies, retry original request
-                                // Cookies are sent automatically by browser
+                                // Send refresh token in request body
+                                const refreshResponse = await this.client.post('/auth/refresh', {
+                                    refreshToken,
+                                })
+
+                                // Store new tokens
+                                const data = refreshResponse.data as any
+                                if (data.accessToken && data.refreshToken) {
+                                    await this.tokenService.storeTokens({
+                                        accessToken: data.accessToken,
+                                        refreshToken: data.refreshToken,
+                                    })
+                                }
+
+                                // Retry original request with new token
+                                originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`
                                 return this.client.request(originalRequest)
                             } catch (refreshError) {
                                 this.logger.error('Token refresh failed, user needs to login', refreshError)
-
-                                // Redirect to login - handled by error handler
-                                // Backend should clear cookies on refresh failure
+                                await this.tokenService.clearTokens()
                                 return Promise.reject(error)
                             }
                         }

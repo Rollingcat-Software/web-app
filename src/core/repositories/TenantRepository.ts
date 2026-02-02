@@ -55,7 +55,7 @@ export class TenantRepository implements ITenantRepository {
     /**
      * Find tenant by ID
      */
-    async findById(id: number): Promise<Tenant | null> {
+    async findById(id: string): Promise<Tenant | null> {
         try {
             this.logger.debug(`Fetching tenant ${id}`)
 
@@ -93,7 +93,7 @@ export class TenantRepository implements ITenantRepository {
     /**
      * Update tenant
      */
-    async update(id: number, data: UpdateTenantData): Promise<Tenant> {
+    async update(id: string, data: UpdateTenantData): Promise<Tenant> {
         try {
             this.logger.info(`Updating tenant ${id}`)
 
@@ -112,7 +112,7 @@ export class TenantRepository implements ITenantRepository {
     /**
      * Delete tenant
      */
-    async delete(id: number): Promise<void> {
+    async delete(id: string): Promise<void> {
         try {
             this.logger.info(`Deleting tenant ${id}`)
 

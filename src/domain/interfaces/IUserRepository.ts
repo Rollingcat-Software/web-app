@@ -10,7 +10,7 @@ export interface CreateUserData {
     lastName: string
     password: string
     role: string
-    tenantId: number
+    tenantId: string
 }
 
 /**
@@ -38,7 +38,7 @@ export interface IUserRepository {
      * Find user by ID
      * @returns User if found, null otherwise
      */
-    findById(id: number): Promise<User | null>
+    findById(id: string): Promise<User | null>
 
     /**
      * Find user by email
@@ -54,10 +54,10 @@ export interface IUserRepository {
     /**
      * Update existing user
      */
-    update(id: number, data: UpdateUserData): Promise<User>
+    update(id: string, data: UpdateUserData): Promise<User>
 
     /**
      * Delete user
      */
-    delete(id: number): Promise<void>
+    delete(id: string): Promise<void>
 }

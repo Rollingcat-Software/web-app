@@ -85,7 +85,7 @@ export function useAuditLogs(initialFilters?: AuditLogFilters): UseAuditLogsRetu
 /**
  * Hook to get a single audit log by ID
  */
-export function useAuditLog(id: number) {
+export function useAuditLog(id: string) {
     const auditLogService = useService<IAuditLogService>(TYPES.AuditLogService)
     const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
 

@@ -6,8 +6,8 @@ import type { PaginatedResult } from './IRepository'
  */
 export interface EnrollmentFilters {
     status?: EnrollmentStatus
-    userId?: number
-    tenantId?: number
+    userId?: string
+    tenantId?: string
 }
 
 /**

@@ -47,7 +47,7 @@ export default function TenantsListPage() {
             tenant.domain.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this tenant? All associated users will be affected.')) {
             try {
                 await deleteTenant(id)

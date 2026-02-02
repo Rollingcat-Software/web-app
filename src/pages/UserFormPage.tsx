@@ -15,7 +15,7 @@ const userSchema = z.object({
     password: z.string().min(8, 'Password must be at least 8 characters').optional(),
     role: z.nativeEnum(UserRole),
     status: z.nativeEnum(UserStatus),
-    tenantId: z.number().min(1, 'Tenant ID is required'),
+    tenantId: z.string().min(1, 'Tenant ID is required'),
 })
 
 type UserFormData = z.infer<typeof userSchema>
@@ -26,7 +26,7 @@ export default function UserFormPage() {
     const isEditMode = Boolean(id)
 
     const {createUser, updateUser} = useUsers()
-    const {user: existingUser, loading: fetchLoading} = useUser(isEditMode ? parseInt(id!) : 0)
+    const {user: existingUser, loading: fetchLoading} = useUser(isEditMode ? id! : '')
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -45,7 +45,7 @@ export default function UserFormPage() {
             password: '',
             role: UserRole.USER,
             status: UserStatus.PENDING_ENROLLMENT,
-            tenantId: 1,
+            tenantId: '',
         },
     })
 
@@ -69,7 +69,7 @@ export default function UserFormPage() {
         try {
             if (isEditMode && id) {
                 const {password, ...updateData} = data
-                await updateUser(parseInt(id), updateData)
+                await updateUser(id, updateData)
             } else {
                 if (!data.password) {
                     setError('Password is required for new users')
@@ -234,12 +234,10 @@ export default function UserFormPage() {
                                 <TextField
                                     {...field}
                                     label="Tenant ID"
-                                    type="number"
                                     fullWidth
                                     required
                                     error={!!errors.tenantId}
                                     helperText={errors.tenantId?.message}
-                                    onChange={(e) => field.onChange(parseInt(e.target.value))}
                                 />
                             )}
                         />

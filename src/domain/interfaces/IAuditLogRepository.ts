@@ -16,5 +16,5 @@ export interface IAuditLogRepository {
      * Find audit log by ID
      * @returns AuditLog if found, null otherwise
      */
-    findById(id: number): Promise<AuditLog | null>
+    findById(id: string): Promise<AuditLog | null>
 }

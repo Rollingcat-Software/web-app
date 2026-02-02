@@ -22,63 +22,63 @@ export class MockUserRepository implements IUserRepository {
         // Initialize with mock users
         this.users = [
             new User(
-                1,
+                '1',
                 'admin@fivucsas.com',
                 'Admin',
                 'User',
                 UserRole.ADMIN,
                 UserStatus.ACTIVE,
-                1,
+                '1',
                 new Date('2025-01-15T10:00:00Z'),
                 new Date('2025-01-15T10:00:00Z'),
                 new Date('2025-11-17T06:00:00Z'),
                 '192.168.1.1'
             ),
             new User(
-                2,
+                '2',
                 'john.doe@example.com',
                 'John',
                 'Doe',
                 UserRole.USER,
                 UserStatus.ACTIVE,
-                1,
+                '1',
                 new Date('2025-02-01T10:00:00Z'),
                 new Date('2025-02-01T10:00:00Z'),
                 new Date('2025-11-16T14:30:00Z'),
                 '192.168.1.50'
             ),
             new User(
-                3,
+                '3',
                 'jane.smith@example.com',
                 'Jane',
                 'Smith',
                 UserRole.USER,
                 UserStatus.PENDING_ENROLLMENT,
-                1,
+                '1',
                 new Date('2025-03-10T10:00:00Z'),
                 new Date('2025-03-10T10:00:00Z')
             ),
             new User(
-                4,
+                '4',
                 'bob.wilson@example.com',
                 'Bob',
                 'Wilson',
                 UserRole.USER,
                 UserStatus.SUSPENDED,
-                1,
+                '1',
                 new Date('2025-01-20T10:00:00Z'),
                 new Date('2025-11-15T10:00:00Z'),
                 new Date('2025-11-10T10:00:00Z'),
                 '192.168.1.75'
             ),
             new User(
-                5,
+                '5',
                 'alice.johnson@example.com',
                 'Alice',
                 'Johnson',
                 UserRole.ADMIN,
                 UserStatus.ACTIVE,
-                1,
+                '1',
                 new Date('2025-01-25T10:00:00Z'),
                 new Date('2025-01-25T10:00:00Z'),
                 new Date('2025-11-16T18:00:00Z'),
@@ -131,7 +131,7 @@ export class MockUserRepository implements IUserRepository {
         }
     }
 
-    async findById(id: number): Promise<User | null> {
+    async findById(id: string): Promise<User | null> {
         this.logger.debug(`Mock: Fetching user ${id}`)
         await this.delay(300)
 
@@ -152,7 +152,7 @@ export class MockUserRepository implements IUserRepository {
         await this.delay(500)
 
         const user = new User(
-            this.nextId++,
+            String(this.nextId++),
             data.email,
             data.firstName,
             data.lastName,
@@ -168,7 +168,7 @@ export class MockUserRepository implements IUserRepository {
         return user
     }
 
-    async update(id: number, data: UpdateUserData): Promise<User> {
+    async update(id: string, data: UpdateUserData): Promise<User> {
         this.logger.info(`Mock: Updating user ${id}`)
         await this.delay(400)
 
@@ -199,7 +199,7 @@ export class MockUserRepository implements IUserRepository {
         return updatedUser
     }
 
-    async delete(id: number): Promise<void> {
+    async delete(id: string): Promise<void> {
         this.logger.info(`Mock: Deleting user ${id}`)
         await this.delay(300)
 

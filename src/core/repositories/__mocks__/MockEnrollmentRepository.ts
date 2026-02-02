@@ -18,8 +18,8 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
         this.enrollments = [
             new Enrollment(
                 'enr_1234567890',
-                1,
-                1,
+                '1',
+                '1',
                 EnrollmentStatus.SUCCESS,
                 'https://example.com/faces/user1.jpg',
                 new Date('2025-11-17T10:00:00Z'),
@@ -32,8 +32,8 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
             ),
             new Enrollment(
                 'enr_0987654321',
-                2,
-                1,
+                '2',
+                '1',
                 EnrollmentStatus.SUCCESS,
                 'https://example.com/faces/user2.jpg',
                 new Date('2025-11-16T14:30:00Z'),
@@ -46,8 +46,8 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
             ),
             new Enrollment(
                 'enr_1122334455',
-                3,
-                1,
+                '3',
+                '1',
                 EnrollmentStatus.PENDING,
                 'https://example.com/faces/user3.jpg',
                 new Date('2025-11-17T09:00:00Z'),
@@ -55,8 +55,8 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
             ),
             new Enrollment(
                 'enr_5544332211',
-                4,
-                1,
+                '4',
+                '1',
                 EnrollmentStatus.FAILED,
                 'https://example.com/faces/user4.jpg',
                 new Date('2025-11-15T11:00:00Z'),
@@ -69,8 +69,8 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
             ),
             new Enrollment(
                 'enr_6677889900',
-                5,
-                1,
+                '5',
+                '1',
                 EnrollmentStatus.PROCESSING,
                 'https://example.com/faces/user5.jpg',
                 new Date('2025-11-17T08:45:00Z'),

@@ -22,10 +22,10 @@ interface UsersState {
 interface UseUsersReturn extends UsersState {
     refetch: (filters?: UserFilters) => Promise<void>
     createUser: (data: CreateUserData) => Promise<User>
-    updateUser: (id: number, data: UpdateUserData) => Promise<User>
-    deleteUser: (id: number) => Promise<void>
-    activateUser: (id: number) => Promise<void>
-    suspendUser: (id: number, reason?: string) => Promise<void>
+    updateUser: (id: string, data: UpdateUserData) => Promise<User>
+    deleteUser: (id: string) => Promise<void>
+    activateUser: (id: string) => Promise<void>
+    suspendUser: (id: string, reason?: string) => Promise<void>
 }
 
 /**
@@ -105,7 +105,7 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
      * Update user
      */
     const updateUser = useCallback(
-        async (id: number, data: UpdateUserData): Promise<User> => {
+        async (id: string, data: UpdateUserData): Promise<User> => {
             try {
                 const user = await userService.updateUser(id, data)
 
@@ -125,7 +125,7 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
      * Delete user
      */
     const deleteUser = useCallback(
-        async (id: number): Promise<void> => {
+        async (id: string): Promise<void> => {
             try {
                 await userService.deleteUser(id)
 
@@ -143,7 +143,7 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
      * Activate user
      */
     const activateUser = useCallback(
-        async (id: number): Promise<void> => {
+        async (id: string): Promise<void> => {
             try {
                 await userService.activateUser(id)
 
@@ -161,7 +161,7 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
      * Suspend user
      */
     const suspendUser = useCallback(
-        async (id: number, reason?: string): Promise<void> => {
+        async (id: string, reason?: string): Promise<void> => {
             try {
                 await userService.suspendUser(id, reason)
 
@@ -189,7 +189,7 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
 /**
  * Hook to get a single user by ID
  */
-export function useUser(id: number) {
+export function useUser(id: string) {
     const userService = useService<IUserService>(TYPES.UserService)
     const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
 

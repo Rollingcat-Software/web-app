@@ -45,7 +45,7 @@ export class AuditLogService implements IAuditLogService {
     /**
      * Get audit log by ID
      */
-    async getAuditLogById(id: number): Promise<AuditLog> {
+    async getAuditLogById(id: string): Promise<AuditLog> {
         this.logger.debug(`Getting audit log ${id}`)
 
         const auditLog = await this.auditLogRepository.findById(id)

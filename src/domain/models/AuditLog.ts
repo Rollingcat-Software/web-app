@@ -8,16 +8,16 @@
  */
 export class AuditLog {
     constructor(
-        public readonly id: number,
-        public readonly userId: number,
-        public readonly tenantId: number,
+        public readonly id: string,
+        public readonly userId: string,
+        public readonly tenantId: string,
         public readonly action: string,
         public readonly entityType: string,
         public readonly ipAddress: string,
         public readonly userAgent: string,
         public readonly details: Record<string, any>,
         public readonly createdAt: Date,
-        public readonly entityId?: number
+        public readonly entityId?: string
     ) {}
 
     /**
@@ -110,10 +110,10 @@ export class AuditLog {
             data.tenantId,
             data.action,
             data.entityType,
-            data.ipAddress,
-            data.userAgent,
+            data.ipAddress || '',
+            data.userAgent || '',
             data.details || {},
-            new Date(data.createdAt),
+            new Date(data.timestamp || data.createdAt),
             data.entityId
         )
     }

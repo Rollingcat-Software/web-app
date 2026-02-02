@@ -26,7 +26,7 @@ export class SettingsRepository implements ISettingsRepository {
     /**
      * Get user settings
      */
-    async getSettings(userId: number): Promise<UserSettings> {
+    async getSettings(userId: string): Promise<UserSettings> {
         try {
             this.logger.debug(`Fetching settings for user ${userId}`)
 
@@ -46,7 +46,7 @@ export class SettingsRepository implements ISettingsRepository {
     /**
      * Update profile information
      */
-    async updateProfile(userId: number, data: UpdateProfileData): Promise<UserSettings> {
+    async updateProfile(userId: string, data: UpdateProfileData): Promise<UserSettings> {
         try {
             this.logger.info(`Updating profile for user ${userId}`)
 
@@ -63,7 +63,7 @@ export class SettingsRepository implements ISettingsRepository {
     /**
      * Update notification settings
      */
-    async updateNotifications(userId: number, data: UpdateNotificationSettings): Promise<UserSettings> {
+    async updateNotifications(userId: string, data: UpdateNotificationSettings): Promise<UserSettings> {
         try {
             this.logger.info(`Updating notifications for user ${userId}`)
 
@@ -82,7 +82,7 @@ export class SettingsRepository implements ISettingsRepository {
     /**
      * Update security settings
      */
-    async updateSecurity(userId: number, data: UpdateSecuritySettings): Promise<UserSettings> {
+    async updateSecurity(userId: string, data: UpdateSecuritySettings): Promise<UserSettings> {
         try {
             this.logger.info(`Updating security settings for user ${userId}`)
 
@@ -101,7 +101,7 @@ export class SettingsRepository implements ISettingsRepository {
     /**
      * Update appearance settings
      */
-    async updateAppearance(userId: number, data: UpdateAppearanceSettings): Promise<UserSettings> {
+    async updateAppearance(userId: string, data: UpdateAppearanceSettings): Promise<UserSettings> {
         try {
             this.logger.info(`Updating appearance settings for user ${userId}`)
 
@@ -120,7 +120,7 @@ export class SettingsRepository implements ISettingsRepository {
     /**
      * Change password
      */
-    async changePassword(userId: number, data: ChangePasswordData): Promise<void> {
+    async changePassword(userId: string, data: ChangePasswordData): Promise<void> {
         try {
             this.logger.info(`Changing password for user ${userId}`)
 
@@ -139,7 +139,7 @@ export class SettingsRepository implements ISettingsRepository {
     /**
      * Get default settings for new users
      */
-    private getDefaultSettings(userId: number): UserSettings {
+    private getDefaultSettings(userId: string): UserSettings {
         return {
             userId,
             firstName: '',

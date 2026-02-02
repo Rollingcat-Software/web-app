@@ -2,9 +2,9 @@
  * Generic repository interface
  * Defines standard CRUD operations for data access
  * @template T - Entity type
- * @template ID - ID type (defaults to number)
+ * @template ID - ID type (defaults to string)
  */
-export interface IRepository<T, ID = number> {
+export interface IRepository<T, ID = string> {
     /**
      * Find all entities matching the query parameters
      */

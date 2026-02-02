@@ -45,7 +45,7 @@ export class TenantService implements ITenantService {
     /**
      * Get tenant by ID
      */
-    async getTenantById(id: number): Promise<Tenant> {
+    async getTenantById(id: string): Promise<Tenant> {
         this.logger.debug(`Getting tenant ${id}`)
 
         const tenant = await this.tenantRepository.findById(id)
@@ -104,7 +104,7 @@ export class TenantService implements ITenantService {
     /**
      * Update tenant
      */
-    async updateTenant(id: number, data: UpdateTenantData): Promise<Tenant> {
+    async updateTenant(id: string, data: UpdateTenantData): Promise<Tenant> {
         // Basic validation
         if (data.name !== undefined && data.name.trim().length === 0) {
             throw new ValidationError('Tenant name cannot be empty', [
@@ -147,7 +147,7 @@ export class TenantService implements ITenantService {
     /**
      * Delete tenant
      */
-    async deleteTenant(id: number): Promise<void> {
+    async deleteTenant(id: string): Promise<void> {
         // Check if tenant exists
         const existingTenant = await this.tenantRepository.findById(id)
         if (!existingTenant) {

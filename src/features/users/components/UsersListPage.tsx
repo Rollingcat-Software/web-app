@@ -60,7 +60,7 @@ export default function UsersListPage() {
             user.lastName.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const handleDelete = async (id: number) => {
+    const handleDelete = async (id: string) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
                 await deleteUser(id)

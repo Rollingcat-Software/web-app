@@ -2,6 +2,7 @@ import { injectable, inject } from 'inversify'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type {
     IAuthRepository,
     LoginCredentials,
@@ -28,7 +29,8 @@ interface AuthApiResponse {
 export class AuthRepository implements IAuthRepository {
     constructor(
         @inject(TYPES.HttpClient) private readonly httpClient: IHttpClient,
-        @inject(TYPES.Logger) private readonly logger: ILogger
+        @inject(TYPES.Logger) private readonly logger: ILogger,
+        @inject(TYPES.TokenService) private readonly tokenService: ITokenService
     ) {}
 
     /**
@@ -68,7 +70,10 @@ export class AuthRepository implements IAuthRepository {
     async logout(): Promise<void> {
         try {
             this.logger.info('Logging out')
-            await this.httpClient.post('/auth/logout')
+            const refreshToken = await this.tokenService.getRefreshToken()
+            await this.httpClient.post('/auth/logout', {
+                refreshToken: refreshToken || '',
+            })
             this.logger.info('Logout successful')
         } catch (error) {
             this.logger.warn('Logout API call failed', error)

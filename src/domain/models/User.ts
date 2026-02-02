@@ -6,12 +6,14 @@
 export enum UserRole {
     USER = 'USER',
     ADMIN = 'ADMIN',
+    TENANT_ADMIN = 'TENANT_ADMIN',
     SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
 export enum UserStatus {
     PENDING_ENROLLMENT = 'PENDING_ENROLLMENT',
     ACTIVE = 'ACTIVE',
+    INACTIVE = 'INACTIVE',
     SUSPENDED = 'SUSPENDED',
     DELETED = 'DELETED',
     LOCKED = 'LOCKED',
@@ -22,13 +24,13 @@ export enum UserStatus {
  */
 export class User {
     constructor(
-        public readonly id: number,
+        public readonly id: string,
         public readonly email: string,
         public readonly firstName: string,
         public readonly lastName: string,
         public readonly role: UserRole,
         public readonly status: UserStatus,
-        public readonly tenantId: number,
+        public readonly tenantId: string,
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
         public readonly lastLoginAt?: Date,
@@ -122,13 +124,13 @@ export class User {
  * SECURITY: Explicit typing prevents type confusion vulnerabilities
  */
 export interface UserJSON {
-    id: number
+    id: string
     email: string
     firstName: string
     lastName: string
     role: UserRole
     status: UserStatus
-    tenantId: number
+    tenantId: string
     createdAt: string | Date
     updatedAt: string | Date
     lastLoginAt?: string | Date
