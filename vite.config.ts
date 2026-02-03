@@ -53,7 +53,7 @@ function cspPlugin(): Plugin {
                 ? "script-src 'self'"
                 : "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
             const connectSrc = isProduction
-                ? "connect-src 'self' https://ica-fivucsas.rollingcatsoftware.com"
+                ? "connect-src 'self' https://api-fivucsas.rollingcatsoftware.com https://bpa-fivucsas.rollingcatsoftware.com"
                 : "connect-src 'self' http://localhost:8080 http://34.116.233.134:8080 ws://localhost:*"
 
             return html.replace(
