@@ -1,5 +1,6 @@
 import { memo } from 'react'
-import { Box, Card, CardContent, CircularProgress, Grid, Typography } from '@mui/material'
+import { Alert, Box, Card, CardContent, Chip, CircularProgress, Grid, Typography } from '@mui/material'
+import { Info } from '@mui/icons-material'
 import {
     CheckCircle,
     Error,
@@ -98,15 +99,41 @@ const authMethodsData = [
 
 const COLORS = ['#1976d2', '#9c27b0', '#2e7d32', '#ed6c02']
 
+function SampleDataIndicator() {
+    return (
+        <Chip
+            icon={<Info fontSize="small" />}
+            label="Sample Data"
+            size="small"
+            color="info"
+            variant="outlined"
+            sx={{ ml: 1 }}
+        />
+    )
+}
+
 export default function DashboardPage() {
-    const { stats, loading } = useDashboard()
+    const { stats, loading, error } = useDashboard()
 
     if (loading) {
         return (
             <Box
                 sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: 400 }}
             >
-                <CircularProgress />
+                <CircularProgress aria-label="Loading dashboard" />
+            </Box>
+        )
+    }
+
+    if (error) {
+        return (
+            <Box>
+                <Typography variant="h4" gutterBottom fontWeight={600}>
+                    Dashboard
+                </Typography>
+                <Alert severity="error" sx={{ mt: 2 }}>
+                    Failed to load dashboard statistics: {error.message}
+                </Alert>
             </Box>
         )
     }
@@ -194,9 +221,12 @@ export default function DashboardPage() {
                 <Grid item xs={12} md={8}>
                     <Card>
                         <CardContent>
-                            <Typography variant="h6" gutterBottom fontWeight={600}>
-                                User Growth Trend
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Typography variant="h6" fontWeight={600}>
+                                    User Growth Trend
+                                </Typography>
+                                <SampleDataIndicator />
+                            </Box>
                             <Box sx={{ width: '100%', height: 300, mt: 2 }}>
                                 <ResponsiveContainer>
                                     <LineChart data={userGrowthData}>
@@ -223,9 +253,12 @@ export default function DashboardPage() {
                 <Grid item xs={12} md={4}>
                     <Card>
                         <CardContent>
-                            <Typography variant="h6" gutterBottom fontWeight={600}>
-                                Authentication Methods
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Typography variant="h6" fontWeight={600}>
+                                    Authentication Methods
+                                </Typography>
+                                <SampleDataIndicator />
+                            </Box>
                             <Box sx={{ width: '100%', height: 300, mt: 2 }}>
                                 <ResponsiveContainer>
                                     <PieChart>
@@ -260,9 +293,12 @@ export default function DashboardPage() {
                 <Grid item xs={12}>
                     <Card>
                         <CardContent>
-                            <Typography variant="h6" gutterBottom fontWeight={600}>
-                                Enrollment Success vs Failed
-                            </Typography>
+                            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+                                <Typography variant="h6" fontWeight={600}>
+                                    Enrollment Success vs Failed
+                                </Typography>
+                                <SampleDataIndicator />
+                            </Box>
                             <Box sx={{ width: '100%', height: 300, mt: 2 }}>
                                 <ResponsiveContainer>
                                     <BarChart data={enrollmentTrendData}>
