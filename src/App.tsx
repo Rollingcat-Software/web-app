@@ -7,6 +7,7 @@ import { CircularProgress, Box } from '@mui/material'
 
 // Lazy load pages for code splitting
 const LoginPage = lazy(() => import('./features/auth/components/LoginPage'))
+const RegisterPage = lazy(() => import('./features/auth/components/RegisterPage'))
 const DashboardPage = lazy(() => import('./features/dashboard/components/DashboardPage'))
 const UsersListPage = lazy(() => import('./features/users/components/UsersListPage'))
 const UserDetailsPage = lazy(() => import('./pages/UserDetailsPage'))
@@ -74,6 +75,7 @@ function App() {
             <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
+                <Route path="/register" element={<RegisterPage />} />
 
                 {/* Protected Routes */}
                 <Route

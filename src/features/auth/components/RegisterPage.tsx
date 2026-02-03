@@ -11,32 +11,44 @@ import {
     InputAdornment,
     TextField,
     Typography,
-    Divider,
     Link,
 } from '@mui/material'
 import {
     Fingerprint,
     Visibility,
     VisibilityOff,
-    LockOutlined,
+    PersonAddOutlined,
     EmailOutlined,
+    PersonOutlined,
+    LockOutlined,
     ArrowForward,
 } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
-import { useAuth } from '../hooks/useAuth'
+import axios from 'axios'
 
 /**
- * Login form validation schema
+ * Register form validation schema
  */
-const loginSchema = z.object({
+const registerSchema = z.object({
+    firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
+    lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
     email: z.string().min(1, 'Email is required').email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    password: z.string()
+        .min(8, 'Password must be at least 8 characters')
+        .regex(/[A-Z]/, 'Password must contain uppercase letter')
+        .regex(/[a-z]/, 'Password must contain lowercase letter')
+        .regex(/[0-9]/, 'Password must contain a number')
+        .regex(/[!@#$%^&*]/, 'Password must contain special character (!@#$%^&*)'),
+    confirmPassword: z.string().min(1, 'Please confirm your password'),
+}).refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ['confirmPassword'],
 })
 
-type LoginFormData = z.infer<typeof loginSchema>
+type RegisterFormData = z.infer<typeof registerSchema>
 
 // Bezier easing
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -47,8 +59,8 @@ const containerVariants: Variants = {
     visible: {
         opacity: 1,
         transition: {
-            staggerChildren: 0.1,
-            delayChildren: 0.2,
+            staggerChildren: 0.08,
+            delayChildren: 0.15,
         },
     },
 }
@@ -112,37 +124,63 @@ const FloatingShape = ({ delay, size, left, top }: {
 )
 
 /**
- * Login Page Component
- * Beautiful animated login with glassmorphism design
+ * Register Page Component
+ * Beautiful animated registration with glassmorphism design
  */
-export default function LoginPage() {
+export default function RegisterPage() {
     const navigate = useNavigate()
-    const { login, loading, error } = useAuth()
     const [showPassword, setShowPassword] = useState(false)
+    const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
+    const [success, setSuccess] = useState(false)
 
     const {
         control,
         handleSubmit,
         formState: { errors },
-    } = useForm<LoginFormData>({
-        resolver: zodResolver(loginSchema),
+    } = useForm<RegisterFormData>({
+        resolver: zodResolver(registerSchema),
         defaultValues: {
+            firstName: '',
+            lastName: '',
             email: '',
             password: '',
+            confirmPassword: '',
         },
     })
 
-    const onSubmit = async (data: LoginFormData) => {
+    const onSubmit = async (data: RegisterFormData) => {
+        setLoading(true)
+        setError(null)
+
         try {
-            await login({
+            const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+            await axios.post(`${apiUrl}/auth/register`, {
+                firstName: data.firstName,
+                lastName: data.lastName,
                 email: data.email,
                 password: data.password,
             })
-            navigate('/')
+
+            setSuccess(true)
+            setTimeout(() => {
+                navigate('/login')
+            }, 2000)
         } catch (err) {
-            if (import.meta.env.DEV) {
-                console.error('Login failed:', err)
+            if (axios.isAxiosError(err)) {
+                if (err.response?.status === 409) {
+                    setError('An account with this email already exists')
+                } else if (err.response?.data?.message) {
+                    setError(err.response.data.message)
+                } else {
+                    setError('Registration failed. Please try again.')
+                }
+            } else {
+                setError('Registration failed. Please try again.')
             }
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -163,6 +201,7 @@ export default function LoginPage() {
                     '50%': { backgroundPosition: '100% 50%' },
                     '100%': { backgroundPosition: '0% 50%' },
                 },
+                py: 4,
             }}
         >
             {/* Animated background shapes */}
@@ -195,14 +234,14 @@ export default function LoginPage() {
                                 sx={{
                                     display: 'flex',
                                     justifyContent: 'center',
-                                    mb: 4,
+                                    mb: 3,
                                 }}
                             >
                                 <Box
                                     sx={{
-                                        width: 80,
-                                        height: 80,
-                                        borderRadius: '20px',
+                                        width: 70,
+                                        height: 70,
+                                        borderRadius: '18px',
                                         background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                                         display: 'flex',
                                         alignItems: 'center',
@@ -210,14 +249,14 @@ export default function LoginPage() {
                                         boxShadow: '0 10px 40px rgba(99, 102, 241, 0.4)',
                                     }}
                                 >
-                                    <Fingerprint sx={{ fontSize: 48, color: 'white' }} />
+                                    <Fingerprint sx={{ fontSize: 40, color: 'white' }} />
                                 </Box>
                             </Box>
                         </motion.div>
 
                         {/* Header */}
                         <motion.div variants={itemVariants}>
-                            <Box sx={{ textAlign: 'center', mb: 4 }}>
+                            <Box sx={{ textAlign: 'center', mb: 3 }}>
                                 <Typography
                                     variant="h4"
                                     component="h1"
@@ -230,15 +269,34 @@ export default function LoginPage() {
                                         mb: 1,
                                     }}
                                 >
-                                    Welcome Back
+                                    Create Account
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                    Sign in to FIVUCSAS Identity Platform
+                                    Join FIVUCSAS Identity Platform
                                 </Typography>
                             </Box>
                         </motion.div>
 
-                        {/* Login Form */}
+                        {/* Success Message */}
+                        {success && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <Alert
+                                    severity="success"
+                                    sx={{
+                                        mb: 3,
+                                        borderRadius: '12px',
+                                    }}
+                                >
+                                    Registration successful! Redirecting to login...
+                                </Alert>
+                            </motion.div>
+                        )}
+
+                        {/* Register Form */}
                         <form onSubmit={handleSubmit(onSubmit)}>
                             {/* Error Alert */}
                             {error && (
@@ -250,14 +308,76 @@ export default function LoginPage() {
                                     <Alert
                                         severity="error"
                                         sx={{
-                                            mb: 3,
+                                            mb: 2,
                                             borderRadius: '12px',
                                         }}
                                     >
-                                        {error.message || 'Login failed. Please try again.'}
+                                        {error}
                                     </Alert>
                                 </motion.div>
                             )}
+
+                            {/* Name Fields - Side by Side */}
+                            <Box sx={{ display: 'flex', gap: 2 }}>
+                                <motion.div variants={itemVariants} style={{ flex: 1 }}>
+                                    <Controller
+                                        name="firstName"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="First Name"
+                                                error={!!errors.firstName}
+                                                helperText={errors.firstName?.message}
+                                                margin="dense"
+                                                disabled={loading || success}
+                                                InputProps={{
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <PersonOutlined sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '12px',
+                                                        backgroundColor: '#f8fafc',
+                                                        '&:hover': { backgroundColor: '#f1f5f9' },
+                                                        '&.Mui-focused': { backgroundColor: '#fff' },
+                                                    },
+                                                }}
+                                            />
+                                        )}
+                                    />
+                                </motion.div>
+
+                                <motion.div variants={itemVariants} style={{ flex: 1 }}>
+                                    <Controller
+                                        name="lastName"
+                                        control={control}
+                                        render={({ field }) => (
+                                            <TextField
+                                                {...field}
+                                                fullWidth
+                                                label="Last Name"
+                                                error={!!errors.lastName}
+                                                helperText={errors.lastName?.message}
+                                                margin="dense"
+                                                disabled={loading || success}
+                                                sx={{
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '12px',
+                                                        backgroundColor: '#f8fafc',
+                                                        '&:hover': { backgroundColor: '#f1f5f9' },
+                                                        '&.Mui-focused': { backgroundColor: '#fff' },
+                                                    },
+                                                }}
+                                            />
+                                        )}
+                                    />
+                                </motion.div>
+                            </Box>
 
                             {/* Email Field */}
                             <motion.div variants={itemVariants}>
@@ -272,9 +392,8 @@ export default function LoginPage() {
                                             type="email"
                                             error={!!errors.email}
                                             helperText={errors.email?.message}
-                                            margin="normal"
-                                            autoFocus
-                                            disabled={loading}
+                                            margin="dense"
+                                            disabled={loading || success}
                                             InputProps={{
                                                 startAdornment: (
                                                     <InputAdornment position="start">
@@ -286,12 +405,8 @@ export default function LoginPage() {
                                                 '& .MuiOutlinedInput-root': {
                                                     borderRadius: '12px',
                                                     backgroundColor: '#f8fafc',
-                                                    '&:hover': {
-                                                        backgroundColor: '#f1f5f9',
-                                                    },
-                                                    '&.Mui-focused': {
-                                                        backgroundColor: '#fff',
-                                                    },
+                                                    '&:hover': { backgroundColor: '#f1f5f9' },
+                                                    '&.Mui-focused': { backgroundColor: '#fff' },
                                                 },
                                             }}
                                         />
@@ -312,8 +427,8 @@ export default function LoginPage() {
                                             type={showPassword ? 'text' : 'password'}
                                             error={!!errors.password}
                                             helperText={errors.password?.message}
-                                            margin="normal"
-                                            disabled={loading}
+                                            margin="dense"
+                                            disabled={loading || success}
                                             InputProps={{
                                                 startAdornment: (
                                                     <InputAdornment position="start">
@@ -325,13 +440,8 @@ export default function LoginPage() {
                                                         <IconButton
                                                             onClick={() => setShowPassword(!showPassword)}
                                                             edge="end"
-                                                            disabled={loading}
-                                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
-                                                            sx={{
-                                                                '&:hover': {
-                                                                    backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                                                                },
-                                                            }}
+                                                            disabled={loading || success}
+                                                            size="small"
                                                         >
                                                             {showPassword ? <VisibilityOff /> : <Visibility />}
                                                         </IconButton>
@@ -342,12 +452,8 @@ export default function LoginPage() {
                                                 '& .MuiOutlinedInput-root': {
                                                     borderRadius: '12px',
                                                     backgroundColor: '#f8fafc',
-                                                    '&:hover': {
-                                                        backgroundColor: '#f1f5f9',
-                                                    },
-                                                    '&.Mui-focused': {
-                                                        backgroundColor: '#fff',
-                                                    },
+                                                    '&:hover': { backgroundColor: '#f1f5f9' },
+                                                    '&.Mui-focused': { backgroundColor: '#fff' },
                                                 },
                                             }}
                                         />
@@ -355,20 +461,51 @@ export default function LoginPage() {
                                 />
                             </motion.div>
 
-                            {/* Forgot Password Link */}
+                            {/* Confirm Password Field */}
                             <motion.div variants={itemVariants}>
-                                <Box sx={{ textAlign: 'right', mt: 1 }}>
-                                    <Typography
-                                        component="span"
-                                        sx={{
-                                            fontSize: '0.875rem',
-                                            color: 'text.secondary',
-                                            fontStyle: 'italic',
-                                        }}
-                                    >
-                                        Forgot password? Contact admin
-                                    </Typography>
-                                </Box>
+                                <Controller
+                                    name="confirmPassword"
+                                    control={control}
+                                    render={({ field }) => (
+                                        <TextField
+                                            {...field}
+                                            fullWidth
+                                            label="Confirm Password"
+                                            type={showConfirmPassword ? 'text' : 'password'}
+                                            error={!!errors.confirmPassword}
+                                            helperText={errors.confirmPassword?.message}
+                                            margin="dense"
+                                            disabled={loading || success}
+                                            InputProps={{
+                                                startAdornment: (
+                                                    <InputAdornment position="start">
+                                                        <LockOutlined sx={{ color: 'text.secondary' }} />
+                                                    </InputAdornment>
+                                                ),
+                                                endAdornment: (
+                                                    <InputAdornment position="end">
+                                                        <IconButton
+                                                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                                                            edge="end"
+                                                            disabled={loading || success}
+                                                            size="small"
+                                                        >
+                                                            {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
+                                                        </IconButton>
+                                                    </InputAdornment>
+                                                ),
+                                            }}
+                                            sx={{
+                                                '& .MuiOutlinedInput-root': {
+                                                    borderRadius: '12px',
+                                                    backgroundColor: '#f8fafc',
+                                                    '&:hover': { backgroundColor: '#f1f5f9' },
+                                                    '&.Mui-focused': { backgroundColor: '#fff' },
+                                                },
+                                            }}
+                                        />
+                                    )}
+                                />
                             </motion.div>
 
                             {/* Submit Button */}
@@ -378,7 +515,8 @@ export default function LoginPage() {
                                     fullWidth
                                     variant="contained"
                                     size="large"
-                                    disabled={loading}
+                                    disabled={loading || success}
+                                    startIcon={!loading && <PersonAddOutlined />}
                                     endIcon={!loading && <ArrowForward />}
                                     sx={{
                                         mt: 3,
@@ -403,61 +541,21 @@ export default function LoginPage() {
                                     {loading ? (
                                         <CircularProgress size={24} sx={{ color: 'white' }} />
                                     ) : (
-                                        'Sign In'
+                                        'Create Account'
                                     )}
                                 </Button>
                             </motion.div>
                         </form>
 
-                        {/* Divider */}
-                        <motion.div variants={itemVariants}>
-                            <Divider sx={{ my: 3 }}>
-                                <Typography variant="caption" color="text.secondary">
-                                    Secure Authentication
-                                </Typography>
-                            </Divider>
-                        </motion.div>
-
-                        {/* Features */}
-                        <motion.div variants={itemVariants}>
-                            <Box
-                                sx={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    gap: 3,
-                                    flexWrap: 'wrap',
-                                }}
-                            >
-                                {['Face ID', 'Fingerprint', 'QR Code'].map((feature) => (
-                                    <Typography
-                                        key={feature}
-                                        variant="caption"
-                                        sx={{
-                                            color: 'text.secondary',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 0.5,
-                                            '&::before': {
-                                                content: '"\\2022"',
-                                                color: 'primary.main',
-                                            },
-                                        }}
-                                    >
-                                        {feature}
-                                    </Typography>
-                                ))}
-                            </Box>
-                        </motion.div>
-
-                        {/* Register Link */}
+                        {/* Login Link */}
                         <motion.div variants={itemVariants}>
                             <Box sx={{ textAlign: 'center', mt: 2 }}>
                                 <Typography variant="body2" color="text.secondary">
-                                    Don't have an account?{' '}
+                                    Already have an account?{' '}
                                     <Link
                                         component="button"
                                         type="button"
-                                        onClick={() => navigate('/register')}
+                                        onClick={() => navigate('/login')}
                                         underline="hover"
                                         sx={{
                                             fontWeight: 600,
@@ -468,40 +566,8 @@ export default function LoginPage() {
                                             },
                                         }}
                                     >
-                                        Register
+                                        Sign In
                                     </Link>
-                                </Typography>
-                            </Box>
-                        </motion.div>
-
-                        {/* Demo credentials */}
-                        <motion.div
-                            variants={itemVariants}
-                            initial={{ opacity: 0, height: 0 }}
-                            animate={{ opacity: 1, height: 'auto' }}
-                            transition={{ delay: 1 }}
-                        >
-                            <Box
-                                sx={{
-                                    mt: 3,
-                                    p: 2,
-                                    bgcolor: 'rgba(99, 102, 241, 0.08)',
-                                    borderRadius: '12px',
-                                    border: '1px dashed',
-                                    borderColor: 'primary.light',
-                                }}
-                            >
-                                <Typography
-                                    variant="caption"
-                                    color="primary.main"
-                                    display="block"
-                                    fontWeight="bold"
-                                    sx={{ mb: 0.5 }}
-                                >
-                                    Demo Credentials
-                                </Typography>
-                                <Typography variant="caption" color="text.secondary" display="block">
-                                    admin@fivucsas.local / Test@123
                                 </Typography>
                             </Box>
                         </motion.div>
