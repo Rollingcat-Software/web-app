@@ -1,9 +1,8 @@
 import {useState} from 'react'
-import {useNavigate} from 'react-router-dom'
+import {useLocation, useNavigate} from 'react-router-dom'
 import {
     AppBar,
     Avatar,
-    Badge,
     Box,
     Divider,
     IconButton,
@@ -23,8 +22,20 @@ interface TopBarProps {
 
 export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     const navigate = useNavigate()
+    const location = useLocation()
     const { user, logout } = useAuth()
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+    const getPageTitle = () => {
+        const path = location.pathname
+        if (path === '/') return 'Dashboard'
+        if (path.startsWith('/users')) return 'Users'
+        if (path.startsWith('/tenants')) return 'Tenants'
+        if (path.startsWith('/enrollments')) return 'Enrollments'
+        if (path.startsWith('/audit-logs')) return 'Audit Logs'
+        if (path.startsWith('/settings')) return 'Settings'
+        return 'Dashboard'
+    }
 
     const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget)
@@ -59,6 +70,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                 {/* Mobile menu button */}
                 <IconButton
                     color="inherit"
+                    aria-label="Open navigation menu"
                     edge="start"
                     onClick={onMenuClick}
                     sx={{mr: 2, display: {md: 'none'}}}
@@ -68,22 +80,22 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
 
                 {/* Page title */}
                 <Typography variant="h6" noWrap component="div" sx={{flexGrow: 1}}>
-                    Dashboard
+                    {getPageTitle()}
                 </Typography>
 
                 {/* Right side icons */}
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
                     {/* Notifications */}
-                    <IconButton color="inherit">
-                        <Badge badgeContent={3} color="error">
-                            <Notifications/>
-                        </Badge>
+                    <IconButton color="inherit" aria-label="Notifications">
+                        <Notifications/>
                     </IconButton>
 
                     {/* User menu */}
                     <IconButton
                         onClick={handleMenu}
                         sx={{p: 0.5}}
+                        aria-label="User menu"
+                        aria-haspopup="true"
                     >
                         <Avatar
                             sx={{width: 36, height: 36, bgcolor: 'primary.main'}}
@@ -112,7 +124,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                         <Divider/>
                         <MenuItem onClick={() => {
                             handleClose();
-                            navigate('/')
+                            navigate('/settings')
                         }}>
                             <ListItemIcon>
                                 <AccountCircle fontSize="small"/>
@@ -126,7 +138,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                             Settings
                         </MenuItem>
                         <Divider/>
-                        <MenuItem onClick={handleLogout}>
+                        <MenuItem onClick={() => { handleClose(); handleLogout() }}>
                             <ListItemIcon>
                                 <Logout fontSize="small" color="error"/>
                             </ListItemIcon>

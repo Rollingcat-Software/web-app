@@ -59,9 +59,13 @@ const container = new Container()
 const config: IConfig = {
     apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
     apiTimeout: parseInt(import.meta.env.VITE_API_TIMEOUT as string) || 30000,
-    useMockAPI: import.meta.env.VITE_ENABLE_MOCK_API !== 'false',
-    environment: (import.meta.env.VITE_ENV as any) || 'development',
-    logLevel: (import.meta.env.VITE_LOG_LEVEL as any) || 'info',
+    useMockAPI: import.meta.env.VITE_ENABLE_MOCK_API === 'true',
+    environment: (['development', 'staging', 'production', 'test'].includes(import.meta.env.VITE_ENVIRONMENT)
+        ? import.meta.env.VITE_ENVIRONMENT
+        : 'development') as IConfig['environment'],
+    logLevel: (['debug', 'info', 'warn', 'error'].includes(import.meta.env.VITE_LOG_LEVEL)
+        ? import.meta.env.VITE_LOG_LEVEL
+        : 'info') as IConfig['logLevel'],
     features: {
         enableAnalytics: import.meta.env.VITE_ENABLE_ANALYTICS === 'true',
         enableNotifications: import.meta.env.VITE_ENABLE_NOTIFICATIONS !== 'false',

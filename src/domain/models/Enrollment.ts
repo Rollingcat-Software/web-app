@@ -10,6 +10,21 @@ export enum EnrollmentStatus {
     FAILED = 'FAILED',
 }
 
+interface EnrollmentJSON {
+    id: string
+    userId: string
+    tenantId: string
+    status: EnrollmentStatus
+    faceImageUrl: string
+    createdAt: string
+    updatedAt: string
+    qualityScore?: number
+    livenessScore?: number
+    errorCode?: string
+    errorMessage?: string
+    completedAt?: string
+}
+
 /**
  * Enrollment entity
  */
@@ -115,7 +130,7 @@ export class Enrollment {
     /**
      * Create Enrollment from plain object (deserialization)
      */
-    static fromJSON(data: any): Enrollment {
+    static fromJSON(data: EnrollmentJSON): Enrollment {
         return new Enrollment(
             data.id,
             data.userId,

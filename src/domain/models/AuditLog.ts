@@ -3,6 +3,20 @@
  * Represents an audit log entry in the system
  */
 
+interface AuditLogJSON {
+    id: string
+    userId: string
+    tenantId: string
+    action: string
+    entityType: string
+    ipAddress?: string
+    userAgent?: string
+    details?: Record<string, unknown>
+    timestamp?: string
+    createdAt?: string
+    entityId?: string
+}
+
 /**
  * AuditLog entity
  */
@@ -15,7 +29,7 @@ export class AuditLog {
         public readonly entityType: string,
         public readonly ipAddress: string,
         public readonly userAgent: string,
-        public readonly details: Record<string, any>,
+        public readonly details: Record<string, unknown>,
         public readonly createdAt: Date,
         public readonly entityId?: string
     ) {}
@@ -103,7 +117,7 @@ export class AuditLog {
     /**
      * Create AuditLog from plain object (deserialization)
      */
-    static fromJSON(data: any): AuditLog {
+    static fromJSON(data: AuditLogJSON): AuditLog {
         return new AuditLog(
             data.id,
             data.userId,
@@ -113,7 +127,7 @@ export class AuditLog {
             data.ipAddress || '',
             data.userAgent || '',
             data.details || {},
-            new Date(data.timestamp || data.createdAt),
+            new Date(data.timestamp ?? data.createdAt ?? ''),
             data.entityId
         )
     }

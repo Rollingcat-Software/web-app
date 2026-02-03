@@ -29,7 +29,7 @@ export const CreateUserSchema = z.object({
         .regex(/[0-9]/, 'Password must contain at least one number')
         .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
     role: z.nativeEnum(UserRole),
-    tenantId: z.number().int().positive('Tenant ID must be a positive number'),
+    tenantId: z.string().min(1, 'Tenant ID is required'),
 })
 
 /**

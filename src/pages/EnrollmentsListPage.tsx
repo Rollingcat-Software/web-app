@@ -2,8 +2,14 @@ import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {
     Box,
+    Button,
     Chip,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogContentText,
+    DialogTitle,
     IconButton,
     InputAdornment,
     MenuItem,
@@ -22,6 +28,12 @@ import {Autorenew, CheckCircle, Delete, Error, Refresh, Schedule, Search, Visibi
 import {useEnrollments} from '@features/enrollments'
 import {EnrollmentStatus} from '@domain/models/Enrollment'
 import {format} from 'date-fns'
+import {keyframes} from '@mui/system'
+
+const rotate = keyframes`
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+`
 
 function getStatusColor(status: EnrollmentStatus): 'success' | 'warning' | 'error' | 'info' {
     switch (status) {
@@ -45,7 +57,7 @@ function getStatusIcon(status: EnrollmentStatus) {
         case EnrollmentStatus.PENDING:
             return <Schedule fontSize="small"/>
         case EnrollmentStatus.PROCESSING:
-            return <Autorenew fontSize="small" className="rotating-icon"/>
+            return <Autorenew fontSize="small" sx={{animation: `${rotate} 2s linear infinite`}}/>
         case EnrollmentStatus.FAILED:
             return <Error fontSize="small"/>
     }
@@ -55,6 +67,8 @@ export default function EnrollmentsListPage() {
     const navigate = useNavigate()
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | 'ALL'>('ALL')
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deletingId, setDeletingId] = useState<string | null>(null)
 
     const filters = statusFilter === 'ALL' ? undefined : {status: statusFilter}
     const {enrollments, loading, retryEnrollment, deleteEnrollment} = useEnrollments(filters)
@@ -67,19 +81,31 @@ export default function EnrollmentsListPage() {
     const handleRetry = async (id: string) => {
         try {
             await retryEnrollment(id)
-        } catch (error) {
-            console.error('Failed to retry enrollment:', error)
+        } catch {
+            // Error handled by hook
         }
     }
 
-    const handleDelete = async (id: string) => {
-        if (window.confirm('Are you sure you want to delete this enrollment job?')) {
+    const handleDeleteClick = (id: string) => {
+        setDeletingId(id)
+        setDeleteDialogOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (deletingId) {
             try {
-                await deleteEnrollment(id)
-            } catch (error) {
-                console.error('Failed to delete enrollment:', error)
+                await deleteEnrollment(deletingId)
+            } catch {
+                // Error handled by hook
             }
         }
+        setDeleteDialogOpen(false)
+        setDeletingId(null)
+    }
+
+    const handleDeleteCancel = () => {
+        setDeleteDialogOpen(false)
+        setDeletingId(null)
     }
 
     return (
@@ -205,7 +231,7 @@ export default function EnrollmentsListPage() {
                                             <IconButton
                                                 size="small"
                                                 onClick={() => navigate(`/enrollments/${enrollment.id}`)}
-                                                title="View details"
+                                                aria-label="View details"
                                             >
                                                 <Visibility fontSize="small"/>
                                             </IconButton>
@@ -214,16 +240,16 @@ export default function EnrollmentsListPage() {
                                                     size="small"
                                                     onClick={() => handleRetry(enrollment.id)}
                                                     color="primary"
-                                                    title="Retry enrollment"
+                                                    aria-label="Retry enrollment"
                                                 >
                                                     <Refresh fontSize="small"/>
                                                 </IconButton>
                                             )}
                                             <IconButton
                                                 size="small"
-                                                onClick={() => handleDelete(enrollment.id)}
+                                                onClick={() => handleDeleteClick(enrollment.id)}
                                                 color="error"
-                                                title="Delete enrollment"
+                                                aria-label="Delete enrollment"
                                             >
                                                 <Delete fontSize="small"/>
                                             </IconButton>
@@ -236,15 +262,24 @@ export default function EnrollmentsListPage() {
                 </TableContainer>
             )}
 
-            <style>{`
-        @keyframes rotate {
-          from { transform: rotate(0deg); }
-          to { transform: rotate(360deg); }
-        }
-        .rotating-icon {
-          animation: rotate 2s linear infinite;
-        }
-      `}</style>
+            <Dialog
+                open={deleteDialogOpen}
+                onClose={handleDeleteCancel}
+                aria-labelledby="delete-enrollment-dialog-title"
+            >
+                <DialogTitle id="delete-enrollment-dialog-title">Delete Enrollment</DialogTitle>
+                <DialogContent>
+                    <DialogContentText>
+                        Are you sure you want to delete this enrollment job?
+                    </DialogContentText>
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleDeleteCancel}>Cancel</Button>
+                    <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+                        Delete
+                    </Button>
+                </DialogActions>
+            </Dialog>
         </Box>
     )
 }

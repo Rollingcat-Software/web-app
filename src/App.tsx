@@ -2,6 +2,7 @@ import { lazy, Suspense } from 'react'
 import { Navigate, Route, Routes } from 'react-router-dom'
 import { useAuth } from './features/auth/hooks/useAuth'
 import DashboardLayout from './components/layout/DashboardLayout'
+import { ErrorBoundary } from './components/ErrorBoundary'
 import { CircularProgress, Box } from '@mui/material'
 
 // Lazy load pages for code splitting
@@ -28,7 +29,7 @@ function PageLoader() {
                 minHeight: 400,
             }}
         >
-            <CircularProgress />
+            <CircularProgress aria-label="Loading page" />
         </Box>
     )
 }
@@ -68,6 +69,7 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 
 function App() {
     return (
+        <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
             <Routes>
                 {/* Public Routes */}
@@ -97,6 +99,7 @@ function App() {
                 <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
         </Suspense>
+        </ErrorBoundary>
     )
 }
 

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IDashboardService } from '@domain/interfaces/IDashboardService'
@@ -31,6 +31,7 @@ interface UseDashboardReturn extends DashboardState {
 export function useDashboard(): UseDashboardReturn {
     const dashboardService = useService<IDashboardService>(TYPES.DashboardService)
     const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
+    const mountedRef = useRef(true)
 
     const [state, setState] = useState<DashboardState>({
         stats: null,
@@ -47,27 +48,36 @@ export function useDashboard(): UseDashboardReturn {
         try {
             const stats = await dashboardService.getStats()
 
-            setState({
-                stats,
-                loading: false,
-                error: null,
-            })
+            if (mountedRef.current) {
+                setState({
+                    stats,
+                    loading: false,
+                    error: null,
+                })
+            }
         } catch (error) {
-            setState({
-                stats: null,
-                loading: false,
-                error: error as Error,
-            })
+            if (mountedRef.current) {
+                setState({
+                    stats: null,
+                    loading: false,
+                    error: error instanceof Error ? error : new Error(String(error)),
+                })
 
-            errorHandler.handle(error)
+                errorHandler.handle(error)
+            }
         }
     }, [dashboardService, errorHandler])
 
     /**
-     * Load dashboard stats on mount
+     * Load dashboard stats on mount with cleanup
      */
     useEffect(() => {
+        mountedRef.current = true
         fetchStats()
+
+        return () => {
+            mountedRef.current = false
+        }
     }, [fetchStats])
 
     return {

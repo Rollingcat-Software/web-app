@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IAuthService } from '@domain/interfaces/IAuthService'
@@ -6,9 +6,6 @@ import type { LoginCredentials } from '@domain/interfaces/IAuthRepository'
 import { User } from '@domain/models/User'
 import type { ErrorHandler } from '@core/errors'
 
-/**
- * Auth state
- */
 interface AuthState {
     user: User | null
     loading: boolean
@@ -16,29 +13,15 @@ interface AuthState {
     isAuthenticated: boolean
 }
 
-/**
- * Auth hook return type
- */
-interface UseAuthReturn extends AuthState {
+interface AuthContextValue extends AuthState {
     login: (credentials: LoginCredentials) => Promise<void>
     logout: () => Promise<void>
     refreshUser: () => Promise<void>
 }
 
-/**
- * Custom hook for authentication
- * Provides access to auth state and operations
- *
- * @example
- * const { user, login, logout, loading, error } = useAuth()
- *
- * // Login
- * await login({ email: 'user@example.com', password: 'password' })
- *
- * // Logout
- * await logout()
- */
-export function useAuth(): UseAuthReturn {
+const AuthContext = createContext<AuthContextValue | null>(null)
+
+export function AuthProvider({ children }: { children: ReactNode }) {
     const authService = useService<IAuthService>(TYPES.AuthService)
     const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
 
@@ -49,9 +32,6 @@ export function useAuth(): UseAuthReturn {
         isAuthenticated: false,
     })
 
-    /**
-     * Load current user on mount
-     */
     useEffect(() => {
         let mounted = true
 
@@ -71,7 +51,7 @@ export function useAuth(): UseAuthReturn {
                     setState({
                         user: null,
                         loading: false,
-                        error: error as Error,
+                        error: error instanceof Error ? error : new Error(String(error)),
                         isAuthenticated: false,
                     })
                 }
@@ -85,9 +65,6 @@ export function useAuth(): UseAuthReturn {
         }
     }, [authService])
 
-    /**
-     * Login with credentials
-     */
     const login = useCallback(
         async (credentials: LoginCredentials) => {
             setState((prev) => ({ ...prev, loading: true, error: null }))
@@ -105,21 +82,16 @@ export function useAuth(): UseAuthReturn {
                 setState((prev) => ({
                     ...prev,
                     loading: false,
-                    error: error as Error,
+                    error: error instanceof Error ? error : new Error(String(error)),
                 }))
 
-                // Handle error through centralized error handler
                 errorHandler.handle(error)
-
                 throw error
             }
         },
         [authService, errorHandler]
     )
 
-    /**
-     * Logout current user
-     */
     const logout = useCallback(async () => {
         try {
             await authService.logout()
@@ -131,11 +103,10 @@ export function useAuth(): UseAuthReturn {
                 isAuthenticated: false,
             })
         } catch (error) {
-            // Even if logout fails, clear state
             setState({
                 user: null,
                 loading: false,
-                error: error as Error,
+                error: error instanceof Error ? error : new Error(String(error)),
                 isAuthenticated: false,
             })
 
@@ -143,9 +114,6 @@ export function useAuth(): UseAuthReturn {
         }
     }, [authService, errorHandler])
 
-    /**
-     * Refresh current user data
-     */
     const refreshUser = useCallback(async () => {
         setState((prev) => ({ ...prev, loading: true }))
 
@@ -162,7 +130,7 @@ export function useAuth(): UseAuthReturn {
             setState({
                 user: null,
                 loading: false,
-                error: error as Error,
+                error: error instanceof Error ? error : new Error(String(error)),
                 isAuthenticated: false,
             })
 
@@ -170,10 +138,28 @@ export function useAuth(): UseAuthReturn {
         }
     }, [authService, errorHandler])
 
-    return {
-        ...state,
-        login,
-        logout,
-        refreshUser,
+    return (
+        <AuthContext.Provider
+            value={{
+                ...state,
+                login,
+                logout,
+                refreshUser,
+            }}
+        >
+            {children}
+        </AuthContext.Provider>
+    )
+}
+
+/**
+ * Custom hook for authentication
+ * Uses shared AuthContext to prevent redundant API calls
+ */
+export function useAuth() {
+    const context = useContext(AuthContext)
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider')
     }
+    return context
 }

@@ -77,9 +77,11 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
     /**
      * Load users on mount and when filters change
      */
+    const filtersKey = JSON.stringify(initialFilters)
     useEffect(() => {
         fetchUsers(initialFilters)
-    }, [fetchUsers, initialFilters])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fetchUsers, filtersKey])
 
     /**
      * Create user
@@ -204,6 +206,11 @@ export function useUser(id: string) {
     })
 
     useEffect(() => {
+        if (!id) {
+            setState({ user: null, loading: false, error: null })
+            return
+        }
+
         let mounted = true
 
         const fetchUser = async () => {

@@ -44,6 +44,8 @@ export default function Sidebar({
     const location = useLocation()
     const navigate = useNavigate()
 
+    const isActive = (path: string) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+
     const handleNavigation = (path: string) => {
         navigate(path)
         if (isMobile) {
@@ -66,7 +68,7 @@ export default function Sidebar({
                 {menuItems.map((item) => (
                     <ListItem key={item.text} disablePadding>
                         <ListItemButton
-                            selected={location.pathname === item.path}
+                            selected={isActive(item.path)}
                             onClick={() => handleNavigation(item.path)}
                             sx={{
                                 '&.Mui-selected': {
@@ -81,7 +83,7 @@ export default function Sidebar({
                         >
                             <ListItemIcon
                                 sx={{
-                                    color: location.pathname === item.path ? 'primary.main' : 'text.secondary',
+                                    color: isActive(item.path) ? 'primary.main' : 'text.secondary',
                                 }}
                             >
                                 {item.icon}
@@ -90,8 +92,8 @@ export default function Sidebar({
                                 primary={item.text}
                                 sx={{
                                     '& .MuiTypography-root': {
-                                        fontWeight: location.pathname === item.path ? 600 : 400,
-                                        color: location.pathname === item.path ? 'primary.main' : 'text.primary',
+                                        fontWeight: isActive(item.path) ? 600 : 400,
+                                        color: isActive(item.path) ? 'primary.main' : 'text.primary',
                                     },
                                 }}
                             />

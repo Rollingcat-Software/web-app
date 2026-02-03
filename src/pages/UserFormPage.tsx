@@ -26,7 +26,7 @@ export default function UserFormPage() {
     const isEditMode = Boolean(id)
 
     const {createUser, updateUser} = useUsers()
-    const {user: existingUser, loading: fetchLoading} = useUser(isEditMode ? id! : '')
+    const {user: existingUser, loading: fetchLoading} = useUser(id ?? '')
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -86,8 +86,9 @@ export default function UserFormPage() {
                 })
             }
             navigate('/users')
-        } catch (error: any) {
-            setError(error.message || `Failed to ${isEditMode ? 'update' : 'create'} user`)
+        } catch (err: unknown) {
+            const message = err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'create'} user`
+            setError(message)
         } finally {
             setLoading(false)
         }

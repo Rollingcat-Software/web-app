@@ -37,6 +37,7 @@ import { getCsrfToken } from '@utils/auth'
 @injectable()
 export class AxiosClient implements IHttpClient {
     private readonly client: AxiosInstance
+    private refreshPromise: Promise<void> | null = null
 
     constructor(
         @inject(TYPES.Config) config: IConfig,
@@ -181,7 +182,7 @@ export class AxiosClient implements IHttpClient {
                         data: error.response?.data,
                     })
 
-                    // Handle 401 Unauthorized - attempt token refresh
+                    // Handle 401 Unauthorized - attempt token refresh with deduplication
                     if (error.response?.status === 401 && error.config) {
                         const originalRequest = error.config
 
@@ -191,34 +192,42 @@ export class AxiosClient implements IHttpClient {
                             !originalRequest.url?.includes('/auth/logout')) {
 
                             try {
-                                this.logger.info('Attempting automatic token refresh')
+                                // Deduplicate concurrent refresh requests
+                                if (!this.refreshPromise) {
+                                    this.refreshPromise = (async () => {
+                                        this.logger.info('Attempting automatic token refresh')
 
-                                const refreshToken = await this.tokenService.getRefreshToken()
-                                if (!refreshToken) {
-                                    return Promise.reject(error)
+                                        const refreshToken = await this.tokenService.getRefreshToken()
+                                        if (!refreshToken) {
+                                            throw new Error('No refresh token available')
+                                        }
+
+                                        const refreshResponse = await this.client.post('/auth/refresh', {
+                                            refreshToken,
+                                        })
+
+                                        const data = refreshResponse.data as { accessToken?: string; refreshToken?: string }
+                                        if (data.accessToken && data.refreshToken) {
+                                            await this.tokenService.storeTokens({
+                                                accessToken: data.accessToken,
+                                                refreshToken: data.refreshToken,
+                                            })
+                                        }
+                                    })()
                                 }
 
-                                // Send refresh token in request body
-                                const refreshResponse = await this.client.post('/auth/refresh', {
-                                    refreshToken,
-                                })
-
-                                // Store new tokens
-                                const data = refreshResponse.data as any
-                                if (data.accessToken && data.refreshToken) {
-                                    await this.tokenService.storeTokens({
-                                        accessToken: data.accessToken,
-                                        refreshToken: data.refreshToken,
-                                    })
-                                }
+                                await this.refreshPromise
 
                                 // Retry original request with new token
-                                originalRequest.headers['Authorization'] = `Bearer ${data.accessToken}`
+                                const newAccessToken = await this.tokenService.getAccessToken()
+                                originalRequest.headers['Authorization'] = `Bearer ${newAccessToken}`
                                 return this.client.request(originalRequest)
                             } catch (refreshError) {
                                 this.logger.error('Token refresh failed, user needs to login', refreshError)
                                 await this.tokenService.clearTokens()
                                 return Promise.reject(error)
+                            } finally {
+                                this.refreshPromise = null
                             }
                         }
                     }
