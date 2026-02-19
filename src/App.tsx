@@ -13,9 +13,15 @@ const UsersListPage = lazy(() => import('./features/users/components/UsersListPa
 const UserDetailsPage = lazy(() => import('./pages/UserDetailsPage'))
 const UserFormPage = lazy(() => import('./pages/UserFormPage'))
 const TenantsListPage = lazy(() => import('./pages/TenantsListPage'))
+const TenantFormPage = lazy(() => import('./pages/TenantFormPage'))
 const EnrollmentsListPage = lazy(() => import('./pages/EnrollmentsListPage'))
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
+const RolesListPage = lazy(() => import('./pages/RolesListPage'))
+const RoleFormPage = lazy(() => import('./pages/RoleFormPage'))
+const AuthFlowsPage = lazy(() => import('./features/authFlows/components/AuthFlowsPage'))
+const DevicesPage = lazy(() => import('./pages/DevicesPage'))
+const AuthSessionsPage = lazy(() => import('./pages/AuthSessionsPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -86,15 +92,23 @@ function App() {
                         </ProtectedRoute>
                     }
                 >
-                    <Route index element={<DashboardPage />} />
-                    <Route path="users" element={<UsersListPage />} />
-                    <Route path="users/create" element={<UserFormPage />} />
-                    <Route path="users/:id" element={<UserDetailsPage />} />
-                    <Route path="users/:id/edit" element={<UserFormPage />} />
-                    <Route path="tenants" element={<TenantsListPage />} />
-                    <Route path="enrollments" element={<EnrollmentsListPage />} />
-                    <Route path="audit-logs" element={<AuditLogsPage />} />
-                    <Route path="settings" element={<SettingsPage />} />
+                    <Route index element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
+                    <Route path="users" element={<ErrorBoundary><UsersListPage /></ErrorBoundary>} />
+                    <Route path="users/create" element={<ErrorBoundary><UserFormPage /></ErrorBoundary>} />
+                    <Route path="users/:id" element={<ErrorBoundary><UserDetailsPage /></ErrorBoundary>} />
+                    <Route path="users/:id/edit" element={<ErrorBoundary><UserFormPage /></ErrorBoundary>} />
+                    <Route path="tenants" element={<ErrorBoundary><TenantsListPage /></ErrorBoundary>} />
+                    <Route path="tenants/create" element={<ErrorBoundary><TenantFormPage /></ErrorBoundary>} />
+                    <Route path="tenants/:id/edit" element={<ErrorBoundary><TenantFormPage /></ErrorBoundary>} />
+                    <Route path="roles" element={<ErrorBoundary><RolesListPage /></ErrorBoundary>} />
+                    <Route path="roles/create" element={<ErrorBoundary><RoleFormPage /></ErrorBoundary>} />
+                    <Route path="roles/:id/edit" element={<ErrorBoundary><RoleFormPage /></ErrorBoundary>} />
+                    <Route path="auth-flows" element={<ErrorBoundary><AuthFlowsPage /></ErrorBoundary>} />
+                    <Route path="devices" element={<ErrorBoundary><DevicesPage /></ErrorBoundary>} />
+                    <Route path="auth-sessions" element={<ErrorBoundary><AuthSessionsPage /></ErrorBoundary>} />
+                    <Route path="enrollments" element={<ErrorBoundary><EnrollmentsListPage /></ErrorBoundary>} />
+                    <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
+                    <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
                 </Route>
 
                 {/* Catch all - redirect to dashboard */}

@@ -11,7 +11,17 @@ import {
     Toolbar,
     Typography,
 } from '@mui/material'
-import {Business, Dashboard, Fingerprint, People, Security, Settings,} from '@mui/icons-material'
+import {
+    AccountTree,
+    Business,
+    Dashboard,
+    DevicesOther,
+    Fingerprint,
+    People,
+    Security,
+    Settings,
+    Shield,
+} from '@mui/icons-material'
 
 interface SidebarProps {
     drawerWidth: number
@@ -30,6 +40,9 @@ const menuItems: MenuItem[] = [
     {text: 'Dashboard', icon: <Dashboard/>, path: '/'},
     {text: 'Users', icon: <People/>, path: '/users'},
     {text: 'Tenants', icon: <Business/>, path: '/tenants'},
+    {text: 'Roles', icon: <Shield/>, path: '/roles'},
+    {text: 'Auth Flows', icon: <AccountTree/>, path: '/auth-flows'},
+    {text: 'Devices', icon: <DevicesOther/>, path: '/devices'},
     {text: 'Enrollments', icon: <Fingerprint/>, path: '/enrollments'},
     {text: 'Audit Logs', icon: <Security/>, path: '/audit-logs'},
     {text: 'Settings', icon: <Settings/>, path: '/settings'},

@@ -15,6 +15,11 @@ import {
     Alert,
     Grid,
     Divider,
+    MenuItem,
+    Select,
+    FormControl,
+    InputLabel,
+    type SelectChangeEvent,
 } from '@mui/material'
 import {
     Add,
@@ -22,6 +27,7 @@ import {
     DragIndicator,
     ArrowForward,
     Lock,
+    LockOutlined,
     Email,
     Sms,
     PhonelinkLock,
@@ -74,20 +80,66 @@ const methodIcons: Record<string, React.ReactNode> = {
     Key: <Key />,
 }
 
+const OPERATION_TYPES = [
+    { value: 'APP_LOGIN', label: 'App Login' },
+    { value: 'DOOR_ACCESS', label: 'Door Access' },
+    { value: 'BUILDING_ACCESS', label: 'Building Access' },
+    { value: 'API_ACCESS', label: 'API Access' },
+    { value: 'TRANSACTION', label: 'Transaction' },
+    { value: 'ENROLLMENT', label: 'Enrollment' },
+    { value: 'GUEST_ACCESS', label: 'Guest Access' },
+    { value: 'EXAM_PROCTORING', label: 'Exam Proctoring' },
+    { value: 'CUSTOM', label: 'Custom' },
+] as const
+
+const PASSWORD_MANDATORY_OPS = new Set(['APP_LOGIN', 'API_ACCESS'])
+
 interface AuthFlowBuilderProps {
     initialSteps?: AuthFlowStep[]
-    onSave?: (steps: AuthFlowStep[]) => void
+    onSave?: (data: { name: string; description: string; operationType: string; isDefault: boolean; steps: AuthFlowStep[] }) => void
     tenantId?: string
+    initialOperationType?: string
+    initialName?: string
+    initialDescription?: string
 }
 
-export function AuthFlowBuilder({ initialSteps = [], onSave }: AuthFlowBuilderProps) {
+export function AuthFlowBuilder({
+    initialSteps = [],
+    onSave,
+    initialOperationType = 'APP_LOGIN',
+    initialName = 'My Authentication Flow',
+    initialDescription = '',
+}: AuthFlowBuilderProps) {
     const [steps, setSteps] = useState<AuthFlowStep[]>(initialSteps)
-    const [flowName, setFlowName] = useState('My Authentication Flow')
-    const [flowDescription, setFlowDescription] = useState('')
+    const [flowName, setFlowName] = useState(initialName)
+    const [flowDescription, setFlowDescription] = useState(initialDescription)
     const [isDefault, setIsDefault] = useState(false)
     const [showMethodPicker, setShowMethodPicker] = useState(false)
+    const [operationType, setOperationType] = useState(initialOperationType)
+
+    const passwordLocked = PASSWORD_MANDATORY_OPS.has(operationType)
 
     const availableMethods = DEFAULT_AUTH_METHODS.filter((m) => m.isActive)
+
+    const handleOperationTypeChange = useCallback((e: SelectChangeEvent<string>) => {
+        const newType = e.target.value
+        setOperationType(newType)
+        if (PASSWORD_MANDATORY_OPS.has(newType)) {
+            const hasPassword = steps.some(s => s.methodType === AuthMethodType.PASSWORD && s.order === 1)
+            if (!hasPassword) {
+                const passwordStep: AuthFlowStep = {
+                    id: `step-password-${Date.now()}`,
+                    order: 1,
+                    methodId: 'password',
+                    methodType: AuthMethodType.PASSWORD,
+                    isRequired: true,
+                    timeout: 120,
+                    maxAttempts: 3,
+                }
+                setSteps(prev => [passwordStep, ...prev.filter(s => s.methodType !== AuthMethodType.PASSWORD)].map((s, i) => ({ ...s, order: i + 1 })))
+            }
+        }
+    }, [steps])
 
     const addStep = useCallback((methodId: string, methodType: AuthMethodType) => {
         const newStep: AuthFlowStep = {
@@ -105,10 +157,14 @@ export function AuthFlowBuilder({ initialSteps = [], onSave }: AuthFlowBuilderPr
 
     const removeStep = useCallback((stepId: string) => {
         setSteps((prev) => {
+            const step = prev.find(s => s.id === stepId)
+            if (step && step.methodType === AuthMethodType.PASSWORD && step.order === 1 && passwordLocked) {
+                return prev
+            }
             const filtered = prev.filter((s) => s.id !== stepId)
             return filtered.map((s, i) => ({ ...s, order: i + 1 }))
         })
-    }, [])
+    }, [passwordLocked])
 
     const updateStepRequired = useCallback((stepId: string, isRequired: boolean) => {
         setSteps((prev) =>
@@ -117,14 +173,20 @@ export function AuthFlowBuilder({ initialSteps = [], onSave }: AuthFlowBuilderPr
     }, [])
 
     const handleReorder = useCallback((reordered: AuthFlowStep[]) => {
+        if (passwordLocked) {
+            const passwordIdx = reordered.findIndex(s => s.methodType === AuthMethodType.PASSWORD)
+            if (passwordIdx !== 0) {
+                return
+            }
+        }
         setSteps(reordered.map((s, i) => ({ ...s, order: i + 1 })))
-    }, [])
+    }, [passwordLocked])
 
     const handleSave = useCallback(() => {
         if (onSave) {
-            onSave(steps)
+            onSave({ name: flowName, description: flowDescription, operationType, isDefault, steps })
         }
-    }, [onSave, steps])
+    }, [onSave, flowName, flowDescription, operationType, isDefault, steps])
 
     const getMethod = (methodType: AuthMethodType) =>
         DEFAULT_AUTH_METHODS.find((m) => m.type === methodType)
@@ -190,6 +252,25 @@ export function AuthFlowBuilder({ initialSteps = [], onSave }: AuthFlowBuilderPr
                                         rows={2}
                                         sx={{ mb: 2 }}
                                     />
+                                    <FormControl fullWidth sx={{ mb: 2 }}>
+                                        <InputLabel>Operation Type</InputLabel>
+                                        <Select
+                                            value={operationType}
+                                            label="Operation Type"
+                                            onChange={handleOperationTypeChange}
+                                        >
+                                            {OPERATION_TYPES.map((op) => (
+                                                <MenuItem key={op.value} value={op.value}>
+                                                    {op.label}
+                                                </MenuItem>
+                                            ))}
+                                        </Select>
+                                    </FormControl>
+                                    {passwordLocked && (
+                                        <Alert severity="info" icon={<LockOutlined />} sx={{ mb: 2, borderRadius: 2 }}>
+                                            {operationType} flows require Password as the first step. This is enforced for security.
+                                        </Alert>
+                                    )}
                                     <FormControlLabel
                                         control={
                                             <Switch

@@ -21,6 +21,8 @@ import type { IEnrollmentRepository } from '@domain/interfaces/IEnrollmentReposi
 import type { IEnrollmentService } from '@domain/interfaces/IEnrollmentService'
 import type { ISettingsRepository } from '@domain/interfaces/ISettingsRepository'
 import type { ISettingsService } from '@domain/interfaces/ISettingsService'
+import type { IRoleRepository } from '@domain/interfaces/IRoleRepository'
+import type { IRoleService } from '@domain/interfaces/IRoleService'
 import { LoggerService } from '@core/services/LoggerService'
 import { NotifierService } from '@core/services/NotifierService'
 import { SecureStorageService } from '@core/services/SecureStorageService'
@@ -28,18 +30,16 @@ import { AxiosClient } from '@core/api/AxiosClient'
 import { TokenService } from '@core/services/TokenService'
 import { ErrorHandler } from '@core/errors/ErrorHandler'
 import { AuthRepository } from '@core/repositories/AuthRepository'
-import { MockAuthRepository } from '@core/repositories/__mocks__/MockAuthRepository'
 import { UserRepository } from '@core/repositories/UserRepository'
-import { MockUserRepository } from '@core/repositories/__mocks__/MockUserRepository'
 import { TenantRepository } from '@core/repositories/TenantRepository'
-import { MockTenantRepository } from '@core/repositories/__mocks__/MockTenantRepository'
 import { DashboardRepository } from '@core/repositories/DashboardRepository'
-import { MockDashboardRepository } from '@core/repositories/__mocks__/MockDashboardRepository'
 import { AuditLogRepository } from '@core/repositories/AuditLogRepository'
-import { MockAuditLogRepository } from '@core/repositories/__mocks__/MockAuditLogRepository'
 import { EnrollmentRepository } from '@core/repositories/EnrollmentRepository'
-import { MockEnrollmentRepository } from '@core/repositories/__mocks__/MockEnrollmentRepository'
 import { SettingsRepository } from '@core/repositories/SettingsRepository'
+import { RoleRepository } from '@core/repositories/RoleRepository'
+import { AuthFlowRepository } from '@core/repositories/AuthFlowRepository'
+import { AuthSessionRepository } from '@core/repositories/AuthSessionRepository'
+import { DeviceRepository } from '@core/repositories/DeviceRepository'
 import { AuthService } from '@features/auth/services/AuthService'
 import { UserService } from '@features/users/services/UserService'
 import { TenantService } from '@features/tenants/services/TenantService'
@@ -47,6 +47,7 @@ import { DashboardService } from '@features/dashboard/services/DashboardService'
 import { AuditLogService } from '@features/auditLogs/services/AuditLogService'
 import { EnrollmentService } from '@features/enrollments/services/EnrollmentService'
 import { SettingsService } from '@features/settings/services/SettingsService'
+import { RoleService } from '@features/roles/services/RoleService'
 
 /**
  * Create and configure the IoC container
@@ -59,7 +60,7 @@ const container = new Container()
 const config: IConfig = {
     apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
     apiTimeout: parseInt(import.meta.env.VITE_API_TIMEOUT as string) || 30000,
-    useMockAPI: import.meta.env.VITE_ENABLE_MOCK_API === 'true',
+    useMockAPI: false, // Mock API permanently disabled
     environment: (['development', 'staging', 'production', 'test'].includes(import.meta.env.VITE_ENVIRONMENT)
         ? import.meta.env.VITE_ENVIRONMENT
         : 'development') as IConfig['environment'],
@@ -76,7 +77,7 @@ const config: IConfig = {
 // Bind configuration
 container.bind<IConfig>(TYPES.Config).toConstantValue(config)
 
-// Bind infrastructure services (Phase 2)
+// Bind infrastructure services
 container.bind<ILogger>(TYPES.Logger).to(LoggerService).inSingletonScope()
 container.bind<INotifier>(TYPES.Notifier).to(NotifierService).inSingletonScope()
 container.bind<ISecureStorage>(TYPES.SecureStorage).to(SecureStorageService).inSingletonScope()
@@ -84,45 +85,20 @@ container.bind<IHttpClient>(TYPES.HttpClient).to(AxiosClient).inSingletonScope()
 container.bind<ITokenService>(TYPES.TokenService).to(TokenService).inSingletonScope()
 container.bind<ErrorHandler>(TYPES.ErrorHandler).to(ErrorHandler).inSingletonScope()
 
-// Bind repositories (Phase 3) - Choose between mock and real based on config
-if (config.useMockAPI) {
-    container.bind<IAuthRepository>(TYPES.AuthRepository).to(MockAuthRepository).inSingletonScope()
-    container.bind<IUserRepository>(TYPES.UserRepository).to(MockUserRepository).inSingletonScope()
-    container.bind<ITenantRepository>(TYPES.TenantRepository).to(MockTenantRepository).inSingletonScope()
-    container
-        .bind<IDashboardRepository>(TYPES.DashboardRepository)
-        .to(MockDashboardRepository)
-        .inSingletonScope()
-    container
-        .bind<IAuditLogRepository>(TYPES.AuditLogRepository)
-        .to(MockAuditLogRepository)
-        .inSingletonScope()
-    container
-        .bind<IEnrollmentRepository>(TYPES.EnrollmentRepository)
-        .to(MockEnrollmentRepository)
-        .inSingletonScope()
-} else {
-    container.bind<IAuthRepository>(TYPES.AuthRepository).to(AuthRepository).inSingletonScope()
-    container.bind<IUserRepository>(TYPES.UserRepository).to(UserRepository).inSingletonScope()
-    container.bind<ITenantRepository>(TYPES.TenantRepository).to(TenantRepository).inSingletonScope()
-    container
-        .bind<IDashboardRepository>(TYPES.DashboardRepository)
-        .to(DashboardRepository)
-        .inSingletonScope()
-    container
-        .bind<IAuditLogRepository>(TYPES.AuditLogRepository)
-        .to(AuditLogRepository)
-        .inSingletonScope()
-    container
-        .bind<IEnrollmentRepository>(TYPES.EnrollmentRepository)
-        .to(EnrollmentRepository)
-        .inSingletonScope()
-}
-
-// Bind SettingsRepository (always real, no mock - user settings are per-user)
+// Bind repositories - Always use real API repositories
+container.bind<IAuthRepository>(TYPES.AuthRepository).to(AuthRepository).inSingletonScope()
+container.bind<IUserRepository>(TYPES.UserRepository).to(UserRepository).inSingletonScope()
+container.bind<ITenantRepository>(TYPES.TenantRepository).to(TenantRepository).inSingletonScope()
+container.bind<IDashboardRepository>(TYPES.DashboardRepository).to(DashboardRepository).inSingletonScope()
+container.bind<IAuditLogRepository>(TYPES.AuditLogRepository).to(AuditLogRepository).inSingletonScope()
+container.bind<IEnrollmentRepository>(TYPES.EnrollmentRepository).to(EnrollmentRepository).inSingletonScope()
 container.bind<ISettingsRepository>(TYPES.SettingsRepository).to(SettingsRepository).inSingletonScope()
+container.bind<IRoleRepository>(TYPES.RoleRepository).to(RoleRepository).inSingletonScope()
+container.bind<AuthFlowRepository>(TYPES.AuthFlowRepository).to(AuthFlowRepository).inSingletonScope()
+container.bind<AuthSessionRepository>(TYPES.AuthSessionRepository).to(AuthSessionRepository).inSingletonScope()
+container.bind<DeviceRepository>(TYPES.DeviceRepository).to(DeviceRepository).inSingletonScope()
 
-// Bind services (Phase 3)
+// Bind services
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService).inSingletonScope()
 container.bind<IUserService>(TYPES.UserService).to(UserService).inSingletonScope()
 container.bind<ITenantService>(TYPES.TenantService).to(TenantService).inSingletonScope()
@@ -130,6 +106,7 @@ container.bind<IDashboardService>(TYPES.DashboardService).to(DashboardService).i
 container.bind<IAuditLogService>(TYPES.AuditLogService).to(AuditLogService).inSingletonScope()
 container.bind<IEnrollmentService>(TYPES.EnrollmentService).to(EnrollmentService).inSingletonScope()
 container.bind<ISettingsService>(TYPES.SettingsService).to(SettingsService).inSingletonScope()
+container.bind<IRoleService>(TYPES.RoleService).to(RoleService).inSingletonScope()
 
 export { container }
 export type { Container }

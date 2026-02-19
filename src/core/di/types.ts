@@ -23,6 +23,10 @@ export const TYPES = {
     AuthRepository: Symbol.for('AuthRepository'),
     DashboardRepository: Symbol.for('DashboardRepository'),
     SettingsRepository: Symbol.for('SettingsRepository'),
+    RoleRepository: Symbol.for('RoleRepository'),
+    AuthFlowRepository: Symbol.for('AuthFlowRepository'),
+    AuthSessionRepository: Symbol.for('AuthSessionRepository'),
+    DeviceRepository: Symbol.for('DeviceRepository'),
 
     // Services
     AuthService: Symbol.for('AuthService'),
@@ -33,6 +37,10 @@ export const TYPES = {
     DashboardService: Symbol.for('DashboardService'),
     TokenService: Symbol.for('TokenService'),
     SettingsService: Symbol.for('SettingsService'),
+    RoleService: Symbol.for('RoleService'),
+    AuthFlowService: Symbol.for('AuthFlowService'),
+    AuthSessionService: Symbol.for('AuthSessionService'),
+    DeviceService: Symbol.for('DeviceService'),
 
     // Validators
     UserValidator: Symbol.for('UserValidator'),
