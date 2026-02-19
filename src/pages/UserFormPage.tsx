@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react'
+import {useCallback, useEffect, useState} from 'react'
 import {useNavigate, useParams} from 'react-router-dom'
 import {Controller, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
@@ -6,6 +6,7 @@ import {z} from 'zod'
 import {Alert, Box, Button, CircularProgress, MenuItem, Paper, TextField, Typography,} from '@mui/material'
 import {Cancel, Save} from '@mui/icons-material'
 import {useUsers, useUser} from '@features/users'
+import {useTenants} from '@features/tenants'
 import {UserRole, UserStatus} from '@domain/models/User'
 
 const userSchema = z.object({
@@ -14,8 +15,8 @@ const userSchema = z.object({
     lastName: z.string().min(2, 'Last name must be at least 2 characters'),
     password: z.string().min(8, 'Password must be at least 8 characters').optional(),
     role: z.nativeEnum(UserRole),
-    status: z.nativeEnum(UserStatus),
-    tenantId: z.string().min(1, 'Tenant ID is required'),
+    status: z.nativeEnum(UserStatus).optional(),
+    tenantId: z.string().uuid('Please select a tenant').min(1, 'Tenant is required'),
 })
 
 type UserFormData = z.infer<typeof userSchema>
@@ -27,6 +28,7 @@ export default function UserFormPage() {
 
     const {createUser, updateUser} = useUsers()
     const {user: existingUser, loading: fetchLoading} = useUser(id ?? '')
+    const {tenants, loading: tenantsLoading} = useTenants()
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -94,6 +96,13 @@ export default function UserFormPage() {
         }
     }
 
+    const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+            e.preventDefault()
+            handleSubmit(onSubmit)()
+        }
+    }, [handleSubmit, onSubmit])
+
     if (isEditMode && fetchLoading) {
         return (
             <Box sx={{display: 'flex', justifyContent: 'center', py: 8}}>
@@ -118,7 +127,7 @@ export default function UserFormPage() {
             )}
 
             <Paper sx={{p: 4, maxWidth: 800}}>
-                <form onSubmit={handleSubmit(onSubmit)}>
+                <form onSubmit={handleSubmit(onSubmit)} onKeyDown={handleKeyDown}>
                     <Box sx={{display: 'flex', flexDirection: 'column', gap: 3}}>
                         <Controller
                             name="email"
@@ -201,32 +210,34 @@ export default function UserFormPage() {
                                     helperText={errors.role?.message}
                                 >
                                     <MenuItem value={UserRole.USER}>User</MenuItem>
+                                    <MenuItem value={UserRole.TENANT_ADMIN}>Tenant Admin</MenuItem>
                                     <MenuItem value={UserRole.ADMIN}>Admin</MenuItem>
                                     <MenuItem value={UserRole.SUPER_ADMIN}>Super Admin</MenuItem>
                                 </TextField>
                             )}
                         />
 
-                        <Controller
-                            name="status"
-                            control={control}
-                            render={({field}) => (
-                                <TextField
-                                    {...field}
-                                    label="Status"
-                                    select
-                                    fullWidth
-                                    required
-                                    error={!!errors.status}
-                                    helperText={errors.status?.message}
-                                >
-                                    <MenuItem value={UserStatus.PENDING_ENROLLMENT}>Pending Enrollment</MenuItem>
-                                    <MenuItem value={UserStatus.ACTIVE}>Active</MenuItem>
-                                    <MenuItem value={UserStatus.SUSPENDED}>Suspended</MenuItem>
-                                    <MenuItem value={UserStatus.LOCKED}>Locked</MenuItem>
-                                </TextField>
-                            )}
-                        />
+                        {isEditMode && (
+                            <Controller
+                                name="status"
+                                control={control}
+                                render={({field}) => (
+                                    <TextField
+                                        {...field}
+                                        label="Status"
+                                        select
+                                        fullWidth
+                                        error={!!errors.status}
+                                        helperText={errors.status?.message}
+                                    >
+                                        <MenuItem value={UserStatus.PENDING_ENROLLMENT}>Pending Enrollment</MenuItem>
+                                        <MenuItem value={UserStatus.ACTIVE}>Active</MenuItem>
+                                        <MenuItem value={UserStatus.SUSPENDED}>Suspended</MenuItem>
+                                        <MenuItem value={UserStatus.LOCKED}>Locked</MenuItem>
+                                    </TextField>
+                                )}
+                            />
+                        )}
 
                         <Controller
                             name="tenantId"
@@ -234,12 +245,20 @@ export default function UserFormPage() {
                             render={({field}) => (
                                 <TextField
                                     {...field}
-                                    label="Tenant ID"
+                                    label="Tenant"
+                                    select
                                     fullWidth
                                     required
                                     error={!!errors.tenantId}
-                                    helperText={errors.tenantId?.message}
-                                />
+                                    helperText={errors.tenantId?.message || 'Select the tenant this user belongs to'}
+                                    disabled={isEditMode || tenantsLoading}
+                                >
+                                    {tenants.map((tenant) => (
+                                        <MenuItem key={tenant.id} value={tenant.id}>
+                                            {tenant.name} {tenant.slug ? `(${tenant.slug})` : ''}
+                                        </MenuItem>
+                                    ))}
+                                </TextField>
                             )}
                         />
 

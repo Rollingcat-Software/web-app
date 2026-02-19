@@ -27,7 +27,9 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
-import axios from 'axios'
+import { getService } from '@core/di/container'
+import { TYPES } from '@core/di/types'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 
 /**
  * Register form validation schema
@@ -155,8 +157,8 @@ export default function RegisterPage() {
         setError(null)
 
         try {
-            const apiUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
-            await axios.post(`${apiUrl}/auth/register`, {
+            const httpClient = getService<IHttpClient>(TYPES.HttpClient)
+            await httpClient.post('/auth/register', {
                 firstName: data.firstName,
                 lastName: data.lastName,
                 email: data.email,
@@ -167,15 +169,13 @@ export default function RegisterPage() {
             setTimeout(() => {
                 navigate('/login')
             }, 2000)
-        } catch (err) {
-            if (axios.isAxiosError(err)) {
-                if (err.response?.status === 409) {
-                    setError('An account with this email already exists')
-                } else if (err.response?.data?.message) {
-                    setError(err.response.data.message)
-                } else {
-                    setError('Registration failed. Please try again.')
-                }
+        } catch (err: any) {
+            if (err.response?.status === 409) {
+                setError('An account with this email already exists')
+            } else if (err.response?.data?.message) {
+                setError(err.response.data.message)
+            } else if (err instanceof Error) {
+                setError(err.message)
             } else {
                 setError('Registration failed. Please try again.')
             }

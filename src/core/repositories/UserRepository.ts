@@ -8,7 +8,7 @@ import type {
     UpdateUserData,
 } from '@domain/interfaces/IUserRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
-import { User } from '@domain/models/User'
+import { User, UserJSON } from '@domain/models/User'
 
 /**
  * User Repository
@@ -28,23 +28,51 @@ export class UserRepository implements IUserRepository {
         try {
             this.logger.debug('Fetching all users', { params })
 
-            const response = await this.httpClient.get<any[]>('/users', {
-                params: params as Record<string, unknown>,
+            // Build flat params: backend expects 'size' not 'pageSize'
+            const flatParams: Record<string, unknown> = {}
+            if (params?.page !== undefined) flatParams.page = params.page
+            if (params?.pageSize !== undefined) flatParams.size = params.pageSize
+            if (params?.sort) flatParams.sort = params.sort
+            if (params?.order) flatParams.order = params.order
+            if (params?.filters) {
+                Object.entries(params.filters).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null) {
+                        flatParams[key] = value
+                    }
+                })
+            }
+
+            type UserListResponse =
+                | UserJSON[]
+                | { content: UserJSON[]; totalElements?: number; totalPages?: number }
+
+            const response = await this.httpClient.get<UserListResponse>('/users', {
+                params: flatParams,
             })
 
-            // Backend currently returns array, not paginated response
-            // Map to our paginated format
-            const users = response.data.map((data) => User.fromJSON(data))
+            let users: User[]
+            let total: number
+
+            if (Array.isArray(response.data)) {
+                users = response.data.map((data: UserJSON) => User.fromJSON(data))
+                total = users.length
+            } else if ('content' in response.data && response.data.content) {
+                users = response.data.content.map((data: UserJSON) => User.fromJSON(data))
+                total = response.data.totalElements ?? users.length
+            } else {
+                users = []
+                total = 0
+            }
 
             const pageSize = params?.pageSize || 20
             const page = params?.page || 0
 
             return {
                 items: users,
-                total: users.length,
+                total,
                 page,
                 pageSize,
-                totalPages: Math.ceil(users.length / pageSize),
+                totalPages: Math.ceil(total / pageSize),
             }
         } catch (error) {
             this.logger.error('Failed to fetch users', error)
@@ -59,11 +87,12 @@ export class UserRepository implements IUserRepository {
         try {
             this.logger.debug(`Fetching user ${id}`)
 
-            const response = await this.httpClient.get<any>(`/users/${id}`)
+            const response = await this.httpClient.get<UserJSON>(`/users/${id}`)
 
             return User.fromJSON(response.data)
-        } catch (error: any) {
-            if (error.response?.status === 404) {
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { status?: number } }
+            if (axiosError.response?.status === 404) {
                 return null
             }
             this.logger.error(`Failed to fetch user ${id}`, error)
@@ -78,7 +107,7 @@ export class UserRepository implements IUserRepository {
         try {
             this.logger.debug(`Fetching user by email: ${email}`)
 
-            const response = await this.httpClient.get<any[]>('/users', {
+            const response = await this.httpClient.get<UserJSON[]>('/users', {
                 params: { email },
             })
 
@@ -100,7 +129,7 @@ export class UserRepository implements IUserRepository {
         try {
             this.logger.info('Creating new user', { email: data.email })
 
-            const response = await this.httpClient.post<any>('/users', data)
+            const response = await this.httpClient.post<UserJSON>('/users', data)
 
             const user = User.fromJSON(response.data)
 
@@ -119,7 +148,7 @@ export class UserRepository implements IUserRepository {
         try {
             this.logger.info(`Updating user ${id}`)
 
-            const response = await this.httpClient.put<any>(`/users/${id}`, data)
+            const response = await this.httpClient.put<UserJSON>(`/users/${id}`, data)
 
             const user = User.fromJSON(response.data)
 

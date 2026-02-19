@@ -68,15 +68,9 @@ export class TenantService implements ITenantService {
             ])
         }
 
-        if (!data.domain || data.domain.trim().length === 0) {
-            throw new ValidationError('Tenant domain is required', [
-                { field: 'domain', message: 'Domain cannot be empty' },
-            ])
-        }
-
-        if (!data.status) {
-            throw new ValidationError('Tenant status is required', [
-                { field: 'status', message: 'Status cannot be empty' },
+        if (!data.slug || data.slug.trim().length === 0) {
+            throw new ValidationError('Tenant slug is required', [
+                { field: 'slug', message: 'Slug cannot be empty' },
             ])
         }
 
@@ -112,9 +106,9 @@ export class TenantService implements ITenantService {
             ])
         }
 
-        if (data.domain !== undefined && data.domain.trim().length === 0) {
-            throw new ValidationError('Tenant domain cannot be empty', [
-                { field: 'domain', message: 'Domain cannot be empty' },
+        if (data.slug !== undefined && data.slug.trim().length === 0) {
+            throw new ValidationError('Tenant slug cannot be empty', [
+                { field: 'slug', message: 'Slug cannot be empty' },
             ])
         }
 
@@ -162,6 +156,32 @@ export class TenantService implements ITenantService {
             this.logger.info('Tenant deleted successfully', { tenantId: id })
         } catch (error) {
             this.logger.error(`Failed to delete tenant ${id}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Activate tenant
+     */
+    async activateTenant(id: string): Promise<Tenant> {
+        try {
+            this.logger.info(`Activating tenant ${id}`)
+            return await this.tenantRepository.activate(id)
+        } catch (error) {
+            this.logger.error(`Failed to activate tenant ${id}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Suspend tenant
+     */
+    async suspendTenant(id: string): Promise<Tenant> {
+        try {
+            this.logger.info(`Suspending tenant ${id}`)
+            return await this.tenantRepository.suspend(id)
+        } catch (error) {
+            this.logger.error(`Failed to suspend tenant ${id}`, error)
             throw error
         }
     }

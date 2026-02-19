@@ -1,10 +1,62 @@
 import {useState} from 'react'
-import {Outlet} from 'react-router-dom'
-import {Box, useMediaQuery, useTheme} from '@mui/material'
+import {Link as RouterLink, Outlet, useLocation} from 'react-router-dom'
+import {Box, Breadcrumbs, Link, Typography, useMediaQuery, useTheme} from '@mui/material'
+import {NavigateNext} from '@mui/icons-material'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 
 const DRAWER_WIDTH = 260
+
+const BREADCRUMB_MAP: Record<string, string> = {
+    users: 'Users',
+    tenants: 'Tenants',
+    enrollments: 'Enrollments',
+    'audit-logs': 'Audit Logs',
+    settings: 'Settings',
+    create: 'Create',
+    edit: 'Edit',
+}
+
+function PageBreadcrumbs() {
+    const location = useLocation()
+    const pathSegments = location.pathname.split('/').filter(Boolean)
+
+    if (pathSegments.length === 0) return null
+
+    return (
+        <Breadcrumbs
+            separator={<NavigateNext fontSize="small" />}
+            sx={{ mb: 2 }}
+            aria-label="breadcrumb"
+        >
+            <Link component={RouterLink} to="/" underline="hover" color="inherit">
+                Dashboard
+            </Link>
+            {pathSegments.map((segment, index) => {
+                const isLast = index === pathSegments.length - 1
+                const path = '/' + pathSegments.slice(0, index + 1).join('/')
+                const label = BREADCRUMB_MAP[segment] || segment
+
+                // Skip UUID segments in display
+                if (/^[0-9a-f-]{36}$/i.test(segment)) return null
+
+                if (isLast) {
+                    return (
+                        <Typography key={path} color="text.primary" fontWeight={500}>
+                            {label}
+                        </Typography>
+                    )
+                }
+
+                return (
+                    <Link key={path} component={RouterLink} to={path} underline="hover" color="inherit">
+                        {label}
+                    </Link>
+                )
+            })}
+        </Breadcrumbs>
+    )
+}
 
 export default function DashboardLayout() {
     const theme = useTheme()
@@ -43,6 +95,7 @@ export default function DashboardLayout() {
                     minHeight: {xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)'},
                 }}
             >
+                <PageBreadcrumbs/>
                 <Outlet/>
             </Box>
         </Box>

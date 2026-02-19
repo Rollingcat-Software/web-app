@@ -32,14 +32,15 @@ const warningColor = '#f59e0b' // Amber
 const errorColor = '#ef4444' // Red
 const infoColor = '#3b82f6' // Blue
 
-const theme = createTheme({
+export function createAppTheme(mode: 'light' | 'dark' = 'light') {
+    return createTheme({
     palette: {
-        mode: 'light',
+        mode,
         primary: {
             main: primaryColor,
             light: '#818cf8',
             dark: '#4f46e5',
-            lighter: '#eef2ff',
+            lighter: mode === 'dark' ? '#312e81' : '#eef2ff',
             gradient: `linear-gradient(135deg, ${primaryColor} 0%, ${secondaryColor} 100%)`,
             contrastText: '#ffffff',
         },
@@ -47,7 +48,7 @@ const theme = createTheme({
             main: secondaryColor,
             light: '#a78bfa',
             dark: '#7c3aed',
-            lighter: '#f5f3ff',
+            lighter: mode === 'dark' ? '#2e1065' : '#f5f3ff',
             gradient: `linear-gradient(135deg, ${secondaryColor} 0%, #ec4899 100%)`,
             contrastText: '#ffffff',
         },
@@ -55,36 +56,36 @@ const theme = createTheme({
             main: errorColor,
             light: '#f87171',
             dark: '#dc2626',
-            lighter: '#fef2f2',
+            lighter: mode === 'dark' ? '#450a0a' : '#fef2f2',
         },
         warning: {
             main: warningColor,
             light: '#fbbf24',
             dark: '#d97706',
-            lighter: '#fffbeb',
+            lighter: mode === 'dark' ? '#451a03' : '#fffbeb',
         },
         info: {
             main: infoColor,
             light: '#60a5fa',
             dark: '#2563eb',
-            lighter: '#eff6ff',
+            lighter: mode === 'dark' ? '#172554' : '#eff6ff',
         },
         success: {
             main: successColor,
             light: '#34d399',
             dark: '#059669',
-            lighter: '#ecfdf5',
+            lighter: mode === 'dark' ? '#052e16' : '#ecfdf5',
         },
         background: {
-            default: '#f8fafc',
-            paper: '#ffffff',
+            default: mode === 'dark' ? '#0f172a' : '#f8fafc',
+            paper: mode === 'dark' ? '#1e293b' : '#ffffff',
             gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
         },
         text: {
-            primary: '#1e293b',
-            secondary: '#64748b',
+            primary: mode === 'dark' ? '#f1f5f9' : '#1e293b',
+            secondary: mode === 'dark' ? '#94a3b8' : '#64748b',
         },
-        divider: '#e2e8f0',
+        divider: mode === 'dark' ? '#334155' : '#e2e8f0',
     },
     typography: {
         fontFamily: '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif',
@@ -192,14 +193,14 @@ const theme = createTheme({
                         height: '8px',
                     },
                     '&::-webkit-scrollbar-track': {
-                        background: '#f1f5f9',
+                        background: mode === 'dark' ? '#1e293b' : '#f1f5f9',
                     },
                     '&::-webkit-scrollbar-thumb': {
-                        background: '#cbd5e1',
+                        background: mode === 'dark' ? '#475569' : '#cbd5e1',
                         borderRadius: '4px',
                     },
                     '&::-webkit-scrollbar-thumb:hover': {
-                        background: '#94a3b8',
+                        background: mode === 'dark' ? '#64748b' : '#94a3b8',
                     },
                 },
             },
@@ -246,7 +247,7 @@ const theme = createTheme({
                     borderRadius: '16px',
                     boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)',
                     transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    border: '1px solid #f1f5f9',
+                    border: `1px solid ${mode === 'dark' ? '#334155' : '#f1f5f9'}`,
                     '&:hover': {
                         boxShadow: '0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
                         transform: 'translateY(-2px)',
@@ -287,13 +288,13 @@ const theme = createTheme({
         MuiTableCell: {
             styleOverrides: {
                 root: {
-                    borderBottom: '1px solid #f1f5f9',
+                    borderBottom: `1px solid ${mode === 'dark' ? '#334155' : '#f1f5f9'}`,
                     padding: '16px',
                 },
                 head: {
                     fontWeight: 600,
-                    backgroundColor: '#f8fafc',
-                    color: '#475569',
+                    backgroundColor: mode === 'dark' ? '#0f172a' : '#f8fafc',
+                    color: mode === 'dark' ? '#94a3b8' : '#475569',
                     fontSize: '0.75rem',
                     textTransform: 'uppercase',
                     letterSpacing: '0.05em',
@@ -305,7 +306,7 @@ const theme = createTheme({
                 root: {
                     transition: 'background-color 0.2s ease',
                     '&:hover': {
-                        backgroundColor: '#f8fafc',
+                        backgroundColor: mode === 'dark' ? '#1e293b' : '#f8fafc',
                     },
                 },
             },
@@ -318,20 +319,20 @@ const theme = createTheme({
                 },
                 filled: {
                     '&.MuiChip-colorSuccess': {
-                        backgroundColor: '#ecfdf5',
-                        color: '#059669',
+                        backgroundColor: mode === 'dark' ? '#052e16' : '#ecfdf5',
+                        color: mode === 'dark' ? '#34d399' : '#059669',
                     },
                     '&.MuiChip-colorError': {
-                        backgroundColor: '#fef2f2',
-                        color: '#dc2626',
+                        backgroundColor: mode === 'dark' ? '#450a0a' : '#fef2f2',
+                        color: mode === 'dark' ? '#f87171' : '#dc2626',
                     },
                     '&.MuiChip-colorWarning': {
-                        backgroundColor: '#fffbeb',
-                        color: '#d97706',
+                        backgroundColor: mode === 'dark' ? '#451a03' : '#fffbeb',
+                        color: mode === 'dark' ? '#fbbf24' : '#d97706',
                     },
                     '&.MuiChip-colorInfo': {
-                        backgroundColor: '#eff6ff',
-                        color: '#2563eb',
+                        backgroundColor: mode === 'dark' ? '#172554' : '#eff6ff',
+                        color: mode === 'dark' ? '#60a5fa' : '#2563eb',
                     },
                 },
             },
@@ -342,29 +343,29 @@ const theme = createTheme({
                     borderRadius: '12px',
                 },
                 standardSuccess: {
-                    backgroundColor: '#ecfdf5',
-                    color: '#065f46',
+                    backgroundColor: mode === 'dark' ? '#052e16' : '#ecfdf5',
+                    color: mode === 'dark' ? '#34d399' : '#065f46',
                     '& .MuiAlert-icon': {
                         color: '#10b981',
                     },
                 },
                 standardError: {
-                    backgroundColor: '#fef2f2',
-                    color: '#991b1b',
+                    backgroundColor: mode === 'dark' ? '#450a0a' : '#fef2f2',
+                    color: mode === 'dark' ? '#f87171' : '#991b1b',
                     '& .MuiAlert-icon': {
                         color: '#ef4444',
                     },
                 },
                 standardWarning: {
-                    backgroundColor: '#fffbeb',
-                    color: '#92400e',
+                    backgroundColor: mode === 'dark' ? '#451a03' : '#fffbeb',
+                    color: mode === 'dark' ? '#fbbf24' : '#92400e',
                     '& .MuiAlert-icon': {
                         color: '#f59e0b',
                     },
                 },
                 standardInfo: {
-                    backgroundColor: '#eff6ff',
-                    color: '#1e40af',
+                    backgroundColor: mode === 'dark' ? '#172554' : '#eff6ff',
+                    color: mode === 'dark' ? '#60a5fa' : '#1e40af',
                     '& .MuiAlert-icon': {
                         color: '#3b82f6',
                     },
@@ -392,7 +393,7 @@ const theme = createTheme({
                 root: {
                     boxShadow: '0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1)',
                     backdropFilter: 'blur(8px)',
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    backgroundColor: mode === 'dark' ? 'rgba(15, 23, 42, 0.9)' : 'rgba(255, 255, 255, 0.9)',
                 },
             },
         },
@@ -428,11 +429,12 @@ const theme = createTheme({
         MuiSkeleton: {
             styleOverrides: {
                 root: {
-                    backgroundColor: '#f1f5f9',
+                    backgroundColor: mode === 'dark' ? '#334155' : '#f1f5f9',
                 },
             },
         },
     },
 })
+}
 
-export default theme
+export default createAppTheme()

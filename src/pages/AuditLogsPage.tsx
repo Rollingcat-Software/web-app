@@ -8,6 +8,7 @@ import {
     Chip,
     CircularProgress,
     InputAdornment,
+    LinearProgress,
     MenuItem,
     Paper,
     Table,
@@ -33,6 +34,7 @@ import {
     Warning,
 } from '@mui/icons-material'
 import { useAuditLogs } from '@features/auditLogs'
+import { AUDIT_LOG_ACTION_TYPES } from '@domain/models/AuditLog'
 import { format } from 'date-fns'
 
 function getActionIcon(action: string) {
@@ -56,17 +58,7 @@ function getActionColor(action: string): 'success' | 'error' | 'warning' | 'info
     return 'default'
 }
 
-const ACTION_TYPES = [
-    'ALL',
-    'USER_LOGIN',
-    'USER_CREATED',
-    'USER_UPDATED',
-    'USER_DELETED',
-    'BIOMETRIC_VERIFICATION',
-    'FAILED_LOGIN_ATTEMPT',
-    'PASSWORD_RESET',
-    'SETTINGS_UPDATED',
-]
+const ACTION_TYPES = ['ALL', ...AUDIT_LOG_ACTION_TYPES] as const
 
 export default function AuditLogsPage() {
     const [searchQuery, setSearchQuery] = useState('')
@@ -141,6 +133,9 @@ export default function AuditLogsPage() {
                             ),
                         }}
                     />
+                    {searchQuery !== debouncedSearch && (
+                        <LinearProgress sx={{ mt: 1, borderRadius: 1, height: 2 }} />
+                    )}
                 </Paper>
 
                 <Paper sx={{ p: 2, minWidth: { xs: '100%', sm: 250 } }}>
@@ -246,7 +241,7 @@ export default function AuditLogsPage() {
                                                                 sx={{
                                                                     m: 0,
                                                                     p: 1,
-                                                                    backgroundColor: 'grey.100',
+                                                                    backgroundColor: 'action.hover',
                                                                     borderRadius: 1,
                                                                     fontSize: '0.75rem',
                                                                     overflow: 'auto',

@@ -1,5 +1,5 @@
 import 'reflect-metadata'
-import React from 'react'
+import React, {useMemo} from 'react'
 import ReactDOM from 'react-dom/client'
 import {Provider} from 'react-redux'
 import {PersistGate} from 'redux-persist/integration/react'
@@ -10,7 +10,8 @@ import App from './App'
 import {persistor, store} from './store'
 import {DependencyProvider} from '@app/providers'
 import {AuthProvider} from '@features/auth/hooks/useAuth'
-import theme from './theme'
+import {ThemeModeProvider, useThemeMode} from '@app/providers/ThemeModeProvider'
+import {createAppTheme} from './theme'
 import './index.css'
 
 function AppLoader() {
@@ -18,6 +19,22 @@ function AppLoader() {
         <Box sx={{display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '100vh'}}>
             <CircularProgress aria-label="Loading application"/>
         </Box>
+    )
+}
+
+function ThemedApp() {
+    const {mode} = useThemeMode()
+    const theme = useMemo(() => createAppTheme(mode), [mode])
+
+    return (
+        <ThemeProvider theme={theme}>
+            <CssBaseline/>
+            <SnackbarProvider maxSnack={3} anchorOrigin={{vertical: 'top', horizontal: 'right'}}>
+                <AuthProvider>
+                    <App/>
+                </AuthProvider>
+            </SnackbarProvider>
+        </ThemeProvider>
     )
 }
 
@@ -37,14 +54,9 @@ ReactDOM.createRoot(rootElement).render(
                             v7_relativeSplatPath: true,
                         }}
                     >
-                        <ThemeProvider theme={theme}>
-                            <CssBaseline/>
-                            <SnackbarProvider maxSnack={3} anchorOrigin={{vertical: 'top', horizontal: 'right'}}>
-                                <AuthProvider>
-                                    <App/>
-                                </AuthProvider>
-                            </SnackbarProvider>
-                        </ThemeProvider>
+                        <ThemeModeProvider>
+                            <ThemedApp/>
+                        </ThemeModeProvider>
                     </BrowserRouter>
                 </PersistGate>
             </Provider>

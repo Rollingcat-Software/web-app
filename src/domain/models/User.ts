@@ -34,7 +34,15 @@ export class User {
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
         public readonly lastLoginAt?: Date,
-        public readonly lastLoginIp?: string
+        public readonly lastLoginIp?: string,
+        public readonly phoneNumber?: string,
+        public readonly address?: string,
+        public readonly idNumber?: string,
+        public readonly roles?: string[],
+        public readonly isBiometricEnrolled?: boolean,
+        public readonly enrolledAt?: Date,
+        public readonly lastVerifiedAt?: Date,
+        public readonly verificationCount?: number
     ) {}
 
     /**
@@ -95,6 +103,14 @@ export class User {
             updatedAt: this.updatedAt.toISOString(),
             lastLoginAt: this.lastLoginAt?.toISOString(),
             lastLoginIp: this.lastLoginIp,
+            phoneNumber: this.phoneNumber,
+            address: this.address,
+            idNumber: this.idNumber,
+            roles: this.roles,
+            isBiometricEnrolled: this.isBiometricEnrolled,
+            enrolledAt: this.enrolledAt?.toISOString(),
+            lastVerifiedAt: this.lastVerifiedAt?.toISOString(),
+            verificationCount: this.verificationCount,
         }
     }
 
@@ -102,19 +118,44 @@ export class User {
      * Create User from plain object (deserialization)
      * SECURITY: Properly typed to prevent type confusion attacks
      */
-    static fromJSON(data: UserJSON): User {
+    static fromJSON(data: any): User {
+        // Backend sends role as string, map to enum
+        const roleStr = (data.role ?? 'USER').toUpperCase()
+        const roleMap: Record<string, UserRole> = {
+            'SUPER_ADMIN': UserRole.SUPER_ADMIN,
+            'ROOT': UserRole.SUPER_ADMIN,
+            'TENANT_ADMIN': UserRole.TENANT_ADMIN,
+            'ADMIN': UserRole.ADMIN,
+            'USER': UserRole.USER,
+        }
+        const role = roleMap[roleStr] ?? UserRole.USER
+
+        // Map status, with fallback
+        const statusStr = (data.status ?? 'ACTIVE').toUpperCase()
+        const status = Object.values(UserStatus).includes(statusStr as UserStatus)
+            ? (statusStr as UserStatus)
+            : UserStatus.ACTIVE
+
         return new User(
             data.id,
             data.email,
             data.firstName,
             data.lastName,
-            data.role,
-            data.status,
+            role,
+            status,
             data.tenantId,
             new Date(data.createdAt),
             new Date(data.updatedAt),
             data.lastLoginAt ? new Date(data.lastLoginAt) : undefined,
-            data.lastLoginIp
+            data.lastLoginIp,
+            data.phoneNumber,
+            data.address,
+            data.idNumber,
+            data.roles,
+            data.isBiometricEnrolled ?? false,
+            data.enrolledAt ? new Date(data.enrolledAt) : undefined,
+            data.lastVerifiedAt ? new Date(data.lastVerifiedAt) : undefined,
+            data.verificationCount ?? 0
         )
     }
 }
@@ -135,4 +176,12 @@ export interface UserJSON {
     updatedAt: string | Date
     lastLoginAt?: string | Date
     lastLoginIp?: string
+    phoneNumber?: string
+    address?: string
+    idNumber?: string
+    roles?: string[]
+    isBiometricEnrolled?: boolean
+    enrolledAt?: string | Date
+    lastVerifiedAt?: string | Date
+    verificationCount?: number
 }

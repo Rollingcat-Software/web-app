@@ -3,6 +3,7 @@ import {useLocation, useNavigate} from 'react-router-dom'
 import {
     AppBar,
     Avatar,
+    Badge,
     Box,
     Divider,
     IconButton,
@@ -10,10 +11,12 @@ import {
     Menu,
     MenuItem,
     Toolbar,
+    Tooltip,
     Typography,
 } from '@mui/material'
-import {AccountCircle, Logout, Menu as MenuIcon, Notifications, Settings,} from '@mui/icons-material'
+import {AccountCircle, DarkMode, LightMode, Logout, Menu as MenuIcon, Notifications, Settings,} from '@mui/icons-material'
 import {useAuth} from '@features/auth/hooks/useAuth'
+import {useThemeMode} from '@app/providers/ThemeModeProvider'
 
 interface TopBarProps {
     drawerWidth: number
@@ -24,6 +27,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     const navigate = useNavigate()
     const location = useLocation()
     const { user, logout } = useAuth()
+    const { mode, toggleMode } = useThemeMode()
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
 
     const getPageTitle = () => {
@@ -31,6 +35,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
         if (path === '/') return 'Dashboard'
         if (path.startsWith('/users')) return 'Users'
         if (path.startsWith('/tenants')) return 'Tenants'
+        if (path.startsWith('/roles')) return 'Roles'
         if (path.startsWith('/enrollments')) return 'Enrollments'
         if (path.startsWith('/audit-logs')) return 'Audit Logs'
         if (path.startsWith('/settings')) return 'Settings'
@@ -85,10 +90,21 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
 
                 {/* Right side icons */}
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                    {/* Dark mode toggle */}
+                    <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                        <IconButton color="inherit" onClick={toggleMode} aria-label="Toggle dark mode">
+                            {mode === 'dark' ? <LightMode/> : <DarkMode/>}
+                        </IconButton>
+                    </Tooltip>
+
                     {/* Notifications */}
-                    <IconButton color="inherit" aria-label="Notifications">
-                        <Notifications/>
-                    </IconButton>
+                    <Tooltip title="Notifications coming soon">
+                        <IconButton color="inherit" aria-label="Notifications" disabled>
+                            <Badge color="default">
+                                <Notifications/>
+                            </Badge>
+                        </IconButton>
+                    </Tooltip>
 
                     {/* User menu */}
                     <IconButton
@@ -100,7 +116,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                         <Avatar
                             sx={{width: 36, height: 36, bgcolor: 'primary.main'}}
                         >
-                            {user?.firstName?.[0] || 'A'}
+                            {(user?.firstName?.[0] || user?.email?.[0] || 'U').toUpperCase()}
                         </Avatar>
                     </IconButton>
                     <Menu
@@ -129,7 +145,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                             <ListItemIcon>
                                 <AccountCircle fontSize="small"/>
                             </ListItemIcon>
-                            Profile
+                            Profile & Settings
                         </MenuItem>
                         <MenuItem onClick={handleSettings}>
                             <ListItemIcon>

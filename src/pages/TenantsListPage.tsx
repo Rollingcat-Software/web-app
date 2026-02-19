@@ -1,6 +1,7 @@
 import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {
+    Alert,
     Box,
     Button,
     Chip,
@@ -23,7 +24,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material'
-import {Add, Delete, Edit, Search, Visibility,} from '@mui/icons-material'
+import {Add, Block, CheckCircle, Delete, Edit, Search, Visibility,} from '@mui/icons-material'
 import {useTenants} from '@features/tenants'
 import {TenantStatus} from '@domain/models/Tenant'
 import {format} from 'date-fns'
@@ -43,19 +44,22 @@ function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
 
 export default function TenantsListPage() {
     const navigate = useNavigate()
-    const {tenants, loading, deleteTenant} = useTenants()
+    const {tenants, loading, deleteTenant, activateTenant, suspendTenant} = useTenants()
     const [searchQuery, setSearchQuery] = useState('')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [deletingName, setDeletingName] = useState('')
+    const [deleteError, setDeleteError] = useState<string | null>(null)
 
     const filteredTenants = tenants.filter(
         (tenant) =>
             tenant.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            tenant.domain.toLowerCase().includes(searchQuery.toLowerCase())
+            tenant.slug.toLowerCase().includes(searchQuery.toLowerCase())
     )
 
-    const handleDeleteClick = (id: string) => {
+    const handleDeleteClick = (id: string, name: string) => {
         setDeletingId(id)
+        setDeletingName(name)
         setDeleteDialogOpen(true)
     }
 
@@ -63,8 +67,9 @@ export default function TenantsListPage() {
         if (deletingId) {
             try {
                 await deleteTenant(deletingId)
-            } catch {
-                // Error handled by hook
+                setDeleteError(null)
+            } catch (err) {
+                setDeleteError(err instanceof Error ? err.message : 'Failed to delete tenant')
             }
         }
         setDeleteDialogOpen(false)
@@ -74,6 +79,7 @@ export default function TenantsListPage() {
     const handleDeleteCancel = () => {
         setDeleteDialogOpen(false)
         setDeletingId(null)
+        setDeletingName('')
     }
 
     const getUserPercentage = (current: number, max: number): number => {
@@ -101,10 +107,16 @@ export default function TenantsListPage() {
                 </Button>
             </Box>
 
+            {deleteError && (
+                <Alert severity="error" sx={{mb: 2}} onClose={() => setDeleteError(null)}>
+                    {deleteError}
+                </Alert>
+            )}
+
             <Paper sx={{p: 2, mb: 3}}>
                 <TextField
                     fullWidth
-                    placeholder="Search tenants by name or domain..."
+                    placeholder="Search tenants by name or slug..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     InputProps={{
@@ -127,7 +139,7 @@ export default function TenantsListPage() {
                         <TableHead>
                             <TableRow>
                                 <TableCell>Name</TableCell>
-                                <TableCell>Domain</TableCell>
+                                <TableCell>Slug</TableCell>
                                 <TableCell>Status</TableCell>
                                 <TableCell>Users</TableCell>
                                 <TableCell>Created</TableCell>
@@ -149,7 +161,7 @@ export default function TenantsListPage() {
                                         <TableCell>
                                             <Typography fontWeight={500}>{tenant.name}</Typography>
                                         </TableCell>
-                                        <TableCell>{tenant.domain}</TableCell>
+                                        <TableCell>{tenant.slug}</TableCell>
                                         <TableCell>
                                             <Chip
                                                 label={tenant.status}
@@ -165,6 +177,7 @@ export default function TenantsListPage() {
                                                 <LinearProgress
                                                     variant="determinate"
                                                     value={getUserPercentage(tenant.currentUsers, tenant.maxUsers)}
+                                                    aria-label={`${tenant.currentUsers} of ${tenant.maxUsers} users`}
                                                     sx={{
                                                         height: 6,
                                                         borderRadius: 1,
@@ -179,7 +192,7 @@ export default function TenantsListPage() {
                                         <TableCell align="right">
                                             <IconButton
                                                 size="small"
-                                                onClick={() => navigate(`/tenants/${tenant.id}`)}
+                                                onClick={() => navigate(`/tenants/${tenant.id}/edit`)}
                                                 aria-label="View details"
                                             >
                                                 <Visibility fontSize="small"/>
@@ -191,9 +204,28 @@ export default function TenantsListPage() {
                                             >
                                                 <Edit fontSize="small"/>
                                             </IconButton>
+                                            {tenant.status === TenantStatus.SUSPENDED ? (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => activateTenant(tenant.id).catch(() => {})}
+                                                    color="success"
+                                                    aria-label="Activate tenant"
+                                                >
+                                                    <CheckCircle fontSize="small"/>
+                                                </IconButton>
+                                            ) : tenant.status === TenantStatus.ACTIVE ? (
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => suspendTenant(tenant.id).catch(() => {})}
+                                                    color="warning"
+                                                    aria-label="Suspend tenant"
+                                                >
+                                                    <Block fontSize="small"/>
+                                                </IconButton>
+                                            ) : null}
                                             <IconButton
                                                 size="small"
-                                                onClick={() => handleDeleteClick(tenant.id)}
+                                                onClick={() => handleDeleteClick(tenant.id, tenant.name)}
                                                 color="error"
                                                 aria-label="Delete tenant"
                                             >
@@ -216,7 +248,7 @@ export default function TenantsListPage() {
                 <DialogTitle id="delete-tenant-dialog-title">Delete Tenant</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Are you sure you want to delete this tenant? All associated users will be affected.
+                        Are you sure you want to delete <strong>{deletingName}</strong>? All associated users will be affected. This action cannot be undone.
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>

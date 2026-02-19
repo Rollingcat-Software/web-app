@@ -3,7 +3,7 @@ import { TYPES } from '@core/di/types'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { IDashboardRepository } from '@domain/interfaces/IDashboardRepository'
-import { DashboardStats } from '@domain/models/DashboardStats'
+import { DashboardStats, DashboardStatsJSON } from '@domain/models/DashboardStats'
 
 /**
  * Dashboard Repository
@@ -19,7 +19,7 @@ export class DashboardRepository implements IDashboardRepository {
     async getStats(): Promise<DashboardStats> {
         this.logger.debug('Fetching dashboard statistics from API')
 
-        const response = await this.httpClient.get<any>('/statistics')
+        const response = await this.httpClient.get<DashboardStatsJSON>('/statistics')
 
         return DashboardStats.fromJSON(response.data)
     }

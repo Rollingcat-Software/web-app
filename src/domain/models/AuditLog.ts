@@ -3,7 +3,22 @@
  * Represents an audit log entry in the system
  */
 
-interface AuditLogJSON {
+export const AUDIT_LOG_ACTION_TYPES = [
+    'USER_LOGIN',
+    'USER_CREATED',
+    'USER_UPDATED',
+    'USER_DELETED',
+    'BIOMETRIC_VERIFICATION',
+    'FAILED_LOGIN_ATTEMPT',
+    'PASSWORD_RESET',
+    'SETTINGS_UPDATED',
+    'SYSTEM_UPDATE',
+    'AUTOMATED_CLEANUP',
+] as const
+
+export type AuditLogActionType = (typeof AUDIT_LOG_ACTION_TYPES)[number]
+
+export interface AuditLogJSON {
     id: string
     userId: string
     tenantId: string
@@ -15,6 +30,8 @@ interface AuditLogJSON {
     timestamp?: string
     createdAt?: string
     entityId?: string
+    success?: boolean
+    errorMessage?: string
 }
 
 /**
@@ -31,7 +48,9 @@ export class AuditLog {
         public readonly userAgent: string,
         public readonly details: Record<string, unknown>,
         public readonly createdAt: Date,
-        public readonly entityId?: string
+        public readonly entityId?: string,
+        public readonly success?: boolean,
+        public readonly errorMessage?: string
     ) {}
 
     /**
@@ -76,7 +95,7 @@ export class AuditLog {
      * Check if this is a failed action
      */
     isFailed(): boolean {
-        return this.action.includes('FAILED') || this.details?.success === false
+        return this.success === false || this.action.includes('FAILED') || this.details?.success === false
     }
 
     /**
@@ -128,7 +147,9 @@ export class AuditLog {
             data.userAgent || '',
             data.details || {},
             new Date(data.timestamp ?? data.createdAt ?? ''),
-            data.entityId
+            data.entityId,
+            data.success,
+            data.errorMessage
         )
     }
 }

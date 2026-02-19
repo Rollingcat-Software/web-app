@@ -30,12 +30,36 @@ export class SettingsRepository implements ISettingsRepository {
         try {
             this.logger.debug(`Fetching settings for user ${userId}`)
 
-            const response = await this.httpClient.get<UserSettings>(`/users/${userId}/settings`)
+            interface SettingsApiResponse {
+                firstName?: string
+                lastName?: string
+                profile?: { firstName?: string; lastName?: string }
+                notifications?: { email?: boolean; push?: boolean; securityAlerts?: boolean }
+                security?: { twoFactorEnabled?: boolean; sessionTimeout?: number }
+                appearance?: { theme?: string; density?: string }
+            }
 
-            return response.data
-        } catch (error: any) {
+            const response = await this.httpClient.get<SettingsApiResponse>(`/users/${userId}/settings`)
+            const data = response.data
+
+            // Map nested backend format to flat frontend format
+            return {
+                userId,
+                firstName: data?.profile?.firstName ?? data?.firstName ?? '',
+                lastName: data?.profile?.lastName ?? data?.lastName ?? '',
+                emailNotifications: data?.notifications?.email ?? true,
+                loginAlerts: data?.notifications?.push ?? true,
+                securityAlerts: data?.notifications?.securityAlerts ?? true,
+                weeklyReports: false,
+                twoFactorEnabled: data?.security?.twoFactorEnabled ?? false,
+                sessionTimeoutMinutes: data?.security?.sessionTimeout ?? 30,
+                darkMode: data?.appearance?.theme === 'dark',
+                compactView: data?.appearance?.density === 'compact',
+            }
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { status?: number } }
             // Return default settings if not found
-            if (error.response?.status === 404) {
+            if (axiosError.response?.status === 404) {
                 return this.getDefaultSettings(userId)
             }
             this.logger.error('Failed to fetch settings', error)
@@ -67,12 +91,16 @@ export class SettingsRepository implements ISettingsRepository {
         try {
             this.logger.info(`Updating notifications for user ${userId}`)
 
-            const response = await this.httpClient.put<UserSettings>(
+            await this.httpClient.put(
                 `/users/${userId}/settings/notifications`,
-                data
+                {
+                    email: data.emailNotifications,
+                    push: data.loginAlerts,
+                    securityAlerts: data.securityAlerts,
+                }
             )
 
-            return response.data
+            return this.getSettings(userId)
         } catch (error) {
             this.logger.error('Failed to update notifications', error)
             throw error
@@ -86,12 +114,15 @@ export class SettingsRepository implements ISettingsRepository {
         try {
             this.logger.info(`Updating security settings for user ${userId}`)
 
-            const response = await this.httpClient.put<UserSettings>(
+            await this.httpClient.put(
                 `/users/${userId}/settings/security`,
-                data
+                {
+                    twoFactorEnabled: data.twoFactorEnabled,
+                    sessionTimeout: data.sessionTimeoutMinutes,
+                }
             )
 
-            return response.data
+            return this.getSettings(userId)
         } catch (error) {
             this.logger.error('Failed to update security settings', error)
             throw error
@@ -105,12 +136,16 @@ export class SettingsRepository implements ISettingsRepository {
         try {
             this.logger.info(`Updating appearance settings for user ${userId}`)
 
-            const response = await this.httpClient.put<UserSettings>(
+            await this.httpClient.put(
                 `/users/${userId}/settings/appearance`,
-                data
+                {
+                    theme: data.darkMode ? 'dark' : 'light',
+                    language: 'en',
+                    density: data.compactView ? 'compact' : 'comfortable',
+                }
             )
 
-            return response.data
+            return this.getSettings(userId)
         } catch (error) {
             this.logger.error('Failed to update appearance settings', error)
             throw error

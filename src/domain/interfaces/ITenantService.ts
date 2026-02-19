@@ -45,4 +45,14 @@ export interface ITenantService {
      * @throws NotFoundError if tenant doesn't exist
      */
     deleteTenant(id: string): Promise<void>
+
+    /**
+     * Activate tenant
+     */
+    activateTenant(id: string): Promise<Tenant>
+
+    /**
+     * Suspend tenant
+     */
+    suspendTenant(id: string): Promise<Tenant>
 }

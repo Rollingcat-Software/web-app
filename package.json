@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "test": "vitest",
     "test:ui": "vitest --ui",
-    "test:coverage": "vitest --coverage"
+    "test:coverage": "vitest --coverage",
+    "build:analyze": "tsc && vite build --mode analyze"
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",

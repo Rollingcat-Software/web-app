@@ -6,10 +6,11 @@ import type { PaginatedResult, QueryParams } from './IRepository'
  */
 export interface CreateTenantData {
     name: string
-    domain: string
-    status: string
+    slug: string
+    description?: string
+    contactEmail?: string
+    contactPhone?: string
     maxUsers: number
-    currentUsers?: number
 }
 
 /**
@@ -17,10 +18,11 @@ export interface CreateTenantData {
  */
 export interface UpdateTenantData {
     name?: string
-    domain?: string
-    status?: string
+    slug?: string
+    description?: string
+    contactEmail?: string
+    contactPhone?: string
     maxUsers?: number
-    currentUsers?: number
 }
 
 /**
@@ -53,4 +55,14 @@ export interface ITenantRepository {
      * Delete tenant
      */
     delete(id: string): Promise<void>
+
+    /**
+     * Activate tenant
+     */
+    activate(id: string): Promise<Tenant>
+
+    /**
+     * Suspend tenant
+     */
+    suspend(id: string): Promise<Tenant>
 }

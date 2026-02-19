@@ -33,7 +33,7 @@ import { useAuth } from '../hooks/useAuth'
  */
 const loginSchema = z.object({
     email: z.string().min(1, 'Email is required').email('Invalid email address'),
-    password: z.string().min(6, 'Password must be at least 6 characters'),
+    password: z.string().min(8, 'Password must be at least 8 characters'),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -474,7 +474,8 @@ export default function LoginPage() {
                             </Box>
                         </motion.div>
 
-                        {/* Demo credentials */}
+                        {/* Demo credentials - only visible in development */}
+                        {import.meta.env.DEV && (
                         <motion.div
                             variants={itemVariants}
                             initial={{ opacity: 0, height: 0 }}
@@ -505,6 +506,7 @@ export default function LoginPage() {
                                 </Typography>
                             </Box>
                         </motion.div>
+                        )}
                     </CardContent>
                 </Card>
 

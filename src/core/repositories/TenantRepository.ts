@@ -8,7 +8,7 @@ import type {
     UpdateTenantData,
 } from '@domain/interfaces/ITenantRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
-import { Tenant } from '@domain/models/Tenant'
+import { Tenant, TenantJSON } from '@domain/models/Tenant'
 
 /**
  * Tenant Repository
@@ -28,23 +28,51 @@ export class TenantRepository implements ITenantRepository {
         try {
             this.logger.debug('Fetching all tenants', { params })
 
-            const response = await this.httpClient.get<any[]>('/tenants', {
-                params: params as Record<string, unknown>,
+            // Build flat params: backend expects 'size' not 'pageSize'
+            const flatParams: Record<string, unknown> = {}
+            if (params?.page !== undefined) flatParams.page = params.page
+            if (params?.pageSize !== undefined) flatParams.size = params.pageSize
+            if (params?.sort) flatParams.sort = params.sort
+            if (params?.order) flatParams.order = params.order
+            if (params?.filters) {
+                Object.entries(params.filters).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null) {
+                        flatParams[key] = value
+                    }
+                })
+            }
+
+            type TenantListResponse =
+                | TenantJSON[]
+                | { content: TenantJSON[]; totalElements?: number; totalPages?: number }
+
+            const response = await this.httpClient.get<TenantListResponse>('/tenants', {
+                params: flatParams,
             })
 
-            // Backend currently returns array, not paginated response
-            // Map to our paginated format
-            const tenants = response.data.map((data) => Tenant.fromJSON(data))
+            let tenants: Tenant[]
+            let total: number
+
+            if (Array.isArray(response.data)) {
+                tenants = response.data.map((data: TenantJSON) => Tenant.fromJSON(data))
+                total = tenants.length
+            } else if ('content' in response.data && response.data.content) {
+                tenants = response.data.content.map((data: TenantJSON) => Tenant.fromJSON(data))
+                total = response.data.totalElements ?? tenants.length
+            } else {
+                tenants = []
+                total = 0
+            }
 
             const pageSize = params?.pageSize || 20
             const page = params?.page || 0
 
             return {
                 items: tenants,
-                total: tenants.length,
+                total,
                 page,
                 pageSize,
-                totalPages: Math.ceil(tenants.length / pageSize),
+                totalPages: Math.ceil(total / pageSize),
             }
         } catch (error) {
             this.logger.error('Failed to fetch tenants', error)
@@ -59,11 +87,12 @@ export class TenantRepository implements ITenantRepository {
         try {
             this.logger.debug(`Fetching tenant ${id}`)
 
-            const response = await this.httpClient.get<any>(`/tenants/${id}`)
+            const response = await this.httpClient.get<TenantJSON>(`/tenants/${id}`)
 
             return Tenant.fromJSON(response.data)
-        } catch (error: any) {
-            if (error.response?.status === 404) {
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { status?: number } }
+            if (axiosError.response?.status === 404) {
                 return null
             }
             this.logger.error(`Failed to fetch tenant ${id}`, error)
@@ -78,7 +107,7 @@ export class TenantRepository implements ITenantRepository {
         try {
             this.logger.info('Creating new tenant', { name: data.name })
 
-            const response = await this.httpClient.post<any>('/tenants', data)
+            const response = await this.httpClient.post<TenantJSON>('/tenants', data)
 
             const tenant = Tenant.fromJSON(response.data)
 
@@ -97,7 +126,7 @@ export class TenantRepository implements ITenantRepository {
         try {
             this.logger.info(`Updating tenant ${id}`)
 
-            const response = await this.httpClient.put<any>(`/tenants/${id}`, data)
+            const response = await this.httpClient.put<TenantJSON>(`/tenants/${id}`, data)
 
             const tenant = Tenant.fromJSON(response.data)
 
@@ -121,6 +150,34 @@ export class TenantRepository implements ITenantRepository {
             this.logger.info('Tenant deleted successfully', { tenantId: id })
         } catch (error) {
             this.logger.error(`Failed to delete tenant ${id}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Activate tenant
+     */
+    async activate(id: string): Promise<Tenant> {
+        try {
+            this.logger.info(`Activating tenant ${id}`)
+            const response = await this.httpClient.post<TenantJSON>(`/tenants/${id}/activate`, {})
+            return Tenant.fromJSON(response.data)
+        } catch (error) {
+            this.logger.error(`Failed to activate tenant ${id}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Suspend tenant
+     */
+    async suspend(id: string): Promise<Tenant> {
+        try {
+            this.logger.info(`Suspending tenant ${id}`)
+            const response = await this.httpClient.post<TenantJSON>(`/tenants/${id}/suspend`, {})
+            return Tenant.fromJSON(response.data)
+        } catch (error) {
+            this.logger.error(`Failed to suspend tenant ${id}`, error)
             throw error
         }
     }

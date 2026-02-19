@@ -3,9 +3,14 @@
  * Represents platform statistics and metrics
  */
 
-interface DashboardStatsJSON {
+export interface DashboardStatsJSON {
     totalUsers?: number
     activeUsers?: number
+    inactiveUsers?: number
+    suspendedUsers?: number
+    biometricEnrolledUsers?: number
+    totalVerifications?: number
+    totalTenants?: number
     pendingEnrollments?: number
     successfulEnrollments?: number
     failedEnrollments?: number
@@ -17,6 +22,11 @@ export class DashboardStats {
     constructor(
         public readonly totalUsers: number,
         public readonly activeUsers: number,
+        public readonly inactiveUsers: number,
+        public readonly suspendedUsers: number,
+        public readonly biometricEnrolledUsers: number,
+        public readonly totalVerifications: number,
+        public readonly totalTenants: number,
         public readonly pendingEnrollments: number,
         public readonly successfulEnrollments: number,
         public readonly failedEnrollments: number,
@@ -48,12 +58,25 @@ export class DashboardStats {
     }
 
     /**
+     * Get average verifications per user
+     */
+    get averageVerificationsPerUser(): number {
+        if (this.biometricEnrolledUsers === 0) return 0
+        return this.totalVerifications / this.biometricEnrolledUsers
+    }
+
+    /**
      * Create DashboardStats from JSON response
      */
     static fromJSON(data: DashboardStatsJSON): DashboardStats {
         return new DashboardStats(
             data.totalUsers ?? 0,
             data.activeUsers ?? 0,
+            data.inactiveUsers ?? 0,
+            data.suspendedUsers ?? 0,
+            data.biometricEnrolledUsers ?? 0,
+            data.totalVerifications ?? 0,
+            data.totalTenants ?? 0,
             data.pendingEnrollments ?? 0,
             data.successfulEnrollments ?? 0,
             data.failedEnrollments ?? 0,

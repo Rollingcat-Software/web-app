@@ -1,6 +1,7 @@
 import {useState} from 'react'
 import {useNavigate} from 'react-router-dom'
 import {
+    Alert,
     Box,
     Button,
     Chip,
@@ -69,6 +70,7 @@ export default function EnrollmentsListPage() {
     const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | 'ALL'>('ALL')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deletingId, setDeletingId] = useState<string | null>(null)
+    const [actionError, setActionError] = useState<string | null>(null)
 
     const filters = statusFilter === 'ALL' ? undefined : {status: statusFilter}
     const {enrollments, loading, retryEnrollment, deleteEnrollment} = useEnrollments(filters)
@@ -81,8 +83,10 @@ export default function EnrollmentsListPage() {
     const handleRetry = async (id: string) => {
         try {
             await retryEnrollment(id)
-        } catch {
-            // Error handled by hook
+            setActionError(null)
+        } catch (err) {
+            const message = err instanceof Error ? (err as Error).message : 'Failed to retry enrollment'
+            setActionError(message)
         }
     }
 
@@ -95,8 +99,10 @@ export default function EnrollmentsListPage() {
         if (deletingId) {
             try {
                 await deleteEnrollment(deletingId)
-            } catch {
-                // Error handled by hook
+                setActionError(null)
+            } catch (err) {
+                const message = err instanceof Error ? (err as Error).message : 'Failed to delete enrollment'
+                setActionError(message)
             }
         }
         setDeleteDialogOpen(false)
@@ -118,6 +124,12 @@ export default function EnrollmentsListPage() {
                     Monitor and manage biometric enrollment jobs
                 </Typography>
             </Box>
+
+            {actionError && (
+                <Alert severity="error" sx={{mb: 2}} onClose={() => setActionError(null)}>
+                    {actionError}
+                </Alert>
+            )}
 
             <Box sx={{display: 'flex', gap: 2, mb: 3}}>
                 <Paper sx={{p: 2, flex: 1}}>
@@ -210,14 +222,28 @@ export default function EnrollmentsListPage() {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            {enrollment.qualityScore
-                                                ? `${(enrollment.qualityScore * 100).toFixed(1)}%`
-                                                : '-'}
+                                            {enrollment.qualityScore != null ? (
+                                                <Tooltip title={enrollment.qualityScore >= 0.7 ? 'Good quality' : enrollment.qualityScore >= 0.4 ? 'Acceptable quality' : 'Poor quality'}>
+                                                    <Chip
+                                                        label={`${(enrollment.qualityScore * 100).toFixed(1)}%`}
+                                                        size="small"
+                                                        color={enrollment.qualityScore >= 0.7 ? 'success' : enrollment.qualityScore >= 0.4 ? 'warning' : 'error'}
+                                                        variant="outlined"
+                                                    />
+                                                </Tooltip>
+                                            ) : '-'}
                                         </TableCell>
                                         <TableCell>
-                                            {enrollment.livenessScore
-                                                ? `${(enrollment.livenessScore * 100).toFixed(1)}%`
-                                                : '-'}
+                                            {enrollment.livenessScore != null ? (
+                                                <Tooltip title={enrollment.livenessScore >= 0.8 ? 'High confidence' : enrollment.livenessScore >= 0.5 ? 'Moderate confidence' : 'Low confidence'}>
+                                                    <Chip
+                                                        label={`${(enrollment.livenessScore * 100).toFixed(1)}%`}
+                                                        size="small"
+                                                        color={enrollment.livenessScore >= 0.8 ? 'success' : enrollment.livenessScore >= 0.5 ? 'warning' : 'error'}
+                                                        variant="outlined"
+                                                    />
+                                                </Tooltip>
+                                            ) : '-'}
                                         </TableCell>
                                         <TableCell>
                                             {format(new Date(enrollment.createdAt), 'MMM dd, HH:mm')}

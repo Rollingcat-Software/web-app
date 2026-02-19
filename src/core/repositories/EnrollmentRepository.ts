@@ -4,7 +4,7 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { IEnrollmentRepository } from '@domain/interfaces/IEnrollmentRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
-import { Enrollment } from '@domain/models/Enrollment'
+import { Enrollment, EnrollmentJSON } from '@domain/models/Enrollment'
 
 /**
  * Enrollment Repository
@@ -24,23 +24,50 @@ export class EnrollmentRepository implements IEnrollmentRepository {
         try {
             this.logger.debug('Fetching all enrollments', { params })
 
-            const response = await this.httpClient.get<any[]>('/enrollments', {
-                params: params as Record<string, unknown>,
+            const flatParams: Record<string, unknown> = {}
+            if (params?.page !== undefined) flatParams.page = params.page
+            if (params?.pageSize !== undefined) flatParams.size = params.pageSize
+            if (params?.sort) flatParams.sort = params.sort
+            if (params?.order) flatParams.order = params.order
+            if (params?.filters) {
+                Object.entries(params.filters).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null) {
+                        flatParams[key] = value
+                    }
+                })
+            }
+
+            type EnrollmentListResponse =
+                | EnrollmentJSON[]
+                | { content: EnrollmentJSON[]; totalElements?: number }
+
+            const response = await this.httpClient.get<EnrollmentListResponse>('/enrollments', {
+                params: flatParams,
             })
 
-            // Backend currently returns array, not paginated response
-            // Map to our paginated format
-            const enrollments = response.data.map((data) => Enrollment.fromJSON(data))
+            let enrollments: Enrollment[]
+            let total: number
+
+            if (Array.isArray(response.data)) {
+                enrollments = response.data.map((data: EnrollmentJSON) => Enrollment.fromJSON(data))
+                total = enrollments.length
+            } else if ('content' in response.data && response.data.content) {
+                enrollments = response.data.content.map((data: EnrollmentJSON) => Enrollment.fromJSON(data))
+                total = response.data.totalElements ?? enrollments.length
+            } else {
+                enrollments = []
+                total = 0
+            }
 
             const pageSize = params?.pageSize || 20
             const page = params?.page || 0
 
             return {
                 items: enrollments,
-                total: enrollments.length,
+                total,
                 page,
                 pageSize,
-                totalPages: Math.ceil(enrollments.length / pageSize),
+                totalPages: Math.ceil(total / pageSize),
             }
         } catch (error) {
             this.logger.error('Failed to fetch enrollments', error)
@@ -55,11 +82,12 @@ export class EnrollmentRepository implements IEnrollmentRepository {
         try {
             this.logger.debug(`Fetching enrollment ${id}`)
 
-            const response = await this.httpClient.get<any>(`/enrollments/${id}`)
+            const response = await this.httpClient.get<EnrollmentJSON>(`/enrollments/${id}`)
 
             return Enrollment.fromJSON(response.data)
-        } catch (error: any) {
-            if (error.response?.status === 404) {
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { status?: number } }
+            if (axiosError.response?.status === 404) {
                 return null
             }
             this.logger.error(`Failed to fetch enrollment ${id}`, error)
@@ -74,7 +102,7 @@ export class EnrollmentRepository implements IEnrollmentRepository {
         try {
             this.logger.info(`Retrying enrollment ${id}`)
 
-            const response = await this.httpClient.post<any>(`/enrollments/${id}/retry`, {})
+            const response = await this.httpClient.post<EnrollmentJSON>(`/enrollments/${id}/retry`, {})
 
             const enrollment = Enrollment.fromJSON(response.data)
 

@@ -83,7 +83,11 @@ export class ErrorHandler {
                 this.notifier.error(message || 'Invalid request. Please check your input.')
                 break
             case 401:
-                this.notifier.error('Session expired. Please login again.')
+                // 401 is handled by AxiosClient interceptor (token refresh)
+                // Only show notification if refresh also failed
+                if (error.config?.url?.includes('/auth/refresh')) {
+                    this.notifier.error('Session expired. Please login again.')
+                }
                 break
             case 403:
                 this.notifier.error('You do not have permission for this action.')

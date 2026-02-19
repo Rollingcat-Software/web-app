@@ -7,15 +7,25 @@ export enum TenantStatus {
     ACTIVE = 'ACTIVE',
     TRIAL = 'TRIAL',
     SUSPENDED = 'SUSPENDED',
+    INACTIVE = 'INACTIVE',
+    PENDING = 'PENDING',
 }
 
-interface TenantJSON {
+export interface TenantJSON {
     id: string
     name: string
-    domain: string
+    slug?: string    // backend field name
+    domain?: string  // legacy/alias
+    description?: string
+    contactEmail?: string
+    contactPhone?: string
     status: TenantStatus
     maxUsers: number
-    currentUsers: number
+    currentUsers?: number  // may not be present
+    biometricEnabled?: boolean
+    sessionTimeoutMinutes?: number
+    refreshTokenValidityDays?: number
+    mfaRequired?: boolean
     createdAt: string
     updatedAt: string
 }
@@ -27,10 +37,17 @@ export class Tenant {
     constructor(
         public readonly id: string,
         public readonly name: string,
-        public readonly domain: string,
+        public readonly slug: string,
+        public readonly description: string,
+        public readonly contactEmail: string,
+        public readonly contactPhone: string,
         public readonly status: TenantStatus,
         public readonly maxUsers: number,
         public readonly currentUsers: number,
+        public readonly biometricEnabled: boolean,
+        public readonly sessionTimeoutMinutes: number,
+        public readonly refreshTokenValidityDays: number,
+        public readonly mfaRequired: boolean,
         public readonly createdAt: Date,
         public readonly updatedAt: Date
     ) {}
@@ -87,10 +104,17 @@ export class Tenant {
         return {
             id: this.id,
             name: this.name,
-            domain: this.domain,
+            slug: this.slug,
+            description: this.description,
+            contactEmail: this.contactEmail,
+            contactPhone: this.contactPhone,
             status: this.status,
             maxUsers: this.maxUsers,
             currentUsers: this.currentUsers,
+            biometricEnabled: this.biometricEnabled,
+            sessionTimeoutMinutes: this.sessionTimeoutMinutes,
+            refreshTokenValidityDays: this.refreshTokenValidityDays,
+            mfaRequired: this.mfaRequired,
             createdAt: this.createdAt.toISOString(),
             updatedAt: this.updatedAt.toISOString(),
         }
@@ -103,10 +127,17 @@ export class Tenant {
         return new Tenant(
             data.id,
             data.name,
-            data.domain,
-            data.status,
-            data.maxUsers,
-            data.currentUsers,
+            data.slug ?? data.domain ?? '',
+            data.description ?? '',
+            data.contactEmail ?? '',
+            data.contactPhone ?? '',
+            data.status ?? TenantStatus.ACTIVE,
+            data.maxUsers ?? 0,
+            data.currentUsers ?? 0,
+            data.biometricEnabled ?? true,
+            data.sessionTimeoutMinutes ?? 30,
+            data.refreshTokenValidityDays ?? 7,
+            data.mfaRequired ?? false,
             new Date(data.createdAt),
             new Date(data.updatedAt)
         )

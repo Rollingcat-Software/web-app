@@ -1,6 +1,31 @@
+# SPA Routing
 RewriteEngine On
 RewriteBase /
 RewriteRule ^index\.html$ - [L]
 RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.html [L]
+
+# Security Headers
+<IfModule mod_headers.c>
+    # Content Security Policy (frame-ancestors MUST be in HTTP header, not meta tag)
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://api-fivucsas.rollingcatsoftware.com https://bpa-fivucsas.rollingcatsoftware.com; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+
+    # Prevent clickjacking
+    Header set X-Frame-Options "DENY"
+
+    # Prevent MIME type sniffing
+    Header set X-Content-Type-Options "nosniff"
+
+    # XSS Protection
+    Header set X-XSS-Protection "1; mode=block"
+
+    # Referrer Policy
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
+
+    # Permissions Policy
+    Header set Permissions-Policy "camera=(), microphone=(), geolocation=()"
+
+    # Strict Transport Security (HTTPS only)
+    Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+</IfModule>

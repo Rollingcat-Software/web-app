@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { ITenantService, TenantFilters } from '@domain/interfaces/ITenantService'
@@ -24,6 +24,8 @@ interface UseTenantsReturn extends TenantsState {
     createTenant: (data: CreateTenantData) => Promise<Tenant>
     updateTenant: (id: string, data: UpdateTenantData) => Promise<Tenant>
     deleteTenant: (id: string) => Promise<void>
+    activateTenant: (id: string) => Promise<Tenant>
+    suspendTenant: (id: string) => Promise<Tenant>
 }
 
 /**
@@ -75,9 +77,11 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
     /**
      * Load tenants on mount and when filters change
      */
+    const filtersKey = useMemo(() => JSON.stringify(initialFilters), [initialFilters])
     useEffect(() => {
         fetchTenants(initialFilters)
-    }, [fetchTenants, initialFilters])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fetchTenants, filtersKey])
 
     /**
      * Create tenant
@@ -96,7 +100,8 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
                 throw error
             }
         },
-        [tenantService, errorHandler, fetchTenants, initialFilters]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tenantService, errorHandler, fetchTenants, filtersKey]
     )
 
     /**
@@ -116,7 +121,8 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
                 throw error
             }
         },
-        [tenantService, errorHandler, fetchTenants, initialFilters]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tenantService, errorHandler, fetchTenants, filtersKey]
     )
 
     /**
@@ -134,7 +140,38 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
                 throw error
             }
         },
-        [tenantService, errorHandler, fetchTenants, initialFilters]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tenantService, errorHandler, fetchTenants, filtersKey]
+    )
+
+    const activateTenant = useCallback(
+        async (id: string): Promise<Tenant> => {
+            try {
+                const tenant = await tenantService.activateTenant(id)
+                await fetchTenants(initialFilters)
+                return tenant
+            } catch (error) {
+                errorHandler.handle(error)
+                throw error
+            }
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tenantService, errorHandler, fetchTenants, filtersKey]
+    )
+
+    const suspendTenant = useCallback(
+        async (id: string): Promise<Tenant> => {
+            try {
+                const tenant = await tenantService.suspendTenant(id)
+                await fetchTenants(initialFilters)
+                return tenant
+            } catch (error) {
+                errorHandler.handle(error)
+                throw error
+            }
+        },
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [tenantService, errorHandler, fetchTenants, filtersKey]
     )
 
     return {
@@ -143,6 +180,8 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
         createTenant,
         updateTenant,
         deleteTenant,
+        activateTenant,
+        suspendTenant,
     }
 }
 
@@ -164,6 +203,11 @@ export function useTenant(id: string) {
     })
 
     useEffect(() => {
+        if (!id) {
+            setState({ tenant: null, loading: false, error: null })
+            return
+        }
+
         let mounted = true
 
         const fetchTenant = async () => {

@@ -19,12 +19,14 @@ export interface User {
 export enum UserRole {
     USER = 'USER',
     ADMIN = 'ADMIN',
+    TENANT_ADMIN = 'TENANT_ADMIN',
     SUPER_ADMIN = 'SUPER_ADMIN',
 }
 
 export enum UserStatus {
     PENDING_ENROLLMENT = 'PENDING_ENROLLMENT',
     ACTIVE = 'ACTIVE',
+    INACTIVE = 'INACTIVE',
     SUSPENDED = 'SUSPENDED',
     DELETED = 'DELETED',
     LOCKED = 'LOCKED',
@@ -45,6 +47,8 @@ export enum TenantStatus {
     ACTIVE = 'ACTIVE',
     SUSPENDED = 'SUSPENDED',
     TRIAL = 'TRIAL',
+    INACTIVE = 'INACTIVE',
+    PENDING = 'PENDING',
 }
 
 export interface EnrollmentJob {

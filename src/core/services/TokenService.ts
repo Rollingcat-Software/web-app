@@ -8,17 +8,13 @@ import type {
 } from '@domain/interfaces/ITokenService'
 import type { ISecureStorage } from '@domain/interfaces/IStorage'
 import type { ILogger } from '@domain/interfaces/ILogger'
-import {
-    hasLegacyTokens,
-    clearLegacyTokens,
-    validateSecureContext,
-} from '@utils/auth'
+import { validateSecureContext } from '@utils/auth'
 
 /**
- * Token Service (Secure httpOnly Cookie Implementation)
+ * Token Service
  *
- * SECURITY UPGRADE: This service now uses httpOnly cookies for token storage.
- * Tokens are set by the backend with httpOnly, secure, and sameSite flags.
+ * Stores JWT tokens in sessionStorage (via ISecureStorage) with in-memory caching.
+ * Tokens persist across page refreshes within the same browser tab/session.
  *
  * OWASP Security Best Practices:
  * - httpOnly cookies prevent XSS attacks (tokens not accessible via JavaScript)
@@ -46,14 +42,9 @@ export class TokenService implements ITokenService {
     // Refresh token 5 minutes before expiration
     private readonly REFRESH_THRESHOLD_MS = 5 * 60 * 1000
 
-    // SECURITY: Only cache what's strictly needed.
-    // Access token cached for Bearer Authorization header (also sent as httpOnly cookie).
-    // Refresh token cached only for token refresh flow.
-    // Expiration time cached for proactive refresh checks.
     private cachedAccessToken: string | null = null
     private cachedRefreshToken: string | null = null
     private tokenExpirationTime: number | null = null
-
     constructor(
         @inject(TYPES.SecureStorage) private readonly storage: ISecureStorage,
         @inject(TYPES.Logger) private readonly logger: ILogger
@@ -65,10 +56,35 @@ export class TokenService implements ITokenService {
             this.logger.error('Secure context validation failed', error)
         }
 
-        // Migrate from legacy sessionStorage if present
-        if (hasLegacyTokens()) {
-            this.logger.warn('Legacy sessionStorage tokens detected. Clearing for security.')
-            clearLegacyTokens()
+        // Hydrate cache from storage (survives page refresh)
+        this.hydrateFromStorage()
+    }
+
+    /**
+     * Hydrate in-memory cache from persistent storage
+     */
+    private async hydrateFromStorage(): Promise<void> {
+        try {
+            const accessToken = await this.storage.getItem(this.ACCESS_TOKEN_KEY)
+            const refreshToken = await this.storage.getItem(this.REFRESH_TOKEN_KEY)
+
+            if (accessToken) {
+                const decoded = jwtDecode<JwtPayload>(accessToken)
+                const expirationTime = decoded.exp * 1000
+                if (expirationTime > Date.now()) {
+                    this.cachedAccessToken = accessToken
+                    this.cachedRefreshToken = refreshToken
+                    this.tokenExpirationTime = expirationTime
+                    this.logger.debug('Tokens hydrated from storage')
+                } else {
+                    // Token expired, clean up
+                    await this.storage.removeItem(this.ACCESS_TOKEN_KEY)
+                    await this.storage.removeItem(this.REFRESH_TOKEN_KEY)
+                    this.logger.debug('Expired tokens cleared from storage')
+                }
+            }
+        } catch (error) {
+            this.logger.error('Failed to hydrate tokens from storage', error)
         }
     }
 
@@ -85,10 +101,10 @@ export class TokenService implements ITokenService {
      */
     async storeTokens(tokens: TokenPair): Promise<void> {
         try {
-            // Validate tokens before caching
+            // Validate tokens before storing
             this.validateToken(tokens.accessToken)
 
-            // Cache both tokens for API requests
+            // Cache in memory for fast access
             this.cachedAccessToken = tokens.accessToken
             this.cachedRefreshToken = tokens.refreshToken
 
@@ -96,13 +112,13 @@ export class TokenService implements ITokenService {
             const decoded = jwtDecode<JwtPayload>(tokens.accessToken)
             this.tokenExpirationTime = decoded.exp * 1000
 
-            // Clear legacy storage for security
-            await this.storage.removeItem(this.ACCESS_TOKEN_KEY)
-            await this.storage.removeItem(this.REFRESH_TOKEN_KEY)
+            // Persist to storage (survives page refresh)
+            await this.storage.setItem(this.ACCESS_TOKEN_KEY, tokens.accessToken)
+            await this.storage.setItem(this.REFRESH_TOKEN_KEY, tokens.refreshToken)
 
-            this.logger.info('Tokens cached successfully')
+            this.logger.info('Tokens stored successfully')
         } catch (error) {
-            this.logger.error('Failed to cache tokens', error)
+            this.logger.error('Failed to store tokens', error)
             throw new Error('Failed to process authentication tokens')
         }
     }
@@ -116,11 +132,17 @@ export class TokenService implements ITokenService {
      */
     async getAccessToken(): Promise<string | null> {
         try {
-            // Return cached token (used for expiration checks)
-            // The actual token in httpOnly cookie is sent automatically by browser
-            return this.cachedAccessToken
+            if (this.cachedAccessToken) {
+                return this.cachedAccessToken
+            }
+            // Fall back to persistent storage
+            const token = await this.storage.getItem(this.ACCESS_TOKEN_KEY)
+            if (token) {
+                this.cachedAccessToken = token
+            }
+            return token
         } catch (error) {
-            this.logger.error('Failed to get cached access token', error)
+            this.logger.error('Failed to get access token', error)
             return null
         }
     }
@@ -129,7 +151,14 @@ export class TokenService implements ITokenService {
      * Get refresh token
      */
     async getRefreshToken(): Promise<string | null> {
-        return this.cachedRefreshToken
+        if (this.cachedRefreshToken) {
+            return this.cachedRefreshToken
+        }
+        const token = await this.storage.getItem(this.REFRESH_TOKEN_KEY)
+        if (token) {
+            this.cachedRefreshToken = token
+        }
+        return token
     }
 
     /**
@@ -140,18 +169,18 @@ export class TokenService implements ITokenService {
      */
     async clearTokens(): Promise<void> {
         try {
-            // Clear cached token data
+            // Clear in-memory cache
             this.cachedAccessToken = null
             this.cachedRefreshToken = null
             this.tokenExpirationTime = null
 
-            // Clear legacy storage if present
+            // Clear persistent storage
             await this.storage.removeItem(this.ACCESS_TOKEN_KEY)
             await this.storage.removeItem(this.REFRESH_TOKEN_KEY)
 
-            this.logger.info('Token cache cleared (httpOnly cookies cleared by backend)')
+            this.logger.info('Tokens cleared')
         } catch (error) {
-            this.logger.error('Failed to clear token cache', error)
+            this.logger.error('Failed to clear tokens', error)
         }
     }
 
@@ -162,13 +191,35 @@ export class TokenService implements ITokenService {
      */
     async isAuthenticated(): Promise<boolean> {
         try {
-            // Check cached expiration time
-            if (!this.tokenExpirationTime) {
+            // If we have a cached expiration, use it
+            if (this.tokenExpirationTime) {
+                return this.tokenExpirationTime > Date.now()
+            }
+
+            // Fall back to storage (e.g. after page refresh)
+            const token = await this.storage.getItem(this.ACCESS_TOKEN_KEY)
+            if (!token) {
                 return false
             }
 
-            const now = Date.now()
-            return this.tokenExpirationTime > now
+            try {
+                const decoded = jwtDecode<JwtPayload>(token)
+                const expirationTime = decoded.exp * 1000
+                if (expirationTime > Date.now()) {
+                    // Re-hydrate cache
+                    this.cachedAccessToken = token
+                    this.tokenExpirationTime = expirationTime
+                    this.cachedRefreshToken = await this.storage.getItem(this.REFRESH_TOKEN_KEY)
+                    return true
+                }
+            } catch {
+                // Invalid token in storage
+            }
+
+            // Clean up expired/invalid tokens
+            await this.storage.removeItem(this.ACCESS_TOKEN_KEY)
+            await this.storage.removeItem(this.REFRESH_TOKEN_KEY)
+            return false
         } catch (error) {
             this.logger.error('Error checking authentication', error)
             return false

@@ -9,33 +9,40 @@ import type { ILogger } from '@domain/interfaces/ILogger'
 export interface FlowStepSpec {
     stepOrder: number
     authMethodType: string
-    mandatory: boolean
+    isRequired: boolean
     timeoutSeconds?: number
-    config?: Record<string, unknown>
+    maxAttempts?: number
+    allowsDelegation?: boolean
+    fallbackMethodType?: string
+    config?: string
 }
 
 export interface AuthFlowResponse {
     id: string
     tenantId: string
     name: string
+    description: string
     operationType: string
     steps: FlowStepSpec[]
-    active: boolean
+    isActive: boolean
+    isDefault: boolean
     createdAt: string
     updatedAt: string
 }
 
 export interface CreateAuthFlowCommand {
     name: string
+    description?: string
     operationType: string
+    isDefault?: boolean
     steps: FlowStepSpec[]
-    active?: boolean
 }
 
 export interface UpdateAuthFlowCommand {
     name?: string
-    steps?: FlowStepSpec[]
-    active?: boolean
+    description?: string
+    isDefault?: boolean
+    isActive?: boolean
 }
 
 /**

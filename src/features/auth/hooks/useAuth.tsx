@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IAuthService } from '@domain/interfaces/IAuthService'
@@ -138,15 +138,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         }
     }, [authService, errorHandler])
 
+    const contextValue = useMemo<AuthContextValue>(
+        () => ({
+            ...state,
+            login,
+            logout,
+            refreshUser,
+        }),
+        [state, login, logout, refreshUser]
+    )
+
     return (
-        <AuthContext.Provider
-            value={{
-                ...state,
-                login,
-                logout,
-                refreshUser,
-            }}
-        >
+        <AuthContext.Provider value={contextValue}>
             {children}
         </AuthContext.Provider>
     )

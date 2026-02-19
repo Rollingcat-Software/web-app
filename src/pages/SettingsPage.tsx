@@ -128,11 +128,19 @@ export default function SettingsPage() {
     }, [emailNotifications, loginAlerts, weeklyReports, securityAlerts, updateNotifications, showSuccessMessage])
 
     const handleSaveSecurity = useCallback(async () => {
+        const timeout = parseInt(sessionTimeout, 10)
+        if (twoFactorAuth !== settings?.twoFactorEnabled || timeout !== settings?.sessionTimeoutMinutes) {
+            const confirmed = window.confirm(
+                'You are about to change security settings. This may affect your current session. Continue?'
+            )
+            if (!confirmed) return
+        }
+
         try {
             setSaving('security')
             await updateSecurity({
                 twoFactorEnabled: twoFactorAuth,
-                sessionTimeoutMinutes: parseInt(sessionTimeout, 10),
+                sessionTimeoutMinutes: timeout,
             })
             showSuccessMessage('security')
         } catch {
@@ -140,7 +148,7 @@ export default function SettingsPage() {
         } finally {
             setSaving(null)
         }
-    }, [twoFactorAuth, sessionTimeout, updateSecurity, showSuccessMessage])
+    }, [twoFactorAuth, sessionTimeout, settings, updateSecurity, showSuccessMessage])
 
     const handleSaveAppearance = useCallback(async () => {
         try {

@@ -25,7 +25,7 @@ import {
     Select,
     MenuItem,
 } from '@mui/material'
-import { Add, Delete, Edit, Visibility } from '@mui/icons-material'
+import { Add, Delete } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
 import { AuthFlowBuilder } from './AuthFlowBuilder'

@@ -8,36 +8,35 @@ import {
     CircularProgress,
     Grid,
     LinearProgress,
+    List,
+    ListItem,
+    ListItemIcon,
+    ListItemText,
     Typography,
 } from '@mui/material'
 import {
     CheckCircle,
+    Delete,
+    Edit,
     Error as ErrorIcon,
     Fingerprint,
-    Info,
+    Login,
+    Logout,
     People,
+    Person,
     PersonAdd,
-    Speed,
+    Security,
+    Settings,
     TrendingUp,
     Verified,
+    Warning,
+    Business,
 } from '@mui/icons-material'
-import {
-    Bar,
-    BarChart,
-    CartesianGrid,
-    Cell,
-    Legend,
-    Line,
-    LineChart,
-    Pie,
-    PieChart,
-    ResponsiveContainer,
-    Tooltip,
-    XAxis,
-    YAxis,
-} from 'recharts'
 import { motion, Variants } from 'framer-motion'
 import { useDashboard } from '../hooks/useDashboard'
+import { useAuditLogs } from '@features/auditLogs'
+import { AuditLog } from '@domain/models/AuditLog'
+import { format } from 'date-fns'
 
 // Bezier easing
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -73,7 +72,6 @@ interface StatCardProps {
     icon: React.ReactNode
     color: string
     subtitle?: string
-    trend?: number
 }
 
 const StatCard = memo(function StatCard({
@@ -82,7 +80,6 @@ const StatCard = memo(function StatCard({
     icon,
     color,
     subtitle,
-    trend,
 }: StatCardProps) {
     return (
         <motion.div
@@ -142,17 +139,8 @@ const StatCard = memo(function StatCard({
                                 <Typography
                                     variant="body2"
                                     color="text.secondary"
-                                    sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}
+                                    sx={{ mt: 1 }}
                                 >
-                                    {trend !== undefined && (
-                                        <TrendingUp
-                                            sx={{
-                                                fontSize: 16,
-                                                color: trend >= 0 ? 'success.main' : 'error.main',
-                                                transform: trend < 0 ? 'rotate(180deg)' : 'none',
-                                            }}
-                                        />
-                                    )}
                                     {subtitle}
                                 </Typography>
                             )}
@@ -194,106 +182,73 @@ const StatCard = memo(function StatCard({
     )
 })
 
-// Chart colors matching the new theme
-const CHART_COLORS = {
-    primary: '#6366f1',
-    secondary: '#8b5cf6',
-    success: '#10b981',
-    error: '#ef4444',
-    warning: '#f59e0b',
-    info: '#3b82f6',
+function getActivityIcon(action: string) {
+    if (action.includes('LOGIN') && !action.includes('FAILED')) return <Login fontSize="small" color="success" />
+    if (action.includes('FAILED')) return <Warning fontSize="small" color="error" />
+    if (action.includes('LOGOUT')) return <Logout fontSize="small" color="action" />
+    if (action.includes('CREATED')) return <Person fontSize="small" color="info" />
+    if (action.includes('UPDATED')) return <Edit fontSize="small" color="warning" />
+    if (action.includes('DELETED')) return <Delete fontSize="small" color="error" />
+    if (action.includes('SETTINGS')) return <Settings fontSize="small" color="warning" />
+    if (action.includes('BIOMETRIC') || action.includes('VERIFICATION'))
+        return <Security fontSize="small" color="primary" />
+    return <Security fontSize="small" />
 }
 
-const PIE_COLORS = ['#6366f1', '#8b5cf6', '#10b981', '#f59e0b']
-
-// Mock data for charts
-const userGrowthData = [
-    { month: 'Jan', users: 850 },
-    { month: 'Feb', users: 920 },
-    { month: 'Mar', users: 980 },
-    { month: 'Apr', users: 1050 },
-    { month: 'May', users: 1120 },
-    { month: 'Jun', users: 1190 },
-    { month: 'Jul', users: 1247 },
-]
-
-const enrollmentTrendData = [
-    { month: 'Jan', success: 45, failed: 3 },
-    { month: 'Feb', success: 52, failed: 4 },
-    { month: 'Mar', success: 48, failed: 2 },
-    { month: 'Apr', success: 61, failed: 5 },
-    { month: 'May', success: 58, failed: 3 },
-    { month: 'Jun', success: 67, failed: 4 },
-    { month: 'Jul', success: 72, failed: 2 },
-]
-
-const authMethodsData = [
-    { name: 'Biometric', value: 65 },
-    { name: 'Password', value: 25 },
-    { name: '2FA', value: 10 },
-]
-
-function SampleDataIndicator() {
-    return (
-        <Chip
-            icon={<Info fontSize="small" />}
-            label="Sample Data"
-            size="small"
-            sx={{
-                ml: 1,
-                bgcolor: 'rgba(99, 102, 241, 0.1)',
-                color: 'primary.main',
-                border: '1px solid',
-                borderColor: 'primary.light',
-                fontWeight: 500,
-            }}
-        />
-    )
+function getActivityColor(action: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
+    if (action.includes('LOGIN') && !action.includes('FAILED')) return 'success'
+    if (action.includes('CREATED')) return 'info'
+    if (action.includes('DELETED') || action.includes('FAILED')) return 'error'
+    if (action.includes('UPDATED') || action.includes('SETTINGS')) return 'warning'
+    return 'default'
 }
 
-// Custom tooltip for charts
-const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?: Array<{ value: number; name: string; color: string }>; label?: string }) => {
-    if (active && payload && payload.length) {
+const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[] }) {
+    const recentLogs = logs.slice(0, 8)
+
+    if (recentLogs.length === 0) {
         return (
-            <Box
-                sx={{
-                    bgcolor: 'background.paper',
-                    p: 1.5,
-                    borderRadius: 2,
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                }}
-            >
-                <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
-                    {label}
-                </Typography>
-                {payload.map((item, index) => (
-                    <Typography
-                        key={index}
-                        variant="body2"
-                        sx={{ color: item.color, display: 'flex', alignItems: 'center', gap: 0.5 }}
-                    >
-                        <Box
-                            component="span"
-                            sx={{
-                                width: 8,
-                                height: 8,
-                                borderRadius: '50%',
-                                bgcolor: item.color,
-                            }}
-                        />
-                        {item.name}: {item.value.toLocaleString()}
-                    </Typography>
-                ))}
-            </Box>
+            <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
+                No recent activity
+            </Typography>
         )
     }
-    return null
-}
+
+    return (
+        <List dense disablePadding>
+            {recentLogs.map((log) => (
+                <ListItem key={log.id} sx={{ px: 0, py: 0.75 }}>
+                    <ListItemIcon sx={{ minWidth: 36 }}>{getActivityIcon(log.action)}</ListItemIcon>
+                    <ListItemText
+                        primary={
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                <Chip
+                                    label={log.action.replace(/_/g, ' ')}
+                                    size="small"
+                                    color={getActivityColor(log.action)}
+                                    sx={{ fontSize: '0.7rem', height: 22 }}
+                                />
+                                <Typography variant="caption" color="text.secondary">
+                                    User {log.userId}
+                                </Typography>
+                            </Box>
+                        }
+                        secondary={
+                            <Typography variant="caption" color="text.secondary">
+                                {format(new Date(log.createdAt), 'MMM dd, HH:mm:ss')}
+                                {log.ipAddress && ` from ${log.ipAddress}`}
+                            </Typography>
+                        }
+                    />
+                </ListItem>
+            ))}
+        </List>
+    )
+})
 
 export default function DashboardPage() {
     const { stats, loading, error } = useDashboard()
+    const { auditLogs, loading: logsLoading } = useAuditLogs()
 
     if (loading) {
         return (
@@ -390,21 +345,19 @@ export default function DashboardPage() {
                             Dashboard
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
-                            Welcome back! Here's what's happening with your identity platform.
+                            Real-time statistics from your identity platform.
                         </Typography>
                     </Box>
                 </motion.div>
 
                 <Grid container spacing={3}>
-                    {/* Stat Cards */}
+                    {/* Stat Cards - Row 1 */}
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
                             title="Total Users"
                             value={stats.totalUsers.toLocaleString()}
                             icon={<People sx={{ fontSize: 28 }} />}
                             color="primary"
-                            trend={12.5}
-                            subtitle="+12.5% from last month"
                         />
                     </Grid>
 
@@ -420,175 +373,61 @@ export default function DashboardPage() {
 
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
-                            title="Pending Enrollments"
-                            value={stats.pendingEnrollments}
-                            icon={<PersonAdd sx={{ fontSize: 28 }} />}
-                            color="warning"
-                            subtitle="Awaiting verification"
+                            title="Total Tenants"
+                            value={stats.totalTenants.toLocaleString()}
+                            icon={<Business sx={{ fontSize: 28 }} />}
+                            color="info"
+                        />
+                    </Grid>
+
+                    {/* Stat Cards - Row 2 */}
+                    <Grid item xs={12} sm={6} md={4}>
+                        <StatCard
+                            title="Biometric Enrolled"
+                            value={stats.biometricEnrolledUsers.toLocaleString()}
+                            icon={<Fingerprint sx={{ fontSize: 28 }} />}
+                            color="success"
+                            subtitle={`${stats.totalUsers > 0 ? ((stats.biometricEnrolledUsers / stats.totalUsers) * 100).toFixed(1) : 0}% of users`}
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
-                            title="Successful Enrollments"
-                            value={stats.successfulEnrollments.toLocaleString()}
-                            icon={<Fingerprint sx={{ fontSize: 28 }} />}
-                            color="success"
-                            trend={8.3}
-                            subtitle="+8.3% this week"
+                            title="Pending Enrollments"
+                            value={stats.pendingEnrollments.toLocaleString()}
+                            icon={<PersonAdd sx={{ fontSize: 28 }} />}
+                            color="warning"
+                            subtitle="Awaiting biometric enrollment"
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
                             title="Failed Enrollments"
-                            value={stats.failedEnrollments}
+                            value={stats.failedEnrollments.toLocaleString()}
                             icon={<ErrorIcon sx={{ fontSize: 28 }} />}
                             color="error"
-                            subtitle="Requires attention"
+                            subtitle={stats.failedEnrollments > 0 ? 'Requires attention' : 'No failures'}
                         />
                     </Grid>
 
-                    <Grid item xs={12} sm={6} md={4}>
-                        <StatCard
-                            title="Auth Success Rate"
-                            value={`${stats.authSuccessRate}%`}
-                            icon={<TrendingUp sx={{ fontSize: 28 }} />}
-                            color="info"
-                            subtitle="Last 30 days average"
-                        />
-                    </Grid>
-
-                    {/* User Growth Chart */}
-                    <Grid item xs={12} md={8}>
+                    {/* System Metrics */}
+                    <Grid item xs={12}>
                         <motion.div variants={itemVariants}>
                             <Card>
                                 <CardContent sx={{ p: 3 }}>
-                                    <Box
-                                        sx={{
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'space-between',
-                                            mb: 3,
-                                        }}
-                                    >
-                                        <Box sx={{ display: 'flex', alignItems: 'center' }}>
-                                            <Typography variant="h6" fontWeight={600}>
-                                                User Growth Trend
-                                            </Typography>
-                                            <SampleDataIndicator />
-                                        </Box>
-                                    </Box>
-                                    <Box sx={{ width: '100%', height: 300 }}>
-                                        <ResponsiveContainer>
-                                            <LineChart data={userGrowthData}>
-                                                <defs>
-                                                    <linearGradient
-                                                        id="userGradient"
-                                                        x1="0"
-                                                        y1="0"
-                                                        x2="0"
-                                                        y2="1"
-                                                    >
-                                                        <stop
-                                                            offset="5%"
-                                                            stopColor={CHART_COLORS.primary}
-                                                            stopOpacity={0.3}
-                                                        />
-                                                        <stop
-                                                            offset="95%"
-                                                            stopColor={CHART_COLORS.primary}
-                                                            stopOpacity={0}
-                                                        />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid
-                                                    strokeDasharray="3 3"
-                                                    stroke="#e2e8f0"
-                                                    vertical={false}
-                                                />
-                                                <XAxis
-                                                    dataKey="month"
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#64748b', fontSize: 12 }}
-                                                />
-                                                <YAxis
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#64748b', fontSize: 12 }}
-                                                />
-                                                <Tooltip content={<CustomTooltip />} />
-                                                <Line
-                                                    type="monotone"
-                                                    dataKey="users"
-                                                    stroke={CHART_COLORS.primary}
-                                                    strokeWidth={3}
-                                                    name="Total Users"
-                                                    dot={{
-                                                        fill: CHART_COLORS.primary,
-                                                        strokeWidth: 2,
-                                                        r: 4,
-                                                    }}
-                                                    activeDot={{
-                                                        r: 6,
-                                                        fill: CHART_COLORS.primary,
-                                                        stroke: '#fff',
-                                                        strokeWidth: 2,
-                                                    }}
-                                                />
-                                            </LineChart>
-                                        </ResponsiveContainer>
-                                    </Box>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    </Grid>
-
-                    {/* Authentication Methods Pie Chart */}
-                    <Grid item xs={12} md={4}>
-                        <motion.div variants={itemVariants}>
-                            <Card sx={{ height: '100%' }}>
-                                <CardContent sx={{ p: 3 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                                        <Typography variant="h6" fontWeight={600}>
-                                            Auth Methods
-                                        </Typography>
-                                        <SampleDataIndicator />
-                                    </Box>
-                                    <Box sx={{ width: '100%', height: 220 }}>
-                                        <ResponsiveContainer>
-                                            <PieChart>
-                                                <Pie
-                                                    data={authMethodsData}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={50}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
-                                                >
-                                                    {authMethodsData.map((entry, index) => (
-                                                        <Cell
-                                                            key={entry.name}
-                                                            fill={PIE_COLORS[index % PIE_COLORS.length]}
-                                                        />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip content={<CustomTooltip />} />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </Box>
-                                    {/* Legend */}
-                                    <Box sx={{ mt: 2 }}>
-                                        {authMethodsData.map((item, index) => (
+                                    <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
+                                        System Metrics
+                                    </Typography>
+                                    <Grid container spacing={3}>
+                                        <Grid item xs={12} sm={6} md={3}>
                                             <Box
-                                                key={item.name}
                                                 sx={{
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'space-between',
-                                                    py: 0.5,
+                                                    p: 2.5,
+                                                    bgcolor: 'rgba(99, 102, 241, 0.08)',
+                                                    borderRadius: 3,
+                                                    border: '1px solid',
+                                                    borderColor: 'rgba(99, 102, 241, 0.2)',
                                                 }}
                                             >
                                                 <Box
@@ -596,95 +435,33 @@ export default function DashboardPage() {
                                                         display: 'flex',
                                                         alignItems: 'center',
                                                         gap: 1,
+                                                        mb: 1,
                                                     }}
                                                 >
-                                                    <Box
-                                                        sx={{
-                                                            width: 10,
-                                                            height: 10,
-                                                            borderRadius: '50%',
-                                                            bgcolor: PIE_COLORS[index],
-                                                        }}
-                                                    />
+                                                    <TrendingUp sx={{ color: 'primary.main', fontSize: 20 }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        {item.name}
+                                                        Auth Success Rate
                                                     </Typography>
                                                 </Box>
-                                                <Typography variant="body2" fontWeight={600}>
-                                                    {item.value}%
+                                                <Typography variant="h5" fontWeight={700}>
+                                                    {stats.authSuccessRate.toFixed(1)}%
                                                 </Typography>
+                                                <LinearProgress
+                                                    variant="determinate"
+                                                    value={stats.authSuccessRate}
+                                                    sx={{
+                                                        mt: 1.5,
+                                                        height: 6,
+                                                        borderRadius: 3,
+                                                        bgcolor: 'rgba(99, 102, 241, 0.2)',
+                                                        '& .MuiLinearProgress-bar': {
+                                                            bgcolor: 'primary.main',
+                                                            borderRadius: 3,
+                                                        },
+                                                    }}
+                                                />
                                             </Box>
-                                        ))}
-                                    </Box>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    </Grid>
-
-                    {/* Enrollment Trends Bar Chart */}
-                    <Grid item xs={12}>
-                        <motion.div variants={itemVariants}>
-                            <Card>
-                                <CardContent sx={{ p: 3 }}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                                        <Typography variant="h6" fontWeight={600}>
-                                            Enrollment Trends
-                                        </Typography>
-                                        <SampleDataIndicator />
-                                    </Box>
-                                    <Box sx={{ width: '100%', height: 300 }}>
-                                        <ResponsiveContainer>
-                                            <BarChart data={enrollmentTrendData} barGap={8}>
-                                                <CartesianGrid
-                                                    strokeDasharray="3 3"
-                                                    stroke="#e2e8f0"
-                                                    vertical={false}
-                                                />
-                                                <XAxis
-                                                    dataKey="month"
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#64748b', fontSize: 12 }}
-                                                />
-                                                <YAxis
-                                                    axisLine={false}
-                                                    tickLine={false}
-                                                    tick={{ fill: '#64748b', fontSize: 12 }}
-                                                />
-                                                <Tooltip content={<CustomTooltip />} />
-                                                <Legend
-                                                    wrapperStyle={{ paddingTop: 20 }}
-                                                    iconType="circle"
-                                                />
-                                                <Bar
-                                                    dataKey="success"
-                                                    fill={CHART_COLORS.success}
-                                                    name="Successful"
-                                                    radius={[4, 4, 0, 0]}
-                                                />
-                                                <Bar
-                                                    dataKey="failed"
-                                                    fill={CHART_COLORS.error}
-                                                    name="Failed"
-                                                    radius={[4, 4, 0, 0]}
-                                                />
-                                            </BarChart>
-                                        </ResponsiveContainer>
-                                    </Box>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    </Grid>
-
-                    {/* System Overview */}
-                    <Grid item xs={12}>
-                        <motion.div variants={itemVariants}>
-                            <Card>
-                                <CardContent sx={{ p: 3 }}>
-                                    <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
-                                        System Overview
-                                    </Typography>
-                                    <Grid container spacing={3}>
+                                        </Grid>
                                         <Grid item xs={12} sm={6} md={3}>
                                             <Box
                                                 sx={{
@@ -709,7 +486,7 @@ export default function DashboardPage() {
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="h5" fontWeight={700} color="success.main">
-                                                    {stats.verificationSuccessRate}%
+                                                    {stats.verificationSuccessRate.toFixed(1)}%
                                                 </Typography>
                                                 <LinearProgress
                                                     variant="determinate"
@@ -747,11 +524,11 @@ export default function DashboardPage() {
                                                 >
                                                     <Fingerprint sx={{ color: 'primary.main', fontSize: 20 }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Total Enrollments
+                                                        Total Verifications
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="h5" fontWeight={700}>
-                                                    {stats.totalEnrollments.toLocaleString()}
+                                                    {stats.totalVerifications.toLocaleString()}
                                                 </Typography>
                                             </Box>
                                         </Grid>
@@ -773,59 +550,36 @@ export default function DashboardPage() {
                                                         mb: 1,
                                                     }}
                                                 >
-                                                    <Speed sx={{ color: 'info.main', fontSize: 20 }} />
+                                                    <People sx={{ color: 'info.main', fontSize: 20 }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Avg Response Time
+                                                        Avg Verifications/User
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="h5" fontWeight={700}>
-                                                    145ms
+                                                    {stats.averageVerificationsPerUser.toFixed(1)}
                                                 </Typography>
-                                            </Box>
-                                        </Grid>
-                                        <Grid item xs={12} sm={6} md={3}>
-                                            <Box
-                                                sx={{
-                                                    p: 2.5,
-                                                    bgcolor: 'rgba(16, 185, 129, 0.08)',
-                                                    borderRadius: 3,
-                                                    border: '1px solid',
-                                                    borderColor: 'rgba(16, 185, 129, 0.2)',
-                                                }}
-                                            >
-                                                <Box
-                                                    sx={{
-                                                        display: 'flex',
-                                                        alignItems: 'center',
-                                                        gap: 1,
-                                                        mb: 1,
-                                                    }}
-                                                >
-                                                    <CheckCircle sx={{ color: 'success.main', fontSize: 20 }} />
-                                                    <Typography variant="body2" color="text.secondary">
-                                                        System Uptime
-                                                    </Typography>
-                                                </Box>
-                                                <Typography variant="h5" fontWeight={700} color="success.main">
-                                                    99.9%
-                                                </Typography>
-                                                <LinearProgress
-                                                    variant="determinate"
-                                                    value={99.9}
-                                                    sx={{
-                                                        mt: 1.5,
-                                                        height: 6,
-                                                        borderRadius: 3,
-                                                        bgcolor: 'rgba(16, 185, 129, 0.2)',
-                                                        '& .MuiLinearProgress-bar': {
-                                                            bgcolor: 'success.main',
-                                                            borderRadius: 3,
-                                                        },
-                                                    }}
-                                                />
                                             </Box>
                                         </Grid>
                                     </Grid>
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </Grid>
+                    {/* Recent Activity Feed */}
+                    <Grid item xs={12}>
+                        <motion.div variants={itemVariants}>
+                            <Card>
+                                <CardContent sx={{ p: 3 }}>
+                                    <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                                        Recent Activity
+                                    </Typography>
+                                    {logsLoading ? (
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                                            <CircularProgress size={28} />
+                                        </Box>
+                                    ) : (
+                                        <RecentActivity logs={auditLogs} />
+                                    )}
                                 </CardContent>
                             </Card>
                         </motion.div>

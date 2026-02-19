@@ -73,9 +73,11 @@ export function useEnrollments(initialFilters?: EnrollmentFilters): UseEnrollmen
     /**
      * Load enrollments on mount and when filters change
      */
+    const filtersKey = JSON.stringify(initialFilters)
     useEffect(() => {
         fetchEnrollments(initialFilters)
-    }, [fetchEnrollments, initialFilters])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fetchEnrollments, filtersKey])
 
     /**
      * Retry enrollment
@@ -92,7 +94,8 @@ export function useEnrollments(initialFilters?: EnrollmentFilters): UseEnrollmen
                 throw error
             }
         },
-        [enrollmentService, errorHandler, fetchEnrollments, initialFilters]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [enrollmentService, errorHandler, fetchEnrollments, filtersKey]
     )
 
     /**
@@ -110,7 +113,8 @@ export function useEnrollments(initialFilters?: EnrollmentFilters): UseEnrollmen
                 throw error
             }
         },
-        [enrollmentService, errorHandler, fetchEnrollments, initialFilters]
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [enrollmentService, errorHandler, fetchEnrollments, filtersKey]
     )
 
     return {

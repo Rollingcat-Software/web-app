@@ -4,7 +4,7 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { IAuditLogRepository } from '@domain/interfaces/IAuditLogRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
-import { AuditLog } from '@domain/models/AuditLog'
+import { AuditLog, AuditLogJSON } from '@domain/models/AuditLog'
 
 /**
  * AuditLog Repository
@@ -24,8 +24,29 @@ export class AuditLogRepository implements IAuditLogRepository {
         try {
             this.logger.debug('Fetching all audit logs', { params })
 
-            const response = await this.httpClient.get<any>('/audit-logs', {
-                params: params as Record<string, unknown>,
+            // Flatten params: backend expects top-level 'page', 'size', 'action', 'userId'
+            const flatParams: Record<string, unknown> = {}
+            if (params?.page !== undefined) flatParams.page = params.page
+            if (params?.pageSize !== undefined) flatParams.size = params.pageSize
+            if (params?.sort) flatParams.sort = params.sort
+            if (params?.order) flatParams.order = params.order
+            // Extract filters to top-level params
+            if (params?.filters) {
+                Object.entries(params.filters).forEach(([key, value]) => {
+                    if (value !== undefined && value !== null) {
+                        flatParams[key] = value
+                    }
+                })
+            }
+
+            type AuditLogListResponse =
+                | AuditLogJSON[]
+                | { content: AuditLogJSON[]; totalElements?: number }
+                | { items: AuditLogJSON[]; total?: number }
+                | AuditLogJSON
+
+            const response = await this.httpClient.get<AuditLogListResponse>('/audit-logs', {
+                params: flatParams,
             })
 
             // Handle both array and paginated response formats
@@ -34,19 +55,19 @@ export class AuditLogRepository implements IAuditLogRepository {
 
             if (Array.isArray(response.data)) {
                 // Backend returns array
-                auditLogs = response.data.map((data) => AuditLog.fromJSON(data))
+                auditLogs = response.data.map((data: AuditLogJSON) => AuditLog.fromJSON(data))
                 total = auditLogs.length
-            } else if (response.data.content) {
+            } else if ('content' in response.data && response.data.content) {
                 // Backend returns paginated response with 'content' field
-                auditLogs = response.data.content.map((data: any) => AuditLog.fromJSON(data))
+                auditLogs = response.data.content.map((data: AuditLogJSON) => AuditLog.fromJSON(data))
                 total = response.data.totalElements || auditLogs.length
-            } else if (response.data.items) {
+            } else if ('items' in response.data && response.data.items) {
                 // Backend returns paginated response with 'items' field
-                auditLogs = response.data.items.map((data: any) => AuditLog.fromJSON(data))
+                auditLogs = response.data.items.map((data: AuditLogJSON) => AuditLog.fromJSON(data))
                 total = response.data.total || auditLogs.length
             } else {
-                // Fallback: treat response.data as array
-                auditLogs = [AuditLog.fromJSON(response.data)]
+                // Fallback: treat response.data as single entry
+                auditLogs = [AuditLog.fromJSON(response.data as AuditLogJSON)]
                 total = 1
             }
 
@@ -73,11 +94,12 @@ export class AuditLogRepository implements IAuditLogRepository {
         try {
             this.logger.debug(`Fetching audit log ${id}`)
 
-            const response = await this.httpClient.get<any>(`/audit-logs/${id}`)
+            const response = await this.httpClient.get<AuditLogJSON>(`/audit-logs/${id}`)
 
             return AuditLog.fromJSON(response.data)
-        } catch (error: any) {
-            if (error.response?.status === 404) {
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { status?: number } }
+            if (axiosError.response?.status === 404) {
                 return null
             }
             this.logger.error(`Failed to fetch audit log ${id}`, error)

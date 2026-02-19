@@ -10,7 +10,7 @@ export enum EnrollmentStatus {
     FAILED = 'FAILED',
 }
 
-interface EnrollmentJSON {
+export interface EnrollmentJSON {
     id: string
     userId: string
     tenantId: string
@@ -23,6 +23,9 @@ interface EnrollmentJSON {
     errorCode?: string
     errorMessage?: string
     completedAt?: string
+    userName?: string
+    userEmail?: string
+    enrolledAt?: string
 }
 
 /**
@@ -41,7 +44,9 @@ export class Enrollment {
         public readonly livenessScore?: number,
         public readonly errorCode?: string,
         public readonly errorMessage?: string,
-        public readonly completedAt?: Date
+        public readonly completedAt?: Date,
+        public readonly userName?: string,
+        public readonly userEmail?: string
     ) {}
 
     /**
@@ -130,20 +135,32 @@ export class Enrollment {
     /**
      * Create Enrollment from plain object (deserialization)
      */
-    static fromJSON(data: EnrollmentJSON): Enrollment {
+    static fromJSON(data: any): Enrollment {
+        // Map status - backend may return "COMPLETED" which maps to SUCCESS
+        const statusMap: Record<string, EnrollmentStatus> = {
+            'COMPLETED': EnrollmentStatus.SUCCESS,
+            'SUCCESS': EnrollmentStatus.SUCCESS,
+            'PENDING': EnrollmentStatus.PENDING,
+            'PROCESSING': EnrollmentStatus.PROCESSING,
+            'FAILED': EnrollmentStatus.FAILED,
+        }
+        const status = statusMap[(data.status ?? '').toUpperCase()] ?? EnrollmentStatus.PENDING
+
         return new Enrollment(
             data.id,
             data.userId,
-            data.tenantId,
-            data.status,
-            data.faceImageUrl,
-            new Date(data.createdAt),
-            new Date(data.updatedAt),
+            data.tenantId ?? '',
+            status,
+            data.faceImageUrl ?? '',
+            new Date(data.createdAt ?? data.enrolledAt ?? new Date()),
+            new Date(data.updatedAt ?? data.enrolledAt ?? new Date()),
             data.qualityScore,
             data.livenessScore,
             data.errorCode,
             data.errorMessage,
-            data.completedAt ? new Date(data.completedAt) : undefined
+            data.completedAt ? new Date(data.completedAt) : undefined,
+            data.userName,
+            data.userEmail
         )
     }
 }

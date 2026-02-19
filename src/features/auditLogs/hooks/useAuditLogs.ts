@@ -72,9 +72,11 @@ export function useAuditLogs(initialFilters?: AuditLogFilters): UseAuditLogsRetu
     /**
      * Load audit logs on mount and when filters change
      */
+    const filtersKey = JSON.stringify(initialFilters)
     useEffect(() => {
         fetchAuditLogs(initialFilters)
-    }, [fetchAuditLogs, initialFilters])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [fetchAuditLogs, filtersKey])
 
     return {
         ...state,

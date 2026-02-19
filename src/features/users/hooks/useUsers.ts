@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IUserService, UserFilters } from '@domain/interfaces/IUserService'
@@ -77,7 +77,7 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
     /**
      * Load users on mount and when filters change
      */
-    const filtersKey = JSON.stringify(initialFilters)
+    const filtersKey = useMemo(() => JSON.stringify(initialFilters), [initialFilters])
     useEffect(() => {
         fetchUsers(initialFilters)
         // eslint-disable-next-line react-hooks/exhaustive-deps

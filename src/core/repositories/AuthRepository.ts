@@ -44,7 +44,6 @@ export class AuthRepository implements IAuthRepository {
             const response = await this.httpClient.post<AuthApiResponse>('/auth/login', {
                 email: credentials.email,
                 password: credentials.password,
-                mfaCode: credentials.mfaCode,
             })
 
             const data = response.data

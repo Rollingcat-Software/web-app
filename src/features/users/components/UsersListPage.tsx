@@ -8,6 +8,7 @@ import {
     CircularProgress,
     IconButton,
     InputAdornment,
+    LinearProgress,
     Paper,
     Table,
     TableBody,
@@ -179,6 +180,9 @@ export default function UsersListPage() {
                         ),
                     }}
                 />
+                {searchQuery !== debouncedSearch && (
+                    <LinearProgress sx={{ mt: 1, borderRadius: 1, height: 2 }} />
+                )}
             </Paper>
 
             {loading ? (

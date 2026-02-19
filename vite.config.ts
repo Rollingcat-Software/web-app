@@ -56,17 +56,19 @@ function cspPlugin(): Plugin {
                 ? "connect-src 'self' https://api-fivucsas.rollingcatsoftware.com https://bpa-fivucsas.rollingcatsoftware.com"
                 : "connect-src 'self' http://localhost:8080 http://34.116.233.134:8080 ws://localhost:*"
 
+            // Note: frame-ancestors is NOT included in meta tag because browsers ignore it there
+            // frame-ancestors MUST be sent via HTTP header (configured in .htaccess for production)
             return html.replace(
                 '<head>',
                 `<head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; ${connectSrc}; frame-ancestors 'none'; base-uri 'self'; form-action 'self';">`
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; ${connectSrc}; base-uri 'self'; form-action 'self';">`
             )
         },
     }
 }
 
 // https://vitejs.dev/config/
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [
         react(),
         cspPlugin(), // SECURITY: Add CSP headers
@@ -102,6 +104,9 @@ export default defineConfig({
         outDir: 'dist',
         // SECURITY: Disable sourcemaps in production to prevent source code exposure
         sourcemap: false,
+        // Show compressed sizes in build output for bundle analysis
+        reportCompressedSize: mode === 'analyze',
+        chunkSizeWarningLimit: 500,
         rollupOptions: {
             output: {
                 manualChunks: {
@@ -117,4 +122,4 @@ export default defineConfig({
         environment: 'jsdom',
         setupFiles: './src/test/setup.ts',
     },
-})
+}))
