@@ -3,7 +3,6 @@ import {useLocation, useNavigate} from 'react-router-dom'
 import {
     AppBar,
     Avatar,
-    Badge,
     Box,
     Divider,
     IconButton,
@@ -14,9 +13,11 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material'
-import {AccountCircle, DarkMode, LightMode, Logout, Menu as MenuIcon, Notifications, Settings,} from '@mui/icons-material'
+import {AccountCircle, DarkMode, Language, LightMode, Logout, Menu as MenuIcon, Settings,} from '@mui/icons-material'
 import {useAuth} from '@features/auth/hooks/useAuth'
 import {useThemeMode} from '@app/providers/ThemeModeProvider'
+import {useTranslation} from 'react-i18next'
+import NotificationPanel from '@components/NotificationPanel'
 
 interface TopBarProps {
     drawerWidth: number
@@ -28,18 +29,25 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     const location = useLocation()
     const { user, logout } = useAuth()
     const { mode, toggleMode } = useThemeMode()
+    const { t, i18n } = useTranslation()
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
+
+    const toggleLanguage = () => {
+        const newLang = i18n.language === 'tr' ? 'en' : 'tr'
+        i18n.changeLanguage(newLang)
+    }
 
     const getPageTitle = () => {
         const path = location.pathname
-        if (path === '/') return 'Dashboard'
-        if (path.startsWith('/users')) return 'Users'
-        if (path.startsWith('/tenants')) return 'Tenants'
-        if (path.startsWith('/roles')) return 'Roles'
-        if (path.startsWith('/enrollments')) return 'Enrollments'
-        if (path.startsWith('/audit-logs')) return 'Audit Logs'
-        if (path.startsWith('/settings')) return 'Settings'
-        return 'Dashboard'
+        if (path === '/') return t('nav.dashboard')
+        if (path.startsWith('/users')) return t('nav.users')
+        if (path.startsWith('/tenants')) return t('nav.tenants')
+        if (path.startsWith('/roles')) return t('nav.roles')
+        if (path.startsWith('/enrollments')) return t('nav.enrollments')
+        if (path.startsWith('/audit-logs')) return t('nav.auditLogs')
+        if (path.startsWith('/analytics')) return t('nav.analytics')
+        if (path.startsWith('/settings')) return t('nav.settings')
+        return t('nav.dashboard')
     }
 
     const handleMenu = (event: React.MouseEvent<HTMLElement>) => {
@@ -90,27 +98,41 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
 
                 {/* Right side icons */}
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 1}}>
+                    {/* Language toggle */}
+                    <Tooltip title={t('settings.language')}>
+                        <IconButton
+                            color="inherit"
+                            onClick={toggleLanguage}
+                            aria-label="Toggle language"
+                            sx={{
+                                fontSize: '0.8rem',
+                                fontWeight: 700,
+                                width: 36,
+                                height: 36,
+                            }}
+                        >
+                            <Language sx={{ fontSize: 20, mr: 0.3 }} />
+                            <Typography variant="caption" fontWeight={700} sx={{ fontSize: '0.7rem' }}>
+                                {i18n.language === 'tr' ? 'TR' : 'EN'}
+                            </Typography>
+                        </IconButton>
+                    </Tooltip>
+
                     {/* Dark mode toggle */}
-                    <Tooltip title={mode === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}>
+                    <Tooltip title={mode === 'dark' ? t('topbar.lightMode') : t('topbar.darkMode')}>
                         <IconButton color="inherit" onClick={toggleMode} aria-label="Toggle dark mode">
                             {mode === 'dark' ? <LightMode/> : <DarkMode/>}
                         </IconButton>
                     </Tooltip>
 
                     {/* Notifications */}
-                    <Tooltip title="Notifications coming soon">
-                        <IconButton color="inherit" aria-label="Notifications" disabled>
-                            <Badge color="default">
-                                <Notifications/>
-                            </Badge>
-                        </IconButton>
-                    </Tooltip>
+                    <NotificationPanel />
 
                     {/* User menu */}
                     <IconButton
                         onClick={handleMenu}
                         sx={{p: 0.5}}
-                        aria-label="User menu"
+                        aria-label={t('topbar.userMenu')}
                         aria-haspopup="true"
                     >
                         <Avatar
@@ -145,20 +167,20 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                             <ListItemIcon>
                                 <AccountCircle fontSize="small"/>
                             </ListItemIcon>
-                            Profile & Settings
+                            {t('topbar.profileSettings')}
                         </MenuItem>
                         <MenuItem onClick={handleSettings}>
                             <ListItemIcon>
                                 <Settings fontSize="small"/>
                             </ListItemIcon>
-                            Settings
+                            {t('nav.settings')}
                         </MenuItem>
                         <Divider/>
                         <MenuItem onClick={() => { handleClose(); handleLogout() }}>
                             <ListItemIcon>
                                 <Logout fontSize="small" color="error"/>
                             </ListItemIcon>
-                            <Typography color="error">Logout</Typography>
+                            <Typography color="error">{t('topbar.logout')}</Typography>
                         </MenuItem>
                     </Menu>
                 </Box>

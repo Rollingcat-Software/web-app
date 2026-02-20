@@ -37,6 +37,7 @@ import { useDashboard } from '../hooks/useDashboard'
 import { useAuditLogs } from '@features/auditLogs'
 import { AuditLog } from '@domain/models/AuditLog'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
 
 // Bezier easing
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -204,12 +205,13 @@ function getActivityColor(action: string): 'success' | 'error' | 'warning' | 'in
 }
 
 const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[] }) {
+    const { t } = useTranslation()
     const recentLogs = logs.slice(0, 8)
 
     if (recentLogs.length === 0) {
         return (
             <Typography color="text.secondary" sx={{ py: 3, textAlign: 'center' }}>
-                No recent activity
+                {t('dashboard.noRecentActivity')}
             </Typography>
         )
     }
@@ -249,6 +251,7 @@ const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[]
 export default function DashboardPage() {
     const { stats, loading, error } = useDashboard()
     const { auditLogs, loading: logsLoading } = useAuditLogs()
+    const { t } = useTranslation()
 
     if (loading) {
         return (
@@ -283,7 +286,7 @@ export default function DashboardPage() {
                     </Box>
                 </motion.div>
                 <Typography variant="body2" color="text.secondary" fontWeight={500}>
-                    Loading dashboard...
+                    {t('dashboard.loadingDashboard')}
                 </Typography>
             </Box>
         )
@@ -298,7 +301,7 @@ export default function DashboardPage() {
             >
                 <Box>
                     <Typography variant="h4" gutterBottom fontWeight={600}>
-                        Dashboard
+                        {t('dashboard.title')}
                     </Typography>
                     <Alert
                         severity="error"
@@ -310,7 +313,7 @@ export default function DashboardPage() {
                             },
                         }}
                     >
-                        Failed to load dashboard statistics: {error.message}
+                        {t('dashboard.failedToLoad')}: {error.message}
                     </Alert>
                 </Box>
             </motion.div>
@@ -320,7 +323,7 @@ export default function DashboardPage() {
     if (!stats) {
         return (
             <Box sx={{ textAlign: 'center', py: 4 }}>
-                <Typography color="text.secondary">No data available</Typography>
+                <Typography color="text.secondary">{t('common.noData')}</Typography>
             </Box>
         )
     }
@@ -342,10 +345,10 @@ export default function DashboardPage() {
                                 mb: 1,
                             }}
                         >
-                            Dashboard
+                            {t('dashboard.title')}
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
-                            Real-time statistics from your identity platform.
+                            {t('dashboard.subtitle')}
                         </Typography>
                     </Box>
                 </motion.div>
@@ -354,7 +357,7 @@ export default function DashboardPage() {
                     {/* Stat Cards - Row 1 */}
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
-                            title="Total Users"
+                            title={t('dashboard.totalUsers')}
                             value={stats.totalUsers.toLocaleString()}
                             icon={<People sx={{ fontSize: 28 }} />}
                             color="primary"
@@ -363,17 +366,17 @@ export default function DashboardPage() {
 
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
-                            title="Active Users"
+                            title={t('dashboard.activeUsers')}
                             value={stats.activeUsers.toLocaleString()}
                             icon={<CheckCircle sx={{ fontSize: 28 }} />}
                             color="success"
-                            subtitle={`${stats.activeUserPercentage.toFixed(1)}% of total`}
+                            subtitle={`${stats.activeUserPercentage.toFixed(1)}% ${t('dashboard.ofTotal')}`}
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
-                            title="Total Tenants"
+                            title={t('dashboard.totalTenants')}
                             value={stats.totalTenants.toLocaleString()}
                             icon={<Business sx={{ fontSize: 28 }} />}
                             color="info"
@@ -383,31 +386,31 @@ export default function DashboardPage() {
                     {/* Stat Cards - Row 2 */}
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
-                            title="Biometric Enrolled"
+                            title={t('dashboard.biometricEnrolled')}
                             value={stats.biometricEnrolledUsers.toLocaleString()}
                             icon={<Fingerprint sx={{ fontSize: 28 }} />}
                             color="success"
-                            subtitle={`${stats.totalUsers > 0 ? ((stats.biometricEnrolledUsers / stats.totalUsers) * 100).toFixed(1) : 0}% of users`}
+                            subtitle={`${stats.totalUsers > 0 ? ((stats.biometricEnrolledUsers / stats.totalUsers) * 100).toFixed(1) : 0}% ${t('dashboard.ofUsers')}`}
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
-                            title="Pending Enrollments"
+                            title={t('dashboard.pendingEnrollments')}
                             value={stats.pendingEnrollments.toLocaleString()}
                             icon={<PersonAdd sx={{ fontSize: 28 }} />}
                             color="warning"
-                            subtitle="Awaiting biometric enrollment"
+                            subtitle={t('dashboard.awaitingEnrollment')}
                         />
                     </Grid>
 
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
-                            title="Failed Enrollments"
+                            title={t('dashboard.failedEnrollments')}
                             value={stats.failedEnrollments.toLocaleString()}
                             icon={<ErrorIcon sx={{ fontSize: 28 }} />}
                             color="error"
-                            subtitle={stats.failedEnrollments > 0 ? 'Requires attention' : 'No failures'}
+                            subtitle={stats.failedEnrollments > 0 ? t('dashboard.requiresAttention') : t('dashboard.noFailures')}
                         />
                     </Grid>
 
@@ -417,7 +420,7 @@ export default function DashboardPage() {
                             <Card>
                                 <CardContent sx={{ p: 3 }}>
                                     <Typography variant="h6" fontWeight={600} sx={{ mb: 3 }}>
-                                        System Metrics
+                                        {t('dashboard.systemMetrics')}
                                     </Typography>
                                     <Grid container spacing={3}>
                                         <Grid item xs={12} sm={6} md={3}>
@@ -440,7 +443,7 @@ export default function DashboardPage() {
                                                 >
                                                     <TrendingUp sx={{ color: 'primary.main', fontSize: 20 }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Auth Success Rate
+                                                        {t('dashboard.authSuccessRate')}
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="h5" fontWeight={700}>
@@ -482,7 +485,7 @@ export default function DashboardPage() {
                                                 >
                                                     <Verified sx={{ color: 'success.main', fontSize: 20 }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Verification Rate
+                                                        {t('dashboard.verificationRate')}
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="h5" fontWeight={700} color="success.main">
@@ -524,7 +527,7 @@ export default function DashboardPage() {
                                                 >
                                                     <Fingerprint sx={{ color: 'primary.main', fontSize: 20 }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Total Verifications
+                                                        {t('dashboard.totalVerifications')}
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="h5" fontWeight={700}>
@@ -552,7 +555,7 @@ export default function DashboardPage() {
                                                 >
                                                     <People sx={{ color: 'info.main', fontSize: 20 }} />
                                                     <Typography variant="body2" color="text.secondary">
-                                                        Avg Verifications/User
+                                                        {t('dashboard.avgVerifications')}
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="h5" fontWeight={700}>
@@ -571,7 +574,7 @@ export default function DashboardPage() {
                             <Card>
                                 <CardContent sx={{ p: 3 }}>
                                     <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                                        Recent Activity
+                                        {t('dashboard.recentActivity')}
                                     </Typography>
                                     {logsLoading ? (
                                         <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>

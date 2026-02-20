@@ -17,12 +17,15 @@ import {
     TextField,
     Typography,
 } from '@mui/material'
-import { Notifications, Palette, Person, Save, Security } from '@mui/icons-material'
+import { Language, Notifications, Palette, Person, PhonelinkLock, Save, Security } from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useSettings } from '@features/settings/hooks/useSettings'
+import { useTranslation } from 'react-i18next'
+import TotpEnrollment from '@features/auth/components/TotpEnrollment'
 
 export default function SettingsPage() {
     const { user } = useAuth()
+    const { t, i18n } = useTranslation()
     const {
         settings,
         loading,
@@ -52,6 +55,9 @@ export default function SettingsPage() {
     // Appearance settings
     const [darkMode, setDarkMode] = useState(false)
     const [compactView, setCompactView] = useState(false)
+
+    // TOTP enrollment dialog
+    const [totpDialogOpen, setTotpDialogOpen] = useState(false)
 
     // Password change dialog
     const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
@@ -130,9 +136,7 @@ export default function SettingsPage() {
     const handleSaveSecurity = useCallback(async () => {
         const timeout = parseInt(sessionTimeout, 10)
         if (twoFactorAuth !== settings?.twoFactorEnabled || timeout !== settings?.sessionTimeoutMinutes) {
-            const confirmed = window.confirm(
-                'You are about to change security settings. This may affect your current session. Continue?'
-            )
+            const confirmed = window.confirm(t('settings.securityWarning'))
             if (!confirmed) return
         }
 
@@ -171,7 +175,7 @@ export default function SettingsPage() {
         }
 
         if (newPassword !== confirmPassword) {
-            setPasswordErrors(['Passwords do not match'])
+            setPasswordErrors([t('settings.passwordsNoMatch')])
             return
         }
 
@@ -206,10 +210,10 @@ export default function SettingsPage() {
     return (
         <Box>
             <Typography variant="h4" gutterBottom fontWeight={600}>
-                Settings
+                {t('settings.title')}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                Manage your account preferences and settings
+                {t('settings.subtitle')}
             </Typography>
 
             {error && (
@@ -221,8 +225,8 @@ export default function SettingsPage() {
             {saveSuccess && (
                 <Alert severity="success" sx={{ mb: 3 }}>
                     {saveSuccess === 'password'
-                        ? 'Password changed successfully!'
-                        : `${saveSuccess.charAt(0).toUpperCase() + saveSuccess.slice(1)} settings saved successfully!`}
+                        ? t('settings.passwordChanged')
+                        : t('settings.settingsSaved', { section: saveSuccess.charAt(0).toUpperCase() + saveSuccess.slice(1) })}
                 </Alert>
             )}
 
@@ -233,7 +237,7 @@ export default function SettingsPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                             <Person sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
-                                Profile Information
+                                {t('settings.profile')}
                             </Typography>
                         </Box>
 
@@ -251,7 +255,7 @@ export default function SettingsPage() {
                                 {lastName?.[0]}
                             </Avatar>
                             <Button variant="outlined" size="small">
-                                Change Avatar
+                                {t('settings.changeAvatar')}
                             </Button>
                         </Box>
 
@@ -259,7 +263,7 @@ export default function SettingsPage() {
                             <Grid item xs={12} md={6}>
                                 <TextField
                                     fullWidth
-                                    label="First Name"
+                                    label={t('settings.firstName')}
                                     value={firstName}
                                     onChange={(e) => setFirstName(e.target.value)}
                                     disabled={saving === 'profile'}
@@ -268,7 +272,7 @@ export default function SettingsPage() {
                             <Grid item xs={12} md={6}>
                                 <TextField
                                     fullWidth
-                                    label="Last Name"
+                                    label={t('settings.lastName')}
                                     value={lastName}
                                     onChange={(e) => setLastName(e.target.value)}
                                     disabled={saving === 'profile'}
@@ -277,20 +281,20 @@ export default function SettingsPage() {
                             <Grid item xs={12}>
                                 <TextField
                                     fullWidth
-                                    label="Email"
+                                    label={t('settings.email')}
                                     type="email"
                                     value={user?.email || ''}
                                     disabled
-                                    helperText="Email cannot be changed"
+                                    helperText={t('settings.emailHelper')}
                                 />
                             </Grid>
                             <Grid item xs={12}>
                                 <TextField
                                     fullWidth
-                                    label="Role"
+                                    label={t('settings.role')}
                                     value={user?.role || ''}
                                     disabled
-                                    helperText="Role is managed by administrators"
+                                    helperText={t('settings.roleHelper')}
                                 />
                             </Grid>
                         </Grid>
@@ -302,7 +306,7 @@ export default function SettingsPage() {
                                 onClick={handleSaveProfile}
                                 disabled={saving === 'profile'}
                             >
-                                Save Profile
+                                {t('settings.saveProfile')}
                             </Button>
                         </Box>
                     </Paper>
@@ -314,7 +318,7 @@ export default function SettingsPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                             <Security sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
-                                Security
+                                {t('settings.security')}
                             </Typography>
                         </Box>
 
@@ -327,19 +331,31 @@ export default function SettingsPage() {
                                         disabled={saving === 'security'}
                                     />
                                 }
-                                label="Enable Two-Factor Authentication"
+                                label={t('settings.twoFactor')}
                             />
                             <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-                                Add an extra layer of security to your account
+                                {t('settings.twoFactorHelper')}
                             </Typography>
                         </Box>
+
+                        {!twoFactorAuth && (
+                            <Button
+                                variant="outlined"
+                                fullWidth
+                                startIcon={<PhonelinkLock />}
+                                onClick={() => setTotpDialogOpen(true)}
+                                sx={{ mb: 2 }}
+                            >
+                                {t('settings.setupTotp')}
+                            </Button>
+                        )}
 
                         <Divider sx={{ my: 2 }} />
 
                         <TextField
                             fullWidth
                             select
-                            label="Session Timeout"
+                            label={t('settings.sessionTimeout')}
                             value={sessionTimeout}
                             onChange={(e) => setSessionTimeout(e.target.value)}
                             SelectProps={{ native: true }}
@@ -361,7 +377,7 @@ export default function SettingsPage() {
                             sx={{ mb: 1 }}
                             onClick={() => setPasswordDialogOpen(true)}
                         >
-                            Change Password
+                            {t('settings.changePassword')}
                         </Button>
 
                         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
@@ -371,7 +387,7 @@ export default function SettingsPage() {
                                 onClick={handleSaveSecurity}
                                 disabled={saving === 'security'}
                             >
-                                Save Security
+                                {t('settings.saveSecurity')}
                             </Button>
                         </Box>
                     </Paper>
@@ -383,7 +399,7 @@ export default function SettingsPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                             <Notifications sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
-                                Notifications
+                                {t('settings.notifications')}
                             </Typography>
                         </Box>
 
@@ -396,7 +412,7 @@ export default function SettingsPage() {
                                         disabled={saving === 'notifications'}
                                     />
                                 }
-                                label="Email Notifications"
+                                label={t('settings.emailNotifications')}
                             />
 
                             <FormControlLabel
@@ -407,7 +423,7 @@ export default function SettingsPage() {
                                         disabled={saving === 'notifications'}
                                     />
                                 }
-                                label="Login Alerts"
+                                label={t('settings.loginAlerts')}
                             />
 
                             <FormControlLabel
@@ -418,7 +434,7 @@ export default function SettingsPage() {
                                         disabled={saving === 'notifications'}
                                     />
                                 }
-                                label="Security Alerts"
+                                label={t('settings.securityAlerts')}
                             />
 
                             <FormControlLabel
@@ -429,7 +445,7 @@ export default function SettingsPage() {
                                         disabled={saving === 'notifications'}
                                     />
                                 }
-                                label="Weekly Reports"
+                                label={t('settings.weeklyReports')}
                             />
                         </Box>
 
@@ -442,7 +458,7 @@ export default function SettingsPage() {
                                 onClick={handleSaveNotifications}
                                 disabled={saving === 'notifications'}
                             >
-                                Save Notifications
+                                {t('settings.saveNotifications')}
                             </Button>
                         </Box>
                     </Paper>
@@ -454,7 +470,7 @@ export default function SettingsPage() {
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
                             <Palette sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
-                                Appearance
+                                {t('settings.appearance')}
                             </Typography>
                         </Box>
 
@@ -468,10 +484,10 @@ export default function SettingsPage() {
                                             disabled={saving === 'appearance'}
                                         />
                                     }
-                                    label="Dark Mode"
+                                    label={t('settings.darkMode')}
                                 />
                                 <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-                                    Use dark theme for reduced eye strain
+                                    {t('settings.darkModeHelper')}
                                 </Typography>
                             </Grid>
 
@@ -484,13 +500,36 @@ export default function SettingsPage() {
                                             disabled={saving === 'appearance'}
                                         />
                                     }
-                                    label="Compact View"
+                                    label={t('settings.compactView')}
                                 />
                                 <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-                                    Show more content with reduced spacing
+                                    {t('settings.compactViewHelper')}
                                 </Typography>
                             </Grid>
                         </Grid>
+
+                        <Divider sx={{ my: 3 }} />
+
+                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
+                            <Language sx={{ mr: 1, color: 'primary.main' }} />
+                            <Typography variant="h6" fontWeight={600}>
+                                {t('settings.language')}
+                            </Typography>
+                        </Box>
+
+                        <TextField
+                            fullWidth
+                            select
+                            label={t('settings.language')}
+                            value={i18n.language.startsWith('tr') ? 'tr' : 'en'}
+                            onChange={(e) => i18n.changeLanguage(e.target.value)}
+                            SelectProps={{ native: true }}
+                            helperText={t('settings.languageHelper')}
+                            sx={{ maxWidth: 300 }}
+                        >
+                            <option value="en">{t('language.en')}</option>
+                            <option value="tr">{t('language.tr')}</option>
+                        </TextField>
 
                         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
                             <Button
@@ -499,7 +538,7 @@ export default function SettingsPage() {
                                 onClick={handleSaveAppearance}
                                 disabled={saving === 'appearance'}
                             >
-                                Save Appearance
+                                {t('settings.saveAppearance')}
                             </Button>
                         </Box>
                     </Paper>
@@ -514,7 +553,7 @@ export default function SettingsPage() {
                 setConfirmPassword('')
                 setPasswordErrors([])
             }} maxWidth="sm" fullWidth>
-                <DialogTitle>Change Password</DialogTitle>
+                <DialogTitle>{t('settings.changePassword')}</DialogTitle>
                 <DialogContent>
                     {passwordErrors.length > 0 && (
                         <Alert severity="error" sx={{ mb: 2 }}>
@@ -526,7 +565,7 @@ export default function SettingsPage() {
                     <TextField
                         fullWidth
                         type="password"
-                        label="Current Password"
+                        label={t('settings.currentPassword')}
                         value={currentPassword}
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         margin="normal"
@@ -535,7 +574,7 @@ export default function SettingsPage() {
                     <TextField
                         fullWidth
                         type="password"
-                        label="New Password"
+                        label={t('settings.newPassword')}
                         value={newPassword}
                         onChange={(e) => {
                             setNewPassword(e.target.value)
@@ -543,12 +582,12 @@ export default function SettingsPage() {
                         }}
                         margin="normal"
                         disabled={saving === 'password'}
-                        helperText="Min 8 chars, uppercase, lowercase, number, special character"
+                        helperText={t('settings.passwordHelper')}
                     />
                     <TextField
                         fullWidth
                         type="password"
-                        label="Confirm New Password"
+                        label={t('settings.confirmPassword')}
                         value={confirmPassword}
                         onChange={(e) => {
                             setConfirmPassword(e.target.value)
@@ -560,7 +599,7 @@ export default function SettingsPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={() => setPasswordDialogOpen(false)} disabled={saving === 'password'}>
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         variant="contained"
@@ -568,10 +607,20 @@ export default function SettingsPage() {
                         disabled={saving === 'password' || !currentPassword || !newPassword || !confirmPassword}
                         startIcon={saving === 'password' ? <CircularProgress size={16} /> : null}
                     >
-                        Change Password
+                        {t('settings.changePassword')}
                     </Button>
                 </DialogActions>
             </Dialog>
+
+            {/* TOTP Enrollment Dialog */}
+            <TotpEnrollment
+                open={totpDialogOpen}
+                onClose={() => setTotpDialogOpen(false)}
+                onSuccess={() => {
+                    setTotpDialogOpen(false)
+                    setTwoFactorAuth(true)
+                }}
+            />
         </Box>
     )
 }

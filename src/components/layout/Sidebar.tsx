@@ -13,6 +13,7 @@ import {
 } from '@mui/material'
 import {
     AccountTree,
+    Analytics,
     Business,
     Dashboard,
     DevicesOther,
@@ -22,6 +23,7 @@ import {
     Settings,
     Shield,
 } from '@mui/icons-material'
+import {useTranslation} from 'react-i18next'
 
 interface SidebarProps {
     drawerWidth: number
@@ -31,21 +33,22 @@ interface SidebarProps {
 }
 
 interface MenuItem {
-    text: string
+    labelKey: string
     icon: React.ReactNode
     path: string
 }
 
 const menuItems: MenuItem[] = [
-    {text: 'Dashboard', icon: <Dashboard/>, path: '/'},
-    {text: 'Users', icon: <People/>, path: '/users'},
-    {text: 'Tenants', icon: <Business/>, path: '/tenants'},
-    {text: 'Roles', icon: <Shield/>, path: '/roles'},
-    {text: 'Auth Flows', icon: <AccountTree/>, path: '/auth-flows'},
-    {text: 'Devices', icon: <DevicesOther/>, path: '/devices'},
-    {text: 'Enrollments', icon: <Fingerprint/>, path: '/enrollments'},
-    {text: 'Audit Logs', icon: <Security/>, path: '/audit-logs'},
-    {text: 'Settings', icon: <Settings/>, path: '/settings'},
+    {labelKey: 'nav.dashboard', icon: <Dashboard/>, path: '/'},
+    {labelKey: 'nav.users', icon: <People/>, path: '/users'},
+    {labelKey: 'nav.tenants', icon: <Business/>, path: '/tenants'},
+    {labelKey: 'nav.roles', icon: <Shield/>, path: '/roles'},
+    {labelKey: 'nav.authFlows', icon: <AccountTree/>, path: '/auth-flows'},
+    {labelKey: 'nav.devices', icon: <DevicesOther/>, path: '/devices'},
+    {labelKey: 'nav.enrollments', icon: <Fingerprint/>, path: '/enrollments'},
+    {labelKey: 'nav.auditLogs', icon: <Security/>, path: '/audit-logs'},
+    {labelKey: 'nav.analytics', icon: <Analytics/>, path: '/analytics'},
+    {labelKey: 'nav.settings', icon: <Settings/>, path: '/settings'},
 ]
 
 export default function Sidebar({
@@ -56,6 +59,7 @@ export default function Sidebar({
                                 }: SidebarProps) {
     const location = useLocation()
     const navigate = useNavigate()
+    const {t} = useTranslation()
 
     const isActive = (path: string) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
@@ -79,7 +83,7 @@ export default function Sidebar({
             <Divider/>
             <List>
                 {menuItems.map((item) => (
-                    <ListItem key={item.text} disablePadding>
+                    <ListItem key={item.labelKey} disablePadding>
                         <ListItemButton
                             selected={isActive(item.path)}
                             onClick={() => handleNavigation(item.path)}
@@ -102,7 +106,7 @@ export default function Sidebar({
                                 {item.icon}
                             </ListItemIcon>
                             <ListItemText
-                                primary={item.text}
+                                primary={t(item.labelKey)}
                                 sx={{
                                     '& .MuiTypography-root': {
                                         fontWeight: isActive(item.path) ? 600 : 400,

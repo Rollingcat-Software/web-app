@@ -1,4 +1,5 @@
 import 'reflect-metadata'
+import './i18n'
 import React, {useMemo} from 'react'
 import ReactDOM from 'react-dom/client'
 import {Provider} from 'react-redux'
