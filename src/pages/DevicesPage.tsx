@@ -22,6 +22,7 @@ import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
 import { TYPES } from '@core/di/types'
 import { useService } from '@app/providers/DependencyProvider'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import type { DeviceRepository, DeviceResponse } from '@core/repositories/DeviceRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 
@@ -48,12 +49,13 @@ function getPlatformIcon(platform: string) {
 export default function DevicesPage() {
     const deviceRepo = useService<DeviceRepository>(TYPES.DeviceRepository)
     const logger = useService<ILogger>(TYPES.Logger)
+    const { user } = useAuth()
 
     const [devices, setDevices] = useState<DeviceResponse[]>([])
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const tenantId = 'system'
+    const tenantId = user?.tenantId ?? ''
 
     const loadDevices = useCallback(async () => {
         setLoading(true)

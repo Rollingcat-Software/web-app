@@ -35,7 +35,7 @@ export class DeviceRepository {
             this.logger.debug('Fetching devices', { tenantId })
 
             const response = await this.httpClient.get<DeviceResponse[]>(
-                `/tenants/${tenantId}/devices`
+                `/devices?tenantId=${tenantId}`
             )
 
             this.logger.debug('Devices fetched', { count: response.data.length })
@@ -47,19 +47,19 @@ export class DeviceRepository {
     }
 
     /**
-     * Get a single device by ID
+     * List all devices for a specific user
      */
-    async getDevice(tenantId: string, deviceId: string): Promise<DeviceResponse> {
+    async listUserDevices(userId: string): Promise<DeviceResponse[]> {
         try {
-            this.logger.debug(`Fetching device ${deviceId}`, { tenantId })
+            this.logger.debug('Fetching user devices', { userId })
 
-            const response = await this.httpClient.get<DeviceResponse>(
-                `/tenants/${tenantId}/devices/${deviceId}`
+            const response = await this.httpClient.get<DeviceResponse[]>(
+                `/devices?userId=${userId}`
             )
 
             return response.data
         } catch (error) {
-            this.logger.error(`Failed to fetch device ${deviceId}`, error)
+            this.logger.error('Failed to fetch user devices', error)
             throw error
         }
     }
@@ -67,11 +67,11 @@ export class DeviceRepository {
     /**
      * Delete a device
      */
-    async deleteDevice(tenantId: string, deviceId: string): Promise<void> {
+    async deleteDevice(_tenantId: string, deviceId: string): Promise<void> {
         try {
-            this.logger.info(`Deleting device ${deviceId}`, { tenantId })
+            this.logger.info(`Deleting device ${deviceId}`)
 
-            await this.httpClient.delete(`/tenants/${tenantId}/devices/${deviceId}`)
+            await this.httpClient.delete(`/devices/${deviceId}`)
 
             this.logger.info('Device deleted successfully', { deviceId })
         } catch (error) {

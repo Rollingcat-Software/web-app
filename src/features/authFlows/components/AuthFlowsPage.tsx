@@ -31,6 +31,7 @@ import { PageTransition } from '@components/animations'
 import { AuthFlowBuilder } from './AuthFlowBuilder'
 import { TYPES } from '@core/di/types'
 import { useService } from '@app/providers/DependencyProvider'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 
@@ -39,6 +40,7 @@ const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 export default function AuthFlowsPage() {
     const authFlowRepo = useService<AuthFlowRepository>(TYPES.AuthFlowRepository)
     const logger = useService<ILogger>(TYPES.Logger)
+    const { user } = useAuth()
 
     const [flows, setFlows] = useState<AuthFlowResponse[]>([])
     const [loading, setLoading] = useState(false)
@@ -46,8 +48,7 @@ export default function AuthFlowsPage() {
     const [showBuilder, setShowBuilder] = useState(false)
     const [filterType, setFilterType] = useState<string>('')
 
-    // TODO: Get from auth context or selector
-    const tenantId = 'system'
+    const tenantId = user?.tenantId ?? ''
 
     const loadFlows = useCallback(async () => {
         setLoading(true)

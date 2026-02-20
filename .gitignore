@@ -37,6 +37,9 @@ dist-ssr
 
 # Testing
 coverage
+test-results/
+playwright-report/
+e2e/.auth/
 
 # Build
 build

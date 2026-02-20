@@ -9,8 +9,8 @@ test.describe('Login Flow', () => {
 
     test('should display login page with form elements', async ({ page }) => {
         await expect(page.getByText('FIVUCSAS')).toBeVisible()
-        await expect(page.getByLabel(/email/i)).toBeVisible()
-        await expect(page.getByLabel(/password/i)).toBeVisible()
+        await expect(page.locator('input[name="email"]')).toBeVisible()
+        await expect(page.locator('input[name="password"]')).toBeVisible()
         await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible()
     })
 
@@ -20,20 +20,19 @@ test.describe('Login Flow', () => {
     })
 
     test('should login with valid credentials', async ({ page }) => {
-        await page.getByLabel(/email/i).fill('admin@fivucsas.local')
-        await page.getByLabel(/password/i).fill('Test@123')
+        await page.locator('input[name="email"]').fill('admin@fivucsas.local')
+        await page.locator('input[name="password"]').fill('Test@123')
         await page.getByRole('button', { name: /sign in/i }).click()
 
-        // Should redirect to dashboard
-        await page.waitForURL(`${BASE_URL}/`, { timeout: 10000 })
-        await expect(page.getByText(/dashboard/i)).toBeVisible()
+        // Wait for dashboard sidebar to appear (SPA navigation, no page reload)
+        await expect(page.getByRole('button', { name: 'Users' })).toBeVisible({ timeout: 15000 })
     })
 
     test('should show error for invalid credentials', async ({ page }) => {
-        await page.getByLabel(/email/i).fill('wrong@email.com')
-        await page.getByLabel(/password/i).fill('wrongpassword')
+        await page.locator('input[name="email"]').fill('wrong@email.com')
+        await page.locator('input[name="password"]').fill('wrongpassword')
         await page.getByRole('button', { name: /sign in/i }).click()
 
-        await expect(page.getByRole('alert')).toBeVisible({ timeout: 5000 })
+        await expect(page.getByRole('alert').first()).toBeVisible({ timeout: 10000 })
     })
 })

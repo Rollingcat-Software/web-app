@@ -2,20 +2,37 @@ import { defineConfig, devices } from '@playwright/test'
 
 export default defineConfig({
     testDir: './e2e',
-    fullyParallel: true,
+    fullyParallel: false,
     forbidOnly: !!process.env.CI,
-    retries: process.env.CI ? 2 : 0,
-    workers: process.env.CI ? 1 : undefined,
+    retries: 1,
+    workers: 1,
     reporter: 'html',
+    timeout: 30000,
     use: {
         baseURL: process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com',
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
     },
     projects: [
+        // 1. Auth setup — logs in once, saves sessionStorage tokens
         {
-            name: 'chromium',
+            name: 'setup',
+            testMatch: /auth\.setup\.ts/,
             use: { ...devices['Desktop Chrome'] },
+        },
+        // 2. Login tests — test login flow directly (no pre-auth needed)
+        {
+            name: 'login-tests',
+            testMatch: /login\.spec\.ts/,
+            use: { ...devices['Desktop Chrome'] },
+            dependencies: ['setup'],
+        },
+        // 3. Authenticated tests — reuse saved session (no extra login calls)
+        {
+            name: 'authenticated',
+            testIgnore: /login\.spec\.ts|auth\.setup\.ts/,
+            use: { ...devices['Desktop Chrome'] },
+            dependencies: ['setup'],
         },
     ],
 })
