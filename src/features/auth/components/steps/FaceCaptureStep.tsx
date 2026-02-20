@@ -14,6 +14,7 @@ import {
     VideocamOff,
 } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useFaceDetection } from '../../hooks/useFaceDetection'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -40,6 +41,14 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const [cameraActive, setCameraActive] = useState(false)
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const [cameraError, setCameraError] = useState<string | null>(null)
+
+    const {
+        detected,
+        centered,
+        hint,
+        boundingBox,
+        cropFace,
+    } = useFaceDetection(videoRef, cameraActive && !capturedImage)
 
     const startCamera = useCallback(async () => {
         try {
@@ -81,6 +90,17 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const captureImage = useCallback(() => {
         if (!videoRef.current || !canvasRef.current) return
 
+        // Try cropped face capture first (MediaPipe detected)
+        if (detected && boundingBox) {
+            const cropped = cropFace(canvasRef.current)
+            if (cropped) {
+                setCapturedImage(cropped)
+                stopCamera()
+                return
+            }
+        }
+
+        // Fallback: full frame capture (if MediaPipe didn't load)
         const video = videoRef.current
         const canvas = canvasRef.current
         canvas.width = video.videoWidth
@@ -89,7 +109,6 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         const ctx = canvas.getContext('2d')
         if (!ctx) return
 
-        // Mirror the image for selfie-style capture
         ctx.translate(canvas.width, 0)
         ctx.scale(-1, 1)
         ctx.drawImage(video, 0, 0)
@@ -97,7 +116,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         const base64 = canvas.toDataURL('image/jpeg', 0.8)
         setCapturedImage(base64)
         stopCamera()
-    }, [stopCamera])
+    }, [stopCamera, detected, boundingBox, cropFace])
 
     const retakePhoto = useCallback(() => {
         setCapturedImage(null)
@@ -109,6 +128,15 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             onSubmit(capturedImage)
         }
     }, [capturedImage, onSubmit])
+
+    // Determine bounding box overlay color
+    const boxColor = detected
+        ? centered
+            ? 'rgba(34, 197, 94, 0.8)'   // green - ready
+            : 'rgba(250, 204, 21, 0.8)'   // yellow - adjust
+        : 'rgba(255, 255, 255, 0.3)'       // white dashed - no face
+
+    const captureReady = detected && centered
 
     return (
         <motion.div
@@ -166,11 +194,15 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         width: '100%',
                         maxWidth: 360,
                         mx: 'auto',
-                        mb: 3,
+                        mb: 1,
                         borderRadius: '16px',
                         overflow: 'hidden',
                         border: '2px solid',
-                        borderColor: cameraActive ? 'primary.main' : 'divider',
+                        borderColor: cameraActive
+                            ? captureReady
+                                ? 'success.main'
+                                : 'primary.main'
+                            : 'divider',
                         position: 'relative',
                         aspectRatio: '4/3',
                         bgcolor: '#1e293b',
@@ -204,25 +236,49 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                                     transform: 'scaleX(-1)',
                                 }}
                             />
-                            {/* Face guide overlay */}
+                            {/* Face bounding box overlay */}
                             <Box
                                 sx={{
                                     position: 'absolute',
                                     inset: 0,
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
                                     pointerEvents: 'none',
                                 }}
                             >
-                                <Box
-                                    sx={{
-                                        width: '60%',
-                                        aspectRatio: '3/4',
-                                        borderRadius: '50%',
-                                        border: '2px dashed rgba(255, 255, 255, 0.5)',
-                                    }}
-                                />
+                                {detected && boundingBox ? (
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            // Mirror x-coordinate (video is flipped)
+                                            right: `${boundingBox.x * 100}%`,
+                                            top: `${boundingBox.y * 100}%`,
+                                            width: `${boundingBox.width * 100}%`,
+                                            height: `${boundingBox.height * 100}%`,
+                                            border: `2px solid ${boxColor}`,
+                                            borderRadius: '8px',
+                                            transition: 'all 0.15s ease',
+                                        }}
+                                    />
+                                ) : (
+                                    // Fallback: dashed oval guide when no face detected
+                                    <Box
+                                        sx={{
+                                            position: 'absolute',
+                                            inset: 0,
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                        }}
+                                    >
+                                        <Box
+                                            sx={{
+                                                width: '60%',
+                                                aspectRatio: '3/4',
+                                                borderRadius: '50%',
+                                                border: '2px dashed rgba(255, 255, 255, 0.5)',
+                                            }}
+                                        />
+                                    </Box>
+                                )}
                             </Box>
                         </>
                     ) : (
@@ -243,6 +299,29 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     )}
                 </Box>
             </motion.div>
+
+            {/* Quality hint */}
+            {cameraActive && !capturedImage && (
+                <motion.div
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            display: 'block',
+                            textAlign: 'center',
+                            mb: 2,
+                            color: captureReady ? 'success.main' : 'text.secondary',
+                            fontWeight: captureReady ? 600 : 400,
+                            transition: 'color 0.2s ease',
+                        }}
+                    >
+                        {hint}
+                    </Typography>
+                </motion.div>
+            )}
 
             {/* Actions */}
             <motion.div variants={itemVariants}>
@@ -284,10 +363,16 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                             borderRadius: '12px',
                             fontSize: '1rem',
                             fontWeight: 600,
-                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                            boxShadow: '0 10px 40px rgba(99, 102, 241, 0.4)',
+                            background: captureReady
+                                ? 'linear-gradient(135deg, #16a34a 0%, #22c55e 100%)'
+                                : 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                            boxShadow: captureReady
+                                ? '0 10px 40px rgba(34, 197, 94, 0.4)'
+                                : '0 10px 40px rgba(99, 102, 241, 0.4)',
                             '&:hover': {
-                                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
+                                background: captureReady
+                                    ? 'linear-gradient(135deg, #15803d 0%, #16a34a 100%)'
+                                    : 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
                             },
                             transition: 'all 0.3s ease',
                         }}

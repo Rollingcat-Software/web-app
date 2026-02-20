@@ -19,6 +19,7 @@
     "@fontsource/inter": "^5.2.8",
     "@fontsource/poppins": "^5.2.7",
     "@hookform/resolvers": "^3.9.0",
+    "@mediapipe/tasks-vision": "^0.10.18",
     "@mui/icons-material": "^5.16.0",
     "@mui/material": "^5.16.0",
     "@reduxjs/toolkit": "^2.2.0",
