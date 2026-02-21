@@ -15,6 +15,7 @@ import {
     Link,
 } from '@mui/material'
 import {
+    Face,
     Fingerprint,
     Visibility,
     VisibilityOff,
@@ -27,6 +28,8 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
+import FaceVerificationFlow from './FaceVerificationFlow'
+import { getBiometricService } from '@core/services/BiometricService'
 
 /**
  * Login form validation schema
@@ -119,6 +122,23 @@ export default function LoginPage() {
     const navigate = useNavigate()
     const { login, loading, error } = useAuth()
     const [showPassword, setShowPassword] = useState(false)
+    const [faceLoginOpen, setFaceLoginOpen] = useState(false)
+
+    const handleFaceVerify = async (image: string): Promise<boolean> => {
+        try {
+            const biometric = getBiometricService()
+            const result = await biometric.searchFace(image)
+            if (result.found && result.userId) {
+                // Face matched — log in with the matched user
+                await login({ email: result.userId, password: '' })
+                navigate('/')
+                return true
+            }
+            return false
+        } catch {
+            return false
+        }
+    }
 
     const {
         control,
@@ -413,9 +433,37 @@ export default function LoginPage() {
                         <motion.div variants={itemVariants}>
                             <Divider sx={{ my: 3 }}>
                                 <Typography variant="caption" color="text.secondary">
-                                    Secure Authentication
+                                    Or continue with
                                 </Typography>
                             </Divider>
+                        </motion.div>
+
+                        {/* Face Login Button */}
+                        <motion.div variants={itemVariants}>
+                            <Button
+                                fullWidth
+                                variant="outlined"
+                                size="large"
+                                onClick={() => setFaceLoginOpen(true)}
+                                disabled={loading}
+                                startIcon={<Face />}
+                                sx={{
+                                    mb: 2,
+                                    py: 1.3,
+                                    borderRadius: '12px',
+                                    fontSize: '0.95rem',
+                                    fontWeight: 600,
+                                    borderColor: 'rgba(99, 102, 241, 0.3)',
+                                    color: '#6366f1',
+                                    '&:hover': {
+                                        borderColor: '#6366f1',
+                                        backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                                    },
+                                    transition: 'all 0.3s ease',
+                                }}
+                            >
+                                Login with Face ID
+                            </Button>
                         </motion.div>
 
                         {/* Features */}
@@ -525,6 +573,13 @@ export default function LoginPage() {
                     </Typography>
                 </motion.div>
             </motion.div>
+
+            {/* Face Login Dialog */}
+            <FaceVerificationFlow
+                open={faceLoginOpen}
+                onClose={() => setFaceLoginOpen(false)}
+                onVerify={handleFaceVerify}
+            />
         </Box>
     )
 }

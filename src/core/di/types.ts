@@ -42,6 +42,9 @@ export const TYPES = {
     AuthSessionService: Symbol.for('AuthSessionService'),
     DeviceService: Symbol.for('DeviceService'),
 
+    // External Services
+    BiometricService: Symbol.for('BiometricService'),
+
     // Validators
     UserValidator: Symbol.for('UserValidator'),
     AuthValidator: Symbol.for('AuthValidator'),

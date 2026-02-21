@@ -17,11 +17,13 @@ import {
     TextField,
     Typography,
 } from '@mui/material'
-import { Language, Notifications, Palette, Person, PhonelinkLock, Save, Security } from '@mui/icons-material'
+import { Face, Language, Notifications, Palette, Person, PhonelinkLock, Save, Security } from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useSettings } from '@features/settings/hooks/useSettings'
 import { useTranslation } from 'react-i18next'
 import TotpEnrollment from '@features/auth/components/TotpEnrollment'
+import FaceEnrollmentFlow from '@features/auth/components/FaceEnrollmentFlow'
+import { getBiometricService } from '@core/services/BiometricService'
 
 export default function SettingsPage() {
     const { user } = useAuth()
@@ -58,6 +60,11 @@ export default function SettingsPage() {
 
     // TOTP enrollment dialog
     const [totpDialogOpen, setTotpDialogOpen] = useState(false)
+
+    // Face ID enrollment
+    const [faceEnrollOpen, setFaceEnrollOpen] = useState(false)
+    const [faceEnrolled, setFaceEnrolled] = useState(false)
+    const [faceEnrolling, setFaceEnrolling] = useState(false)
 
     // Password change dialog
     const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
@@ -352,6 +359,36 @@ export default function SettingsPage() {
 
                         <Divider sx={{ my: 2 }} />
 
+                        {/* Face ID Enrollment */}
+                        <Box sx={{ mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <Face sx={{ mr: 1, color: faceEnrolled ? 'success.main' : 'text.secondary', fontSize: 20 }} />
+                                <Typography variant="subtitle2" fontWeight={600}>
+                                    Face ID
+                                </Typography>
+                                {faceEnrolled && (
+                                    <Typography variant="caption" sx={{ ml: 1, color: 'success.main', fontWeight: 600 }}>
+                                        Enrolled
+                                    </Typography>
+                                )}
+                            </Box>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                Register your face for biometric login. Uses the camera to capture multiple angles.
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                fullWidth
+                                startIcon={faceEnrolling ? <CircularProgress size={16} /> : <Face />}
+                                onClick={() => setFaceEnrollOpen(true)}
+                                disabled={faceEnrolling}
+                                color={faceEnrolled ? 'success' : 'primary'}
+                            >
+                                {faceEnrolled ? 'Re-enroll Face ID' : 'Enroll Face ID'}
+                            </Button>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
                         <TextField
                             fullWidth
                             select
@@ -619,6 +656,27 @@ export default function SettingsPage() {
                 onSuccess={() => {
                     setTotpDialogOpen(false)
                     setTwoFactorAuth(true)
+                }}
+            />
+
+            {/* Face ID Enrollment Dialog */}
+            <FaceEnrollmentFlow
+                open={faceEnrollOpen}
+                onClose={() => setFaceEnrollOpen(false)}
+                onComplete={async (images) => {
+                    if (!user?.id) return
+                    setFaceEnrolling(true)
+                    try {
+                        const biometric = getBiometricService()
+                        // Enroll with the best (frontal) capture
+                        await biometric.enrollFace(user.id, images[1] || images[0])
+                        setFaceEnrolled(true)
+                        showSuccessMessage('faceId')
+                    } catch {
+                        // Enrollment failed silently — user can retry
+                    } finally {
+                        setFaceEnrolling(false)
+                    }
                 }}
             />
         </Box>

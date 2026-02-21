@@ -23,14 +23,14 @@ export default defineConfig({
         // 2. Login tests — test login flow directly (no pre-auth needed)
         {
             name: 'login-tests',
-            testMatch: /login\.spec\.ts/,
+            testMatch: /login.*\.spec\.ts/,
             use: { ...devices['Desktop Chrome'] },
             dependencies: ['setup'],
         },
         // 3. Authenticated tests — reuse saved session (no extra login calls)
         {
             name: 'authenticated',
-            testIgnore: /login\.spec\.ts|auth\.setup\.ts/,
+            testIgnore: /login.*\.spec\.ts|auth\.setup\.ts/,
             use: { ...devices['Desktop Chrome'] },
             dependencies: ['setup'],
         },
