@@ -22,6 +22,7 @@
     "tenants": "Tenants",
     "roles": "Roles",
     "authFlows": "Auth Flows",
+    "authSessions": "Auth Sessions",
     "devices": "Devices",
     "enrollments": "Enrollments",
     "auditLogs": "Audit Logs",

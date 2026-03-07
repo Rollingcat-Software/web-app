@@ -17,18 +17,20 @@ export interface StartSessionCommand {
 export interface SessionStepResponse {
     stepOrder: number
     authMethodType: string
-    mandatory: boolean
+    isRequired: boolean
     status: string
     completedAt?: string
+    delegated?: boolean
 }
 
 export interface AuthSessionResponse {
-    id: string
+    sessionId: string
     tenantId: string
     userId: string
     operationType: string
     status: string
     currentStepOrder: number
+    totalSteps: number
     steps: SessionStepResponse[]
     expiresAt: string
     createdAt: string
@@ -71,7 +73,7 @@ export class AuthSessionRepository {
                 command
             )
 
-            this.logger.info('Auth session started', { sessionId: response.data.id })
+            this.logger.info('Auth session started', { sessionId: response.data.sessionId })
             return response.data
         } catch (error) {
             this.logger.error('Failed to start auth session', error)

@@ -1,78 +1,138 @@
-# FIVUCSAS Web Dashboard - TODO
+# FIVUCSAS Web Dashboard - Integration Audit & TODO
 
-> Comprehensive audit completed February 2026. All issues documented below.
+> Cross-module integration audit completed March 2026.
+> Compares web-app frontend against identity-core-api (23 controllers) and biometric-processor (17 route modules).
 
-## CRITICAL (Must fix - Broken functionality)
+---
 
-- [x] **C1** User model missing 6+ backend fields (`phoneNumber`, `address`, `idNumber`, `roles[]`, `isBiometricEnrolled`, `enrolledAt`, `lastVerifiedAt`, `verificationCount`) — `User.ts`
-- [x] **C2** Tenant model missing config fields (`biometricEnabled`, `sessionTimeoutMinutes`, `refreshTokenValidityDays`, `mfaRequired`) — `Tenant.ts`
-- [x] **C3** No server-side pagination — All repositories (User, Tenant, Enrollment, Role, AuditLog) now handle both flat array and Spring Data `Page<T>` responses. Params properly flattened (`pageSize` → `size`). Frontend pagination-ready for when backend adds `Pageable` support.
-- [x] **C4** Login sends `mfaCode` but backend ignores it — Removed from `AuthRepository.ts`
-- [x] **C5** Statistics `averageVerificationsPerUser` — Computed client-side via getter in `DashboardStats.ts`
-- [x] **C6** SettingsRepository returns empty profile data — Fixed mapping in `SettingsRepository.ts`
-- [x] **C7** Password validation inconsistent — Standardized to 8+ chars across Login, Register, UserForm
+## Previous Audit (Feb 2026) - 47/48 items COMPLETED
 
-## HIGH (Should fix - Broken UX or fragile code)
+All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (httpOnly cookies - requires backend).
 
-- [x] **H1** `useAuth` context value recreated every render — Added `useMemo` in `useAuth.tsx`
-- [x] **H2** Filter JSON.stringify causes refetch spam — Wrapped in `useMemo` in `useTenants.ts`, `useUsers.ts`
-- [x] **H3** 15+ HTTP calls typed as `any` — Replaced with `UserJSON`, `TenantJSON`, `EnrollmentJSON`, `AuditLogJSON`, `DashboardStatsJSON` across all repositories. Also fixed `error: any` to `error: unknown` in catch blocks.
-- [x] **H4** Single ErrorBoundary wraps entire app — Added page-level ErrorBoundary per route in `App.tsx`
-- [x] **H5** AuditLog handles 3 different response formats — Fully typed with `AuditLogListResponse` union type and exhaustive type guards in `AuditLogRepository.ts`
-- [x] **H6** Demo credentials shown in production — Wrapped in `import.meta.env.DEV` in `LoginPage.tsx`
-- [x] **H7** Delete operations silently swallow errors — Added error state and Alert in `TenantsListPage`, `EnrollmentsListPage`
-- [x] **H8** RegisterPage uses raw `axios.post` — Replaced with DI httpClient in `RegisterPage.tsx`
-- [x] **H9** Role/Permission management not integrated — Full feature: `Permission.ts`, `Role.ts`, `IRoleRepository.ts`, `IRoleService.ts`, `RoleRepository.ts`, `RoleService.ts`, `useRoles.ts`, `RolesListPage.tsx`, `RoleFormPage.tsx`, DI registration, routes, sidebar
-- [x] **H10** Tenant activate/suspend endpoints unused — Added buttons in `TenantsListPage.tsx`, full stack: interface → repo → service → hook → page
-- [x] **H11** Settings endpoint structure mismatch — Handled with `SettingsApiResponse` interface mapping nested backend format to flat frontend format in `SettingsRepository.ts`
+---
 
-## MEDIUM (Code quality and polish)
+## NEW: Cross-Module Integration Gaps
 
-- [x] **M1** Enrollment model missing `userName`/`userEmail` — Added to `Enrollment.ts`
-- [x] **M2** AuditLog missing `success` and `errorMessage` fields — Added to `AuditLog.ts`
-- [x] **M3** Audit log timestamp fallback — Fixed dual field `timestamp`/`createdAt` in `AuditLog.ts`
-- [x] **M4** `vite-env.d.ts` only declares 3 of 13+ env vars — Expanded to 16 declarations
-- [x] **M5** No debounce loading indicator — Added `LinearProgress` bar during 300ms debounce in `UsersListPage.tsx` and `AuditLogsPage.tsx`
-- [x] **M6** Tenant `slug` vs `domain` naming inconsistent — Renamed `Tenant.domain` to `Tenant.slug` throughout: model, `toJSON`, `TenantsListPage`, `TenantFormPage`, `UserFormPage`. `fromJSON` still accepts both for backward compat.
-- [x] **M7** Client-side audit log pagination — All repositories now support server-side pagination via Spring Data `Page<T>` response format (see C3). Client-side fallback maintained.
-- [x] **M8** No confirmation for destructive settings changes — Added `window.confirm()` for 2FA/timeout in `SettingsPage.tsx`
-- [x] **M9** User creation: missing TENANT_ADMIN role — Added to dropdown in `UserFormPage.tsx`
-- [x] **M10** Missing breadcrumb navigation — Added `PageBreadcrumbs` in `DashboardLayout.tsx`
-- [x] **M11** Notification icon renders but does nothing — Wrapped in Tooltip "coming soon" + disabled in `TopBar.tsx`
-- [x] **M12** Missing Prettier config — Created `.prettierrc` with project settings
-- [x] **M13** ESLint missing rules — Added `no-console`, `no-debugger`, `prefer-const`, `no-explicit-any` to `.eslintrc.cjs`
-- [x] **M14** Double 401 error handling — Fixed in `ErrorHandler.ts` to only notify on refresh failure
-- [x] **M15** No activity feed on dashboard — Added "Recent Activity" section to `DashboardPage.tsx` using `useAuditLogs`
-- [x] **M16** `/tenants/:id` (view details) route doesn't exist — Redirected to `/tenants/:id/edit`
+### CRITICAL - Frontend features with no backend support or broken contract
 
-## LOW (Polish and best practices)
+- [ ] **IC1** `AuthMethodType` enum uses lowercase values (`'password'`, `'face'`) but backend sends UPPERCASE (`PASSWORD`, `FACE`) - `AuthMethod.ts:6-16` vs backend `AuthMethodType.java`. The `fromJSON` in auth step components may fail to match method types.
+- [ ] **IC2** Frontend `Enrollment` model (`Enrollment.ts`) has fields `faceImageUrl`, `qualityScore`, `livenessScore` that don't exist in backend `EnrollmentResponse` (which has `authMethodType`, `enrolledAt`, `expiresAt`). The entire enrollment model structure is mismatched.
+- [ ] **IC3** Frontend `EnrollmentStatus` enum has `PENDING | PROCESSING | SUCCESS | FAILED` but backend has `NOT_ENROLLED | PENDING | ENROLLED | FAILED | REVOKED | EXPIRED`. Missing `NOT_ENROLLED`, `ENROLLED`, `REVOKED`, `EXPIRED`. The `fromJSON` maps `COMPLETED` -> `SUCCESS` but backend sends `ENROLLED` not `COMPLETED`.
+- [ ] **IC4** Backend `UserController.getAllUsers()` returns `List<UserDto>` (not paginated), but frontend `UserRepository` expects Spring Page format with `content`, `totalElements`, etc. The pagination will break because backend returns a flat array.
+- [ ] **IC5** Backend `UserResponse` has `emailVerified` and `phoneVerified` fields that frontend `User.ts` does not have. These are important for user management UI.
 
-- [x] **L1** Delete dialogs don't show resource name — Fixed in `TenantsListPage` (shows tenant name)
-- [x] **L2** No keyboard shortcuts — Added Ctrl+Enter (Cmd+Enter on Mac) submit to `UserFormPage`, `TenantFormPage`, `RoleFormPage`
-- [x] **L3** No `prefers-reduced-motion` check — Added CSS `@media (prefers-reduced-motion)` in `index.css`
-- [x] **L4** Avatar initials can be undefined — Safe fallback in `TopBar.tsx`
-- [x] **L5** Missing HTML meta tags — Added theme-color, OG tags, apple-touch-icon in `index.html`
-- [x] **L6** Unused `PageTransition` animation variants — Removed unused exports
-- [x] **L7** No dark mode toggle — `ThemeModeProvider.tsx` context, `createAppTheme(mode)` refactor, dark-aware Chip/Alert/Skeleton overrides, toggle in `TopBar.tsx`, localStorage persistence with system preference fallback
-- [x] **L8** LinearProgress in tenants list has no aria-label — Added
-- [x] **L9** Profile menu item label — Changed to "Profile & Settings" in `TopBar.tsx`
-- [~] **L10** Dev env uses `localStorage` for tokens — **Requires httpOnly cookies from backend; cannot fix frontend-only**
-- [x] **L11** No bundle size analysis tool — Added `build:analyze` script + Vite `reportCompressedSize` in `vite.config.ts`
-- [x] **L12** Enrollment quality scores have no context — Added color-coded Chips with Tooltips (Good/Acceptable/Poor)
-- [x] **L13** Action type filter uses hardcoded string array — Extracted `AUDIT_LOG_ACTION_TYPES` constant from `AuditLog.ts`
-- [x] **L14** No favicon files in public/ — Created `favicon.svg` with FIVUCSAS brand, updated `index.html`
+### HIGH - Missing backend features not exposed in frontend
+
+- [ ] **IH1** **Guest Management** - Backend has full `GuestController` with 6 endpoints (`/api/v1/guests/invite`, `/accept`, `GET /`, `/count`, `/{id}/revoke`, `/{id}/extend`) but frontend has ZERO guest management UI or repository. No sidebar link, no page, no service.
+- [ ] **IH2** **OTP Management** - Backend has `OtpController` with standalone OTP send/verify for email and SMS (`/api/v1/otp/email/send/{userId}`, `/email/verify/{userId}`, `/sms/send/{userId}`, `/sms/verify/{userId}`) but frontend has no OTP management UI.
+- [ ] **IH3** **TOTP Setup** - Backend has `TotpController` with setup/verify/disable/status endpoints (`/api/v1/totp/setup/{userId}`, `/verify-setup/{userId}`, `/disable/{userId}`, `/status/{userId}`) but frontend `TotpEnrollment.tsx` component exists but is not connected to these endpoints.
+- [ ] **IH4** **WebAuthn/FIDO2** - Backend has `WebAuthnController` with registration options, credential registration, and listing (`/api/v1/webauthn/register/options/{userId}`, `/register/{userId}`, `GET /{userId}`) but frontend has no WebAuthn management UI.
+- [ ] **IH5** **QR Code Authentication** - Backend has `QrCodeController` with generate/invalidate endpoints (`/api/v1/qr/generate/{userId}`, `DELETE /{token}`) but frontend `QrCodeStep.tsx` doesn't call these endpoints.
+- [ ] **IH6** **Step-Up Authentication** - Backend has `StepUpController` with device registration, challenge request, and verification (`/api/v1/step-up/register-device`, `/challenge`, `/verify-challenge`) but frontend has no step-up auth management UI.
+- [ ] **IH7** **User Role Assignment** - Backend has `UserRoleController` (`/api/v1/users/{userId}/roles`) with GET/POST/DELETE for role assignment but frontend `UserFormPage` only has a single role dropdown - no multi-role assignment UI.
+- [ ] **IH8** **Permission Management** - Backend has `PermissionController` with list/get/resource endpoints (`/api/v1/permissions`, `/{id}`, `/resource/{resource}`) but frontend `RoleFormPage` has no permission selection from backend - it should fetch available permissions.
+- [ ] **IH9** **Auth Method Listing** - Backend has `AuthMethodController` (`/api/v1/auth-methods`) that lists all available auth methods from DB but frontend uses hardcoded `DEFAULT_AUTH_METHODS` array in `AuthMethod.ts`.
+- [ ] **IH10** **Tenant Auth Method Config** - Backend has `TenantAuthMethodController` (`/api/v1/tenants/{tenantId}/auth-methods`) to configure which auth methods are enabled per tenant but frontend has no tenant auth method configuration UI.
+- [ ] **IH11** **Enrollment Management per User** - Backend has `EnrollmentManagementController` (`/api/v1/users/{userId}/enrollments`) with GET/POST/DELETE per-user enrollment but frontend enrollment page uses different structure via `/enrollments` not per-user.
+- [ ] **IH12** **Password Change** - Backend has `POST /api/v1/users/{id}/change-password` with password history check but frontend `SettingsPage` has no change password form.
+- [ ] **IH13** **User Search** - Backend has `GET /api/v1/users/search?query=` but frontend `UsersListPage` does client-side filtering instead of calling the search endpoint.
+- [ ] **IH14** **Statistics Export** - Backend has `GET /api/v1/statistics/export?format=` but frontend dashboard has no export button.
+- [ ] **IH15** **Forgot/Reset Password** - Backend has `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` but frontend `LoginPage` has no "Forgot Password" link or flow.
+- [ ] **IH16** **Auth Sessions Page** - Route `/auth-sessions` exists in `App.tsx` but NO sidebar link exists. The `AuthSessionsPage` exists but is not navigable.
+
+### MEDIUM - Model/enum mismatches and missing fields
+
+- [ ] **IM1** Frontend `DeviceResponse` (in `DeviceRepository.ts`) has `userId`, `deviceName`, `platform`, `fingerprint`, `lastUsed`, `createdAt` but backend `DeviceResponse` has `deviceName`, `platform` (enum), `deviceFingerprint`, `capabilities`, `isTrusted`, `lastUsedAt`, `registeredAt`. Missing `capabilities`, `isTrusted`. Field name mismatches: `fingerprint` vs `deviceFingerprint`, `lastUsed` vs `lastUsedAt`, `createdAt` vs `registeredAt`.
+- [ ] **IM2** Frontend `AuthFlowResponse` (in `AuthFlowRepository.ts`) has `operationType` as string but backend returns it as `OperationType` enum (`APP_LOGIN | DOOR_ACCESS | BUILDING_ACCESS | API_ACCESS | TRANSACTION | ENROLLMENT | GUEST_ACCESS | EXAM_PROCTORING | CUSTOM`). Frontend should validate/display these properly.
+- [ ] **IM3** Frontend `AuthSessionResponse` (in `AuthSessionRepository.ts`) has different field names from backend. Frontend: `id`, `tenantId`, `userId`, `currentStepOrder`, `steps[].mandatory`. Backend: `sessionId`, no `tenantId`/`userId`, `totalSteps`, `steps[].isRequired`, `steps[].delegated`.
+- [ ] **IM4** Frontend `AuditLog` action types are hardcoded to 10 values but backend can produce many more (e.g., `USER_AUTHENTICATED`, `USER_REGISTERED`, `BIOMETRIC_ENROLLED`, `ROLE_ASSIGNED`, `PERMISSION_GRANTED`, `TENANT_CREATED`, etc.). The filter dropdown is incomplete.
+- [ ] **IM5** Frontend `DashboardStats` matches backend `StatisticsResponse` well but is missing the `export` capability (format parameter).
+- [ ] **IM6** Backend `AuthenticationResponse` has `expiresIn` as `Long` but frontend `AuthRepository` treats it correctly. However, the `AuthFlowResponse` backend has `stepCount` field that frontend doesn't use.
+- [ ] **IM7** Backend `RoleResponse` has `systemRole` and `active` flags but frontend `Role.ts` model may not have these. The `RoleFormPage` should prevent editing system roles.
+- [ ] **IM8** Backend `TenantController` has `GET /tenants/slug/{slug}` and `POST /{tenantId}/activate`, `POST /{tenantId}/suspend` endpoints but frontend `TenantRepository` doesn't expose slug lookup.
+- [ ] **IM9** DI container registers `AuthFlowRepository`, `AuthSessionRepository`, `DeviceRepository` but does NOT bind corresponding services (`AuthFlowService`, `AuthSessionService`, `DeviceService`) even though `TYPES` defines them. The hooks likely don't use DI service layer.
+
+### LOW - Polish and completeness
+
+- [ ] **IL1** Frontend `AuthMethod.ts` has hardcoded `pricePerMonth` and `setupFee` fields that don't exist in backend `AuthMethodResponse`. Backend has `requiresEnrollment` instead.
+- [ ] **IL2** Frontend `BiometricService.ts` directly calls biometric-processor API but identity-core-api also proxies biometric calls. Decide which path to use and ensure consistency.
+- [ ] **IL3** `auth-sessions` route exists but no sidebar navigation item. Should be added to `Sidebar.tsx` or removed from routes.
+- [ ] **IL4** Backend has `AnalyticsPage` route in frontend but no corresponding backend analytics endpoint beyond `/statistics`. The page may be empty/placeholder.
+- [ ] **IL5** `NotificationPanel.tsx` exists but notification endpoints don't exist in backend. Should be documented as planned feature or removed.
+- [ ] **IL6** `useCsrf.ts` hook exists but backend doesn't use CSRF (disabled in SecurityConfig). Dead code.
+- [ ] **IL7** Frontend has `OperationType` values used in `AuthFlowBuilder` but they may not match backend enum exactly. Need to fetch from backend or ensure sync.
+- [~] **IL8** L10 from previous audit: httpOnly cookies for token storage - requires backend support.
 
 ---
 
 ## Summary
 
-| Priority | Total | Fixed | Deferred | Notes |
-|----------|-------|-------|----------|-------|
-| Critical | 7 | **7** | 0 | All fixed |
-| High | 11 | **11** | 0 | All fixed |
-| Medium | 16 | **16** | 0 | All fixed |
-| Low | 14 | **13** | 1 | L10 needs backend httpOnly cookies |
-| **Total** | **48** | **47** | **1** | **98% complete** |
+| Priority | Count | Description |
+|----------|-------|-------------|
+| Critical | 5 | Broken contracts, enum mismatches, model structure mismatches |
+| High | 16 | Missing backend features not exposed in frontend |
+| Medium | 9 | Field mismatches, missing fields, enum gaps |
+| Low | 8 | Polish, dead code, navigation gaps |
+| **Total** | **38** | New integration issues from cross-module audit |
 
-### Only Remaining Item
-- **L10**: httpOnly cookies for token storage — Requires backend to set `Set-Cookie` headers with `HttpOnly; Secure; SameSite=Strict` flags. Cannot be implemented frontend-only.
+### Priority Order
+
+**Week 1** (Critical fixes + Quick wins):
+1. IC1: Fix AuthMethodType case mismatch
+2. IC2+IC3: Rebuild Enrollment model to match backend EnrollmentResponse
+3. IC4: Fix User list pagination (backend returns flat array)
+4. IC5: Add emailVerified/phoneVerified to User model
+5. IH16: Add auth-sessions to sidebar or remove route
+6. IH15: Add Forgot Password link and flow
+
+**Week 2** (High-priority feature integrations):
+7. IH1: Build Guest Management page + repository + service
+8. IH7: Multi-role assignment UI for users
+9. IH8: Fetch permissions from backend for role form
+10. IH9: Fetch auth methods from backend instead of hardcoding
+11. IH12: Add change password form in Settings
+12. IH13: Use backend search endpoint instead of client-side filter
+13. IH14: Add statistics export button
+
+**Week 3** (Auth method management):
+14. IH3: Connect TotpEnrollment to backend endpoints
+15. IH4: Build WebAuthn management UI
+16. IH5: Connect QR code step to backend endpoints
+17. IH6: Build Step-Up auth management
+18. IH10: Tenant auth method configuration UI
+19. IH11: Fix enrollment management to use per-user endpoints
+
+**Week 4** (Model fixes + Polish):
+20. IM1-IM9: Fix all model/field mismatches
+21. IL1-IL8: Clean up dead code, fix navigation, documentation
+
+---
+
+## AUTH METHOD INTEGRATION GAPS (March 2026)
+
+### Auth Method UI Status
+
+| Auth Method | Step Component | Enrollment UI | Backend Ready | Runtime Status |
+|---|---|---|---|---|
+| PASSWORD | PasswordStep | N/A | Yes | Working |
+| EMAIL_OTP | EmailOtpStep | N/A | Yes | Working |
+| SMS_OTP | SmsOtpStep | N/A | Yes | Working |
+| TOTP | TotpStep | TotpEnrollment (disconnected) | Yes (TotpController) | Partially working |
+| QR_CODE | QrCodeStep | N/A | Yes (QrCodeController) | Working |
+| FACE | FaceCaptureStep | FaceEnrollmentFlow | Yes | Working |
+| FINGERPRINT | FingerprintStep | **MISSING** | Stub (always fails) | **BROKEN** |
+| VOICE | VoiceStep (disabled) | **MISSING** | Stub (always fails) | **BROKEN** |
+| NFC_DOCUMENT | NfcStep (placeholder) | **MISSING** | Stub (always fails) | **BROKEN** |
+| HARDWARE_KEY | HardwareKeyStep | **MISSING** | Yes (WebAuthnController) | Needs enrollment UI |
+
+### Auth Enrollment TODOs
+
+- [ ] **AE-1** Build WebAuthn/Hardware Key enrollment UI - backend WebAuthnController has `/register/options` and `/register/verify` ready
+- [ ] **AE-2** Build fingerprint enrollment UI - could use WebAuthn platform authenticators (Touch ID / Windows Hello)
+- [ ] **AE-3** Build voice enrollment UI - needs backend voice processing first (currently stub)
+- [ ] **AE-4** Connect TotpEnrollment.tsx to backend TotpController endpoints (`/totp/setup/{userId}`, `/totp/verify-setup/{userId}`)
+- [ ] **AE-5** Connect QrCodeStep.tsx to backend QrCodeController endpoints (`/qr/generate/{userId}`)
+- [ ] **AE-6** Voice auth method is disabled (`isActive: false`) in DEFAULT_AUTH_METHODS - enable when backend ready
+- [ ] **AE-7** NfcStep shows "not available on this device" - needs mobile app support
+- [ ] **AE-8** No enrollment management page per auth method - users can't initiate enrollment for specific methods
+- [ ] **AE-9** Auth sessions route exists but has no sidebar navigation link

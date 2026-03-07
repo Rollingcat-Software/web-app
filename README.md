@@ -236,6 +236,23 @@ npm test -- --coverage
 npm test -- --run
 ```
 
+## Auth Method UI Status
+
+| Auth Method | Step Component | Enrollment UI | Backend Ready | Runtime |
+|---|---|---|---|---|
+| PASSWORD | PasswordStep | N/A | Yes | Working |
+| EMAIL_OTP | EmailOtpStep | N/A | Yes | Working |
+| SMS_OTP | SmsOtpStep | N/A | Yes | Working |
+| TOTP | TotpStep | TotpEnrollment (disconnected) | Yes | Partial |
+| QR_CODE | QrCodeStep | N/A | Yes | Working |
+| FACE | FaceCaptureStep | FaceEnrollmentFlow | Yes | Working |
+| FINGERPRINT | FingerprintStep | **Missing** | Stub | **Broken** |
+| VOICE | VoiceStep (disabled) | **Missing** | Stub | **Broken** |
+| NFC_DOCUMENT | NfcStep (placeholder) | **Missing** | Stub | **Broken** |
+| HARDWARE_KEY | HardwareKeyStep | **Missing** | Yes (WebAuthn) | Needs enrollment |
+
+See [TODO.md](./TODO.md) for integration audit and [ROADMAP.md](./ROADMAP.md) for implementation plan.
+
 ## Documentation
 
 - [Architecture Guide](./docs/ARCHITECTURE.md) - Detailed architecture documentation

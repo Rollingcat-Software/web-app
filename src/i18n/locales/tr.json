@@ -22,6 +22,7 @@
     "tenants": "Kiracılar",
     "roles": "Roller",
     "authFlows": "Kimlik Doğrulama Akışları",
+    "authSessions": "Kimlik Doğrulama Oturumları",
     "devices": "Cihazlar",
     "enrollments": "Kayıtlar",
     "auditLogs": "Denetim Kayıtları",

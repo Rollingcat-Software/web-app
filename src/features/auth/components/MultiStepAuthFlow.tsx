@@ -31,7 +31,7 @@ interface AuthFlowStep {
     stepOrder: number
     methodType: string
     status: string
-    mandatory?: boolean
+    isRequired?: boolean
 }
 
 interface MultiStepAuthFlowProps {
@@ -113,7 +113,7 @@ export default function MultiStepAuthFlow({
                     .getSession(sessionId)
                     .then((session) => {
                         onComplete({
-                            accessToken: session.id, // The backend returns tokens via a separate endpoint
+                            accessToken: session.sessionId, // The backend returns tokens via a separate endpoint
                             userId: session.userId,
                         })
                     })
@@ -265,7 +265,7 @@ export default function MultiStepAuthFlow({
         const methodType = currentStep.methodType
 
         switch (methodType) {
-            case 'password':
+            case 'PASSWORD':
                 return (
                     <PasswordStep
                         onSubmit={(data) =>
@@ -276,7 +276,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'email_otp':
+            case 'EMAIL_OTP':
                 return (
                     <EmailOtpStep
                         onSubmit={(code) => handleStepSubmit({ code })}
@@ -290,7 +290,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'sms_otp':
+            case 'SMS_OTP':
                 return (
                     <SmsOtpStep
                         onSubmit={(code) => handleStepSubmit({ code })}
@@ -304,7 +304,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'totp':
+            case 'TOTP':
                 return (
                     <TotpStep
                         onSubmit={(code) => handleStepSubmit({ code })}
@@ -313,7 +313,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'qr_code':
+            case 'QR_CODE':
                 return (
                     <QrCodeStep
                         onSubmit={(token) => handleStepSubmit({ token })}
@@ -322,7 +322,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'face':
+            case 'FACE':
                 return (
                     <FaceCaptureStep
                         onSubmit={(image) => handleStepSubmit({ image })}
@@ -331,7 +331,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'fingerprint':
+            case 'FINGERPRINT':
                 return (
                     <FingerprintStep
                         onSubmit={(data) => handleStepSubmit({ data })}
@@ -340,7 +340,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'voice':
+            case 'VOICE':
                 return (
                     <VoiceStep
                         onSubmit={(voiceData) => handleStepSubmit({ voiceData })}
@@ -349,7 +349,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'hardware_key':
+            case 'HARDWARE_KEY':
                 return (
                     <HardwareKeyStep
                         onSubmit={(data) => handleStepSubmit(data)}
@@ -358,7 +358,7 @@ export default function MultiStepAuthFlow({
                     />
                 )
 
-            case 'nfc_document':
+            case 'NFC_DOCUMENT':
                 return <NfcStep loading={loading} error={error} />
 
             default:
@@ -438,7 +438,7 @@ export default function MultiStepAuthFlow({
                     </AnimatePresence>
 
                     {/* Skip Button (for optional steps) */}
-                    {currentStep && !currentStep.mandatory && !flowComplete && (
+                    {currentStep && !currentStep.isRequired && !flowComplete && (
                         <motion.div
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}

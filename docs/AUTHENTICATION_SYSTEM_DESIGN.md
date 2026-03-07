@@ -323,6 +323,19 @@ Endpoints needed:
 
 ---
 
-*Document Version: 1.0*
-*Last Updated: February 2026*
+## Integration Gap Analysis (March 2026)
+
+A cross-module audit identified gaps between this web-app's auth UI and the backend services:
+
+- **4 missing enrollment UIs**: Hardware Key, Fingerprint, Voice, NFC Document (see `AE-1` through `AE-3` in TODO.md)
+- **2 disconnected components**: TotpEnrollment and QrCodeStep not connected to backend endpoints
+- **3 broken auth methods at runtime**: Fingerprint, Voice, NFC (biometric-processor stubs)
+- **5 model/enum mismatches** with identity-core-api (IC1-IC5 in TODO.md)
+
+See [TODO.md](../TODO.md) for full list and [ROADMAP.md](../ROADMAP.md) for implementation plan.
+
+---
+
+*Document Version: 1.1*
+*Last Updated: March 2026*
 *Author: Development Team*

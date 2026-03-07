@@ -60,6 +60,47 @@ function getActionColor(action: string): 'success' | 'error' | 'warning' | 'info
 
 const ACTION_TYPES = ['ALL', ...AUDIT_LOG_ACTION_TYPES] as const
 
+const ACTION_LABELS: Record<string, string> = {
+    ALL: 'All Actions',
+    USER_CREATED: 'User Created',
+    USER_UPDATED: 'User Updated',
+    USER_DELETED: 'User Deleted',
+    USER_AUTHENTICATED: 'User Authenticated',
+    USER_REGISTERED: 'User Registered',
+    USER_LOGGED_OUT: 'User Logged Out',
+    BIOMETRIC_ENROLLED: 'Biometric Enrolled',
+    BIOMETRIC_VERIFIED: 'Biometric Verified',
+    BIOMETRIC_DELETED: 'Biometric Deleted',
+    ROLE_CREATED: 'Role Created',
+    ROLE_UPDATED: 'Role Updated',
+    ROLE_DELETED: 'Role Deleted',
+    ROLE_ASSIGNED: 'Role Assigned',
+    ROLE_REVOKED: 'Role Revoked',
+    PERMISSION_GRANTED: 'Permission Granted',
+    PERMISSION_REVOKED: 'Permission Revoked',
+    TENANT_CREATED: 'Tenant Created',
+    TENANT_UPDATED: 'Tenant Updated',
+    TENANT_DELETED: 'Tenant Deleted',
+    TENANT_ACTIVATED: 'Tenant Activated',
+    TENANT_SUSPENDED: 'Tenant Suspended',
+    SETTINGS_UPDATED: 'Settings Updated',
+    PASSWORD_CHANGED: 'Password Changed',
+    PASSWORD_RESET: 'Password Reset',
+    EMAIL_VERIFIED: 'Email Verified',
+    PHONE_VERIFIED: 'Phone Verified',
+    ENROLLMENT_STARTED: 'Enrollment Started',
+    ENROLLMENT_COMPLETED: 'Enrollment Completed',
+    ENROLLMENT_FAILED: 'Enrollment Failed',
+    AUTH_FLOW_CREATED: 'Auth Flow Created',
+    AUTH_FLOW_UPDATED: 'Auth Flow Updated',
+    AUTH_FLOW_DELETED: 'Auth Flow Deleted',
+    DEVICE_REGISTERED: 'Device Registered',
+    DEVICE_REMOVED: 'Device Removed',
+    GUEST_INVITED: 'Guest Invited',
+    GUEST_ACCEPTED: 'Guest Accepted',
+    GUEST_REVOKED: 'Guest Revoked',
+}
+
 export default function AuditLogsPage() {
     const [searchQuery, setSearchQuery] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -148,7 +189,7 @@ export default function AuditLogsPage() {
                     >
                         {ACTION_TYPES.map((action) => (
                             <MenuItem key={action} value={action}>
-                                {action === 'ALL' ? 'All Actions' : action.replace(/_/g, ' ')}
+                                {ACTION_LABELS[action] || action.replace(/_/g, ' ')}
                             </MenuItem>
                         ))}
                     </TextField>

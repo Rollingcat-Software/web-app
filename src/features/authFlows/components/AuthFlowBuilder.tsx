@@ -130,7 +130,7 @@ export function AuthFlowBuilder({
                 const passwordStep: AuthFlowStep = {
                     id: `step-password-${Date.now()}`,
                     order: 1,
-                    methodId: 'password',
+                    methodId: 'PASSWORD',
                     methodType: AuthMethodType.PASSWORD,
                     isRequired: true,
                     timeout: 120,
@@ -191,10 +191,7 @@ export function AuthFlowBuilder({
     const getMethod = (methodType: AuthMethodType) =>
         DEFAULT_AUTH_METHODS.find((m) => m.type === methodType)
 
-    const totalMonthlyCost = steps.reduce((acc, step) => {
-        const method = getMethod(step.methodType)
-        return acc + (method?.pricePerMonth ?? 0)
-    }, 0)
+    // Cost summary removed - pricing not managed in frontend
 
     return (
         <Box>
@@ -397,19 +394,6 @@ export function AuthFlowBuilder({
                                                                         />
                                                                     </Tooltip>
 
-                                                                    {/* Price */}
-                                                                    {method.pricePerMonth > 0 && (
-                                                                        <Chip
-                                                                            label={`$${method.pricePerMonth}/mo`}
-                                                                            size="small"
-                                                                            variant="outlined"
-                                                                            sx={{
-                                                                                borderColor: getMethodCategoryColor(method.category),
-                                                                                color: getMethodCategoryColor(method.category),
-                                                                            }}
-                                                                        />
-                                                                    )}
-
                                                                     {/* Settings */}
                                                                     <Tooltip title="Step settings">
                                                                         <IconButton size="small">
@@ -540,14 +524,6 @@ export function AuthFlowBuilder({
                                                                 >
                                                                     {method.name}
                                                                 </Typography>
-                                                                {method.pricePerMonth > 0 && (
-                                                                    <Typography
-                                                                        variant="caption"
-                                                                        color="text.secondary"
-                                                                    >
-                                                                        ${method.pricePerMonth}/mo
-                                                                    </Typography>
-                                                                )}
                                                             </Paper>
                                                         </Grid>
                                                     ))}
@@ -627,57 +603,6 @@ export function AuthFlowBuilder({
                                         })}
                                     </Box>
                                 )}
-                            </CardContent>
-                        </Card>
-
-                        {/* Cost Summary */}
-                        <Card sx={{ mb: 3 }}>
-                            <CardContent sx={{ p: 3 }}>
-                                <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                                    Cost Summary
-                                </Typography>
-
-                                {steps.map((step) => {
-                                    const method = getMethod(step.methodType)
-                                    if (!method || method.pricePerMonth === 0) return null
-                                    return (
-                                        <Box
-                                            key={step.id}
-                                            sx={{
-                                                display: 'flex',
-                                                justifyContent: 'space-between',
-                                                mb: 1,
-                                            }}
-                                        >
-                                            <Typography variant="body2" color="text.secondary">
-                                                {method.name}
-                                            </Typography>
-                                            <Typography variant="body2" fontWeight={500}>
-                                                ${method.pricePerMonth}/mo
-                                            </Typography>
-                                        </Box>
-                                    )
-                                })}
-
-                                <Divider sx={{ my: 2 }} />
-
-                                <Box
-                                    sx={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                    }}
-                                >
-                                    <Typography variant="subtitle1" fontWeight={600}>
-                                        Total
-                                    </Typography>
-                                    <Typography
-                                        variant="subtitle1"
-                                        fontWeight={700}
-                                        color="primary.main"
-                                    >
-                                        ${totalMonthlyCost}/mo
-                                    </Typography>
-                                </Box>
                             </CardContent>
                         </Card>
 

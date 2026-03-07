@@ -42,7 +42,9 @@ export class User {
         public readonly isBiometricEnrolled?: boolean,
         public readonly enrolledAt?: Date,
         public readonly lastVerifiedAt?: Date,
-        public readonly verificationCount?: number
+        public readonly verificationCount?: number,
+        public readonly emailVerified: boolean = false,
+        public readonly phoneVerified: boolean = false
     ) {}
 
     /**
@@ -111,6 +113,8 @@ export class User {
             enrolledAt: this.enrolledAt?.toISOString(),
             lastVerifiedAt: this.lastVerifiedAt?.toISOString(),
             verificationCount: this.verificationCount,
+            emailVerified: this.emailVerified,
+            phoneVerified: this.phoneVerified,
         }
     }
 
@@ -155,7 +159,9 @@ export class User {
             data.isBiometricEnrolled ?? false,
             data.enrolledAt ? new Date(data.enrolledAt) : undefined,
             data.lastVerifiedAt ? new Date(data.lastVerifiedAt) : undefined,
-            data.verificationCount ?? 0
+            data.verificationCount ?? 0,
+            data.emailVerified ?? false,
+            data.phoneVerified ?? false
         )
     }
 }
@@ -184,4 +190,6 @@ export interface UserJSON {
     enrolledAt?: string | Date
     lastVerifiedAt?: string | Date
     verificationCount?: number
+    emailVerified?: boolean
+    phoneVerified?: boolean
 }

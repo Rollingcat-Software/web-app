@@ -3,16 +3,16 @@
  * Represents all supported authentication methods in the platform
  */
 export enum AuthMethodType {
-    PASSWORD = 'password',
-    FACE = 'face',
-    FINGERPRINT = 'fingerprint',
-    QR_CODE = 'qr_code',
-    NFC_DOCUMENT = 'nfc_document',
-    TOTP = 'totp',
-    SMS_OTP = 'sms_otp',
-    EMAIL_OTP = 'email_otp',
-    VOICE = 'voice',
-    HARDWARE_KEY = 'hardware_key',
+    PASSWORD = 'PASSWORD',
+    FACE = 'FACE',
+    FINGERPRINT = 'FINGERPRINT',
+    QR_CODE = 'QR_CODE',
+    NFC_DOCUMENT = 'NFC_DOCUMENT',
+    TOTP = 'TOTP',
+    SMS_OTP = 'SMS_OTP',
+    EMAIL_OTP = 'EMAIL_OTP',
+    VOICE = 'VOICE',
+    HARDWARE_KEY = 'HARDWARE_KEY',
 }
 
 /**
@@ -24,6 +24,8 @@ export type Platform = 'web' | 'mobile' | 'desktop'
  * Authentication Method
  * Represents a single authentication method available in the system
  */
+export type AuthMethodCategory = 'BASIC' | 'STANDARD' | 'PREMIUM' | 'ENTERPRISE';
+
 export interface AuthMethod {
     id: string
     name: string
@@ -31,10 +33,8 @@ export interface AuthMethod {
     description: string
     icon: string
     platforms: Platform[]
-    pricePerMonth: number
-    setupFee: number
     isActive: boolean
-    category: 'basic' | 'standard' | 'premium' | 'enterprise'
+    category: AuthMethodCategory
 }
 
 /**
@@ -69,128 +69,110 @@ export interface AuthenticationFlow {
 }
 
 /**
- * Default authentication methods available in the system
+ * Default authentication methods available in the system.
+ * NOTE: These are fallback defaults. Auth methods should ideally be fetched
+ * from the backend via GET /api/v1/auth-methods when available.
  */
 export const DEFAULT_AUTH_METHODS: AuthMethod[] = [
     {
-        id: 'password',
+        id: 'PASSWORD',
         name: 'Password',
         type: AuthMethodType.PASSWORD,
         description: 'Traditional password authentication',
         icon: 'Lock',
         platforms: ['web', 'mobile', 'desktop'],
-        pricePerMonth: 0,
-        setupFee: 0,
         isActive: true,
-        category: 'basic',
+        category: 'BASIC',
     },
     {
-        id: 'email_otp',
+        id: 'EMAIL_OTP',
         name: 'Email OTP',
         type: AuthMethodType.EMAIL_OTP,
         description: 'One-time password sent via email',
         icon: 'Email',
         platforms: ['web', 'mobile', 'desktop'],
-        pricePerMonth: 0,
-        setupFee: 0,
         isActive: true,
-        category: 'basic',
+        category: 'BASIC',
     },
     {
-        id: 'sms_otp',
+        id: 'SMS_OTP',
         name: 'SMS OTP',
         type: AuthMethodType.SMS_OTP,
         description: 'One-time password sent via SMS',
         icon: 'Sms',
         platforms: ['web', 'mobile', 'desktop'],
-        pricePerMonth: 50,
-        setupFee: 0,
         isActive: true,
-        category: 'standard',
+        category: 'STANDARD',
     },
     {
-        id: 'totp',
+        id: 'TOTP',
         name: 'Authenticator App',
         type: AuthMethodType.TOTP,
         description: 'Time-based OTP via authenticator app',
         icon: 'PhonelinkLock',
         platforms: ['web', 'mobile', 'desktop'],
-        pricePerMonth: 50,
-        setupFee: 0,
         isActive: true,
-        category: 'standard',
+        category: 'STANDARD',
     },
     {
-        id: 'qr_code',
+        id: 'QR_CODE',
         name: 'QR Code',
         type: AuthMethodType.QR_CODE,
         description: 'Scan QR code for authentication',
         icon: 'QrCode2',
         platforms: ['web', 'mobile', 'desktop'],
-        pricePerMonth: 75,
-        setupFee: 0,
         isActive: true,
-        category: 'standard',
+        category: 'STANDARD',
     },
     {
-        id: 'face',
+        id: 'FACE',
         name: 'Face Recognition',
         type: AuthMethodType.FACE,
         description: 'Biometric face verification',
         icon: 'Face',
         platforms: ['web', 'mobile', 'desktop'],
-        pricePerMonth: 200,
-        setupFee: 500,
         isActive: true,
-        category: 'premium',
+        category: 'PREMIUM',
     },
     {
-        id: 'fingerprint',
+        id: 'FINGERPRINT',
         name: 'Fingerprint',
         type: AuthMethodType.FINGERPRINT,
         description: 'Biometric fingerprint verification',
         icon: 'Fingerprint',
         platforms: ['mobile', 'desktop'],
-        pricePerMonth: 150,
-        setupFee: 0,
         isActive: true,
-        category: 'premium',
+        category: 'PREMIUM',
     },
     {
-        id: 'voice',
+        id: 'VOICE',
         name: 'Voice Recognition',
         type: AuthMethodType.VOICE,
         description: 'Biometric voice verification',
         icon: 'RecordVoiceOver',
         platforms: ['web', 'mobile', 'desktop'],
-        pricePerMonth: 250,
-        setupFee: 750,
         isActive: false,
-        category: 'premium',
+        category: 'PREMIUM',
     },
     {
-        id: 'nfc_document',
+        id: 'NFC_DOCUMENT',
         name: 'NFC Document',
         type: AuthMethodType.NFC_DOCUMENT,
         description: 'ID document verification via NFC',
         icon: 'Nfc',
         platforms: ['web', 'mobile'],
-        pricePerMonth: 500,
-        setupFee: 1000,
         isActive: true,
-        category: 'enterprise',
+        category: 'ENTERPRISE',
     },
     {
-        id: 'hardware_key',
+        id: 'HARDWARE_KEY',
         name: 'Hardware Key',
         type: AuthMethodType.HARDWARE_KEY,
         description: 'FIDO2/WebAuthn hardware key',
         icon: 'Key',
         platforms: ['web', 'desktop'],
-        pricePerMonth: 100,
-        setupFee: 0,
         isActive: true,
-        category: 'enterprise',
+        category: 'ENTERPRISE',
     },
 ]
 
@@ -207,13 +189,13 @@ export function getMethodIcon(type: AuthMethodType): string {
  */
 export function getMethodCategoryColor(category: AuthMethod['category']): string {
     switch (category) {
-        case 'basic':
+        case 'BASIC':
             return '#10b981'
-        case 'standard':
+        case 'STANDARD':
             return '#3b82f6'
-        case 'premium':
+        case 'PREMIUM':
             return '#8b5cf6'
-        case 'enterprise':
+        case 'ENTERPRISE':
             return '#f59e0b'
         default:
             return '#64748b'

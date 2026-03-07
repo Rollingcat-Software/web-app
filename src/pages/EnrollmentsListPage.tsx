@@ -36,31 +36,42 @@ const rotate = keyframes`
     to { transform: rotate(360deg); }
 `
 
-function getStatusColor(status: EnrollmentStatus): 'success' | 'warning' | 'error' | 'info' {
+function getStatusColor(status: EnrollmentStatus): 'success' | 'warning' | 'error' | 'info' | 'default' {
     switch (status) {
         case EnrollmentStatus.SUCCESS:
+        case EnrollmentStatus.ENROLLED:
             return 'success'
         case EnrollmentStatus.PENDING:
             return 'warning'
         case EnrollmentStatus.PROCESSING:
             return 'info'
         case EnrollmentStatus.FAILED:
+        case EnrollmentStatus.EXPIRED:
             return 'error'
-        default:
+        case EnrollmentStatus.REVOKED:
             return 'warning'
+        case EnrollmentStatus.NOT_ENROLLED:
+        default:
+            return 'default'
     }
 }
 
 function getStatusIcon(status: EnrollmentStatus) {
     switch (status) {
         case EnrollmentStatus.SUCCESS:
+        case EnrollmentStatus.ENROLLED:
             return <CheckCircle fontSize="small"/>
         case EnrollmentStatus.PENDING:
+        case EnrollmentStatus.NOT_ENROLLED:
             return <Schedule fontSize="small"/>
         case EnrollmentStatus.PROCESSING:
             return <Autorenew fontSize="small" sx={{animation: `${rotate} 2s linear infinite`}}/>
         case EnrollmentStatus.FAILED:
+        case EnrollmentStatus.EXPIRED:
+        case EnrollmentStatus.REVOKED:
             return <Error fontSize="small"/>
+        default:
+            return <Schedule fontSize="small"/>
     }
 }
 
@@ -157,10 +168,13 @@ export default function EnrollmentsListPage() {
                         onChange={(e) => setStatusFilter(e.target.value as EnrollmentStatus | 'ALL')}
                     >
                         <MenuItem value="ALL">All Statuses</MenuItem>
-                        <MenuItem value={EnrollmentStatus.SUCCESS}>Success</MenuItem>
+                        <MenuItem value={EnrollmentStatus.ENROLLED}>Enrolled</MenuItem>
                         <MenuItem value={EnrollmentStatus.PENDING}>Pending</MenuItem>
                         <MenuItem value={EnrollmentStatus.PROCESSING}>Processing</MenuItem>
                         <MenuItem value={EnrollmentStatus.FAILED}>Failed</MenuItem>
+                        <MenuItem value={EnrollmentStatus.NOT_ENROLLED}>Not Enrolled</MenuItem>
+                        <MenuItem value={EnrollmentStatus.REVOKED}>Revoked</MenuItem>
+                        <MenuItem value={EnrollmentStatus.EXPIRED}>Expired</MenuItem>
                     </TextField>
                 </Paper>
             </Box>
