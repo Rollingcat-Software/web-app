@@ -15,7 +15,7 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 
 ### CRITICAL - Frontend features with no backend support or broken contract
 
-- [ ] **IC1** `AuthMethodType` enum uses lowercase values (`'password'`, `'face'`) but backend sends UPPERCASE (`PASSWORD`, `FACE`) - `AuthMethod.ts:6-16` vs backend `AuthMethodType.java`. The `fromJSON` in auth step components may fail to match method types.
+- [x] **IC1** `AuthMethodType` enum already uses UPPERCASE values (`'PASSWORD'`, `'FACE'`) matching backend `AuthMethodType.java`. **RESOLVED**.
 - [x] **IC2** Backend EnrollmentDto now includes faceImageUrl, qualityScore, livenessScore, errorCode, errorMessage, authMethodType fields matching frontend Enrollment model. **RESOLVED**.
 - [x] **IC3** EnrollmentStatus enum aligned in both types/index.ts and domain model with all 8 values (NOT_ENROLLED, PENDING, PROCESSING, ENROLLED, SUCCESS, FAILED, REVOKED, EXPIRED). Domain model fromJSON handles all backend status strings. **RESOLVED**.
 - [x] **IC4** Backend UserController already returns paginated format (content, totalElements, totalPages, page, size). Frontend UserRepository handles both array and paginated response formats. **RESOLVED**.
@@ -38,28 +38,28 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 - [ ] **IH13** **User Search** - Backend has `GET /api/v1/users/search?query=` but frontend `UsersListPage` does client-side filtering instead of calling the search endpoint.
 - [ ] **IH14** **Statistics Export** - Backend has `GET /api/v1/statistics/export?format=` but frontend dashboard has no export button.
 - [ ] **IH15** **Forgot/Reset Password** - Backend has `POST /api/v1/auth/forgot-password` and `POST /api/v1/auth/reset-password` but frontend `LoginPage` has no "Forgot Password" link or flow.
-- [ ] **IH16** **Auth Sessions Page** - Route `/auth-sessions` exists in `App.tsx` but NO sidebar link exists. The `AuthSessionsPage` exists but is not navigable.
+- [x] **IH16** **Auth Sessions Page** - Route `/auth-sessions` exists in `App.tsx` and sidebar link exists in `Sidebar.tsx`. **RESOLVED**.
 
 ### MEDIUM - Model/enum mismatches and missing fields
 
 - [x] **IM1** Backend DeviceResponse uses @JsonProperty annotations to serialize deviceFingerprint as fingerprint, lastUsedAt as lastUsed, registeredAt as createdAt. Frontend DeviceResponse also includes optional capabilities and isTrusted fields. **RESOLVED**.
 - [ ] **IM2** Frontend `AuthFlowResponse` (in `AuthFlowRepository.ts`) has `operationType` as string but backend returns it as `OperationType` enum (`APP_LOGIN | DOOR_ACCESS | BUILDING_ACCESS | API_ACCESS | TRANSACTION | ENROLLMENT | GUEST_ACCESS | EXAM_PROCTORING | CUSTOM`). Frontend should validate/display these properly.
-- [ ] **IM3** Frontend `AuthSessionResponse` (in `AuthSessionRepository.ts`) has different field names from backend. Frontend: `id`, `tenantId`, `userId`, `currentStepOrder`, `steps[].mandatory`. Backend: `sessionId`, no `tenantId`/`userId`, `totalSteps`, `steps[].isRequired`, `steps[].delegated`.
+- [x] **IM3** Frontend `AuthSessionResponse` (in `AuthSessionRepository.ts`) uses `sessionId`, `isRequired`, `delegated` matching backend. **RESOLVED**.
 - [ ] **IM4** Frontend `AuditLog` action types are hardcoded to 10 values but backend can produce many more (e.g., `USER_AUTHENTICATED`, `USER_REGISTERED`, `BIOMETRIC_ENROLLED`, `ROLE_ASSIGNED`, `PERMISSION_GRANTED`, `TENANT_CREATED`, etc.). The filter dropdown is incomplete.
 - [ ] **IM5** Frontend `DashboardStats` matches backend `StatisticsResponse` well but is missing the `export` capability (format parameter).
 - [ ] **IM6** Backend `AuthenticationResponse` has `expiresIn` as `Long` but frontend `AuthRepository` treats it correctly. However, the `AuthFlowResponse` backend has `stepCount` field that frontend doesn't use.
 - [ ] **IM7** Backend `RoleResponse` has `systemRole` and `active` flags but frontend `Role.ts` model may not have these. The `RoleFormPage` should prevent editing system roles.
 - [ ] **IM8** Backend `TenantController` has `GET /tenants/slug/{slug}` and `POST /{tenantId}/activate`, `POST /{tenantId}/suspend` endpoints but frontend `TenantRepository` doesn't expose slug lookup.
-- [ ] **IM9** DI container registers `AuthFlowRepository`, `AuthSessionRepository`, `DeviceRepository` but does NOT bind corresponding services (`AuthFlowService`, `AuthSessionService`, `DeviceService`) even though `TYPES` defines them. The hooks likely don't use DI service layer.
+- [x] **IM9** DI container binds `AuthFlowService`, `AuthSessionService`, `DeviceService` along with their repositories. **RESOLVED**.
 
 ### LOW - Polish and completeness
 
-- [ ] **IL1** Frontend `AuthMethod.ts` has hardcoded `pricePerMonth` and `setupFee` fields that don't exist in backend `AuthMethodResponse`. Backend has `requiresEnrollment` instead.
+- [x] **IL1** Frontend `AuthMethod.ts` no longer has `pricePerMonth`/`setupFee` fields. Uses `category` instead. **RESOLVED**.
 - [ ] **IL2** Frontend `BiometricService.ts` directly calls biometric-processor API but identity-core-api also proxies biometric calls. Decide which path to use and ensure consistency.
-- [ ] **IL3** `auth-sessions` route exists but no sidebar navigation item. Should be added to `Sidebar.tsx` or removed from routes.
+- [x] **IL3** `auth-sessions` route exists and sidebar navigation item added in `Sidebar.tsx`. **RESOLVED**.
 - [ ] **IL4** Backend has `AnalyticsPage` route in frontend but no corresponding backend analytics endpoint beyond `/statistics`. The page may be empty/placeholder.
 - [ ] **IL5** `NotificationPanel.tsx` exists but notification endpoints don't exist in backend. Should be documented as planned feature or removed.
-- [ ] **IL6** `useCsrf.ts` hook exists but backend doesn't use CSRF (disabled in SecurityConfig). Dead code.
+- [x] **IL6** `useCsrf.ts` hook removed. Backend doesn't use CSRF (disabled in SecurityConfig). **RESOLVED**.
 - [ ] **IL7** Frontend has `OperationType` values used in `AuthFlowBuilder` but they may not match backend enum exactly. Need to fetch from backend or ensure sync.
 - [~] **IL8** L10 from previous audit: httpOnly cookies for token storage - requires backend support.
 
