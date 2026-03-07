@@ -14,6 +14,8 @@ export interface DeviceResponse {
     fingerprint: string
     lastUsed: string
     createdAt: string
+    capabilities?: string[]
+    isTrusted?: boolean
 }
 
 /**

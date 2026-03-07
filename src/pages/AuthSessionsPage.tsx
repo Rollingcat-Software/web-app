@@ -39,12 +39,20 @@ export default function AuthSessionsPage() {
 
     // Sessions will be loaded from API in future iteration
     const sessions: Array<{
-        id: string
+        sessionId: string
         operationType: string
         status: string
-        currentStep: number
+        currentStepOrder: number
+        totalSteps: number
         userEmail?: string
         createdAt: string
+        steps: Array<{
+            stepOrder: number
+            methodType: string
+            status: string
+            isRequired: boolean
+            delegated?: boolean
+        }>
     }> = []
 
     return (
@@ -110,10 +118,10 @@ export default function AuthSessionsPage() {
                             </TableHead>
                             <TableBody>
                                 {sessions.map((session) => (
-                                    <TableRow key={session.id} hover>
+                                    <TableRow key={session.sessionId} hover>
                                         <TableCell>
                                             <Typography variant="caption" fontFamily="monospace">
-                                                {session.id.substring(0, 8)}...
+                                                {session.sessionId.substring(0, 8)}...
                                             </Typography>
                                         </TableCell>
                                         <TableCell>{session.userEmail || '-'}</TableCell>
@@ -127,7 +135,7 @@ export default function AuthSessionsPage() {
                                                 color={getStatusColor(session.status)}
                                             />
                                         </TableCell>
-                                        <TableCell>Step {session.currentStep}</TableCell>
+                                        <TableCell>Step {session.currentStepOrder} of {session.totalSteps}</TableCell>
                                         <TableCell>{new Date(session.createdAt).toLocaleString()}</TableCell>
                                     </TableRow>
                                 ))}

@@ -65,7 +65,7 @@ export default function UsersListPage() {
 
     const { users, loading, error, deleteUser, refetch } = useUsers()
 
-    // Debounce search input
+    // Debounce search input and use backend search when query is provided
     useEffect(() => {
         const timer = setTimeout(() => {
             setDebouncedSearch(searchQuery)
@@ -73,6 +73,15 @@ export default function UsersListPage() {
         }, 300)
         return () => clearTimeout(timer)
     }, [searchQuery])
+
+    // Trigger backend search when debounced search changes
+    useEffect(() => {
+        if (debouncedSearch) {
+            refetch({ search: debouncedSearch })
+        } else {
+            refetch()
+        }
+    }, [debouncedSearch, refetch])
 
     // Clear success message after 3 seconds
     useEffect(() => {
@@ -82,16 +91,8 @@ export default function UsersListPage() {
         }
     }, [successMessage])
 
-    const filteredUsers = useMemo(() => {
-        if (!debouncedSearch) return users
-        const query = debouncedSearch.toLowerCase()
-        return users.filter(
-            (user) =>
-                user.email.toLowerCase().includes(query) ||
-                user.firstName.toLowerCase().includes(query) ||
-                user.lastName.toLowerCase().includes(query)
-        )
-    }, [users, debouncedSearch])
+    // Users are now filtered server-side when search is active
+    const filteredUsers = users
 
     const paginatedUsers = useMemo(() => {
         const start = page * rowsPerPage

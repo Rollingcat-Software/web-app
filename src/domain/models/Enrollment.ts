@@ -4,10 +4,14 @@
  */
 
 export enum EnrollmentStatus {
+    NOT_ENROLLED = 'NOT_ENROLLED',
     PENDING = 'PENDING',
     PROCESSING = 'PROCESSING',
+    ENROLLED = 'ENROLLED',
     SUCCESS = 'SUCCESS',
     FAILED = 'FAILED',
+    REVOKED = 'REVOKED',
+    EXPIRED = 'EXPIRED',
 }
 
 export interface EnrollmentJSON {
@@ -15,6 +19,7 @@ export interface EnrollmentJSON {
     userId: string
     tenantId: string
     status: EnrollmentStatus
+    authMethodType?: string
     faceImageUrl: string
     createdAt: string
     updatedAt: string
@@ -40,6 +45,7 @@ export class Enrollment {
         public readonly faceImageUrl: string,
         public readonly createdAt: Date,
         public readonly updatedAt: Date,
+        public readonly authMethodType?: string,
         public readonly qualityScore?: number,
         public readonly livenessScore?: number,
         public readonly errorCode?: string,
@@ -53,14 +59,14 @@ export class Enrollment {
      * Check if enrollment is complete (SUCCESS or FAILED)
      */
     isComplete(): boolean {
-        return this.status === EnrollmentStatus.SUCCESS || this.status === EnrollmentStatus.FAILED
+        return this.status === EnrollmentStatus.SUCCESS || this.status === EnrollmentStatus.ENROLLED || this.status === EnrollmentStatus.FAILED
     }
 
     /**
      * Check if enrollment was successful
      */
     isSuccessful(): boolean {
-        return this.status === EnrollmentStatus.SUCCESS
+        return this.status === EnrollmentStatus.SUCCESS || this.status === EnrollmentStatus.ENROLLED
     }
 
     /**
@@ -136,13 +142,17 @@ export class Enrollment {
      * Create Enrollment from plain object (deserialization)
      */
     static fromJSON(data: any): Enrollment {
-        // Map status - backend may return "COMPLETED" which maps to SUCCESS
+        // Map status - backend may return various status strings
         const statusMap: Record<string, EnrollmentStatus> = {
-            'COMPLETED': EnrollmentStatus.SUCCESS,
-            'SUCCESS': EnrollmentStatus.SUCCESS,
+            'NOT_ENROLLED': EnrollmentStatus.NOT_ENROLLED,
             'PENDING': EnrollmentStatus.PENDING,
             'PROCESSING': EnrollmentStatus.PROCESSING,
+            'ENROLLED': EnrollmentStatus.ENROLLED,
+            'SUCCESS': EnrollmentStatus.ENROLLED,
+            'COMPLETED': EnrollmentStatus.ENROLLED,
             'FAILED': EnrollmentStatus.FAILED,
+            'REVOKED': EnrollmentStatus.REVOKED,
+            'EXPIRED': EnrollmentStatus.EXPIRED,
         }
         const status = statusMap[(data.status ?? '').toUpperCase()] ?? EnrollmentStatus.PENDING
 
@@ -154,6 +164,7 @@ export class Enrollment {
             data.faceImageUrl ?? '',
             new Date(data.createdAt ?? data.enrolledAt ?? new Date()),
             new Date(data.updatedAt ?? data.enrolledAt ?? new Date()),
+            data.authMethodType,
             data.qualityScore,
             data.livenessScore,
             data.errorCode,

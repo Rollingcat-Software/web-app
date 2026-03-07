@@ -7,6 +7,10 @@ import {
     Card,
     CardContent,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     IconButton,
     InputAdornment,
     TextField,
@@ -123,6 +127,89 @@ export default function LoginPage() {
     const { login, loading, error } = useAuth()
     const [showPassword, setShowPassword] = useState(false)
     const [faceLoginOpen, setFaceLoginOpen] = useState(false)
+
+    // Forgot password state
+    const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
+    const [forgotEmail, setForgotEmail] = useState('')
+    const [forgotLoading, setForgotLoading] = useState(false)
+    const [forgotError, setForgotError] = useState<string | null>(null)
+    const [forgotSuccess, setForgotSuccess] = useState(false)
+
+    // Reset password state
+    const [resetPasswordOpen, setResetPasswordOpen] = useState(false)
+    const [resetCode, setResetCode] = useState('')
+    const [resetNewPassword, setResetNewPassword] = useState('')
+    const [resetConfirmPassword, setResetConfirmPassword] = useState('')
+    const [resetLoading, setResetLoading] = useState(false)
+    const [resetError, setResetError] = useState<string | null>(null)
+    const [resetSuccess, setResetSuccess] = useState(false)
+
+    const handleForgotPassword = async () => {
+        setForgotLoading(true)
+        setForgotError(null)
+        try {
+            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+            const response = await fetch(`${baseUrl}/auth/forgot-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: forgotEmail }),
+            })
+            if (!response.ok) {
+                throw new Error('Failed to send reset email')
+            }
+            setForgotSuccess(true)
+        } catch (err) {
+            setForgotError(err instanceof Error ? err.message : 'Failed to send reset email')
+        } finally {
+            setForgotLoading(false)
+        }
+    }
+
+    const handleResetPassword = async () => {
+        if (resetNewPassword !== resetConfirmPassword) {
+            setResetError('Passwords do not match')
+            return
+        }
+        setResetLoading(true)
+        setResetError(null)
+        try {
+            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+            const response = await fetch(`${baseUrl}/auth/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email: forgotEmail, code: resetCode, newPassword: resetNewPassword }),
+            })
+            if (!response.ok) {
+                throw new Error('Failed to reset password')
+            }
+            setResetSuccess(true)
+        } catch (err) {
+            setResetError(err instanceof Error ? err.message : 'Failed to reset password')
+        } finally {
+            setResetLoading(false)
+        }
+    }
+
+    const handleCloseForgotPassword = () => {
+        setForgotPasswordOpen(false)
+        setForgotEmail('')
+        setForgotError(null)
+        setForgotSuccess(false)
+    }
+
+    const handleOpenResetDialog = () => {
+        setForgotPasswordOpen(false)
+        setResetPasswordOpen(true)
+    }
+
+    const handleCloseResetPassword = () => {
+        setResetPasswordOpen(false)
+        setResetCode('')
+        setResetNewPassword('')
+        setResetConfirmPassword('')
+        setResetError(null)
+        setResetSuccess(false)
+    }
 
     const handleFaceVerify = async (image: string): Promise<boolean> => {
         try {
@@ -378,16 +465,23 @@ export default function LoginPage() {
                             {/* Forgot Password Link */}
                             <motion.div variants={itemVariants}>
                                 <Box sx={{ textAlign: 'right', mt: 1 }}>
-                                    <Typography
-                                        component="span"
+                                    <Link
+                                        component="button"
+                                        type="button"
+                                        onClick={() => setForgotPasswordOpen(true)}
+                                        underline="hover"
                                         sx={{
                                             fontSize: '0.875rem',
-                                            color: 'text.secondary',
-                                            fontStyle: 'italic',
+                                            color: 'primary.main',
+                                            cursor: 'pointer',
+                                            fontWeight: 500,
+                                            '&:hover': {
+                                                color: 'primary.dark',
+                                            },
                                         }}
                                     >
-                                        Forgot password? Contact admin
-                                    </Typography>
+                                        Forgot Password?
+                                    </Link>
                                 </Box>
                             </motion.div>
 
@@ -580,6 +674,115 @@ export default function LoginPage() {
                 onClose={() => setFaceLoginOpen(false)}
                 onVerify={handleFaceVerify}
             />
+
+            {/* Forgot Password Dialog */}
+            <Dialog open={forgotPasswordOpen} onClose={handleCloseForgotPassword} maxWidth="sm" fullWidth>
+                <DialogTitle>Forgot Password</DialogTitle>
+                <DialogContent>
+                    {forgotError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>{forgotError}</Alert>
+                    )}
+                    {forgotSuccess ? (
+                        <>
+                            <Alert severity="success" sx={{ mb: 2 }}>
+                                A password reset code has been sent to your email.
+                            </Alert>
+                            <Button variant="contained" fullWidth onClick={handleOpenResetDialog}>
+                                Enter Reset Code
+                            </Button>
+                        </>
+                    ) : (
+                        <>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                Enter your email address and we will send you a password reset code.
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                label="Email Address"
+                                type="email"
+                                value={forgotEmail}
+                                onChange={(e) => setForgotEmail(e.target.value)}
+                                disabled={forgotLoading}
+                                autoFocus
+                            />
+                        </>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseForgotPassword} disabled={forgotLoading}>Cancel</Button>
+                    {!forgotSuccess && (
+                        <Button
+                            variant="contained"
+                            onClick={handleForgotPassword}
+                            disabled={forgotLoading || !forgotEmail}
+                        >
+                            {forgotLoading ? <CircularProgress size={20} /> : 'Send Reset Code'}
+                        </Button>
+                    )}
+                </DialogActions>
+            </Dialog>
+
+            {/* Reset Password Dialog */}
+            <Dialog open={resetPasswordOpen} onClose={handleCloseResetPassword} maxWidth="sm" fullWidth>
+                <DialogTitle>Reset Password</DialogTitle>
+                <DialogContent>
+                    {resetError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>{resetError}</Alert>
+                    )}
+                    {resetSuccess ? (
+                        <Alert severity="success">
+                            Your password has been reset successfully. You can now sign in with your new password.
+                        </Alert>
+                    ) : (
+                        <>
+                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                Enter the reset code sent to {forgotEmail} and your new password.
+                            </Typography>
+                            <TextField
+                                fullWidth
+                                label="Reset Code"
+                                value={resetCode}
+                                onChange={(e) => setResetCode(e.target.value)}
+                                margin="normal"
+                                disabled={resetLoading}
+                                autoFocus
+                            />
+                            <TextField
+                                fullWidth
+                                label="New Password"
+                                type="password"
+                                value={resetNewPassword}
+                                onChange={(e) => setResetNewPassword(e.target.value)}
+                                margin="normal"
+                                disabled={resetLoading}
+                            />
+                            <TextField
+                                fullWidth
+                                label="Confirm New Password"
+                                type="password"
+                                value={resetConfirmPassword}
+                                onChange={(e) => setResetConfirmPassword(e.target.value)}
+                                margin="normal"
+                                disabled={resetLoading}
+                            />
+                        </>
+                    )}
+                </DialogContent>
+                <DialogActions>
+                    <Button onClick={handleCloseResetPassword} disabled={resetLoading}>
+                        {resetSuccess ? 'Close' : 'Cancel'}
+                    </Button>
+                    {!resetSuccess && (
+                        <Button
+                            variant="contained"
+                            onClick={handleResetPassword}
+                            disabled={resetLoading || !resetCode || !resetNewPassword || !resetConfirmPassword}
+                        >
+                            {resetLoading ? <CircularProgress size={20} /> : 'Reset Password'}
+                        </Button>
+                    )}
+                </DialogActions>
+            </Dialog>
         </Box>
     )
 }
