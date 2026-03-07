@@ -306,7 +306,7 @@ export default function WebAuthnEnrollment({
                             fullWidth
                             label="Device Name (optional)"
                             value={deviceName}
-                            onChange={(e) => setDeviceName(e.target.value)}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceName(e.target.value)}
                             placeholder={isPlatform ? 'e.g., MacBook Pro Touch ID' : 'e.g., YubiKey 5'}
                             sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                         />
