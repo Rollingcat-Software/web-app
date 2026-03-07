@@ -48,6 +48,9 @@ import { AuditLogService } from '@features/auditLogs/services/AuditLogService'
 import { EnrollmentService } from '@features/enrollments/services/EnrollmentService'
 import { SettingsService } from '@features/settings/services/SettingsService'
 import { RoleService } from '@features/roles/services/RoleService'
+import { AuthFlowService } from '@features/authFlows/services/AuthFlowService'
+import { AuthSessionService } from '@features/auth/services/AuthSessionService'
+import { DeviceService } from '@features/devices/services/DeviceService'
 
 /**
  * Create and configure the IoC container
@@ -107,6 +110,9 @@ container.bind<IAuditLogService>(TYPES.AuditLogService).to(AuditLogService).inSi
 container.bind<IEnrollmentService>(TYPES.EnrollmentService).to(EnrollmentService).inSingletonScope()
 container.bind<ISettingsService>(TYPES.SettingsService).to(SettingsService).inSingletonScope()
 container.bind<IRoleService>(TYPES.RoleService).to(RoleService).inSingletonScope()
+container.bind<AuthFlowService>(TYPES.AuthFlowService).to(AuthFlowService).inSingletonScope()
+container.bind<AuthSessionService>(TYPES.AuthSessionService).to(AuthSessionService).inSingletonScope()
+container.bind<DeviceService>(TYPES.DeviceService).to(DeviceService).inSingletonScope()
 
 export { container }
 export type { Container }
