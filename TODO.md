@@ -105,3 +105,34 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 **Week 4** (Model fixes + Polish):
 20. IM1-IM9: Fix all model/field mismatches
 21. IL1-IL8: Clean up dead code, fix navigation, documentation
+
+---
+
+## AUTH METHOD INTEGRATION GAPS (March 2026)
+
+### Auth Method UI Status
+
+| Auth Method | Step Component | Enrollment UI | Backend Ready | Runtime Status |
+|---|---|---|---|---|
+| PASSWORD | PasswordStep | N/A | Yes | Working |
+| EMAIL_OTP | EmailOtpStep | N/A | Yes | Working |
+| SMS_OTP | SmsOtpStep | N/A | Yes | Working |
+| TOTP | TotpStep | TotpEnrollment (disconnected) | Yes (TotpController) | Partially working |
+| QR_CODE | QrCodeStep | N/A | Yes (QrCodeController) | Working |
+| FACE | FaceCaptureStep | FaceEnrollmentFlow | Yes | Working |
+| FINGERPRINT | FingerprintStep | **MISSING** | Stub (always fails) | **BROKEN** |
+| VOICE | VoiceStep (disabled) | **MISSING** | Stub (always fails) | **BROKEN** |
+| NFC_DOCUMENT | NfcStep (placeholder) | **MISSING** | Stub (always fails) | **BROKEN** |
+| HARDWARE_KEY | HardwareKeyStep | **MISSING** | Yes (WebAuthnController) | Needs enrollment UI |
+
+### Auth Enrollment TODOs
+
+- [ ] **AE-1** Build WebAuthn/Hardware Key enrollment UI - backend WebAuthnController has `/register/options` and `/register/verify` ready
+- [ ] **AE-2** Build fingerprint enrollment UI - could use WebAuthn platform authenticators (Touch ID / Windows Hello)
+- [ ] **AE-3** Build voice enrollment UI - needs backend voice processing first (currently stub)
+- [ ] **AE-4** Connect TotpEnrollment.tsx to backend TotpController endpoints (`/totp/setup/{userId}`, `/totp/verify-setup/{userId}`)
+- [ ] **AE-5** Connect QrCodeStep.tsx to backend QrCodeController endpoints (`/qr/generate/{userId}`)
+- [ ] **AE-6** Voice auth method is disabled (`isActive: false`) in DEFAULT_AUTH_METHODS - enable when backend ready
+- [ ] **AE-7** NfcStep shows "not available on this device" - needs mobile app support
+- [ ] **AE-8** No enrollment management page per auth method - users can't initiate enrollment for specific methods
+- [ ] **AE-9** Auth sessions route exists but has no sidebar navigation link
