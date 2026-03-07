@@ -16,10 +16,10 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 ### CRITICAL - Frontend features with no backend support or broken contract
 
 - [ ] **IC1** `AuthMethodType` enum uses lowercase values (`'password'`, `'face'`) but backend sends UPPERCASE (`PASSWORD`, `FACE`) - `AuthMethod.ts:6-16` vs backend `AuthMethodType.java`. The `fromJSON` in auth step components may fail to match method types.
-- [ ] **IC2** Frontend `Enrollment` model (`Enrollment.ts`) has fields `faceImageUrl`, `qualityScore`, `livenessScore` that don't exist in backend `EnrollmentResponse` (which has `authMethodType`, `enrolledAt`, `expiresAt`). The entire enrollment model structure is mismatched.
-- [ ] **IC3** Frontend `EnrollmentStatus` enum has `PENDING | PROCESSING | SUCCESS | FAILED` but backend has `NOT_ENROLLED | PENDING | ENROLLED | FAILED | REVOKED | EXPIRED`. Missing `NOT_ENROLLED`, `ENROLLED`, `REVOKED`, `EXPIRED`. The `fromJSON` maps `COMPLETED` -> `SUCCESS` but backend sends `ENROLLED` not `COMPLETED`.
-- [ ] **IC4** Backend `UserController.getAllUsers()` returns `List<UserDto>` (not paginated), but frontend `UserRepository` expects Spring Page format with `content`, `totalElements`, etc. The pagination will break because backend returns a flat array.
-- [ ] **IC5** Backend `UserResponse` has `emailVerified` and `phoneVerified` fields that frontend `User.ts` does not have. These are important for user management UI.
+- [x] **IC2** Backend EnrollmentDto now includes faceImageUrl, qualityScore, livenessScore, errorCode, errorMessage, authMethodType fields matching frontend Enrollment model. **RESOLVED**.
+- [x] **IC3** EnrollmentStatus enum aligned in both types/index.ts and domain model with all 8 values (NOT_ENROLLED, PENDING, PROCESSING, ENROLLED, SUCCESS, FAILED, REVOKED, EXPIRED). Domain model fromJSON handles all backend status strings. **RESOLVED**.
+- [x] **IC4** Backend UserController already returns paginated format (content, totalElements, totalPages, page, size). Frontend UserRepository handles both array and paginated response formats. **RESOLVED**.
+- [x] **IC5** Frontend User.ts already has emailVerified and phoneVerified fields with proper defaults and deserialization. **RESOLVED** (was already correct).
 
 ### HIGH - Missing backend features not exposed in frontend
 
@@ -42,7 +42,7 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 
 ### MEDIUM - Model/enum mismatches and missing fields
 
-- [ ] **IM1** Frontend `DeviceResponse` (in `DeviceRepository.ts`) has `userId`, `deviceName`, `platform`, `fingerprint`, `lastUsed`, `createdAt` but backend `DeviceResponse` has `deviceName`, `platform` (enum), `deviceFingerprint`, `capabilities`, `isTrusted`, `lastUsedAt`, `registeredAt`. Missing `capabilities`, `isTrusted`. Field name mismatches: `fingerprint` vs `deviceFingerprint`, `lastUsed` vs `lastUsedAt`, `createdAt` vs `registeredAt`.
+- [x] **IM1** Backend DeviceResponse uses @JsonProperty annotations to serialize deviceFingerprint as fingerprint, lastUsedAt as lastUsed, registeredAt as createdAt. Frontend DeviceResponse also includes optional capabilities and isTrusted fields. **RESOLVED**.
 - [ ] **IM2** Frontend `AuthFlowResponse` (in `AuthFlowRepository.ts`) has `operationType` as string but backend returns it as `OperationType` enum (`APP_LOGIN | DOOR_ACCESS | BUILDING_ACCESS | API_ACCESS | TRANSACTION | ENROLLMENT | GUEST_ACCESS | EXAM_PROCTORING | CUSTOM`). Frontend should validate/display these properly.
 - [ ] **IM3** Frontend `AuthSessionResponse` (in `AuthSessionRepository.ts`) has different field names from backend. Frontend: `id`, `tenantId`, `userId`, `currentStepOrder`, `steps[].mandatory`. Backend: `sessionId`, no `tenantId`/`userId`, `totalSteps`, `steps[].isRequired`, `steps[].delegated`.
 - [ ] **IM4** Frontend `AuditLog` action types are hardcoded to 10 values but backend can produce many more (e.g., `USER_AUTHENTICATED`, `USER_REGISTERED`, `BIOMETRIC_ENROLLED`, `ROLE_ASSIGNED`, `PERMISSION_GRANTED`, `TENANT_CREATED`, etc.). The filter dropdown is incomplete.

@@ -67,10 +67,14 @@ export interface EnrollmentJob {
 }
 
 export enum EnrollmentStatus {
+    NOT_ENROLLED = 'NOT_ENROLLED',
     PENDING = 'PENDING',
     PROCESSING = 'PROCESSING',
+    ENROLLED = 'ENROLLED',
     SUCCESS = 'SUCCESS',
     FAILED = 'FAILED',
+    REVOKED = 'REVOKED',
+    EXPIRED = 'EXPIRED',
 }
 
 export interface AuditLog {

@@ -57,9 +57,10 @@ Enrollment UIs (only 2 exist):
 - Auth sessions page exists but has no sidebar navigation link
 
 ### Model mismatches with backend:
-- AuthMethodType uses wrong case (IC1)
-- Enrollment model fields don't match backend EnrollmentResponse (IC2)
-- EnrollmentStatus enum doesn't match backend (IC3)
-- User pagination broken - backend returns flat array (IC4)
+- AuthMethodType uses UPPERCASE which matches backend (IC1 - resolved)
+- Enrollment domain model fields now match backend EnrollmentDto (IC2 - resolved)
+- EnrollmentStatus enum aligned in both types/index.ts and domain model (IC3 - resolved)
+- User pagination works - backend returns paginated format, UserRepository handles both formats (IC4 - resolved)
+- DeviceResponse field names aligned via @JsonProperty in backend (IM1 - resolved)
 
 See TODO.md for full integration audit (38+ items).
