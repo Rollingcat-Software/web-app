@@ -127,6 +127,7 @@ export default function LoginPage() {
     const { login, loading, error } = useAuth()
     const [showPassword, setShowPassword] = useState(false)
     const [faceLoginOpen, setFaceLoginOpen] = useState(false)
+    const [faceError, setFaceError] = useState<string | null>(null)
 
     // Forgot password state
     const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
@@ -212,6 +213,7 @@ export default function LoginPage() {
     }
 
     const handleFaceVerify = async (image: string): Promise<boolean> => {
+        setFaceError(null)
         try {
             const biometric = getBiometricService()
             const result = await biometric.searchFace(image)
@@ -221,8 +223,11 @@ export default function LoginPage() {
                 navigate('/')
                 return true
             }
+            setFaceError('No matching face found. Please try again or use password login.')
             return false
-        } catch {
+        } catch (err) {
+            const message = err instanceof Error ? err.message : 'Face verification failed'
+            setFaceError(message)
             return false
         }
     }
@@ -348,7 +353,7 @@ export default function LoginPage() {
                         {/* Login Form */}
                         <form onSubmit={handleSubmit(onSubmit)}>
                             {/* Error Alert */}
-                            {error && (
+                            {(error || faceError) && (
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -361,7 +366,7 @@ export default function LoginPage() {
                                             borderRadius: '12px',
                                         }}
                                     >
-                                        {error.message || 'Login failed. Please try again.'}
+                                        {faceError || error?.message || 'Login failed. Please try again.'}
                                     </Alert>
                                 </motion.div>
                             )}

@@ -63,7 +63,7 @@ export default function UsersListPage() {
     const [isDeleting, setIsDeleting] = useState(false)
     const [successMessage, setSuccessMessage] = useState<string | null>(null)
 
-    const { users, loading, error, deleteUser, refetch } = useUsers()
+    const { users, total, loading, error, deleteUser, refetch } = useUsers()
 
     // Debounce search input and use backend search when query is provided
     useEffect(() => {
@@ -269,7 +269,7 @@ export default function UsersListPage() {
                     </TableContainer>
                     <TablePagination
                         component="div"
-                        count={filteredUsers.length}
+                        count={total || filteredUsers.length}
                         page={page}
                         onPageChange={handleChangePage}
                         rowsPerPage={rowsPerPage}

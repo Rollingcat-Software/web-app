@@ -132,15 +132,36 @@ export class TokenService implements ITokenService {
      */
     async getAccessToken(): Promise<string | null> {
         try {
+            // Check cached token expiration before returning
             if (this.cachedAccessToken) {
+                if (this.tokenExpirationTime && this.tokenExpirationTime <= Date.now()) {
+                    this.logger.debug('Cached access token expired, clearing')
+                    this.cachedAccessToken = null
+                    this.tokenExpirationTime = null
+                    return null
+                }
                 return this.cachedAccessToken
             }
             // Fall back to persistent storage
             const token = await this.storage.getItem(this.ACCESS_TOKEN_KEY)
             if (token) {
-                this.cachedAccessToken = token
+                // Validate token is not expired before caching
+                try {
+                    const decoded = jwtDecode<JwtPayload>(token)
+                    if (decoded.exp * 1000 <= Date.now()) {
+                        await this.storage.removeItem(this.ACCESS_TOKEN_KEY)
+                        await this.storage.removeItem(this.REFRESH_TOKEN_KEY)
+                        return null
+                    }
+                    this.cachedAccessToken = token
+                    this.tokenExpirationTime = decoded.exp * 1000
+                } catch {
+                    // Invalid token in storage
+                    await this.storage.removeItem(this.ACCESS_TOKEN_KEY)
+                    return null
+                }
             }
-            return token
+            return this.cachedAccessToken
         } catch (error) {
             this.logger.error('Failed to get access token', error)
             return null
