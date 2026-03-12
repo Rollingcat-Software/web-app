@@ -14,6 +14,11 @@ import { validateLoginCredentials } from '@domain/validators/authValidator'
  */
 @injectable()
 export class AuthService implements IAuthService {
+    private static readonly MAX_LOGIN_ATTEMPTS = 5
+    private static readonly LOCKOUT_DURATION_MS = 15 * 60 * 1000 // 15 minutes
+    private loginAttempts = 0
+    private lockoutUntil: number | null = null
+
     constructor(
         @inject(TYPES.AuthRepository) private readonly authRepository: IAuthRepository,
         @inject(TYPES.TokenService) private readonly tokenService: ITokenService,
@@ -24,6 +29,20 @@ export class AuthService implements IAuthService {
      * Login with credentials
      */
     async login(credentials: LoginCredentials): Promise<AuthResult> {
+        // Check rate limit
+        if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
+            const remainingSeconds = Math.ceil((this.lockoutUntil - Date.now()) / 1000)
+            throw new UnauthorizedError(
+                `Too many login attempts. Please try again in ${remainingSeconds} seconds.`
+            )
+        }
+
+        // Reset lockout if expired
+        if (this.lockoutUntil && Date.now() >= this.lockoutUntil) {
+            this.lockoutUntil = null
+            this.loginAttempts = 0
+        }
+
         // Validate credentials
         const validation = validateLoginCredentials(credentials)
         if (!validation.success && validation.errors) {
@@ -51,6 +70,10 @@ export class AuthService implements IAuthService {
             // Calculate expiration time
             const expiresAt = new Date(Date.now() + response.expiresIn * 1000)
 
+            // Reset attempts on success
+            this.loginAttempts = 0
+            this.lockoutUntil = null
+
             this.logger.info('User logged in successfully', {
                 userId: response.user.id,
                 email: response.user.email,
@@ -61,6 +84,16 @@ export class AuthService implements IAuthService {
                 expiresAt,
             }
         } catch (error) {
+            // Track failed attempts
+            this.loginAttempts++
+            if (this.loginAttempts >= AuthService.MAX_LOGIN_ATTEMPTS) {
+                this.lockoutUntil = Date.now() + AuthService.LOCKOUT_DURATION_MS
+                this.logger.warn('Login rate limit reached, account locked out', {
+                    attempts: this.loginAttempts,
+                    lockoutMinutes: AuthService.LOCKOUT_DURATION_MS / 60000,
+                })
+            }
+
             this.logger.error('Login failed', error)
 
             // Re-throw as UnauthorizedError if not already an AppError
