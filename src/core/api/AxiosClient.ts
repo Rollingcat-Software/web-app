@@ -130,8 +130,19 @@ export class AxiosClient implements IHttpClient {
                 const url = config.url || 'unknown'
 
                 // Add Bearer token Authorization header
-                const accessToken = await this.tokenService.getAccessToken()
+                let accessToken = await this.tokenService.getAccessToken()
                 if (accessToken) {
+                    // Proactively refresh if token is near expiration
+                    if (this.tokenService.shouldRefresh(accessToken) &&
+                        !url.includes('/auth/refresh') &&
+                        !url.includes('/auth/login')) {
+                        try {
+                            await this.refreshTokenProactively()
+                            accessToken = await this.tokenService.getAccessToken()
+                        } catch {
+                            // Fall back to existing token if proactive refresh fails
+                        }
+                    }
                     config.headers['Authorization'] = `Bearer ${accessToken}`
                 }
 
@@ -246,6 +257,35 @@ export class AxiosClient implements IHttpClient {
                 return Promise.reject(error)
             }
         )
+    }
+
+    /**
+     * Proactively refresh the token before it expires.
+     * Reuses the same deduplication promise to avoid concurrent refreshes.
+     */
+    private async refreshTokenProactively(): Promise<void> {
+        if (!this.refreshPromise) {
+            this.refreshPromise = (async () => {
+                this.logger.info('Proactively refreshing token before expiration')
+                const refreshToken = await this.tokenService.getRefreshToken()
+                if (!refreshToken) {
+                    throw new Error('No refresh token available')
+                }
+                const refreshResponse = await this.client.post('/auth/refresh', { refreshToken })
+                const data = refreshResponse.data as { accessToken?: string; refreshToken?: string }
+                if (data.accessToken && data.refreshToken) {
+                    await this.tokenService.storeTokens({
+                        accessToken: data.accessToken,
+                        refreshToken: data.refreshToken,
+                    })
+                }
+            })()
+        }
+        try {
+            await this.refreshPromise
+        } finally {
+            this.refreshPromise = null
+        }
     }
 
     /**

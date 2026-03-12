@@ -19,7 +19,7 @@ export interface IPasswordService {
     /**
      * Change user's password
      */
-    changePassword(userId: number, request: ChangePasswordRequest): Promise<void>
+    changePassword(userId: string, request: ChangePasswordRequest): Promise<void>
 
     /**
      * Validate password strength and rules

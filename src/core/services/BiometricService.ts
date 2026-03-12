@@ -72,7 +72,7 @@ export class BiometricService {
         return {
             success: true,
             userId,
-            confidence: response.data.confidence ?? 1.0,
+            confidence: response.data.quality_score != null ? response.data.quality_score / 100 : 1.0,
             message: response.data.message ?? 'Face enrolled successfully',
         }
     }

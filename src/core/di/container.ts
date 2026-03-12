@@ -40,6 +40,7 @@ import { RoleRepository } from '@core/repositories/RoleRepository'
 import { AuthFlowRepository } from '@core/repositories/AuthFlowRepository'
 import { AuthSessionRepository } from '@core/repositories/AuthSessionRepository'
 import { DeviceRepository } from '@core/repositories/DeviceRepository'
+import { UserEnrollmentRepository } from '@core/repositories/UserEnrollmentRepository'
 import { AuthService } from '@features/auth/services/AuthService'
 import { UserService } from '@features/users/services/UserService'
 import { TenantService } from '@features/tenants/services/TenantService'
@@ -51,6 +52,11 @@ import { RoleService } from '@features/roles/services/RoleService'
 import { AuthFlowService } from '@features/authFlows/services/AuthFlowService'
 import { AuthSessionService } from '@features/auth/services/AuthSessionService'
 import { DeviceService } from '@features/devices/services/DeviceService'
+import type { IUserEnrollmentRepository } from '@domain/interfaces/IUserEnrollmentRepository'
+import type { IUserEnrollmentService } from '@domain/interfaces/IUserEnrollmentService'
+import { UserEnrollmentService } from '@features/userEnrollment/services/UserEnrollmentService'
+import type { IPasswordService } from '@domain/interfaces/IPasswordService'
+import { PasswordService } from '@features/auth/services/PasswordService'
 
 /**
  * Create and configure the IoC container
@@ -100,6 +106,7 @@ container.bind<IRoleRepository>(TYPES.RoleRepository).to(RoleRepository).inSingl
 container.bind<AuthFlowRepository>(TYPES.AuthFlowRepository).to(AuthFlowRepository).inSingletonScope()
 container.bind<AuthSessionRepository>(TYPES.AuthSessionRepository).to(AuthSessionRepository).inSingletonScope()
 container.bind<DeviceRepository>(TYPES.DeviceRepository).to(DeviceRepository).inSingletonScope()
+container.bind<IUserEnrollmentRepository>(TYPES.UserEnrollmentRepository).to(UserEnrollmentRepository).inSingletonScope()
 
 // Bind services
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService).inSingletonScope()
@@ -113,6 +120,8 @@ container.bind<IRoleService>(TYPES.RoleService).to(RoleService).inSingletonScope
 container.bind<AuthFlowService>(TYPES.AuthFlowService).to(AuthFlowService).inSingletonScope()
 container.bind<AuthSessionService>(TYPES.AuthSessionService).to(AuthSessionService).inSingletonScope()
 container.bind<DeviceService>(TYPES.DeviceService).to(DeviceService).inSingletonScope()
+container.bind<IUserEnrollmentService>(TYPES.UserEnrollmentService).to(UserEnrollmentService).inSingletonScope()
+container.bind<IPasswordService>(TYPES.PasswordService).to(PasswordService).inSingletonScope()
 
 export { container }
 export type { Container }
