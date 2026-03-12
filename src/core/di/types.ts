@@ -45,6 +45,13 @@ export const TYPES = {
     // External Services
     BiometricService: Symbol.for('BiometricService'),
 
+    // User Enrollment
+    UserEnrollmentRepository: Symbol.for('UserEnrollmentRepository'),
+    UserEnrollmentService: Symbol.for('UserEnrollmentService'),
+
+    // Password
+    PasswordService: Symbol.for('PasswordService'),
+
     // Validators
     UserValidator: Symbol.for('UserValidator'),
     AuthValidator: Symbol.for('AuthValidator'),

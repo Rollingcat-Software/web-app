@@ -26,7 +26,7 @@ export class PasswordService implements IPasswordService {
         @inject(TYPES.Logger) private readonly logger: ILogger
     ) {}
 
-    async changePassword(userId: number, request: ChangePasswordRequest): Promise<void> {
+    async changePassword(userId: string, request: ChangePasswordRequest): Promise<void> {
         this.logger.debug('[PasswordService] Attempting password change', { userId })
 
         // Validate request
