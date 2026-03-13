@@ -28,9 +28,11 @@ interface FingerprintStepProps {
 
 export default function FingerprintStep({ onSubmit, loading, error }: FingerprintStepProps) {
     const [waiting, setWaiting] = useState(false)
+    const [unavailable, setUnavailable] = useState(false)
 
     const handleScan = useCallback(async () => {
         setWaiting(true)
+        setUnavailable(false)
 
         // Attempt to use WebAuthn platform authenticator (fingerprint/biometric)
         try {
@@ -68,9 +70,10 @@ export default function FingerprintStep({ onSubmit, loading, error }: Fingerprin
                 }
             }
 
-            // Fallback: simulate fingerprint scan for devices without WebAuthn
-            await new Promise((resolve) => setTimeout(resolve, 2000))
-            onSubmit(btoa('fingerprint-verified'))
+            // No WebAuthn platform authenticator available
+            setUnavailable(true)
+            setWaiting(false)
+            return
         } catch (_err) {
             // User cancelled or error occurred, reset waiting state
             setWaiting(false)
@@ -126,6 +129,13 @@ export default function FingerprintStep({ onSubmit, loading, error }: Fingerprin
                         {error}
                     </Alert>
                 </motion.div>
+            )}
+
+            {unavailable && (
+                <Alert severity="warning" sx={{ mb: 2, borderRadius: '12px' }}>
+                    Fingerprint authentication is not available on this device.
+                    Please use a device with a biometric sensor or try a different authentication method.
+                </Alert>
             )}
 
             {/* Fingerprint Icon Animation */}

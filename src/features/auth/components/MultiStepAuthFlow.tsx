@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import {
     Alert,
     Box,
@@ -77,6 +77,7 @@ export default function MultiStepAuthFlow({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | undefined>(undefined)
     const [flowComplete, setFlowComplete] = useState(false)
+    const [qrData, setQrData] = useState<string | undefined>(undefined)
 
     /**
      * Determine the active step index based on step statuses.
@@ -90,6 +91,24 @@ export default function MultiStepAuthFlow({
     }, [steps])
 
     const currentStep = steps[activeStepIndex] ?? null
+
+    // Fetch QR session data when QR_CODE step becomes active
+    useEffect(() => {
+        if (currentStep?.methodType !== 'QR_CODE') return
+        setQrData(undefined)
+
+        const fetchQrSession = async () => {
+            try {
+                const response = await authSessionRepo.createQrSession(sessionId)
+                if (response?.qrImageUrl) {
+                    setQrData(response.qrImageUrl)
+                }
+            } catch {
+                // QR data fetch failed - user can still enter token manually
+            }
+        }
+        fetchQrSession()
+    }, [currentStep?.methodType, sessionId, authSessionRepo])
 
     /**
      * Process the result of completing or skipping a step.
@@ -316,6 +335,7 @@ export default function MultiStepAuthFlow({
             case 'QR_CODE':
                 return (
                     <QrCodeStep
+                        qrData={qrData}
                         onSubmit={(token) => handleStepSubmit({ token })}
                         loading={loading}
                         error={error}

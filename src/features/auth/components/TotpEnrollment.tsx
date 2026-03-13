@@ -23,11 +23,12 @@ interface TotpEnrollmentProps {
     open: boolean
     onClose: () => void
     onSuccess: () => void
+    userId: string
 }
 
 const steps = ['Generate Secret', 'Scan QR Code', 'Verify Code']
 
-export default function TotpEnrollment({ open, onClose, onSuccess }: TotpEnrollmentProps) {
+export default function TotpEnrollment({ open, onClose, onSuccess, userId }: TotpEnrollmentProps) {
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
     const [activeStep, setActiveStep] = useState(0)
     const [loading, setLoading] = useState(false)
@@ -41,7 +42,7 @@ export default function TotpEnrollment({ open, onClose, onSuccess }: TotpEnrollm
         setLoading(true)
         setError(null)
         try {
-            const response = await httpClient.post<{ secret: string; otpAuthUri: string }>('/auth/totp/setup', {})
+            const response = await httpClient.post<{ secret: string; otpAuthUri: string }>(`/totp/setup/${userId}`, {})
             setSecret(response.data.secret)
             setQrUri(response.data.otpAuthUri)
             setActiveStep(1)
@@ -57,7 +58,7 @@ export default function TotpEnrollment({ open, onClose, onSuccess }: TotpEnrollm
         setLoading(true)
         setError(null)
         try {
-            await httpClient.post('/auth/totp/verify-setup', { code, secret })
+            await httpClient.post(`/totp/verify-setup/${userId}`, { code, secret })
             setActiveStep(2)
             setTimeout(() => {
                 onSuccess()
