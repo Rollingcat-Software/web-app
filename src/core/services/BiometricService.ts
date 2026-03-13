@@ -43,7 +43,7 @@ export class BiometricService {
     private readonly client: AxiosInstance
 
     constructor() {
-        const baseURL = import.meta.env.VITE_BIOMETRIC_API_URL || 'https://bpa-fivucsas.rollingcatsoftware.com/api/v1'
+        const baseURL = import.meta.env.VITE_BIOMETRIC_API_URL || 'http://localhost:8001/api/v1'
         const apiKey = import.meta.env.VITE_BIOMETRIC_API_KEY || ''
 
         this.client = axios.create({
