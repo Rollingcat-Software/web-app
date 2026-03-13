@@ -28,7 +28,6 @@ import type { IEnrollmentService } from '@domain/interfaces/IEnrollmentService'
 import type { IAuditLogService } from '@domain/interfaces/IAuditLogService'
 import { ErrorHandler } from '@core/errors/ErrorHandler'
 import { LoggerService } from '@core/services/LoggerService'
-import { NotifierService } from '@core/services/NotifierService'
 import { SecureStorageService } from '@core/services/SecureStorageService'
 import { TokenService } from '@core/services/TokenService'
 import { AxiosClient } from '@core/api/AxiosClient'
@@ -65,7 +64,7 @@ export function createTestContainer(): Container {
 
     // Bind infrastructure services
     container.bind<ILogger>(TYPES.Logger).to(LoggerService).inSingletonScope()
-    container.bind<INotifier>(TYPES.Notifier).to(NotifierService).inSingletonScope()
+    container.bind<INotifier>(TYPES.Notifier).toConstantValue(createMockNotifier())
     container.bind<ISecureStorage>(TYPES.SecureStorage).to(SecureStorageService).inSingletonScope()
     container.bind<IHttpClient>(TYPES.HttpClient).to(AxiosClient).inSingletonScope()
     container.bind<ITokenService>(TYPES.TokenService).to(TokenService).inSingletonScope()

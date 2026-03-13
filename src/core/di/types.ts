@@ -24,6 +24,7 @@ export const TYPES = {
     DashboardRepository: Symbol.for('DashboardRepository'),
     SettingsRepository: Symbol.for('SettingsRepository'),
     RoleRepository: Symbol.for('RoleRepository'),
+    AuthMethodRepository: Symbol.for('AuthMethodRepository'),
     AuthFlowRepository: Symbol.for('AuthFlowRepository'),
     AuthSessionRepository: Symbol.for('AuthSessionRepository'),
     DeviceRepository: Symbol.for('DeviceRepository'),

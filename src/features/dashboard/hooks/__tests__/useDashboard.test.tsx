@@ -16,15 +16,15 @@ describe('useDashboard', () => {
     let mockErrorHandler: jest.Mocked<ErrorHandler>
 
     // Test data
-    const testStats = new DashboardStats(
-        100, // totalUsers
-        85, // activeUsers
-        10, // pendingEnrollments
-        75, // successfulEnrollments
-        5, // failedEnrollments
-        95.5, // authSuccessRate
-        92.3 // verificationSuccessRate
-    )
+    const testStats = DashboardStats.fromJSON({
+        totalUsers: 100,
+        activeUsers: 85,
+        pendingEnrollments: 10,
+        successfulEnrollments: 75,
+        failedEnrollments: 5,
+        authSuccessRate: 95.5,
+        verificationSuccessRate: 92.3,
+    })
 
     beforeEach(() => {
         container = createTestContainer()
@@ -98,7 +98,7 @@ describe('useDashboard', () => {
         })
 
         it('should handle stats with zero values', async () => {
-            const emptyStats = new DashboardStats(0, 0, 0, 0, 0, 0, 0)
+            const emptyStats = DashboardStats.fromJSON({})
             mockDashboardService.getStats = vi.fn().mockResolvedValue(emptyStats)
 
             const { result } = renderHook(() => useDashboard(), { wrapper })
@@ -178,15 +178,15 @@ describe('useDashboard', () => {
             expect(result.current.stats).toEqual(testStats)
 
             // Update mock to return new stats
-            const updatedStats = new DashboardStats(
-                120, // totalUsers increased
-                100, // activeUsers increased
-                15, // pendingEnrollments increased
-                80, // successfulEnrollments increased
-                8, // failedEnrollments increased
-                96.0, // authSuccessRate
-                93.5 // verificationSuccessRate
-            )
+            const updatedStats = DashboardStats.fromJSON({
+                totalUsers: 120,
+                activeUsers: 100,
+                pendingEnrollments: 15,
+                successfulEnrollments: 80,
+                failedEnrollments: 8,
+                authSuccessRate: 96.0,
+                verificationSuccessRate: 93.5,
+            })
             mockDashboardService.getStats = vi.fn().mockResolvedValue(updatedStats)
 
             // Refetch
@@ -363,7 +363,13 @@ describe('useDashboard', () => {
     describe('edge cases', () => {
         it('should handle service returning partial stats', async () => {
             // Create stats with some values as 0
-            const partialStats = new DashboardStats(50, 25, 0, 30, 0, 100, 100)
+            const partialStats = DashboardStats.fromJSON({
+                totalUsers: 50,
+                activeUsers: 25,
+                successfulEnrollments: 30,
+                totalVerifications: 100,
+                verificationSuccessRate: 100,
+            })
             mockDashboardService.getStats = vi.fn().mockResolvedValue(partialStats)
 
             const { result } = renderHook(() => useDashboard(), { wrapper })
@@ -378,15 +384,15 @@ describe('useDashboard', () => {
         })
 
         it('should handle very large numbers', async () => {
-            const largeStats = new DashboardStats(
-                1000000, // 1 million users
-                950000, // 950k active
-                50000, // 50k pending
-                900000, // 900k successful
-                10000, // 10k failed
-                99.9,
-                98.5
-            )
+            const largeStats = DashboardStats.fromJSON({
+                totalUsers: 1000000,
+                activeUsers: 950000,
+                pendingEnrollments: 50000,
+                successfulEnrollments: 900000,
+                failedEnrollments: 10000,
+                authSuccessRate: 99.9,
+                verificationSuccessRate: 98.5,
+            })
             mockDashboardService.getStats = vi.fn().mockResolvedValue(largeStats)
 
             const { result } = renderHook(() => useDashboard(), { wrapper })
@@ -400,15 +406,15 @@ describe('useDashboard', () => {
         })
 
         it('should handle stats with decimal values', async () => {
-            const decimalStats = new DashboardStats(
-                100,
-                85,
-                10,
-                75,
-                5,
-                95.567, // Decimal auth success rate
-                92.345 // Decimal verification success rate
-            )
+            const decimalStats = DashboardStats.fromJSON({
+                totalUsers: 100,
+                activeUsers: 85,
+                pendingEnrollments: 10,
+                successfulEnrollments: 75,
+                failedEnrollments: 5,
+                authSuccessRate: 95.567,
+                verificationSuccessRate: 92.345,
+            })
             mockDashboardService.getStats = vi.fn().mockResolvedValue(decimalStats)
 
             const { result } = renderHook(() => useDashboard(), { wrapper })

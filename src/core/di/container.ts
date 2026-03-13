@@ -37,6 +37,7 @@ import { AuditLogRepository } from '@core/repositories/AuditLogRepository'
 import { EnrollmentRepository } from '@core/repositories/EnrollmentRepository'
 import { SettingsRepository } from '@core/repositories/SettingsRepository'
 import { RoleRepository } from '@core/repositories/RoleRepository'
+import { AuthMethodRepository } from '@core/repositories/AuthMethodRepository'
 import { AuthFlowRepository } from '@core/repositories/AuthFlowRepository'
 import { AuthSessionRepository } from '@core/repositories/AuthSessionRepository'
 import { DeviceRepository } from '@core/repositories/DeviceRepository'
@@ -103,6 +104,7 @@ container.bind<IAuditLogRepository>(TYPES.AuditLogRepository).to(AuditLogReposit
 container.bind<IEnrollmentRepository>(TYPES.EnrollmentRepository).to(EnrollmentRepository).inSingletonScope()
 container.bind<ISettingsRepository>(TYPES.SettingsRepository).to(SettingsRepository).inSingletonScope()
 container.bind<IRoleRepository>(TYPES.RoleRepository).to(RoleRepository).inSingletonScope()
+container.bind<AuthMethodRepository>(TYPES.AuthMethodRepository).to(AuthMethodRepository).inSingletonScope()
 container.bind<AuthFlowRepository>(TYPES.AuthFlowRepository).to(AuthFlowRepository).inSingletonScope()
 container.bind<AuthSessionRepository>(TYPES.AuthSessionRepository).to(AuthSessionRepository).inSingletonScope()
 container.bind<DeviceRepository>(TYPES.DeviceRepository).to(DeviceRepository).inSingletonScope()

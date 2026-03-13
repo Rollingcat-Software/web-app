@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
     Alert,
     Box,
@@ -22,14 +22,54 @@ const itemVariants: Variants = {
 }
 
 interface QrCodeStepProps {
-    qrData?: string
+    userId?: string
+    onGenerateToken: (userId: string) => Promise<{ token: string; expiresInSeconds: number }>
     onSubmit: (token: string) => void
     loading: boolean
     error?: string
 }
 
-export default function QrCodeStep({ qrData, onSubmit, loading, error }: QrCodeStepProps) {
+export default function QrCodeStep({
+    userId,
+    onGenerateToken,
+    onSubmit,
+    loading,
+    error,
+}: QrCodeStepProps) {
     const [token, setToken] = useState('')
+    const [generatedToken, setGeneratedToken] = useState('')
+    const [expiresInSeconds, setExpiresInSeconds] = useState<number | null>(null)
+    const [isGenerating, setIsGenerating] = useState(false)
+    const [generationError, setGenerationError] = useState<string | undefined>(undefined)
+
+    const handleGenerateToken = useCallback(async () => {
+        if (!userId) {
+            setGenerationError(
+                'Automatic QR token generation is unavailable for this session. You can still enter a token manually.'
+            )
+            return
+        }
+
+        setIsGenerating(true)
+        setGenerationError(undefined)
+
+        try {
+            const result = await onGenerateToken(userId)
+            setGeneratedToken(result.token)
+            setExpiresInSeconds(result.expiresInSeconds)
+            setToken(result.token)
+        } catch (err) {
+            const message =
+                err instanceof Error ? err.message : 'Unable to generate QR token automatically.'
+            setGenerationError(`${message} You can continue with manual token entry.`)
+        } finally {
+            setIsGenerating(false)
+        }
+    }, [userId, onGenerateToken])
+
+    useEffect(() => {
+        void handleGenerateToken()
+    }, [handleGenerateToken])
 
     const handleSubmit = useCallback(
         (e: React.FormEvent) => {
@@ -90,6 +130,18 @@ export default function QrCodeStep({ qrData, onSubmit, loading, error }: QrCodeS
                 </motion.div>
             )}
 
+            {generationError && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <Alert severity="warning" sx={{ mb: 2, borderRadius: '12px' }}>
+                        {generationError}
+                    </Alert>
+                </motion.div>
+            )}
+
             {/* QR Code Display Area */}
             <motion.div variants={itemVariants}>
                 <Box
@@ -115,20 +167,49 @@ export default function QrCodeStep({ qrData, onSubmit, loading, error }: QrCodeS
                             overflow: 'hidden',
                         }}
                     >
-                        {qrData ? (
+                        {isGenerating ? (
+                            <>
+                                <CircularProgress size={40} />
+                                <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
+                                    Generating secure token...
+                                </Typography>
+                            </>
+                        ) : generatedToken ? (
                             <Box
-                                component="img"
-                                src={qrData}
-                                alt="QR Code"
                                 sx={{
-                                    width: '100%',
-                                    height: '100%',
-                                    objectFit: 'contain',
+                                    px: 2,
                                     p: 2,
+                                    textAlign: 'center',
                                 }}
-                            />
-                        ) : loading ? (
-                            <CircularProgress size={40} />
+                            >
+                                <Typography
+                                    variant="caption"
+                                    color="text.secondary"
+                                    sx={{ display: 'block', mb: 1 }}
+                                >
+                                    Generated One-Time Token
+                                </Typography>
+                                <Typography
+                                    variant="h6"
+                                    sx={{
+                                        fontFamily: 'monospace',
+                                        letterSpacing: '0.08em',
+                                        wordBreak: 'break-all',
+                                        fontWeight: 700,
+                                    }}
+                                >
+                                    {generatedToken}
+                                </Typography>
+                                {expiresInSeconds && (
+                                    <Typography
+                                        variant="caption"
+                                        color="text.secondary"
+                                        sx={{ display: 'block', mt: 1 }}
+                                    >
+                                        Expires in {Math.max(1, Math.floor(expiresInSeconds / 60))} minute(s)
+                                    </Typography>
+                                )}
+                            </Box>
                         ) : (
                             <>
                                 <QrCode2 sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.4 }} />
@@ -139,7 +220,7 @@ export default function QrCodeStep({ qrData, onSubmit, loading, error }: QrCodeS
                         )}
 
                         {/* Scanning animation overlay */}
-                        {qrData && !loading && (
+                        {generatedToken && !loading && !isGenerating && (
                             <motion.div
                                 animate={{
                                     y: ['-100%', '100%'],
@@ -162,6 +243,21 @@ export default function QrCodeStep({ qrData, onSubmit, loading, error }: QrCodeS
                 </Box>
             </motion.div>
 
+            <motion.div variants={itemVariants}>
+                <Box sx={{ textAlign: 'center', mb: 2 }}>
+                    <Button
+                        variant="text"
+                        size="small"
+                        onClick={() => {
+                            void handleGenerateToken()
+                        }}
+                        disabled={loading || isGenerating}
+                    >
+                        Generate New Token
+                    </Button>
+                </Box>
+            </motion.div>
+
             <form onSubmit={handleSubmit}>
                 <motion.div variants={itemVariants}>
                     <Typography
@@ -169,7 +265,9 @@ export default function QrCodeStep({ qrData, onSubmit, loading, error }: QrCodeS
                         color="text.secondary"
                         sx={{ textAlign: 'center', mb: 2 }}
                     >
-                        Or enter the token from the mobile app manually:
+                        {generatedToken
+                            ? 'Token auto-filled. You can edit it or paste a token from your mobile app:'
+                            : 'Enter the token from your mobile app manually:'}
                     </Typography>
                     <TextField
                         fullWidth
@@ -177,7 +275,7 @@ export default function QrCodeStep({ qrData, onSubmit, loading, error }: QrCodeS
                         value={token}
                         onChange={(e) => setToken(e.target.value)}
                         placeholder="Enter token from mobile app"
-                        disabled={loading}
+                        disabled={loading || isGenerating}
                         sx={{
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: '12px',
@@ -195,7 +293,7 @@ export default function QrCodeStep({ qrData, onSubmit, loading, error }: QrCodeS
                         fullWidth
                         variant="contained"
                         size="large"
-                        disabled={loading || !token.trim()}
+                        disabled={loading || isGenerating || !token.trim()}
                         endIcon={!loading && <ArrowForward />}
                         sx={{
                             mt: 3,

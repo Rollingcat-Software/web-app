@@ -44,9 +44,14 @@ import {
 import { motion, AnimatePresence, Reorder, Variants } from 'framer-motion'
 import {
     AuthMethodType,
+    type AuthMethod,
+    type OperationType,
     AuthFlowStep,
     DEFAULT_AUTH_METHODS,
+    OPERATION_TYPE_OPTIONS,
     getMethodCategoryColor,
+    isOperationType,
+    normalizeOperationType,
 } from '@domain/models/AuthMethod'
 
 // Bezier easing
@@ -80,23 +85,12 @@ const methodIcons: Record<string, React.ReactNode> = {
     Key: <Key />,
 }
 
-const OPERATION_TYPES = [
-    { value: 'APP_LOGIN', label: 'App Login' },
-    { value: 'DOOR_ACCESS', label: 'Door Access' },
-    { value: 'BUILDING_ACCESS', label: 'Building Access' },
-    { value: 'API_ACCESS', label: 'API Access' },
-    { value: 'TRANSACTION', label: 'Transaction' },
-    { value: 'ENROLLMENT', label: 'Enrollment' },
-    { value: 'GUEST_ACCESS', label: 'Guest Access' },
-    { value: 'EXAM_PROCTORING', label: 'Exam Proctoring' },
-    { value: 'CUSTOM', label: 'Custom' },
-] as const
-
 const PASSWORD_MANDATORY_OPS = new Set(['APP_LOGIN', 'API_ACCESS'])
 
 interface AuthFlowBuilderProps {
     initialSteps?: AuthFlowStep[]
-    onSave?: (data: { name: string; description: string; operationType: string; isDefault: boolean; steps: AuthFlowStep[] }) => void
+    onSave?: (data: { name: string; description: string; operationType: OperationType; isDefault: boolean; steps: AuthFlowStep[] }) => void
+    authMethods?: AuthMethod[]
     tenantId?: string
     initialOperationType?: string
     initialName?: string
@@ -106,6 +100,7 @@ interface AuthFlowBuilderProps {
 export function AuthFlowBuilder({
     initialSteps = [],
     onSave,
+    authMethods = DEFAULT_AUTH_METHODS,
     initialOperationType = 'APP_LOGIN',
     initialName = 'My Authentication Flow',
     initialDescription = '',
@@ -115,14 +110,18 @@ export function AuthFlowBuilder({
     const [flowDescription, setFlowDescription] = useState(initialDescription)
     const [isDefault, setIsDefault] = useState(false)
     const [showMethodPicker, setShowMethodPicker] = useState(false)
-    const [operationType, setOperationType] = useState(initialOperationType)
+    const [operationType, setOperationType] = useState<OperationType>(normalizeOperationType(initialOperationType))
 
     const passwordLocked = PASSWORD_MANDATORY_OPS.has(operationType)
 
-    const availableMethods = DEFAULT_AUTH_METHODS.filter((m) => m.isActive)
+    const availableMethods = authMethods.filter((m) => m.isActive)
 
     const handleOperationTypeChange = useCallback((e: SelectChangeEvent<string>) => {
         const newType = e.target.value
+        if (!isOperationType(newType)) {
+            return
+        }
+
         setOperationType(newType)
         if (PASSWORD_MANDATORY_OPS.has(newType)) {
             const hasPassword = steps.some(s => s.methodType === AuthMethodType.PASSWORD && s.order === 1)
@@ -189,7 +188,7 @@ export function AuthFlowBuilder({
     }, [onSave, flowName, flowDescription, operationType, isDefault, steps])
 
     const getMethod = (methodType: AuthMethodType) =>
-        DEFAULT_AUTH_METHODS.find((m) => m.type === methodType)
+        authMethods.find((m) => m.type === methodType)
 
     // Cost summary removed - pricing not managed in frontend
 
@@ -256,7 +255,7 @@ export function AuthFlowBuilder({
                                             label="Operation Type"
                                             onChange={handleOperationTypeChange}
                                         >
-                                            {OPERATION_TYPES.map((op) => (
+                                            {OPERATION_TYPE_OPTIONS.map((op) => (
                                                 <MenuItem key={op.value} value={op.value}>
                                                     {op.label}
                                                 </MenuItem>

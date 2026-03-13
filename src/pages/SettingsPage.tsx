@@ -17,11 +17,23 @@ import {
     TextField,
     Typography,
 } from '@mui/material'
-import { Face, Language, Notifications, Palette, Person, PhonelinkLock, Save, Security } from '@mui/icons-material'
+import {
+    Face,
+    Fingerprint,
+    Key,
+    Language,
+    Notifications,
+    Palette,
+    Person,
+    PhonelinkLock,
+    Save,
+    Security,
+} from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useSettings } from '@features/settings/hooks/useSettings'
 import { useTranslation } from 'react-i18next'
 import TotpEnrollment from '@features/auth/components/TotpEnrollment'
+import WebAuthnEnrollment from '@features/auth/components/WebAuthnEnrollment'
 import FaceEnrollmentFlow from '@features/auth/components/FaceEnrollmentFlow'
 import { getBiometricService } from '@core/services/BiometricService'
 
@@ -60,6 +72,8 @@ export default function SettingsPage() {
 
     // TOTP enrollment dialog
     const [totpDialogOpen, setTotpDialogOpen] = useState(false)
+    const [platformWebAuthnDialogOpen, setPlatformWebAuthnDialogOpen] = useState(false)
+    const [hardwareKeyDialogOpen, setHardwareKeyDialogOpen] = useState(false)
 
     // Face ID enrollment
     const [faceEnrollOpen, setFaceEnrollOpen] = useState(false)
@@ -351,11 +365,37 @@ export default function SettingsPage() {
                                 fullWidth
                                 startIcon={<PhonelinkLock />}
                                 onClick={() => setTotpDialogOpen(true)}
+                                disabled={!user?.id}
                                 sx={{ mb: 2 }}
                             >
                                 {t('settings.setupTotp')}
                             </Button>
                         )}
+
+                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
+                            <Button
+                                variant="outlined"
+                                fullWidth
+                                startIcon={<Fingerprint />}
+                                onClick={() => setPlatformWebAuthnDialogOpen(true)}
+                                disabled={!user?.id}
+                            >
+                                Register Device Biometric (Passkey)
+                            </Button>
+                            <Button
+                                variant="outlined"
+                                fullWidth
+                                startIcon={<Key />}
+                                onClick={() => setHardwareKeyDialogOpen(true)}
+                                disabled={!user?.id}
+                            >
+                                Register Hardware Security Key
+                            </Button>
+                            <Typography variant="caption" color="text.secondary">
+                                WebAuthn gives you phishing-resistant authentication with platform biometrics
+                                or external FIDO2 keys.
+                            </Typography>
+                        </Box>
 
                         <Divider sx={{ my: 2 }} />
 
@@ -652,10 +692,35 @@ export default function SettingsPage() {
             {/* TOTP Enrollment Dialog */}
             <TotpEnrollment
                 open={totpDialogOpen}
+                userId={user?.id ?? ''}
                 onClose={() => setTotpDialogOpen(false)}
                 onSuccess={() => {
                     setTotpDialogOpen(false)
                     setTwoFactorAuth(true)
+                }}
+            />
+
+            <WebAuthnEnrollment
+                open={platformWebAuthnDialogOpen}
+                userId={user?.id ?? ''}
+                mode="platform"
+                onClose={() => setPlatformWebAuthnDialogOpen(false)}
+                onSuccess={() => {
+                    setPlatformWebAuthnDialogOpen(false)
+                    setTwoFactorAuth(true)
+                    showSuccessMessage('security')
+                }}
+            />
+
+            <WebAuthnEnrollment
+                open={hardwareKeyDialogOpen}
+                userId={user?.id ?? ''}
+                mode="hardware-key"
+                onClose={() => setHardwareKeyDialogOpen(false)}
+                onSuccess={() => {
+                    setHardwareKeyDialogOpen(false)
+                    setTwoFactorAuth(true)
+                    showSuccessMessage('security')
                 }}
             />
 

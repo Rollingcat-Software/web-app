@@ -4,7 +4,7 @@ import { ReactNode } from 'react'
 import { Container } from 'inversify'
 import { DependencyProvider } from '@app/providers'
 import { TYPES } from '@core/di/types'
-import { useAuth } from '../useAuth'
+import { AuthProvider, useAuth } from '../useAuth'
 import { createTestContainer } from '@test/testUtils'
 import type { IAuthService } from '@domain/interfaces/IAuthService'
 import type { ErrorHandler } from '@core/errors'
@@ -17,13 +17,13 @@ describe('useAuth', () => {
 
     // Test user data
     const testUser = new User(
-        1,
+        '1',
         'test@example.com',
         'John',
         'Doe',
         UserRole.ADMIN,
         UserStatus.ACTIVE,
-        1,
+        '1',
         new Date('2024-01-01'),
         new Date('2024-01-01')
     )
@@ -42,7 +42,9 @@ describe('useAuth', () => {
 
     // Wrapper component that provides DI context
     const wrapper = ({ children }: { children: ReactNode }) => (
-        <DependencyProvider container={container}>{children}</DependencyProvider>
+        <DependencyProvider container={container}>
+            <AuthProvider>{children}</AuthProvider>
+        </DependencyProvider>
     )
 
     describe('initial loading state', () => {
@@ -291,13 +293,13 @@ describe('useAuth', () => {
 
             // Update mock to return updated user
             const updatedUser = new User(
-                1,
+                '1',
                 'test@example.com',
                 'John',
                 'Smith', // Changed last name
                 UserRole.ADMIN,
                 UserStatus.ACTIVE,
-                1,
+                '1',
                 new Date('2024-01-01'),
                 new Date('2024-01-02')
             )

@@ -21,13 +21,34 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 
 interface TotpEnrollmentProps {
     open: boolean
+    userId: string
     onClose: () => void
     onSuccess: () => void
 }
 
 const steps = ['Generate Secret', 'Scan QR Code', 'Verify Code']
 
-export default function TotpEnrollment({ open, onClose, onSuccess }: TotpEnrollmentProps) {
+interface TotpSetupResponse {
+    secret: string
+    otpAuthUri: string
+    message: string
+}
+
+interface TotpVerifyResponse {
+    success: boolean
+    message: string
+}
+
+function getErrorMessage(err: unknown, fallback: string): string {
+    if (err instanceof Error) {
+        return err.message
+    }
+
+    const maybeError = err as { response?: { data?: { message?: string } } }
+    return maybeError.response?.data?.message || fallback
+}
+
+export default function TotpEnrollment({ open, userId, onClose, onSuccess }: TotpEnrollmentProps) {
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
     const [activeStep, setActiveStep] = useState(0)
     const [loading, setLoading] = useState(false)
@@ -37,39 +58,6 @@ export default function TotpEnrollment({ open, onClose, onSuccess }: TotpEnrollm
     const [code, setCode] = useState('')
     const [copied, setCopied] = useState(false)
 
-    const handleSetup = useCallback(async () => {
-        setLoading(true)
-        setError(null)
-        try {
-            const response = await httpClient.post<{ secret: string; otpAuthUri: string }>('/auth/totp/setup', {})
-            setSecret(response.data.secret)
-            setQrUri(response.data.otpAuthUri)
-            setActiveStep(1)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to setup TOTP')
-        } finally {
-            setLoading(false)
-        }
-    }, [httpClient])
-
-    const handleVerify = useCallback(async () => {
-        if (code.length !== 6) return
-        setLoading(true)
-        setError(null)
-        try {
-            await httpClient.post('/auth/totp/verify-setup', { code, secret })
-            setActiveStep(2)
-            setTimeout(() => {
-                onSuccess()
-                handleReset()
-            }, 2000)
-        } catch (err) {
-            setError(err instanceof Error ? err.message : 'Invalid verification code')
-        } finally {
-            setLoading(false)
-        }
-    }, [code, secret, httpClient, onSuccess])
-
     const handleReset = useCallback(() => {
         setActiveStep(0)
         setSecret('')
@@ -78,6 +66,57 @@ export default function TotpEnrollment({ open, onClose, onSuccess }: TotpEnrollm
         setError(null)
         setCopied(false)
     }, [])
+
+    const handleSetup = useCallback(async () => {
+        if (!userId) {
+            setError('User ID is required for TOTP setup')
+            return
+        }
+
+        setLoading(true)
+        setError(null)
+        try {
+            const response = await httpClient.post<TotpSetupResponse>(`/totp/setup/${userId}`, {})
+            setSecret(response.data.secret)
+            setQrUri(response.data.otpAuthUri)
+            setActiveStep(1)
+        } catch (err) {
+            setError(getErrorMessage(err, 'Failed to setup TOTP'))
+        } finally {
+            setLoading(false)
+        }
+    }, [httpClient, userId])
+
+    const handleVerify = useCallback(async () => {
+        if (!userId) {
+            setError('User ID is required for TOTP verification')
+            return
+        }
+
+        if (code.length !== 6) {
+            return
+        }
+
+        setLoading(true)
+        setError(null)
+        try {
+            const response = await httpClient.post<TotpVerifyResponse>(`/totp/verify-setup/${userId}`, { code })
+            if (!response.data.success) {
+                setError(response.data.message || 'Invalid verification code')
+                return
+            }
+
+            setActiveStep(2)
+            setTimeout(() => {
+                onSuccess()
+                handleReset()
+            }, 2000)
+        } catch (err) {
+            setError(getErrorMessage(err, 'Invalid verification code'))
+        } finally {
+            setLoading(false)
+        }
+    }, [code, httpClient, onSuccess, handleReset, userId])
 
     const handleClose = useCallback(() => {
         handleReset()

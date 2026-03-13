@@ -2,6 +2,7 @@ import { injectable, inject } from 'inversify'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import type { OperationType } from '@domain/models/AuthMethod'
 
 /**
  * Auth Flow API Types
@@ -22,7 +23,7 @@ export interface AuthFlowResponse {
     tenantId: string
     name: string
     description: string
-    operationType: string
+    operationType: OperationType
     steps: FlowStepSpec[]
     isActive: boolean
     isDefault: boolean
@@ -33,7 +34,7 @@ export interface AuthFlowResponse {
 export interface CreateAuthFlowCommand {
     name: string
     description?: string
-    operationType: string
+    operationType: OperationType
     isDefault?: boolean
     steps: FlowStepSpec[]
 }

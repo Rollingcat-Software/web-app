@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect } from 'react'
 import {
     Alert,
     Box,
@@ -77,6 +77,27 @@ export default function MultiStepAuthFlow({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | undefined>(undefined)
     const [flowComplete, setFlowComplete] = useState(false)
+    const [sessionUserId, setSessionUserId] = useState<string>('')
+
+    useEffect(() => {
+        let isMounted = true
+
+        authSessionRepo
+            .getSession(sessionId)
+            .then((session) => {
+                if (!isMounted) {
+                    return
+                }
+                setSessionUserId(session.userId)
+            })
+            .catch(() => {
+                // Session may have expired; QR step can still use manual token entry.
+            })
+
+        return () => {
+            isMounted = false
+        }
+    }, [authSessionRepo, sessionId])
 
     /**
      * Determine the active step index based on step statuses.
@@ -181,6 +202,11 @@ export default function MultiStepAuthFlow({
             setLoading(false)
         }
     }, [currentStep, authSessionRepo, sessionId, processStepResult])
+
+    const handleGenerateQrToken = useCallback(
+        async (userId: string) => authSessionRepo.generateQrToken(userId),
+        [authSessionRepo]
+    )
 
     /**
      * Cancel the entire auth flow
@@ -316,6 +342,8 @@ export default function MultiStepAuthFlow({
             case 'QR_CODE':
                 return (
                     <QrCodeStep
+                        userId={sessionUserId || undefined}
+                        onGenerateToken={handleGenerateQrToken}
                         onSubmit={(token) => handleStepSubmit({ token })}
                         loading={loading}
                         error={error}

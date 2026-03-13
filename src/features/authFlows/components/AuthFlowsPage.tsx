@@ -32,6 +32,14 @@ import { AuthFlowBuilder } from './AuthFlowBuilder'
 import { TYPES } from '@core/di/types'
 import { useService } from '@app/providers/DependencyProvider'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import {
+    DEFAULT_AUTH_METHODS,
+    OPERATION_TYPE_OPTIONS,
+    getOperationTypeLabel,
+    type AuthMethod,
+    type OperationType,
+} from '@domain/models/AuthMethod'
+import type { AuthMethodRepository } from '@core/repositories/AuthMethodRepository'
 import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 
@@ -39,16 +47,31 @@ const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
 export default function AuthFlowsPage() {
     const authFlowRepo = useService<AuthFlowRepository>(TYPES.AuthFlowRepository)
+    const authMethodRepo = useService<AuthMethodRepository>(TYPES.AuthMethodRepository)
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
 
     const [flows, setFlows] = useState<AuthFlowResponse[]>([])
+    const [authMethods, setAuthMethods] = useState<AuthMethod[]>(DEFAULT_AUTH_METHODS)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [authMethodWarning, setAuthMethodWarning] = useState<string | null>(null)
     const [showBuilder, setShowBuilder] = useState(false)
     const [filterType, setFilterType] = useState<string>('')
 
     const tenantId = user?.tenantId ?? ''
+
+    const loadAuthMethods = useCallback(async () => {
+        try {
+            const methods = await authMethodRepo.listMethods()
+            setAuthMethods(methods)
+            setAuthMethodWarning(null)
+        } catch (err) {
+            logger.warn('Failed to load backend auth methods, using fallback defaults', err)
+            setAuthMethods(DEFAULT_AUTH_METHODS)
+            setAuthMethodWarning('Could not load authentication methods from backend. Showing fallback defaults.')
+        }
+    }, [authMethodRepo, logger])
 
     const loadFlows = useCallback(async () => {
         setLoading(true)
@@ -68,10 +91,14 @@ export default function AuthFlowsPage() {
         loadFlows()
     }, [loadFlows])
 
+    useEffect(() => {
+        loadAuthMethods()
+    }, [loadAuthMethods])
+
     const handleSave = async (data: {
         name: string
         description: string
-        operationType: string
+        operationType: OperationType
         isDefault: boolean
         steps: { methodType: string; isRequired: boolean; timeout: number; maxAttempts: number; order: number }[]
     }) => {
@@ -142,6 +169,11 @@ export default function AuthFlowsPage() {
                 </motion.div>
 
                 {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+                {authMethodWarning && (
+                    <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setAuthMethodWarning(null)}>
+                        {authMethodWarning}
+                    </Alert>
+                )}
 
                 {/* Filter */}
                 <Box sx={{ mb: 3 }}>
@@ -153,15 +185,11 @@ export default function AuthFlowsPage() {
                             onChange={(e) => setFilterType(e.target.value)}
                         >
                             <MenuItem value="">All Operations</MenuItem>
-                            <MenuItem value="APP_LOGIN">App Login</MenuItem>
-                            <MenuItem value="DOOR_ACCESS">Door Access</MenuItem>
-                            <MenuItem value="BUILDING_ACCESS">Building Access</MenuItem>
-                            <MenuItem value="API_ACCESS">API Access</MenuItem>
-                            <MenuItem value="TRANSACTION">Transaction</MenuItem>
-                            <MenuItem value="ENROLLMENT">Enrollment</MenuItem>
-                            <MenuItem value="GUEST_ACCESS">Guest Access</MenuItem>
-                            <MenuItem value="EXAM_PROCTORING">Exam Proctoring</MenuItem>
-                            <MenuItem value="CUSTOM">Custom</MenuItem>
+                            {OPERATION_TYPE_OPTIONS.map((operationType) => (
+                                <MenuItem key={operationType.value} value={operationType.value}>
+                                    {operationType.label}
+                                </MenuItem>
+                            ))}
                         </Select>
                     </FormControl>
                 </Box>
@@ -210,7 +238,7 @@ export default function AuthFlowsPage() {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <Chip label={flow.operationType} size="small" variant="outlined" />
+                                            <Chip label={getOperationTypeLabel(flow.operationType)} size="small" variant="outlined" />
                                         </TableCell>
                                         <TableCell>
                                             <Chip label={`${flow.steps?.length ?? 0} steps`} size="small" />
@@ -248,7 +276,7 @@ export default function AuthFlowsPage() {
                     <DialogTitle>Create Authentication Flow</DialogTitle>
                     <DialogContent>
                         <Box sx={{ pt: 1 }}>
-                            <AuthFlowBuilder onSave={handleSave} />
+                            <AuthFlowBuilder onSave={handleSave} authMethods={authMethods} />
                         </Box>
                     </DialogContent>
                 </Dialog>

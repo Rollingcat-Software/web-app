@@ -41,6 +41,12 @@ export class NotifierService implements INotifier {
      * Internal method to display notification
      */
     private notify(message: string, variant: VariantType): void {
+        // In test and SSR-like contexts notistack may not expose enqueueSnackbar.
+        // Skip toast dispatch there to avoid crashing non-UI flows.
+        if (typeof enqueueSnackbar !== 'function') {
+            return
+        }
+
         enqueueSnackbar(message, {
             variant,
             autoHideDuration: this.getAutoHideDuration(variant),

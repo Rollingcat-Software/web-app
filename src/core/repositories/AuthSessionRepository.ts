@@ -46,6 +46,12 @@ export interface StepResultResponse {
     sessionCompleted: boolean
 }
 
+export interface QrTokenResponse {
+    token: string
+    expiresInSeconds: number
+    userId: string
+}
+
 /**
  * Auth Session Repository
  * Handles auth session runtime API calls
@@ -163,6 +169,33 @@ export class AuthSessionRepository {
             this.logger.info('Auth session cancelled', { sessionId })
         } catch (error) {
             this.logger.error(`Failed to cancel auth session ${sessionId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Generate QR authentication token for a user.
+     */
+    async generateQrToken(userId: string): Promise<QrTokenResponse> {
+        try {
+            this.logger.info('Generating QR authentication token', { userId })
+            const response = await this.httpClient.post<QrTokenResponse>(`/qr/generate/${userId}`, {})
+            return response.data
+        } catch (error) {
+            this.logger.error(`Failed to generate QR token for user ${userId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Invalidate QR token.
+     */
+    async invalidateQrToken(token: string): Promise<void> {
+        try {
+            this.logger.info('Invalidating QR authentication token')
+            await this.httpClient.delete<void>(`/qr/${token}`)
+        } catch (error) {
+            this.logger.error('Failed to invalidate QR token', error)
             throw error
         }
     }
