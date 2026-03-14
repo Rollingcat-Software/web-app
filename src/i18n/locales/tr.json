@@ -25,6 +25,7 @@
     "authSessions": "Kimlik Doğrulama Oturumları",
     "devices": "Cihazlar",
     "enrollments": "Kayıtlar",
+    "userEnrollment": "Kendi Kaydı",
     "auditLogs": "Denetim Kayıtları",
     "analytics": "Analitik",
     "settings": "Ayarlar"

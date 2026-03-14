@@ -25,6 +25,7 @@
     "authSessions": "Auth Sessions",
     "devices": "Devices",
     "enrollments": "Enrollments",
+    "userEnrollment": "Self Enrollment",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
     "settings": "Settings"

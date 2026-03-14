@@ -23,6 +23,7 @@ const AuthFlowsPage = lazy(() => import('./features/authFlows/components/AuthFlo
 const DevicesPage = lazy(() => import('./pages/DevicesPage'))
 const AuthSessionsPage = lazy(() => import('./pages/AuthSessionsPage'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
+const UserEnrollmentPage = lazy(() => import('./features/userEnrollment/components/UserEnrollmentPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -108,6 +109,7 @@ function App() {
                     <Route path="devices" element={<ErrorBoundary><DevicesPage /></ErrorBoundary>} />
                     <Route path="auth-sessions" element={<ErrorBoundary><AuthSessionsPage /></ErrorBoundary>} />
                     <Route path="enrollments" element={<ErrorBoundary><EnrollmentsListPage /></ErrorBoundary>} />
+                    <Route path="user-enrollment" element={<ErrorBoundary><UserEnrollmentPage /></ErrorBoundary>} />
                     <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
                     <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
                     <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
