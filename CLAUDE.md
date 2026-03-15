@@ -58,12 +58,18 @@ Enrollment UIs:
 - ForgotPasswordPage + ResetPasswordPage with routes
 - AnalyticsPage CSV export
 - AuditLog filter dropdown has all 30 backend action types
+- OtpManagement.tsx in SettingsPage (email/SMS OTP send/verify)
+- StepUpDeviceRegistration.tsx in SettingsPage (device register, challenge, verify)
+- useAuthMethods hook fetches from backend with DEFAULT_AUTH_METHODS fallback
+- TenantRepository.findBySlug() for slug-based lookup
+- Per-user enrollment endpoints (findByUserId, createForUser, deleteForUser) + useUserEnrollments hook
+- DashboardStats.exportFormats field, AuthFlowResponse.stepCount field
+- BiometricService documented as direct-call (not proxied)
+- NotificationPanel documented as audit-log polling interim
 
-### Model mismatches with backend:
-- AuthMethodType uses UPPERCASE which matches backend (IC1 - resolved)
-- Enrollment domain model fields now match backend EnrollmentDto (IC2 - resolved)
-- EnrollmentStatus enum aligned in both types/index.ts and domain model (IC3 - resolved)
-- User pagination works - backend returns paginated format, UserRepository handles both formats (IC4 - resolved)
-- DeviceResponse field names aligned via @JsonProperty in backend (IM1 - resolved)
+### Model alignment with backend (all resolved):
+- AuthMethodType UPPERCASE, Enrollment fields, EnrollmentStatus enum, User pagination, DeviceResponse fields
+- OperationType 9 values verified matching backend enum exactly
+- All model mismatches from integration audit resolved
 
-See TODO.md for full integration audit (38+ items).
+See TODO.md for full integration audit (38 items, only AE-2/3/6/7 + IL8 remain — blocked on external deps).

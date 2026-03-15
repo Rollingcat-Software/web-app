@@ -4,7 +4,7 @@
  */
 
 // Hooks
-export { useEnrollments, useEnrollment } from './hooks/useEnrollments'
+export { useEnrollments, useEnrollment, useUserEnrollments } from './hooks/useEnrollments'
 
 // Services
 export { EnrollmentService } from './services/EnrollmentService'

@@ -2,7 +2,7 @@ import { injectable, inject } from 'inversify'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
-import type { IEnrollmentRepository } from '@domain/interfaces/IEnrollmentRepository'
+import type { IEnrollmentRepository, CreateUserEnrollmentData } from '@domain/interfaces/IEnrollmentRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
 import { Enrollment, EnrollmentJSON } from '@domain/models/Enrollment'
 
@@ -126,6 +126,82 @@ export class EnrollmentRepository implements IEnrollmentRepository {
             this.logger.info('Enrollment deleted successfully', { enrollmentId: id })
         } catch (error) {
             this.logger.error(`Failed to delete enrollment ${id}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Get all enrollments for a specific user
+     */
+    async findByUserId(userId: string): Promise<Enrollment[]> {
+        try {
+            this.logger.debug(`Fetching enrollments for user ${userId}`)
+
+            const response = await this.httpClient.get<EnrollmentJSON[]>(
+                `/users/${userId}/enrollments`
+            )
+
+            const enrollments = (response.data || []).map((data: EnrollmentJSON) =>
+                Enrollment.fromJSON(data)
+            )
+
+            this.logger.debug(`Found ${enrollments.length} enrollments for user ${userId}`)
+            return enrollments
+        } catch (error) {
+            this.logger.error(`Failed to fetch enrollments for user ${userId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Create (start) an enrollment for a specific user
+     */
+    async createForUser(userId: string, data: CreateUserEnrollmentData): Promise<Enrollment> {
+        try {
+            this.logger.info(`Creating enrollment for user ${userId}`, {
+                tenantId: data.tenantId,
+                methodType: data.methodType,
+            })
+
+            const response = await this.httpClient.post<EnrollmentJSON>(
+                `/users/${userId}/enrollments`,
+                null,
+                {
+                    params: {
+                        tenantId: data.tenantId,
+                        methodType: data.methodType,
+                    },
+                }
+            )
+
+            const enrollment = Enrollment.fromJSON(response.data)
+
+            this.logger.info('Enrollment created successfully for user', {
+                enrollmentId: enrollment.id,
+                userId,
+            })
+            return enrollment
+        } catch (error) {
+            this.logger.error(`Failed to create enrollment for user ${userId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Revoke an enrollment for a specific user by auth method type
+     */
+    async deleteForUser(userId: string, methodType: string): Promise<void> {
+        try {
+            this.logger.info(`Revoking enrollment for user ${userId}, method ${methodType}`)
+
+            await this.httpClient.delete(`/users/${userId}/enrollments/${methodType}`)
+
+            this.logger.info('Enrollment revoked successfully', { userId, methodType })
+        } catch (error) {
+            this.logger.error(
+                `Failed to revoke enrollment for user ${userId}, method ${methodType}`,
+                error
+            )
             throw error
         }
     }

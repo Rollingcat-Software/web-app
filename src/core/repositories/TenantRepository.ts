@@ -81,6 +81,26 @@ export class TenantRepository implements ITenantRepository {
     }
 
     /**
+     * Find tenant by slug
+     */
+    async findBySlug(slug: string): Promise<Tenant | null> {
+        try {
+            this.logger.debug(`Fetching tenant by slug: ${slug}`)
+
+            const response = await this.httpClient.get<TenantJSON>(`/tenants/slug/${slug}`)
+
+            return Tenant.fromJSON(response.data)
+        } catch (error: unknown) {
+            const axiosError = error as { response?: { status?: number } }
+            if (axiosError.response?.status === 404) {
+                return null
+            }
+            this.logger.error(`Failed to fetch tenant by slug: ${slug}`, error)
+            throw error
+        }
+    }
+
+    /**
      * Find tenant by ID
      */
     async findById(id: string): Promise<Tenant | null> {

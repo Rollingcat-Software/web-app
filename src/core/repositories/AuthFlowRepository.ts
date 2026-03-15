@@ -24,6 +24,7 @@ export interface AuthFlowResponse {
     name: string
     description: string
     operationType: OperationType
+    stepCount: number
     steps: FlowStepSpec[]
     isActive: boolean
     isDefault: boolean

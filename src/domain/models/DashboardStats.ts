@@ -16,6 +16,7 @@ export interface DashboardStatsJSON {
     failedEnrollments?: number
     authSuccessRate?: number
     verificationSuccessRate?: number
+    exportFormats?: string[]
 }
 
 export class DashboardStats {
@@ -31,7 +32,8 @@ export class DashboardStats {
         public readonly successfulEnrollments: number,
         public readonly failedEnrollments: number,
         public readonly authSuccessRate: number,
-        public readonly verificationSuccessRate: number
+        public readonly verificationSuccessRate: number,
+        public readonly exportFormats: string[] = []
     ) {}
 
     /**
@@ -81,7 +83,8 @@ export class DashboardStats {
             data.successfulEnrollments ?? 0,
             data.failedEnrollments ?? 0,
             data.authSuccessRate ?? 0,
-            data.verificationSuccessRate ?? 0
+            data.verificationSuccessRate ?? 0,
+            data.exportFormats ?? []
         )
     }
 }

@@ -1,7 +1,7 @@
 import { injectable, inject } from 'inversify'
 import { TYPES } from '@core/di/types'
 import type { IEnrollmentService, EnrollmentFilters } from '@domain/interfaces/IEnrollmentService'
-import type { IEnrollmentRepository } from '@domain/interfaces/IEnrollmentRepository'
+import type { IEnrollmentRepository, CreateUserEnrollmentData } from '@domain/interfaces/IEnrollmentRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { PaginatedResult } from '@domain/interfaces/IRepository'
 import { Enrollment } from '@domain/models/Enrollment'
@@ -113,6 +113,57 @@ export class EnrollmentService implements IEnrollmentService {
             this.logger.info('Enrollment deleted successfully', { enrollmentId: id })
         } catch (error) {
             this.logger.error(`Failed to delete enrollment ${id}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Get all enrollments for a specific user
+     */
+    async getUserEnrollments(userId: string): Promise<Enrollment[]> {
+        try {
+            this.logger.debug(`Getting enrollments for user ${userId}`)
+            return await this.enrollmentRepository.findByUserId(userId)
+        } catch (error) {
+            this.logger.error(`Failed to get enrollments for user ${userId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Create (start) an enrollment for a specific user
+     */
+    async createUserEnrollment(
+        userId: string,
+        data: CreateUserEnrollmentData
+    ): Promise<Enrollment> {
+        try {
+            this.logger.info(`Creating enrollment for user ${userId}`, data)
+            const enrollment = await this.enrollmentRepository.createForUser(userId, data)
+            this.logger.info('User enrollment created successfully', {
+                enrollmentId: enrollment.id,
+                userId,
+            })
+            return enrollment
+        } catch (error) {
+            this.logger.error(`Failed to create enrollment for user ${userId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Revoke an enrollment for a specific user by auth method type
+     */
+    async revokeUserEnrollment(userId: string, methodType: string): Promise<void> {
+        try {
+            this.logger.info(`Revoking enrollment for user ${userId}, method ${methodType}`)
+            await this.enrollmentRepository.deleteForUser(userId, methodType)
+            this.logger.info('User enrollment revoked successfully', { userId, methodType })
+        } catch (error) {
+            this.logger.error(
+                `Failed to revoke enrollment for user ${userId}, method ${methodType}`,
+                error
+            )
             throw error
         }
     }

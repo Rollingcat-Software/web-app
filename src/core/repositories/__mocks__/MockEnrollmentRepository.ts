@@ -1,5 +1,5 @@
 import { injectable } from 'inversify'
-import type { IEnrollmentRepository } from '@domain/interfaces/IEnrollmentRepository'
+import type { IEnrollmentRepository, CreateUserEnrollmentData } from '@domain/interfaces/IEnrollmentRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
 import { Enrollment, EnrollmentStatus } from '@domain/models/Enrollment'
 
@@ -97,5 +97,36 @@ export class MockEnrollmentRepository implements IEnrollmentRepository {
 
     async delete(id: string): Promise<void> {
         this.enrollments.delete(id)
+    }
+
+    async findByUserId(userId: string): Promise<Enrollment[]> {
+        return Array.from(this.enrollments.values()).filter(
+            (enrollment) => enrollment.userId === userId
+        )
+    }
+
+    async createForUser(userId: string, data: CreateUserEnrollmentData): Promise<Enrollment> {
+        const id = `mock-${Date.now()}`
+        const enrollment = new Enrollment(
+            id,
+            userId,
+            data.tenantId,
+            EnrollmentStatus.PENDING,
+            '',
+            new Date(),
+            new Date(),
+            data.methodType
+        )
+        this.enrollments.set(id, enrollment)
+        return enrollment
+    }
+
+    async deleteForUser(userId: string, methodType: string): Promise<void> {
+        for (const [id, enrollment] of this.enrollments.entries()) {
+            if (enrollment.userId === userId && enrollment.authMethodType === methodType) {
+                this.enrollments.delete(id)
+                return
+            }
+        }
     }
 }

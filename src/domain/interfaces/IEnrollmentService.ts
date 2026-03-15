@@ -1,5 +1,6 @@
 import type { Enrollment, EnrollmentStatus } from '@domain/models/Enrollment'
 import type { PaginatedResult } from './IRepository'
+import type { CreateUserEnrollmentData } from './IEnrollmentRepository'
 
 /**
  * Enrollment filters for querying
@@ -42,4 +43,19 @@ export interface IEnrollmentService {
      * @throws NotFoundError if enrollment doesn't exist
      */
     deleteEnrollment(id: string): Promise<void>
+
+    /**
+     * Get all enrollments for a specific user
+     */
+    getUserEnrollments(userId: string): Promise<Enrollment[]>
+
+    /**
+     * Create (start) an enrollment for a specific user
+     */
+    createUserEnrollment(userId: string, data: CreateUserEnrollmentData): Promise<Enrollment>
+
+    /**
+     * Revoke an enrollment for a specific user by auth method type
+     */
+    revokeUserEnrollment(userId: string, methodType: string): Promise<void>
 }

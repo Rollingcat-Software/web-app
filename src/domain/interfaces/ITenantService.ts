@@ -27,6 +27,12 @@ export interface ITenantService {
     getTenantById(id: string): Promise<Tenant>
 
     /**
+     * Get tenant by slug
+     * @throws NotFoundError if tenant doesn't exist
+     */
+    getTenantBySlug(slug: string): Promise<Tenant>
+
+    /**
      * Create new tenant
      * @throws ValidationError if data is invalid
      * @throws ConflictError if domain already exists

@@ -64,6 +64,15 @@ function formatTimeAgo(date: Date, t: (key: string) => string): string {
     return t('notifications.daysAgo').replace('{{n}}', String(diffDays))
 }
 
+/**
+ * IL5: NotificationPanel — Simulated notifications using audit log polling.
+ *
+ * There are no dedicated notification endpoints in identity-core-api.
+ * This component polls the audit log service (GET /audit-logs) and presents
+ * recent entries as notifications. If a real notification backend is added
+ * (e.g., WebSocket push or a /notifications endpoint), this component should
+ * be updated to consume that instead of polling audit logs.
+ */
 export default function NotificationPanel() {
     const { t } = useTranslation()
     const auditLogService = useService<IAuditLogService>(TYPES.AuditLogService)

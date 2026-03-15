@@ -42,6 +42,12 @@ export interface ITenantRepository {
     findById(id: string): Promise<Tenant | null>
 
     /**
+     * Find tenant by slug
+     * @returns Tenant if found, null otherwise
+     */
+    findBySlug(slug: string): Promise<Tenant | null>
+
+    /**
      * Create new tenant
      */
     create(data: CreateTenantData): Promise<Tenant>

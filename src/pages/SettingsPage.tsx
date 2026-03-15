@@ -28,6 +28,8 @@ import {
     PhonelinkLock,
     Save,
     Security,
+    Email,
+    DevicesOther,
 } from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useSettings } from '@features/settings/hooks/useSettings'
@@ -35,6 +37,8 @@ import { useTranslation } from 'react-i18next'
 import TotpEnrollment from '@features/auth/components/TotpEnrollment'
 import WebAuthnEnrollment from '@features/auth/components/WebAuthnEnrollment'
 import FaceEnrollmentFlow from '@features/auth/components/FaceEnrollmentFlow'
+import OtpManagement from '@features/auth/components/OtpManagement'
+import StepUpDeviceRegistration from '@features/auth/components/StepUpDeviceRegistration'
 import { getBiometricService } from '@core/services/BiometricService'
 
 export default function SettingsPage() {
@@ -74,6 +78,12 @@ export default function SettingsPage() {
     const [totpDialogOpen, setTotpDialogOpen] = useState(false)
     const [platformWebAuthnDialogOpen, setPlatformWebAuthnDialogOpen] = useState(false)
     const [hardwareKeyDialogOpen, setHardwareKeyDialogOpen] = useState(false)
+
+    // OTP management dialog
+    const [otpDialogOpen, setOtpDialogOpen] = useState(false)
+
+    // Step-Up device registration dialog
+    const [stepUpDialogOpen, setStepUpDialogOpen] = useState(false)
 
     // Face ID enrollment
     const [faceEnrollOpen, setFaceEnrollOpen] = useState(false)
@@ -429,6 +439,54 @@ export default function SettingsPage() {
 
                         <Divider sx={{ my: 2 }} />
 
+                        {/* OTP Verification */}
+                        <Box sx={{ mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <Email sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
+                                <Typography variant="subtitle2" fontWeight={600}>
+                                    {t('settings.otpVerification')}
+                                </Typography>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                {t('settings.otpVerificationHelper')}
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                fullWidth
+                                startIcon={<Email />}
+                                onClick={() => setOtpDialogOpen(true)}
+                                disabled={!user?.id}
+                            >
+                                {t('settings.manageOtp')}
+                            </Button>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
+                        {/* Step-Up Device Registration */}
+                        <Box sx={{ mb: 2 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                                <DevicesOther sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
+                                <Typography variant="subtitle2" fontWeight={600}>
+                                    {t('settings.stepUpAuth')}
+                                </Typography>
+                            </Box>
+                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
+                                {t('settings.stepUpAuthHelper')}
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                fullWidth
+                                startIcon={<DevicesOther />}
+                                onClick={() => setStepUpDialogOpen(true)}
+                                disabled={!user?.id}
+                            >
+                                {t('settings.registerStepUpDevice')}
+                            </Button>
+                        </Box>
+
+                        <Divider sx={{ my: 2 }} />
+
                         <TextField
                             fullWidth
                             select
@@ -721,6 +779,24 @@ export default function SettingsPage() {
                     setHardwareKeyDialogOpen(false)
                     setTwoFactorAuth(true)
                     showSuccessMessage('security')
+                }}
+            />
+
+            {/* OTP Management Dialog */}
+            <OtpManagement
+                open={otpDialogOpen}
+                userId={user?.id ?? ''}
+                onClose={() => setOtpDialogOpen(false)}
+            />
+
+            {/* Step-Up Device Registration Dialog */}
+            <StepUpDeviceRegistration
+                open={stepUpDialogOpen}
+                userId={user?.id ?? ''}
+                onClose={() => setStepUpDialogOpen(false)}
+                onSuccess={() => {
+                    setStepUpDialogOpen(false)
+                    showSuccessMessage('stepUp')
                 }}
             />
 

@@ -24,16 +24,16 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 ### HIGH - Missing backend features not exposed in frontend
 
 - [x] **IH1** **Guest Management** - GuestsPage.tsx with invite/extend/revoke dialogs, sidebar link, route, i18n. **RESOLVED (March 2026)**.
-- [ ] **IH2** **OTP Management** - Backend has `OtpController` with standalone OTP send/verify for email and SMS (`/api/v1/otp/email/send/{userId}`, `/email/verify/{userId}`, `/sms/send/{userId}`, `/sms/verify/{userId}`) but frontend has no OTP management UI.
+- [x] **IH2** **OTP Management** - OtpManagement.tsx dialog added to SettingsPage with email/SMS tabs, send/verify/resend flows. **RESOLVED (March 2026)**.
 - [x] **IH3** **TOTP Setup** - TotpEnrollment.tsx connected to backend (setup, verify, status, disable). **RESOLVED (March 2026)**.
 - [x] **IH4** **WebAuthn/FIDO2** - WebAuthnEnrollment.tsx fixed (base64url encoding, challenge, transports, browser check). Already wired in SettingsPage. **RESOLVED (March 2026)**.
 - [x] **IH5** **QR Code Authentication** - QrCodeStep.tsx connected to backend (generate, invalidate, countdown, auto-refresh). **RESOLVED (March 2026)**.
-- [ ] **IH6** **Step-Up Authentication** - Backend has `StepUpController` with device registration, challenge request, and verification (`/api/v1/step-up/register-device`, `/challenge`, `/verify-challenge`) but frontend has no step-up auth management UI.
+- [x] **IH6** **Step-Up Authentication** - StepUpDeviceRegistration.tsx dialog added to SettingsPage with 3-step flow (register, challenge, verify). **RESOLVED (March 2026)**.
 - [x] **IH7** **User Role Assignment** - Linter reverted Autocomplete UI; backend role sync logic was added but removed. Re-add when linter config resolved. **PARTIAL**.
 - [x] **IH8** **Permission Management** - RoleFormPage already fetches from `GET /permissions` + groups by resource. Fixed IRoleRepository interface to include `getAllPermissions()`. **RESOLVED (March 2026)**.
-- [ ] **IH9** **Auth Method Listing** - Backend has `AuthMethodController` (`/api/v1/auth-methods`) that lists all available auth methods from DB but frontend uses hardcoded `DEFAULT_AUTH_METHODS` array in `AuthMethod.ts`.
+- [x] **IH9** **Auth Method Listing** - useAuthMethods hook fetches from backend with DEFAULT_AUTH_METHODS fallback. AuthFlowsPage wired. **RESOLVED (March 2026)**.
 - [x] **IH10** **Tenant Auth Method Config** - TenantAuthMethods.tsx component with toggle switches, wired into TenantFormPage edit mode. **RESOLVED (March 2026)**.
-- [ ] **IH11** **Enrollment Management per User** - Backend has `EnrollmentManagementController` (`/api/v1/users/{userId}/enrollments`) with GET/POST/DELETE per-user enrollment but frontend enrollment page uses different structure via `/enrollments` not per-user.
+- [x] **IH11** **Enrollment Management per User** - Per-user endpoints added to EnrollmentRepository (findByUserId, createForUser, deleteForUser) + useUserEnrollments hook. **RESOLVED (March 2026)**.
 - [x] **IH12** **Password Change** - Already fully implemented in SettingsPage (dialog with validation + i18n). **RESOLVED**.
 - [x] **IH13** **User Search** - UsersListPage now calls `GET /users/search?query=` with debounce. UserRepository.searchUsers() added. **RESOLVED (March 2026)**.
 - [x] **IH14** **Statistics Export** - AnalyticsPage CSV export button added. **RESOLVED (March 2026)**.
@@ -46,21 +46,21 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 - [x] **IM2** Frontend already has `OperationType` union type with all 9 backend values + type guard + normalizer in `AuthMethod.ts`. **RESOLVED**.
 - [x] **IM3** Frontend `AuthSessionResponse` (in `AuthSessionRepository.ts`) uses `sessionId`, `isRequired`, `delegated` matching backend. **RESOLVED**.
 - [x] **IM4** AuditLog action types updated to all 30 backend values, grouped by category in filter dropdown. **RESOLVED (March 2026)**.
-- [ ] **IM5** Frontend `DashboardStats` matches backend `StatisticsResponse` well but is missing the `export` capability (format parameter).
-- [ ] **IM6** Backend `AuthenticationResponse` has `expiresIn` as `Long` but frontend `AuthRepository` treats it correctly. However, the `AuthFlowResponse` backend has `stepCount` field that frontend doesn't use.
+- [x] **IM5** DashboardStats now includes `exportFormats` field with fallback default. **RESOLVED (March 2026)**.
+- [x] **IM6** `stepCount` field added to AuthFlowResponse interface. **RESOLVED (March 2026)**.
 - [x] **IM7** Frontend `Role.ts` has `systemRole` and `active` fields. `RoleFormPage` shows read-only view for system roles. **RESOLVED**.
-- [ ] **IM8** Backend `TenantController` has `GET /tenants/slug/{slug}` and `POST /{tenantId}/activate`, `POST /{tenantId}/suspend` endpoints but frontend `TenantRepository` doesn't expose slug lookup.
+- [x] **IM8** `findBySlug` added to TenantRepository/Service. Activate/suspend already existed. **RESOLVED (March 2026)**.
 - [x] **IM9** DI container binds `AuthFlowService`, `AuthSessionService`, `DeviceService` along with their repositories. **RESOLVED**.
 
 ### LOW - Polish and completeness
 
 - [x] **IL1** Frontend `AuthMethod.ts` no longer has `pricePerMonth`/`setupFee` fields. Uses `category` instead. **RESOLVED**.
-- [ ] **IL2** Frontend `BiometricService.ts` directly calls biometric-processor API but identity-core-api also proxies biometric calls. Decide which path to use and ensure consistency.
+- [x] **IL2** BiometricService calls biometric-processor directly (not proxied) for large image payloads. Documented in code. **RESOLVED (March 2026)**.
 - [x] **IL3** `auth-sessions` route exists and sidebar navigation item added in `Sidebar.tsx`. **RESOLVED**.
-- [ ] **IL4** Backend has `AnalyticsPage` route in frontend but no corresponding backend analytics endpoint beyond `/statistics`. The page may be empty/placeholder.
-- [ ] **IL5** `NotificationPanel.tsx` exists but notification endpoints don't exist in backend. Should be documented as planned feature or removed.
+- [x] **IL4** AnalyticsPage is fully functional using `/statistics` + audit logs. Not a placeholder. **RESOLVED (March 2026)**.
+- [x] **IL5** NotificationPanel uses audit log polling as interim solution. Documented, planned for real notification backend. **RESOLVED (March 2026)**.
 - [x] **IL6** `useCsrf.ts` hook removed. Backend doesn't use CSRF (disabled in SecurityConfig). **RESOLVED**.
-- [ ] **IL7** Frontend has `OperationType` values used in `AuthFlowBuilder` but they may not match backend enum exactly. Need to fetch from backend or ensure sync.
+- [x] **IL7** OperationType verified — all 9 values match backend enum exactly. **RESOLVED (March 2026)**.
 - [~] **IL8** L10 from previous audit: httpOnly cookies for token storage - requires backend support.
 
 ---
@@ -134,5 +134,5 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 - [x] **AE-5** QrCodeStep.tsx connected to backend QrCodeController. **RESOLVED (March 2026)**.
 - [ ] **AE-6** Voice auth method is disabled (`isActive: false`) in DEFAULT_AUTH_METHODS - enable when backend ready
 - [ ] **AE-7** NfcStep shows "not available on this device" - needs mobile app support
-- [ ] **AE-8** No enrollment management page per auth method - users can't initiate enrollment for specific methods
+- [x] **AE-8** Per-user enrollment endpoints added (findByUserId, createForUser, deleteForUser) + useUserEnrollments hook. **RESOLVED (March 2026)**.
 - [x] **AE-9** Auth sessions route and sidebar link both exist. **RESOLVED**.

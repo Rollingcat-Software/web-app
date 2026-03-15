@@ -38,6 +38,15 @@ export interface LivenessResult {
  *
  * Communicates with the biometric-processor FastAPI service
  * for face enrollment, verification, search, and liveness checks.
+ *
+ * IL2: This service calls biometric-processor directly (via VITE_BIOMETRIC_API_URL)
+ * rather than proxying through identity-core-api. This is intentional because:
+ *   - Biometric operations involve large image payloads (multipart/form-data)
+ *     that would add unnecessary latency if proxied through the Java backend.
+ *   - identity-core-api does have a BiometricServicePort adapter for server-side
+ *     biometric calls (e.g., during auth flow step-up), but the web dashboard
+ *     bypasses it for direct user-initiated operations like enrollment and search.
+ *   - Authentication for biometric-processor is handled via X-API-Key header.
  */
 export class BiometricService {
     private readonly client: AxiosInstance

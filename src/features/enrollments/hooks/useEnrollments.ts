@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IEnrollmentService, EnrollmentFilters } from '@domain/interfaces/IEnrollmentService'
+import type { CreateUserEnrollmentData } from '@domain/interfaces/IEnrollmentRepository'
 import { Enrollment } from '@domain/models/Enrollment'
 import type { ErrorHandler } from '@core/errors'
 
@@ -167,4 +168,90 @@ export function useEnrollment(id: string) {
     }, [id, enrollmentService, errorHandler])
 
     return state
+}
+
+/**
+ * Per-user enrollments state
+ */
+interface UserEnrollmentsState {
+    enrollments: Enrollment[]
+    loading: boolean
+    error: Error | null
+}
+
+/**
+ * Use user enrollments hook return type
+ */
+interface UseUserEnrollmentsReturn extends UserEnrollmentsState {
+    refetch: () => Promise<void>
+    createEnrollment: (data: CreateUserEnrollmentData) => Promise<Enrollment>
+    revokeEnrollment: (methodType: string) => Promise<void>
+}
+
+/**
+ * Custom hook for per-user enrollment management
+ * Uses the /users/{userId}/enrollments endpoints
+ *
+ * @example
+ * const { enrollments, loading, createEnrollment, revokeEnrollment } = useUserEnrollments(userId)
+ */
+export function useUserEnrollments(userId: string): UseUserEnrollmentsReturn {
+    const enrollmentService = useService<IEnrollmentService>(TYPES.EnrollmentService)
+    const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
+
+    const [state, setState] = useState<UserEnrollmentsState>({
+        enrollments: [],
+        loading: true,
+        error: null,
+    })
+
+    const fetchEnrollments = useCallback(async () => {
+        if (!userId) return
+        setState((prev) => ({ ...prev, loading: true, error: null }))
+        try {
+            const enrollments = await enrollmentService.getUserEnrollments(userId)
+            setState({ enrollments, loading: false, error: null })
+        } catch (error) {
+            setState((prev) => ({ ...prev, loading: false, error: error as Error }))
+            errorHandler.handle(error)
+        }
+    }, [userId, enrollmentService, errorHandler])
+
+    useEffect(() => {
+        fetchEnrollments()
+    }, [fetchEnrollments])
+
+    const createEnrollment = useCallback(
+        async (data: CreateUserEnrollmentData): Promise<Enrollment> => {
+            try {
+                const enrollment = await enrollmentService.createUserEnrollment(userId, data)
+                await fetchEnrollments()
+                return enrollment
+            } catch (error) {
+                errorHandler.handle(error)
+                throw error
+            }
+        },
+        [userId, enrollmentService, errorHandler, fetchEnrollments]
+    )
+
+    const revokeEnrollment = useCallback(
+        async (methodType: string): Promise<void> => {
+            try {
+                await enrollmentService.revokeUserEnrollment(userId, methodType)
+                await fetchEnrollments()
+            } catch (error) {
+                errorHandler.handle(error)
+                throw error
+            }
+        },
+        [userId, enrollmentService, errorHandler, fetchEnrollments]
+    )
+
+    return {
+        ...state,
+        refetch: fetchEnrollments,
+        createEnrollment,
+        revokeEnrollment,
+    }
 }

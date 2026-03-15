@@ -32,14 +32,12 @@ import { AuthFlowBuilder } from './AuthFlowBuilder'
 import { TYPES } from '@core/di/types'
 import { useService } from '@app/providers/DependencyProvider'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useAuthMethods } from '@features/authFlows/hooks/useAuthMethods'
 import {
-    DEFAULT_AUTH_METHODS,
     OPERATION_TYPE_OPTIONS,
     getOperationTypeLabel,
-    type AuthMethod,
     type OperationType,
 } from '@domain/models/AuthMethod'
-import type { AuthMethodRepository } from '@core/repositories/AuthMethodRepository'
 import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 
@@ -47,31 +45,17 @@ const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
 export default function AuthFlowsPage() {
     const authFlowRepo = useService<AuthFlowRepository>(TYPES.AuthFlowRepository)
-    const authMethodRepo = useService<AuthMethodRepository>(TYPES.AuthMethodRepository)
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
+    const { authMethods, warning: authMethodWarning } = useAuthMethods()
 
     const [flows, setFlows] = useState<AuthFlowResponse[]>([])
-    const [authMethods, setAuthMethods] = useState<AuthMethod[]>(DEFAULT_AUTH_METHODS)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [authMethodWarning, setAuthMethodWarning] = useState<string | null>(null)
     const [showBuilder, setShowBuilder] = useState(false)
     const [filterType, setFilterType] = useState<string>('')
 
     const tenantId = user?.tenantId ?? ''
-
-    const loadAuthMethods = useCallback(async () => {
-        try {
-            const methods = await authMethodRepo.listMethods()
-            setAuthMethods(methods)
-            setAuthMethodWarning(null)
-        } catch (err) {
-            logger.warn('Failed to load backend auth methods, using fallback defaults', err)
-            setAuthMethods(DEFAULT_AUTH_METHODS)
-            setAuthMethodWarning('Could not load authentication methods from backend. Showing fallback defaults.')
-        }
-    }, [authMethodRepo, logger])
 
     const loadFlows = useCallback(async () => {
         setLoading(true)
@@ -91,9 +75,6 @@ export default function AuthFlowsPage() {
         loadFlows()
     }, [loadFlows])
 
-    useEffect(() => {
-        loadAuthMethods()
-    }, [loadAuthMethods])
 
     const handleSave = async (data: {
         name: string
@@ -170,7 +151,7 @@ export default function AuthFlowsPage() {
 
                 {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
                 {authMethodWarning && (
-                    <Alert severity="warning" sx={{ mb: 2 }} onClose={() => setAuthMethodWarning(null)}>
+                    <Alert severity="warning" sx={{ mb: 2 }}>
                         {authMethodWarning}
                     </Alert>
                 )}

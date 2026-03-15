@@ -58,6 +58,21 @@ export class TenantService implements ITenantService {
     }
 
     /**
+     * Get tenant by slug
+     */
+    async getTenantBySlug(slug: string): Promise<Tenant> {
+        this.logger.debug(`Getting tenant by slug: ${slug}`)
+
+        const tenant = await this.tenantRepository.findBySlug(slug)
+
+        if (!tenant) {
+            throw new NotFoundError(`Tenant with slug '${slug}' not found`)
+        }
+
+        return tenant
+    }
+
+    /**
      * Create new tenant
      */
     async createTenant(data: CreateTenantData): Promise<Tenant> {

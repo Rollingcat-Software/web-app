@@ -16,6 +16,10 @@ export class AuthMethodRepository {
         @inject(TYPES.Logger) private readonly logger: ILogger
     ) {}
 
+    /**
+     * Fetch auth methods from backend.
+     * Falls back to DEFAULT_AUTH_METHODS if the API call fails.
+     */
     async listMethods(): Promise<AuthMethod[]> {
         try {
             this.logger.debug('Fetching auth methods from backend')
@@ -31,7 +35,7 @@ export class AuthMethodRepository {
             }
 
             if (mappedMethods.length !== response.data.length) {
-                this.logger.warn('Some backend auth methods were skipped due unknown type values', {
+                this.logger.warn('Some backend auth methods were skipped due to unknown type values', {
                     total: response.data.length,
                     mapped: mappedMethods.length,
                 })
@@ -39,8 +43,8 @@ export class AuthMethodRepository {
 
             return mappedMethods
         } catch (error) {
-            this.logger.error('Failed to fetch auth methods', error)
-            throw error
+            this.logger.warn('Failed to fetch auth methods from backend; returning defaults', error)
+            return DEFAULT_AUTH_METHODS
         }
     }
 }

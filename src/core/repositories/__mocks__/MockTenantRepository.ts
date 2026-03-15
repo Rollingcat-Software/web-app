@@ -70,6 +70,15 @@ export class MockTenantRepository implements ITenantRepository {
         }
     }
 
+    async findBySlug(slug: string): Promise<Tenant | null> {
+        for (const tenant of this.tenants.values()) {
+            if (tenant.slug === slug) {
+                return tenant
+            }
+        }
+        return null
+    }
+
     async findById(id: string): Promise<Tenant | null> {
         return this.tenants.get(id) ?? null
     }
