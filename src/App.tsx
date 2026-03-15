@@ -24,6 +24,9 @@ const DevicesPage = lazy(() => import('./pages/DevicesPage'))
 const AuthSessionsPage = lazy(() => import('./pages/AuthSessionsPage'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const UserEnrollmentPage = lazy(() => import('./features/userEnrollment/components/UserEnrollmentPage'))
+const GuestsPage = lazy(() => import('./pages/GuestsPage'))
+const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
+const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -84,6 +87,8 @@ function App() {
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />
                 <Route path="/register" element={<RegisterPage />} />
+                <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+                <Route path="/reset-password" element={<ResetPasswordPage />} />
 
                 {/* Protected Routes */}
                 <Route
@@ -111,6 +116,7 @@ function App() {
                     <Route path="enrollments" element={<ErrorBoundary><EnrollmentsListPage /></ErrorBoundary>} />
                     <Route path="user-enrollment" element={<ErrorBoundary><UserEnrollmentPage /></ErrorBoundary>} />
                     <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
+                    <Route path="guests" element={<ErrorBoundary><GuestsPage /></ErrorBoundary>} />
                     <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
                     <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
                 </Route>

@@ -1,6 +1,7 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import {
     Box,
+    Button,
     Card,
     CardContent,
     CircularProgress,
@@ -8,7 +9,7 @@ import {
     Typography,
     Alert,
 } from '@mui/material'
-import { Analytics, TrendingUp } from '@mui/icons-material'
+import { Analytics, Download, TrendingUp } from '@mui/icons-material'
 import {
     PieChart,
     Pie,
@@ -48,6 +49,27 @@ const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6'
 export default function AnalyticsPage() {
     const { stats, loading, error } = useDashboard()
     const { auditLogs, loading: logsLoading } = useAuditLogs()
+
+    const handleExportCsv = useCallback(() => {
+        if (!stats) return
+        const rows: (string | number)[][] = [
+            ['Metric', 'Value'],
+            ['Active Users', stats.activeUsers],
+            ['Inactive Users', stats.inactiveUsers],
+            ['Suspended Users', stats.suspendedUsers],
+            ['Total Enrollments', stats.totalEnrollments],
+            ['Successful Enrollments', stats.successfulEnrollments],
+            ['Failed Enrollments', stats.failedEnrollments],
+            ['Total Verifications', stats.totalVerifications],
+        ]
+        const csvContent = rows.map(r => r.join(',')).join('\n')
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+        const link = document.createElement('a')
+        link.href = URL.createObjectURL(blob)
+        link.download = `fivucsas-analytics-${new Date().toISOString().split('T')[0]}.csv`
+        link.click()
+        URL.revokeObjectURL(link.href)
+    }, [stats])
 
     const userStatusData = useMemo(() => {
         if (!stats) return []
@@ -170,9 +192,20 @@ export default function AnalyticsPage() {
                                 Analytics
                             </Typography>
                         </Box>
-                        <Typography variant="body1" color="text.secondary">
-                            Visual insights from your identity platform data.
-                        </Typography>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                            <Typography variant="body1" color="text.secondary" sx={{ flex: 1 }}>
+                                Visual insights from your identity platform data.
+                            </Typography>
+                            <Button
+                                variant="outlined"
+                                size="small"
+                                startIcon={<Download />}
+                                onClick={handleExportCsv}
+                                disabled={!stats}
+                            >
+                                Export CSV
+                            </Button>
+                        </Box>
                     </Box>
                 </motion.div>
 

@@ -3,44 +3,52 @@
  * Represents an audit log entry in the system
  */
 
+/**
+ * All audit log action types matching the backend AuditAction enum.
+ * Grouped by category for readability.
+ */
 export const AUDIT_LOG_ACTION_TYPES = [
+    // Authentication
+    'USER_LOGIN',
+    'USER_LOGOUT',
+    'USER_LOGIN_FAILED',
+    'TOKEN_REFRESH',
+    'PASSWORD_CHANGE',
+    'PASSWORD_RESET_REQUEST',
+    'PASSWORD_RESET',
+
+    // User management
     'USER_CREATED',
     'USER_UPDATED',
     'USER_DELETED',
-    'USER_AUTHENTICATED',
-    'USER_REGISTERED',
-    'USER_LOGGED_OUT',
-    'BIOMETRIC_ENROLLED',
-    'BIOMETRIC_VERIFIED',
-    'BIOMETRIC_DELETED',
-    'ROLE_CREATED',
-    'ROLE_UPDATED',
-    'ROLE_DELETED',
-    'ROLE_ASSIGNED',
-    'ROLE_REVOKED',
-    'PERMISSION_GRANTED',
-    'PERMISSION_REVOKED',
+    'USER_STATUS_CHANGED',
+    'USER_ROLE_ASSIGNED',
+    'USER_ROLE_REMOVED',
+
+    // Tenant management
     'TENANT_CREATED',
     'TENANT_UPDATED',
     'TENANT_DELETED',
-    'TENANT_ACTIVATED',
-    'TENANT_SUSPENDED',
+    'TENANT_STATUS_CHANGED',
+
+    // Role management
+    'ROLE_CREATED',
+    'ROLE_UPDATED',
+    'ROLE_DELETED',
+    'PERMISSION_ADDED',
+    'PERMISSION_REMOVED',
+
+    // Biometric
+    'BIOMETRIC_ENROLLED',
+    'BIOMETRIC_VERIFIED',
+    'BIOMETRIC_VERIFICATION_FAILED',
+    'BIOMETRIC_DELETED',
+
+    // Settings
     'SETTINGS_UPDATED',
-    'PASSWORD_CHANGED',
-    'PASSWORD_RESET',
-    'EMAIL_VERIFIED',
-    'PHONE_VERIFIED',
-    'ENROLLMENT_STARTED',
-    'ENROLLMENT_COMPLETED',
-    'ENROLLMENT_FAILED',
-    'AUTH_FLOW_CREATED',
-    'AUTH_FLOW_UPDATED',
-    'AUTH_FLOW_DELETED',
-    'DEVICE_REGISTERED',
-    'DEVICE_REMOVED',
-    'GUEST_INVITED',
-    'GUEST_ACCEPTED',
-    'GUEST_REVOKED',
+    'SECURITY_SETTINGS_UPDATED',
+    'NOTIFICATION_SETTINGS_UPDATED',
+    'APPEARANCE_SETTINGS_UPDATED',
 ] as const
 
 export type AuditLogActionType = (typeof AUDIT_LOG_ACTION_TYPES)[number]

@@ -1,14 +1,16 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
     Alert,
     Box,
     Button,
     CircularProgress,
+    LinearProgress,
     TextField,
     Typography,
 } from '@mui/material'
-import { QrCode2, ArrowForward } from '@mui/icons-material'
+import { QrCode2, ArrowForward, Refresh } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { QRCodeSVG } from 'qrcode.react'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -24,6 +26,7 @@ const itemVariants: Variants = {
 interface QrCodeStepProps {
     userId?: string
     onGenerateToken: (userId: string) => Promise<{ token: string; expiresInSeconds: number }>
+    onInvalidateToken?: (token: string) => Promise<void>
     onSubmit: (token: string) => void
     loading: boolean
     error?: string
@@ -32,6 +35,7 @@ interface QrCodeStepProps {
 export default function QrCodeStep({
     userId,
     onGenerateToken,
+    onInvalidateToken,
     onSubmit,
     loading,
     error,
@@ -39,8 +43,15 @@ export default function QrCodeStep({
     const [token, setToken] = useState('')
     const [generatedToken, setGeneratedToken] = useState('')
     const [expiresInSeconds, setExpiresInSeconds] = useState<number | null>(null)
+    const [remainingSeconds, setRemainingSeconds] = useState<number | null>(null)
     const [isGenerating, setIsGenerating] = useState(false)
     const [generationError, setGenerationError] = useState<string | undefined>(undefined)
+    const [isExpired, setIsExpired] = useState(false)
+
+    // Track the current token for cleanup on unmount
+    const currentTokenRef = useRef<string>('')
+    const onInvalidateTokenRef = useRef(onInvalidateToken)
+    onInvalidateTokenRef.current = onInvalidateToken
 
     const handleGenerateToken = useCallback(async () => {
         if (!userId) {
@@ -52,12 +63,24 @@ export default function QrCodeStep({
 
         setIsGenerating(true)
         setGenerationError(undefined)
+        setIsExpired(false)
+
+        // Invalidate the previous token if one exists
+        if (currentTokenRef.current && onInvalidateToken) {
+            try {
+                await onInvalidateToken(currentTokenRef.current)
+            } catch (_err) {
+                // Best-effort invalidation of old token
+            }
+        }
 
         try {
             const result = await onGenerateToken(userId)
             setGeneratedToken(result.token)
             setExpiresInSeconds(result.expiresInSeconds)
+            setRemainingSeconds(result.expiresInSeconds)
             setToken(result.token)
+            currentTokenRef.current = result.token
         } catch (err) {
             const message =
                 err instanceof Error ? err.message : 'Unable to generate QR token automatically.'
@@ -65,11 +88,50 @@ export default function QrCodeStep({
         } finally {
             setIsGenerating(false)
         }
-    }, [userId, onGenerateToken])
+    }, [userId, onGenerateToken, onInvalidateToken])
 
+    // Generate token on mount
     useEffect(() => {
         void handleGenerateToken()
     }, [handleGenerateToken])
+
+    // Countdown timer for token expiry
+    useEffect(() => {
+        if (remainingSeconds === null || remainingSeconds <= 0) return
+
+        const timer = setInterval(() => {
+            setRemainingSeconds((prev) => {
+                if (prev === null || prev <= 1) {
+                    setIsExpired(true)
+                    return 0
+                }
+                return prev - 1
+            })
+        }, 1000)
+
+        return () => clearInterval(timer)
+    }, [remainingSeconds])
+
+    // Auto-refresh when token expires
+    useEffect(() => {
+        if (isExpired && !isGenerating && !loading) {
+            const timeout = setTimeout(() => {
+                void handleGenerateToken()
+            }, 2000)
+            return () => clearTimeout(timeout)
+        }
+    }, [isExpired, isGenerating, loading, handleGenerateToken])
+
+    // Invalidate token on unmount
+    useEffect(() => {
+        return () => {
+            const tokenToInvalidate = currentTokenRef.current
+            const invalidateFn = onInvalidateTokenRef.current
+            if (tokenToInvalidate && invalidateFn) {
+                void invalidateFn(tokenToInvalidate)
+            }
+        }
+    }, [])
 
     const handleSubmit = useCallback(
         (e: React.FormEvent) => {
@@ -80,6 +142,17 @@ export default function QrCodeStep({
         },
         [token, onSubmit]
     )
+
+    const formatTime = (seconds: number): string => {
+        const mins = Math.floor(seconds / 60)
+        const secs = seconds % 60
+        return `${mins}:${secs.toString().padStart(2, '0')}`
+    }
+
+    const expiryProgress =
+        expiresInSeconds && remainingSeconds !== null
+            ? (remainingSeconds / expiresInSeconds) * 100
+            : 0
 
     return (
         <motion.div
@@ -148,68 +221,57 @@ export default function QrCodeStep({
                     sx={{
                         display: 'flex',
                         justifyContent: 'center',
-                        mb: 3,
+                        mb: 2,
                     }}
                 >
                     <Box
                         sx={{
-                            width: 200,
-                            height: 200,
+                            width: 220,
+                            height: 220,
                             borderRadius: '16px',
-                            border: '2px dashed',
-                            borderColor: 'divider',
+                            border: '2px solid',
+                            borderColor: isExpired ? 'error.light' : 'divider',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             flexDirection: 'column',
-                            bgcolor: '#f8fafc',
+                            bgcolor: '#ffffff',
                             position: 'relative',
                             overflow: 'hidden',
+                            p: 1.5,
+                            transition: 'border-color 0.3s ease',
                         }}
                     >
                         {isGenerating ? (
                             <>
                                 <CircularProgress size={40} />
                                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                                    Generating secure token...
+                                    Generating QR code...
                                 </Typography>
                             </>
-                        ) : generatedToken ? (
-                            <Box
-                                sx={{
-                                    px: 2,
-                                    p: 2,
-                                    textAlign: 'center',
-                                }}
-                            >
+                        ) : generatedToken && !isExpired ? (
+                            <QRCodeSVG
+                                value={generatedToken}
+                                size={180}
+                                level="M"
+                                includeMargin={false}
+                                bgColor="#ffffff"
+                                fgColor="#1e293b"
+                            />
+                        ) : isExpired ? (
+                            <>
+                                <QrCode2 sx={{ fontSize: 48, color: 'error.light', opacity: 0.5 }} />
                                 <Typography
                                     variant="caption"
-                                    color="text.secondary"
-                                    sx={{ display: 'block', mb: 1 }}
+                                    color="error.main"
+                                    sx={{ mt: 1, fontWeight: 600 }}
                                 >
-                                    Generated One-Time Token
+                                    Token expired
                                 </Typography>
-                                <Typography
-                                    variant="h6"
-                                    sx={{
-                                        fontFamily: 'monospace',
-                                        letterSpacing: '0.08em',
-                                        wordBreak: 'break-all',
-                                        fontWeight: 700,
-                                    }}
-                                >
-                                    {generatedToken}
+                                <Typography variant="caption" color="text.secondary">
+                                    Generating a new one...
                                 </Typography>
-                                {expiresInSeconds && (
-                                    <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                        sx={{ display: 'block', mt: 1 }}
-                                    >
-                                        Expires in {Math.max(1, Math.floor(expiresInSeconds / 60))} minute(s)
-                                    </Typography>
-                                )}
-                            </Box>
+                            </>
                         ) : (
                             <>
                                 <QrCode2 sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.4 }} />
@@ -220,7 +282,7 @@ export default function QrCodeStep({
                         )}
 
                         {/* Scanning animation overlay */}
-                        {generatedToken && !loading && !isGenerating && (
+                        {generatedToken && !loading && !isGenerating && !isExpired && (
                             <motion.div
                                 animate={{
                                     y: ['-100%', '100%'],
@@ -243,17 +305,52 @@ export default function QrCodeStep({
                 </Box>
             </motion.div>
 
+            {/* Expiry countdown bar */}
+            {generatedToken && remainingSeconds !== null && !isGenerating && (
+                <motion.div variants={itemVariants}>
+                    <Box sx={{ px: 2, mb: 2 }}>
+                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                            <Typography
+                                variant="caption"
+                                color={remainingSeconds <= 30 ? 'error.main' : 'text.secondary'}
+                                fontWeight={remainingSeconds <= 30 ? 600 : 400}
+                            >
+                                {isExpired ? 'Expired' : `Expires in ${formatTime(remainingSeconds)}`}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary">
+                                Auto-refreshes on expiry
+                            </Typography>
+                        </Box>
+                        <LinearProgress
+                            variant="determinate"
+                            value={expiryProgress}
+                            sx={{
+                                height: 4,
+                                borderRadius: 2,
+                                bgcolor: 'rgba(0,0,0,0.06)',
+                                '& .MuiLinearProgress-bar': {
+                                    borderRadius: 2,
+                                    bgcolor: remainingSeconds <= 30 ? 'error.main' : 'primary.main',
+                                    transition: 'width 1s linear',
+                                },
+                            }}
+                        />
+                    </Box>
+                </motion.div>
+            )}
+
             <motion.div variants={itemVariants}>
                 <Box sx={{ textAlign: 'center', mb: 2 }}>
                     <Button
                         variant="text"
                         size="small"
+                        startIcon={<Refresh />}
                         onClick={() => {
                             void handleGenerateToken()
                         }}
                         disabled={loading || isGenerating}
                     >
-                        Generate New Token
+                        Generate New QR Code
                     </Button>
                 </Box>
             </motion.div>

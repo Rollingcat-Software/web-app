@@ -208,6 +208,11 @@ export default function MultiStepAuthFlow({
         [authSessionRepo]
     )
 
+    const handleInvalidateQrToken = useCallback(
+        async (token: string) => authSessionRepo.invalidateQrToken(token),
+        [authSessionRepo]
+    )
+
     /**
      * Cancel the entire auth flow
      */
@@ -344,6 +349,7 @@ export default function MultiStepAuthFlow({
                     <QrCodeStep
                         userId={sessionUserId || undefined}
                         onGenerateToken={handleGenerateQrToken}
+                        onInvalidateToken={handleInvalidateQrToken}
                         onSubmit={(token) => handleStepSubmit({ token })}
                         loading={loading}
                         error={error}

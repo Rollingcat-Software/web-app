@@ -9,6 +9,7 @@ import {
     CircularProgress,
     InputAdornment,
     LinearProgress,
+    ListSubheader,
     MenuItem,
     Paper,
     Table,
@@ -28,78 +29,119 @@ import {
     Login,
     Logout,
     Person,
+    Refresh,
     Search,
     Security,
     Settings,
     Warning,
 } from '@mui/icons-material'
 import { useAuditLogs } from '@features/auditLogs'
-import { AUDIT_LOG_ACTION_TYPES } from '@domain/models/AuditLog'
 import { format } from 'date-fns'
 
 function getActionIcon(action: string) {
     if (action.includes('LOGIN')) return <Login fontSize="small" />
     if (action.includes('LOGOUT')) return <Logout fontSize="small" />
+    if (action.includes('TOKEN_REFRESH')) return <Refresh fontSize="small" />
     if (action.includes('CREATED')) return <Person fontSize="small" />
-    if (action.includes('UPDATED')) return <Edit fontSize="small" />
-    if (action.includes('DELETED')) return <Delete fontSize="small" />
+    if (action.includes('UPDATED') || action.includes('CHANGED')) return <Edit fontSize="small" />
+    if (action.includes('DELETED') || action.includes('REMOVED')) return <Delete fontSize="small" />
     if (action.includes('FAILED')) return <Warning fontSize="small" />
     if (action.includes('SETTINGS')) return <Settings fontSize="small" />
     if (action.includes('BIOMETRIC') || action.includes('VERIFICATION')) return <Security fontSize="small" />
+    if (action.includes('ROLE') || action.includes('PERMISSION')) return <Security fontSize="small" />
     return <Security fontSize="small" />
 }
 
 function getActionColor(action: string): 'success' | 'error' | 'warning' | 'info' | 'default' {
     if (action.includes('LOGIN') && !action.includes('FAILED')) return 'success'
-    if (action.includes('CREATED')) return 'info'
-    if (action.includes('DELETED')) return 'error'
+    if (action.includes('CREATED') || action.includes('ENROLLED') || action.includes('VERIFIED')) return 'info'
+    if (action.includes('DELETED') || action.includes('REMOVED')) return 'error'
     if (action.includes('FAILED')) return 'error'
-    if (action.includes('UPDATED') || action.includes('SETTINGS')) return 'warning'
+    if (action.includes('UPDATED') || action.includes('CHANGED') || action.includes('SETTINGS')) return 'warning'
+    if (action.includes('ASSIGNED') || action.includes('ADDED')) return 'info'
     return 'default'
 }
 
-const ACTION_TYPES = ['ALL', ...AUDIT_LOG_ACTION_TYPES] as const
-
 const ACTION_LABELS: Record<string, string> = {
     ALL: 'All Actions',
+    // Authentication
+    USER_LOGIN: 'User Login',
+    USER_LOGOUT: 'User Logout',
+    USER_LOGIN_FAILED: 'Login Failed',
+    TOKEN_REFRESH: 'Token Refresh',
+    PASSWORD_CHANGE: 'Password Change',
+    PASSWORD_RESET_REQUEST: 'Password Reset Request',
+    PASSWORD_RESET: 'Password Reset',
+    // User management
     USER_CREATED: 'User Created',
     USER_UPDATED: 'User Updated',
     USER_DELETED: 'User Deleted',
-    USER_AUTHENTICATED: 'User Authenticated',
-    USER_REGISTERED: 'User Registered',
-    USER_LOGGED_OUT: 'User Logged Out',
-    BIOMETRIC_ENROLLED: 'Biometric Enrolled',
-    BIOMETRIC_VERIFIED: 'Biometric Verified',
-    BIOMETRIC_DELETED: 'Biometric Deleted',
-    ROLE_CREATED: 'Role Created',
-    ROLE_UPDATED: 'Role Updated',
-    ROLE_DELETED: 'Role Deleted',
-    ROLE_ASSIGNED: 'Role Assigned',
-    ROLE_REVOKED: 'Role Revoked',
-    PERMISSION_GRANTED: 'Permission Granted',
-    PERMISSION_REVOKED: 'Permission Revoked',
+    USER_STATUS_CHANGED: 'User Status Changed',
+    USER_ROLE_ASSIGNED: 'User Role Assigned',
+    USER_ROLE_REMOVED: 'User Role Removed',
+    // Tenant management
     TENANT_CREATED: 'Tenant Created',
     TENANT_UPDATED: 'Tenant Updated',
     TENANT_DELETED: 'Tenant Deleted',
-    TENANT_ACTIVATED: 'Tenant Activated',
-    TENANT_SUSPENDED: 'Tenant Suspended',
+    TENANT_STATUS_CHANGED: 'Tenant Status Changed',
+    // Role management
+    ROLE_CREATED: 'Role Created',
+    ROLE_UPDATED: 'Role Updated',
+    ROLE_DELETED: 'Role Deleted',
+    PERMISSION_ADDED: 'Permission Added',
+    PERMISSION_REMOVED: 'Permission Removed',
+    // Biometric
+    BIOMETRIC_ENROLLED: 'Biometric Enrolled',
+    BIOMETRIC_VERIFIED: 'Biometric Verified',
+    BIOMETRIC_VERIFICATION_FAILED: 'Biometric Verification Failed',
+    BIOMETRIC_DELETED: 'Biometric Deleted',
+    // Settings
     SETTINGS_UPDATED: 'Settings Updated',
-    PASSWORD_CHANGED: 'Password Changed',
-    PASSWORD_RESET: 'Password Reset',
-    EMAIL_VERIFIED: 'Email Verified',
-    PHONE_VERIFIED: 'Phone Verified',
-    ENROLLMENT_STARTED: 'Enrollment Started',
-    ENROLLMENT_COMPLETED: 'Enrollment Completed',
-    ENROLLMENT_FAILED: 'Enrollment Failed',
-    AUTH_FLOW_CREATED: 'Auth Flow Created',
-    AUTH_FLOW_UPDATED: 'Auth Flow Updated',
-    AUTH_FLOW_DELETED: 'Auth Flow Deleted',
-    DEVICE_REGISTERED: 'Device Registered',
-    DEVICE_REMOVED: 'Device Removed',
-    GUEST_INVITED: 'Guest Invited',
-    GUEST_ACCEPTED: 'Guest Accepted',
-    GUEST_REVOKED: 'Guest Revoked',
+    SECURITY_SETTINGS_UPDATED: 'Security Settings Updated',
+    NOTIFICATION_SETTINGS_UPDATED: 'Notification Settings Updated',
+    APPEARANCE_SETTINGS_UPDATED: 'Appearance Settings Updated',
 }
+
+/** Grouped action types for the filter dropdown with subheaders */
+const GROUPED_ACTION_ITEMS: Array<{ type: 'header'; label: string } | { type: 'action'; value: string }> = [
+    { type: 'action', value: 'ALL' },
+    { type: 'header', label: 'Authentication' },
+    { type: 'action', value: 'USER_LOGIN' },
+    { type: 'action', value: 'USER_LOGOUT' },
+    { type: 'action', value: 'USER_LOGIN_FAILED' },
+    { type: 'action', value: 'TOKEN_REFRESH' },
+    { type: 'action', value: 'PASSWORD_CHANGE' },
+    { type: 'action', value: 'PASSWORD_RESET_REQUEST' },
+    { type: 'action', value: 'PASSWORD_RESET' },
+    { type: 'header', label: 'User Management' },
+    { type: 'action', value: 'USER_CREATED' },
+    { type: 'action', value: 'USER_UPDATED' },
+    { type: 'action', value: 'USER_DELETED' },
+    { type: 'action', value: 'USER_STATUS_CHANGED' },
+    { type: 'action', value: 'USER_ROLE_ASSIGNED' },
+    { type: 'action', value: 'USER_ROLE_REMOVED' },
+    { type: 'header', label: 'Tenant Management' },
+    { type: 'action', value: 'TENANT_CREATED' },
+    { type: 'action', value: 'TENANT_UPDATED' },
+    { type: 'action', value: 'TENANT_DELETED' },
+    { type: 'action', value: 'TENANT_STATUS_CHANGED' },
+    { type: 'header', label: 'Role Management' },
+    { type: 'action', value: 'ROLE_CREATED' },
+    { type: 'action', value: 'ROLE_UPDATED' },
+    { type: 'action', value: 'ROLE_DELETED' },
+    { type: 'action', value: 'PERMISSION_ADDED' },
+    { type: 'action', value: 'PERMISSION_REMOVED' },
+    { type: 'header', label: 'Biometric' },
+    { type: 'action', value: 'BIOMETRIC_ENROLLED' },
+    { type: 'action', value: 'BIOMETRIC_VERIFIED' },
+    { type: 'action', value: 'BIOMETRIC_VERIFICATION_FAILED' },
+    { type: 'action', value: 'BIOMETRIC_DELETED' },
+    { type: 'header', label: 'Settings' },
+    { type: 'action', value: 'SETTINGS_UPDATED' },
+    { type: 'action', value: 'SECURITY_SETTINGS_UPDATED' },
+    { type: 'action', value: 'NOTIFICATION_SETTINGS_UPDATED' },
+    { type: 'action', value: 'APPEARANCE_SETTINGS_UPDATED' },
+]
 
 export default function AuditLogsPage() {
     const [searchQuery, setSearchQuery] = useState('')
@@ -187,11 +229,15 @@ export default function AuditLogsPage() {
                         value={actionFilter}
                         onChange={(e) => setActionFilter(e.target.value)}
                     >
-                        {ACTION_TYPES.map((action) => (
-                            <MenuItem key={action} value={action}>
-                                {ACTION_LABELS[action] || action.replace(/_/g, ' ')}
-                            </MenuItem>
-                        ))}
+                        {GROUPED_ACTION_ITEMS.map((item, idx) =>
+                            item.type === 'header' ? (
+                                <ListSubheader key={`header-${idx}`}>{item.label}</ListSubheader>
+                            ) : (
+                                <MenuItem key={item.value} value={item.value}>
+                                    {ACTION_LABELS[item.value] || item.value.replace(/_/g, ' ')}
+                                </MenuItem>
+                            )
+                        )}
                     </TextField>
                 </Paper>
             </Box>

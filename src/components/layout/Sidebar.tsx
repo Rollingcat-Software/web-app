@@ -21,6 +21,7 @@ import {
     HowToReg,
     LockClock,
     People,
+    PersonAdd,
     Security,
     Settings,
     Shield,
@@ -43,6 +44,7 @@ interface MenuItem {
 const menuItems: MenuItem[] = [
     {labelKey: 'nav.dashboard', icon: <Dashboard/>, path: '/'},
     {labelKey: 'nav.users', icon: <People/>, path: '/users'},
+    {labelKey: 'nav.guests', icon: <PersonAdd/>, path: '/guests'},
     {labelKey: 'nav.tenants', icon: <Business/>, path: '/tenants'},
     {labelKey: 'nav.roles', icon: <Shield/>, path: '/roles'},
     {labelKey: 'nav.authFlows', icon: <AccountTree/>, path: '/auth-flows'},

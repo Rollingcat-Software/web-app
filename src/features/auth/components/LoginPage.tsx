@@ -473,7 +473,7 @@ export default function LoginPage() {
                                     <Link
                                         component="button"
                                         type="button"
-                                        onClick={() => setForgotPasswordOpen(true)}
+                                        onClick={() => navigate('/forgot-password')}
                                         underline="hover"
                                         sx={{
                                             fontSize: '0.875rem',
