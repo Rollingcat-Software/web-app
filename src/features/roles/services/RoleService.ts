@@ -7,7 +7,6 @@ import type { PaginatedResult } from '@domain/interfaces/IRepository'
 import { Role } from '@domain/models/Role'
 import { Permission } from '@domain/models/Permission'
 import { NotFoundError, BusinessError } from '@core/errors'
-import { RoleRepository } from '@core/repositories/RoleRepository'
 
 @injectable()
 export class RoleService implements IRoleService {
@@ -88,6 +87,6 @@ export class RoleService implements IRoleService {
     }
 
     async getPermissions(): Promise<Permission[]> {
-        return (this.roleRepository as RoleRepository).getAllPermissions()
+        return this.roleRepository.getAllPermissions()
     }
 }

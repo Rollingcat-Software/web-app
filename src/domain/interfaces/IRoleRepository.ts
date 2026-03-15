@@ -1,4 +1,5 @@
 import type { Role } from '@domain/models/Role'
+import type { Permission } from '@domain/models/Permission'
 import type { PaginatedResult, QueryParams } from './IRepository'
 
 export interface CreateRoleData {
@@ -23,4 +24,5 @@ export interface IRoleRepository {
     delete(id: string): Promise<void>
     assignPermission(roleId: string, permissionId: string): Promise<void>
     revokePermission(roleId: string, permissionId: string): Promise<void>
+    getAllPermissions(): Promise<Permission[]>
 }

@@ -175,4 +175,47 @@ export class UserRepository implements IUserRepository {
             throw error
         }
     }
+
+    /**
+     * Search users by query string
+     * Calls GET /users/search?query=
+     */
+    async search(query: string): Promise<PaginatedResult<User>> {
+        try {
+            this.logger.debug('Searching users', { query })
+
+            type UserSearchResponse =
+                | UserJSON[]
+                | { content: UserJSON[]; totalElements?: number; totalPages?: number }
+
+            const response = await this.httpClient.get<UserSearchResponse>('/users/search', {
+                params: { query },
+            })
+
+            let users: User[]
+            let total: number
+
+            if (Array.isArray(response.data)) {
+                users = response.data.map((data: UserJSON) => User.fromJSON(data))
+                total = users.length
+            } else if ('content' in response.data && response.data.content) {
+                users = response.data.content.map((data: UserJSON) => User.fromJSON(data))
+                total = response.data.totalElements ?? users.length
+            } else {
+                users = []
+                total = 0
+            }
+
+            return {
+                items: users,
+                total,
+                page: 0,
+                pageSize: total || 20,
+                totalPages: 1,
+            }
+        } catch (error) {
+            this.logger.error('Failed to search users', error)
+            throw error
+        }
+    }
 }

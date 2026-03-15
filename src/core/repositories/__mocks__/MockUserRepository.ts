@@ -145,4 +145,21 @@ export class MockUserRepository implements IUserRepository {
     async delete(id: string): Promise<void> {
         this.users.delete(id)
     }
+
+    async search(query: string): Promise<PaginatedResult<User>> {
+        const lowerQuery = query.toLowerCase()
+        const filtered = Array.from(this.users.values()).filter(
+            (user) =>
+                user.email.toLowerCase().includes(lowerQuery) ||
+                user.fullName.toLowerCase().includes(lowerQuery)
+        )
+
+        return {
+            items: filtered,
+            total: filtered.length,
+            page: 0,
+            pageSize: filtered.length || 20,
+            totalPages: 1,
+        }
+    }
 }

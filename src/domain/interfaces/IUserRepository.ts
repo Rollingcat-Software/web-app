@@ -60,4 +60,9 @@ export interface IUserRepository {
      * Delete user
      */
     delete(id: string): Promise<void>
+
+    /**
+     * Search users by query string (name, email, etc.)
+     */
+    search(query: string): Promise<PaginatedResult<User>>
 }

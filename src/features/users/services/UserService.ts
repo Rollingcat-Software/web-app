@@ -30,6 +30,11 @@ export class UserService implements IUserService {
         try {
             this.logger.debug('Getting users', { filters, page, pageSize })
 
+            // Use dedicated search endpoint when search query is provided
+            if (filters?.search) {
+                return await this.userRepository.search(filters.search)
+            }
+
             const result = await this.userRepository.findAll({
                 page,
                 pageSize,

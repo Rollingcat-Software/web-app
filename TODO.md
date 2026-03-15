@@ -30,12 +30,12 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 - [x] **IH5** **QR Code Authentication** - QrCodeStep.tsx connected to backend (generate, invalidate, countdown, auto-refresh). **RESOLVED (March 2026)**.
 - [ ] **IH6** **Step-Up Authentication** - Backend has `StepUpController` with device registration, challenge request, and verification (`/api/v1/step-up/register-device`, `/challenge`, `/verify-challenge`) but frontend has no step-up auth management UI.
 - [x] **IH7** **User Role Assignment** - Linter reverted Autocomplete UI; backend role sync logic was added but removed. Re-add when linter config resolved. **PARTIAL**.
-- [ ] **IH8** **Permission Management** - Backend has `PermissionController` with list/get/resource endpoints (`/api/v1/permissions`, `/{id}`, `/resource/{resource}`) but frontend `RoleFormPage` has no permission selection from backend - it should fetch available permissions.
+- [x] **IH8** **Permission Management** - RoleFormPage already fetches from `GET /permissions` + groups by resource. Fixed IRoleRepository interface to include `getAllPermissions()`. **RESOLVED (March 2026)**.
 - [ ] **IH9** **Auth Method Listing** - Backend has `AuthMethodController` (`/api/v1/auth-methods`) that lists all available auth methods from DB but frontend uses hardcoded `DEFAULT_AUTH_METHODS` array in `AuthMethod.ts`.
 - [x] **IH10** **Tenant Auth Method Config** - TenantAuthMethods.tsx component with toggle switches, wired into TenantFormPage edit mode. **RESOLVED (March 2026)**.
 - [ ] **IH11** **Enrollment Management per User** - Backend has `EnrollmentManagementController` (`/api/v1/users/{userId}/enrollments`) with GET/POST/DELETE per-user enrollment but frontend enrollment page uses different structure via `/enrollments` not per-user.
-- [ ] **IH12** **Password Change** - Backend has `POST /api/v1/users/{id}/change-password` with password history check but frontend `SettingsPage` has no change password form.
-- [ ] **IH13** **User Search** - Backend has `GET /api/v1/users/search?query=` but frontend `UsersListPage` does client-side filtering instead of calling the search endpoint.
+- [x] **IH12** **Password Change** - Already fully implemented in SettingsPage (dialog with validation + i18n). **RESOLVED**.
+- [x] **IH13** **User Search** - UsersListPage now calls `GET /users/search?query=` with debounce. UserRepository.searchUsers() added. **RESOLVED (March 2026)**.
 - [x] **IH14** **Statistics Export** - AnalyticsPage CSV export button added. **RESOLVED (March 2026)**.
 - [x] **IH15** **Forgot/Reset Password** - ForgotPasswordPage + ResetPasswordPage with routes and i18n. **RESOLVED (March 2026)**.
 - [x] **IH16** **Auth Sessions Page** - Route `/auth-sessions` exists in `App.tsx` and sidebar link exists in `Sidebar.tsx`. **RESOLVED**.
