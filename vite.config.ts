@@ -28,7 +28,7 @@ function cspPlugin(): Plugin {
                         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                         "font-src 'self' https://fonts.gstatic.com",
                         "img-src 'self' data: https:",
-                        "connect-src 'self' http://localhost:8080 http://34.116.233.134:8080 ws://localhost:*",
+                        "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*",
                         "frame-ancestors 'none'",
                         "base-uri 'self'",
                         "form-action 'self'",
@@ -54,7 +54,7 @@ function cspPlugin(): Plugin {
                 : "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
             const connectSrc = isProduction
                 ? "connect-src 'self' https://api-fivucsas.rollingcatsoftware.com https://bpa-fivucsas.rollingcatsoftware.com"
-                : "connect-src 'self' http://localhost:8080 http://34.116.233.134:8080 ws://localhost:*"
+                : "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*"
 
             // Note: frame-ancestors is NOT included in meta tag because browsers ignore it there
             // frame-ancestors MUST be sent via HTTP header (configured in .htaccess for production)
