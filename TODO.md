@@ -26,13 +26,13 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 - [x] **IH1** **Guest Management** - GuestsPage.tsx with invite/extend/revoke dialogs, sidebar link, route, i18n. **RESOLVED (March 2026)**.
 - [ ] **IH2** **OTP Management** - Backend has `OtpController` with standalone OTP send/verify for email and SMS (`/api/v1/otp/email/send/{userId}`, `/email/verify/{userId}`, `/sms/send/{userId}`, `/sms/verify/{userId}`) but frontend has no OTP management UI.
 - [x] **IH3** **TOTP Setup** - TotpEnrollment.tsx connected to backend (setup, verify, status, disable). **RESOLVED (March 2026)**.
-- [ ] **IH4** **WebAuthn/FIDO2** - Backend has `WebAuthnController` with registration options, credential registration, and listing (`/api/v1/webauthn/register/options/{userId}`, `/register/{userId}`, `GET /{userId}`) but frontend has no WebAuthn management UI.
+- [x] **IH4** **WebAuthn/FIDO2** - WebAuthnEnrollment.tsx fixed (base64url encoding, challenge, transports, browser check). Already wired in SettingsPage. **RESOLVED (March 2026)**.
 - [x] **IH5** **QR Code Authentication** - QrCodeStep.tsx connected to backend (generate, invalidate, countdown, auto-refresh). **RESOLVED (March 2026)**.
 - [ ] **IH6** **Step-Up Authentication** - Backend has `StepUpController` with device registration, challenge request, and verification (`/api/v1/step-up/register-device`, `/challenge`, `/verify-challenge`) but frontend has no step-up auth management UI.
 - [x] **IH7** **User Role Assignment** - Linter reverted Autocomplete UI; backend role sync logic was added but removed. Re-add when linter config resolved. **PARTIAL**.
 - [ ] **IH8** **Permission Management** - Backend has `PermissionController` with list/get/resource endpoints (`/api/v1/permissions`, `/{id}`, `/resource/{resource}`) but frontend `RoleFormPage` has no permission selection from backend - it should fetch available permissions.
 - [ ] **IH9** **Auth Method Listing** - Backend has `AuthMethodController` (`/api/v1/auth-methods`) that lists all available auth methods from DB but frontend uses hardcoded `DEFAULT_AUTH_METHODS` array in `AuthMethod.ts`.
-- [ ] **IH10** **Tenant Auth Method Config** - Backend has `TenantAuthMethodController` (`/api/v1/tenants/{tenantId}/auth-methods`) to configure which auth methods are enabled per tenant but frontend has no tenant auth method configuration UI.
+- [x] **IH10** **Tenant Auth Method Config** - TenantAuthMethods.tsx component with toggle switches, wired into TenantFormPage edit mode. **RESOLVED (March 2026)**.
 - [ ] **IH11** **Enrollment Management per User** - Backend has `EnrollmentManagementController` (`/api/v1/users/{userId}/enrollments`) with GET/POST/DELETE per-user enrollment but frontend enrollment page uses different structure via `/enrollments` not per-user.
 - [ ] **IH12** **Password Change** - Backend has `POST /api/v1/users/{id}/change-password` with password history check but frontend `SettingsPage` has no change password form.
 - [ ] **IH13** **User Search** - Backend has `GET /api/v1/users/search?query=` but frontend `UsersListPage` does client-side filtering instead of calling the search endpoint.
@@ -43,12 +43,12 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 ### MEDIUM - Model/enum mismatches and missing fields
 
 - [x] **IM1** Backend DeviceResponse uses @JsonProperty annotations to serialize deviceFingerprint as fingerprint, lastUsedAt as lastUsed, registeredAt as createdAt. Frontend DeviceResponse also includes optional capabilities and isTrusted fields. **RESOLVED**.
-- [ ] **IM2** Frontend `AuthFlowResponse` (in `AuthFlowRepository.ts`) has `operationType` as string but backend returns it as `OperationType` enum (`APP_LOGIN | DOOR_ACCESS | BUILDING_ACCESS | API_ACCESS | TRANSACTION | ENROLLMENT | GUEST_ACCESS | EXAM_PROCTORING | CUSTOM`). Frontend should validate/display these properly.
+- [x] **IM2** Frontend already has `OperationType` union type with all 9 backend values + type guard + normalizer in `AuthMethod.ts`. **RESOLVED**.
 - [x] **IM3** Frontend `AuthSessionResponse` (in `AuthSessionRepository.ts`) uses `sessionId`, `isRequired`, `delegated` matching backend. **RESOLVED**.
 - [x] **IM4** AuditLog action types updated to all 30 backend values, grouped by category in filter dropdown. **RESOLVED (March 2026)**.
 - [ ] **IM5** Frontend `DashboardStats` matches backend `StatisticsResponse` well but is missing the `export` capability (format parameter).
 - [ ] **IM6** Backend `AuthenticationResponse` has `expiresIn` as `Long` but frontend `AuthRepository` treats it correctly. However, the `AuthFlowResponse` backend has `stepCount` field that frontend doesn't use.
-- [ ] **IM7** Backend `RoleResponse` has `systemRole` and `active` flags but frontend `Role.ts` model may not have these. The `RoleFormPage` should prevent editing system roles.
+- [x] **IM7** Frontend `Role.ts` has `systemRole` and `active` fields. `RoleFormPage` shows read-only view for system roles. **RESOLVED**.
 - [ ] **IM8** Backend `TenantController` has `GET /tenants/slug/{slug}` and `POST /{tenantId}/activate`, `POST /{tenantId}/suspend` endpoints but frontend `TenantRepository` doesn't expose slug lookup.
 - [x] **IM9** DI container binds `AuthFlowService`, `AuthSessionService`, `DeviceService` along with their repositories. **RESOLVED**.
 
@@ -127,12 +127,12 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 
 ### Auth Enrollment TODOs
 
-- [ ] **AE-1** Build WebAuthn/Hardware Key enrollment UI - backend WebAuthnController has `/register/options` and `/register/verify` ready
+- [x] **AE-1** WebAuthnEnrollment.tsx fixed and working (platform + hardware-key modes in SettingsPage). **RESOLVED (March 2026)**.
 - [ ] **AE-2** Build fingerprint enrollment UI - could use WebAuthn platform authenticators (Touch ID / Windows Hello)
 - [ ] **AE-3** Build voice enrollment UI - needs backend voice processing first (currently stub)
-- [ ] **AE-4** Connect TotpEnrollment.tsx to backend TotpController endpoints (`/totp/setup/{userId}`, `/totp/verify-setup/{userId}`)
-- [ ] **AE-5** Connect QrCodeStep.tsx to backend QrCodeController endpoints (`/qr/generate/{userId}`)
+- [x] **AE-4** TotpEnrollment.tsx connected to backend TotpController. **RESOLVED (March 2026)**.
+- [x] **AE-5** QrCodeStep.tsx connected to backend QrCodeController. **RESOLVED (March 2026)**.
 - [ ] **AE-6** Voice auth method is disabled (`isActive: false`) in DEFAULT_AUTH_METHODS - enable when backend ready
 - [ ] **AE-7** NfcStep shows "not available on this device" - needs mobile app support
 - [ ] **AE-8** No enrollment management page per auth method - users can't initiate enrollment for specific methods
-- [ ] **AE-9** Auth sessions route exists but has no sidebar navigation link
+- [x] **AE-9** Auth sessions route and sidebar link both exist. **RESOLVED**.

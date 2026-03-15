@@ -6,6 +6,7 @@ import {z} from 'zod'
 import {Alert, Box, Button, CircularProgress, Paper, TextField, Typography,} from '@mui/material'
 import {Cancel, Save} from '@mui/icons-material'
 import {useTenants, useTenant} from '@features/tenants'
+import TenantAuthMethods from '@features/tenants/components/TenantAuthMethods'
 
 const tenantSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -272,6 +273,12 @@ export default function TenantFormPage() {
                     </Box>
                 </form>
             </Paper>
+
+            {isEditMode && id && (
+                <Paper sx={{p: 4, maxWidth: 800, mt: 3}}>
+                    <TenantAuthMethods tenantId={id}/>
+                </Paper>
+            )}
         </Box>
     )
 }
