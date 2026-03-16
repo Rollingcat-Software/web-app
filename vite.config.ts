@@ -53,7 +53,7 @@ function cspPlugin(): Plugin {
                 ? "script-src 'self'"
                 : "script-src 'self' 'unsafe-inline' 'unsafe-eval'"
             const connectSrc = isProduction
-                ? "connect-src 'self' https://api-fivucsas.rollingcatsoftware.com https://bpa-fivucsas.rollingcatsoftware.com"
+                ? "connect-src 'self' https://auth.rollingcatsoftware.com https://bpa-fivucsas.rollingcatsoftware.com https://api.qrserver.com"
                 : "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*"
 
             // Note: frame-ancestors is NOT included in meta tag because browsers ignore it there
