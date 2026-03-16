@@ -86,10 +86,13 @@ Enrollment UIs:
 - Added `camera=(self)` to Permissions-Policy so face capture works
 - Added `blob:` to `media-src` and `worker-src`
 
-### Known UI/UX bugs (see `UI_UX_AUDIT_REPORT.md`):
-- **P0**: Dashboard shows 403 to non-admin users (no role check before stats API call)
-- **P0**: Settings shows 403 (user settings endpoint scope issue)
-- **P1**: Profile name fields empty after login (not pre-populated from auth state)
-- **P1**: No "check your email" step shown after registration
+### UI/UX audit fixes (2026-03-16, all resolved):
+- **P0 ✅**: Dashboard — AdminDashboardContent extracted; non-admin sees info message, no API calls made
+- **P0 ✅**: Settings — SettingsRepository returns defaults on 403; profile names pre-populated from auth state
+- **P1 ✅**: "Check your email" card shown after registration with OTP instructions
+- **P2 ✅**: Page `<title>` now updates per route via PageTitle component in App.tsx
+- **P2 ✅**: Duplicate dark mode toggle removed from Settings Appearance (TopBar is authoritative)
+- **P3 ✅**: Breadcrumb labels added for all routes (auth-flows, devices, user-enrollment → "Identity Enrollment", etc.)
+- **P3 ✅**: Date of birth field shows format hint + respects html lang attribute
 
 See TODO.md for full integration audit (38 items, only AE-2/3/6/7 + IL8 remain — blocked on external deps).
