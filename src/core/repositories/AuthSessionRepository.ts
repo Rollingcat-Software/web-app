@@ -158,6 +158,25 @@ export class AuthSessionRepository {
     }
 
     /**
+     * Create a QR session for QR code authentication
+     */
+    async createQrSession(sessionId: string): Promise<{ qrImageUrl: string; qrSessionId: string }> {
+        try {
+            this.logger.info(`Creating QR session for auth session ${sessionId}`)
+
+            const response = await this.httpClient.post<{ qrImageUrl: string; qrSessionId: string }>(
+                '/auth/qr/session',
+                { authSessionId: sessionId }
+            )
+
+            return response.data
+        } catch (error) {
+            this.logger.error(`Failed to create QR session for ${sessionId}`, error)
+            throw error
+        }
+    }
+
+    /**
      * Cancel an active session
      */
     async cancelSession(sessionId: string): Promise<void> {

@@ -24,6 +24,7 @@ interface TotpEnrollmentProps {
     userId: string
     onClose: () => void
     onSuccess: () => void
+    userId: string
 }
 
 const steps = ['Generate Secret', 'Scan QR Code', 'Verify Code']
