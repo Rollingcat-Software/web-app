@@ -1,9 +1,49 @@
-import { lazy, Suspense } from 'react'
-import { Navigate, Route, Routes } from 'react-router-dom'
+import { lazy, Suspense, useEffect } from 'react'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from './features/auth/hooks/useAuth'
 import DashboardLayout from './components/layout/DashboardLayout'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { CircularProgress, Box } from '@mui/material'
+
+const PAGE_TITLES: Record<string, string> = {
+    '/': 'Dashboard — FIVUCSAS',
+    '/users': 'Users — FIVUCSAS',
+    '/tenants': 'Tenants — FIVUCSAS',
+    '/roles': 'Roles — FIVUCSAS',
+    '/auth-flows': 'Auth Flows — FIVUCSAS',
+    '/auth-sessions': 'Auth Sessions — FIVUCSAS',
+    '/devices': 'Devices — FIVUCSAS',
+    '/enrollments': 'Enrollments — FIVUCSAS',
+    '/user-enrollment': 'Identity Enrollment — FIVUCSAS',
+    '/audit-logs': 'Audit Logs — FIVUCSAS',
+    '/analytics': 'Analytics — FIVUCSAS',
+    '/guests': 'Guests — FIVUCSAS',
+    '/settings': 'Settings — FIVUCSAS',
+    '/login': 'Sign In — FIVUCSAS',
+    '/register': 'Create Account — FIVUCSAS',
+    '/forgot-password': 'Forgot Password — FIVUCSAS',
+    '/reset-password': 'Reset Password — FIVUCSAS',
+}
+
+function PageTitle() {
+    const location = useLocation()
+    const { i18n } = useTranslation()
+
+    useEffect(() => {
+        const base = '/' + location.pathname.split('/').filter(Boolean)[0]
+        document.title = PAGE_TITLES[base] ?? PAGE_TITLES[location.pathname] ?? 'FIVUCSAS'
+    }, [location.pathname])
+
+    // Keep <html lang> in sync with i18next so native date pickers use correct locale
+    useEffect(() => {
+        document.documentElement.lang = i18n.language
+        i18n.on('languageChanged', (lng) => { document.documentElement.lang = lng })
+        return () => { i18n.off('languageChanged') }
+    }, [i18n])
+
+    return null
+}
 
 // Lazy load pages for code splitting
 const LoginPage = lazy(() => import('./features/auth/components/LoginPage'))
@@ -83,6 +123,7 @@ function App() {
     return (
         <ErrorBoundary>
         <Suspense fallback={<PageLoader />}>
+            <PageTitle />
             <Routes>
                 {/* Public Routes */}
                 <Route path="/login" element={<LoginPage />} />

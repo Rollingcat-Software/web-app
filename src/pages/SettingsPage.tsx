@@ -614,22 +614,6 @@ export default function SettingsPage() {
                                 <FormControlLabel
                                     control={
                                         <Switch
-                                            checked={darkMode}
-                                            onChange={(e) => setDarkMode(e.target.checked)}
-                                            disabled={saving === 'appearance'}
-                                        />
-                                    }
-                                    label={t('settings.darkMode')}
-                                />
-                                <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-                                    {t('settings.darkModeHelper')}
-                                </Typography>
-                            </Grid>
-
-                            <Grid item xs={12} md={6}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
                                             checked={compactView}
                                             onChange={(e) => setCompactView(e.target.checked)}
                                             disabled={saving === 'appearance'}

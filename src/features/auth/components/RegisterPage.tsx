@@ -22,6 +22,7 @@ import {
     PersonOutlined,
     LockOutlined,
     ArrowForward,
+    MarkEmailRead,
 } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -152,6 +153,8 @@ export default function RegisterPage() {
         },
     })
 
+    const [registeredEmail, setRegisteredEmail] = useState('')
+
     const onSubmit = async (data: RegisterFormData) => {
         setLoading(true)
         setError(null)
@@ -165,10 +168,8 @@ export default function RegisterPage() {
                 password: data.password,
             })
 
+            setRegisteredEmail(data.email)
             setSuccess(true)
-            setTimeout(() => {
-                navigate('/login')
-            }, 2000)
         } catch (err: any) {
             if (err.response?.status === 409) {
                 setError('An account with this email already exists')
@@ -277,24 +278,62 @@ export default function RegisterPage() {
                             </Box>
                         </motion.div>
 
-                        {/* Success Message */}
-                        {success && (
+                        {/* Check Your Email view — replaces form on success */}
+                        {success ? (
                             <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ duration: 0.3 }}
+                                initial={{ opacity: 0, y: 20 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ duration: 0.4, ease: easeOut }}
                             >
-                                <Alert
-                                    severity="success"
-                                    sx={{
-                                        mb: 3,
-                                        borderRadius: '12px',
-                                    }}
-                                >
-                                    Registration successful! Redirecting to login...
-                                </Alert>
+                                <Box sx={{ textAlign: 'center', py: 2 }}>
+                                    <Box
+                                        sx={{
+                                            width: 72,
+                                            height: 72,
+                                            borderRadius: '18px',
+                                            background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            justifyContent: 'center',
+                                            boxShadow: '0 10px 40px rgba(16, 185, 129, 0.4)',
+                                            mx: 'auto',
+                                            mb: 3,
+                                        }}
+                                    >
+                                        <MarkEmailRead sx={{ fontSize: 40, color: 'white' }} />
+                                    </Box>
+                                    <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
+                                        Check your email
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                                        We sent a verification code to
+                                    </Typography>
+                                    <Typography variant="body1" fontWeight={600} sx={{ mb: 3, color: 'primary.main' }}>
+                                        {registeredEmail}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
+                                        Enter the code on the login page to activate your account.
+                                        The code expires in 10 minutes.
+                                    </Typography>
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        size="large"
+                                        onClick={() => navigate('/login')}
+                                        sx={{
+                                            py: 1.5,
+                                            borderRadius: '12px',
+                                            fontWeight: 600,
+                                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                            boxShadow: '0 10px 40px rgba(99, 102, 241, 0.4)',
+                                        }}
+                                    >
+                                        Go to Sign In
+                                    </Button>
+                                </Box>
                             </motion.div>
-                        )}
+                        ) : (
+                        <>
 
                         {/* Register Form */}
                         <form onSubmit={handleSubmit(onSubmit)}>
@@ -571,6 +610,7 @@ export default function RegisterPage() {
                                 </Typography>
                             </Box>
                         </motion.div>
+                        </>)}
                     </CardContent>
                 </Card>
 

@@ -86,8 +86,9 @@ export default function IdInfoStep({ defaultValues, onNext }: IdInfoStepProps) {
                                     fullWidth
                                     required
                                     error={!!errors.dateOfBirth}
-                                    helperText={errors.dateOfBirth?.message}
+                                    helperText={errors.dateOfBirth?.message ?? 'Format: YYYY-MM-DD'}
                                     InputLabelProps={{ shrink: true }}
+                                    inputProps={{ lang: document.documentElement.lang || 'en' }}
                                 />
                             )}
                         />
