@@ -27,6 +27,7 @@ import {
     Shield,
 } from '@mui/icons-material'
 import {useTranslation} from 'react-i18next'
+import {useAuth} from '@features/auth/hooks/useAuth'
 
 interface SidebarProps {
     drawerWidth: number
@@ -39,21 +40,22 @@ interface MenuItem {
     labelKey: string
     icon: React.ReactNode
     path: string
+    adminOnly?: boolean
 }
 
 const menuItems: MenuItem[] = [
     {labelKey: 'nav.dashboard', icon: <Dashboard/>, path: '/'},
-    {labelKey: 'nav.users', icon: <People/>, path: '/users'},
-    {labelKey: 'nav.guests', icon: <PersonAdd/>, path: '/guests'},
-    {labelKey: 'nav.tenants', icon: <Business/>, path: '/tenants'},
-    {labelKey: 'nav.roles', icon: <Shield/>, path: '/roles'},
-    {labelKey: 'nav.authFlows', icon: <AccountTree/>, path: '/auth-flows'},
-    {labelKey: 'nav.authSessions', icon: <LockClock/>, path: '/auth-sessions'},
-    {labelKey: 'nav.devices', icon: <DevicesOther/>, path: '/devices'},
-    {labelKey: 'nav.enrollments', icon: <Fingerprint/>, path: '/enrollments'},
+    {labelKey: 'nav.users', icon: <People/>, path: '/users', adminOnly: true},
+    {labelKey: 'nav.guests', icon: <PersonAdd/>, path: '/guests', adminOnly: true},
+    {labelKey: 'nav.tenants', icon: <Business/>, path: '/tenants', adminOnly: true},
+    {labelKey: 'nav.roles', icon: <Shield/>, path: '/roles', adminOnly: true},
+    {labelKey: 'nav.authFlows', icon: <AccountTree/>, path: '/auth-flows', adminOnly: true},
+    {labelKey: 'nav.authSessions', icon: <LockClock/>, path: '/auth-sessions', adminOnly: true},
+    {labelKey: 'nav.devices', icon: <DevicesOther/>, path: '/devices', adminOnly: true},
+    {labelKey: 'nav.enrollments', icon: <Fingerprint/>, path: '/enrollments', adminOnly: true},
     {labelKey: 'nav.userEnrollment', icon: <HowToReg/>, path: '/user-enrollment'},
-    {labelKey: 'nav.auditLogs', icon: <Security/>, path: '/audit-logs'},
-    {labelKey: 'nav.analytics', icon: <Analytics/>, path: '/analytics'},
+    {labelKey: 'nav.auditLogs', icon: <Security/>, path: '/audit-logs', adminOnly: true},
+    {labelKey: 'nav.analytics', icon: <Analytics/>, path: '/analytics', adminOnly: true},
     {labelKey: 'nav.settings', icon: <Settings/>, path: '/settings'},
 ]
 
@@ -66,6 +68,9 @@ export default function Sidebar({
     const location = useLocation()
     const navigate = useNavigate()
     const {t} = useTranslation()
+    const {user} = useAuth()
+
+    const visibleItems = menuItems.filter(item => !item.adminOnly || user?.isAdmin())
 
     const isActive = (path: string) => path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
 
@@ -88,7 +93,7 @@ export default function Sidebar({
             </Toolbar>
             <Divider/>
             <List>
-                {menuItems.map((item) => (
+                {visibleItems.map((item) => (
                     <ListItem key={item.labelKey} disablePadding>
                         <ListItemButton
                             selected={isActive(item.path)}

@@ -154,6 +154,11 @@ export default function RegisterPage() {
     })
 
     const [registeredEmail, setRegisteredEmail] = useState('')
+    const [registrationToken, setRegistrationToken] = useState('')
+    const [otpCode, setOtpCode] = useState('')
+    const [otpError, setOtpError] = useState<string | null>(null)
+    const [verifying, setVerifying] = useState(false)
+    const [verified, setVerified] = useState(false)
 
     const onSubmit = async (data: RegisterFormData) => {
         setLoading(true)
@@ -161,7 +166,7 @@ export default function RegisterPage() {
 
         try {
             const httpClient = getService<IHttpClient>(TYPES.HttpClient)
-            await httpClient.post('/auth/register', {
+            const response = await httpClient.post<{ accessToken?: string }>('/auth/register', {
                 firstName: data.firstName,
                 lastName: data.lastName,
                 email: data.email,
@@ -169,6 +174,9 @@ export default function RegisterPage() {
             })
 
             setRegisteredEmail(data.email)
+            if (response?.data?.accessToken) {
+                setRegistrationToken(response.data.accessToken)
+            }
             setSuccess(true)
         } catch (err: any) {
             if (err.response?.status === 409) {
@@ -311,25 +319,90 @@ export default function RegisterPage() {
                                     <Typography variant="body1" fontWeight={600} sx={{ mb: 3, color: 'primary.main' }}>
                                         {registeredEmail}
                                     </Typography>
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                                        Enter the code on the login page to activate your account.
-                                        The code expires in 10 minutes.
-                                    </Typography>
-                                    <Button
-                                        fullWidth
-                                        variant="contained"
-                                        size="large"
-                                        onClick={() => navigate('/login')}
-                                        sx={{
-                                            py: 1.5,
-                                            borderRadius: '12px',
-                                            fontWeight: 600,
-                                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                                            boxShadow: '0 10px 40px rgba(99, 102, 241, 0.4)',
-                                        }}
-                                    >
-                                        Go to Sign In
-                                    </Button>
+                                    {verified ? (
+                                        <>
+                                            <Typography variant="body2" color="success.main" fontWeight={600} sx={{ mb: 3 }}>
+                                                ✓ Email verified successfully!
+                                            </Typography>
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                size="large"
+                                                onClick={() => navigate('/login')}
+                                                sx={{
+                                                    py: 1.5,
+                                                    borderRadius: '12px',
+                                                    fontWeight: 600,
+                                                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                                    boxShadow: '0 10px 40px rgba(99, 102, 241, 0.4)',
+                                                }}
+                                            >
+                                                Go to Sign In
+                                            </Button>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                                Enter the 6-digit code from the email. It expires in 5 minutes.
+                                            </Typography>
+                                            <TextField
+                                                fullWidth
+                                                label="Verification Code"
+                                                value={otpCode}
+                                                onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                                                inputProps={{ maxLength: 6, style: { textAlign: 'center', letterSpacing: '0.5em', fontSize: '1.4rem' } }}
+                                                sx={{ mb: 2 }}
+                                                error={!!otpError}
+                                                helperText={otpError}
+                                            />
+                                            <Button
+                                                fullWidth
+                                                variant="contained"
+                                                size="large"
+                                                disabled={otpCode.length !== 6 || verifying}
+                                                onClick={async () => {
+                                                    setVerifying(true)
+                                                    setOtpError(null)
+                                                    try {
+                                                        const httpClient = getService<IHttpClient>(TYPES.HttpClient)
+                                                        const res = await httpClient.post<{ success: boolean; message?: string }>(
+                                                            '/auth/verify-email',
+                                                            { code: otpCode },
+                                                            registrationToken ? { headers: { Authorization: `Bearer ${registrationToken}` } } : undefined
+                                                        )
+                                                        if (res?.data?.success) {
+                                                            setVerified(true)
+                                                        } else {
+                                                            setOtpError(res?.data?.message ?? 'Invalid or expired code. Please try again.')
+                                                        }
+                                                    } catch {
+                                                        setOtpError('Verification failed. Please try again.')
+                                                    } finally {
+                                                        setVerifying(false)
+                                                    }
+                                                }}
+                                                sx={{
+                                                    py: 1.5,
+                                                    borderRadius: '12px',
+                                                    fontWeight: 600,
+                                                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                                    boxShadow: '0 10px 40px rgba(99, 102, 241, 0.4)',
+                                                    mb: 1,
+                                                }}
+                                            >
+                                                {verifying ? <CircularProgress size={22} color="inherit" /> : 'Verify Email'}
+                                            </Button>
+                                            <Button
+                                                fullWidth
+                                                variant="text"
+                                                size="small"
+                                                onClick={() => navigate('/login')}
+                                                sx={{ color: 'text.secondary' }}
+                                            >
+                                                Skip for now — Go to Sign In
+                                            </Button>
+                                        </>
+                                    )}
                                 </Box>
                             </motion.div>
                         ) : (
