@@ -35,6 +35,7 @@ import {
 import { motion, Variants } from 'framer-motion'
 import { useDashboard } from '../hooks/useDashboard'
 import { useAuditLogs } from '@features/auditLogs'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import { AuditLog } from '@domain/models/AuditLog'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
@@ -248,7 +249,7 @@ const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[]
     )
 })
 
-export default function DashboardPage() {
+function AdminDashboardContent() {
     const { stats, loading, error } = useDashboard()
     const { auditLogs, loading: logsLoading } = useAuditLogs()
     const { t } = useTranslation()
@@ -591,4 +592,24 @@ export default function DashboardPage() {
             </Box>
         </motion.div>
     )
+}
+
+export default function DashboardPage() {
+    const { user } = useAuth()
+    const { t } = useTranslation()
+
+    if (!user?.isAdmin()) {
+        return (
+            <Box>
+                <Typography variant="h4" gutterBottom fontWeight={600}>
+                    {t('dashboard.title')}
+                </Typography>
+                <Alert severity="info" sx={{ mt: 2, borderRadius: 3 }}>
+                    {t('dashboard.adminOnly', 'Dashboard statistics are available to administrators only.')}
+                </Alert>
+            </Box>
+        )
+    }
+
+    return <AdminDashboardContent />
 }

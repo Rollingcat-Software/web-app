@@ -56,9 +56,9 @@ export default function SettingsPage() {
         validatePassword,
     } = useSettings()
 
-    // Profile settings
-    const [firstName, setFirstName] = useState('')
-    const [lastName, setLastName] = useState('')
+    // Profile settings — pre-populated from auth context so names show even before settings load
+    const [firstName, setFirstName] = useState(user?.firstName || '')
+    const [lastName, setLastName] = useState(user?.lastName || '')
 
     // Notification settings
     const [emailNotifications, setEmailNotifications] = useState(true)

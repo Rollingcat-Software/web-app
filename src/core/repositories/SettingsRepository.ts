@@ -58,8 +58,8 @@ export class SettingsRepository implements ISettingsRepository {
             }
         } catch (error: unknown) {
             const axiosError = error as { response?: { status?: number } }
-            // Return default settings if not found
-            if (axiosError.response?.status === 404) {
+            // Return default settings if not found or not authorized
+            if (axiosError.response?.status === 404 || axiosError.response?.status === 403) {
                 return this.getDefaultSettings(userId)
             }
             this.logger.error('Failed to fetch settings', error)
