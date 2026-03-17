@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -6,9 +6,12 @@ import {
     Button,
     Card,
     CardContent,
+    Checkbox,
     CircularProgress,
+    FormControlLabel,
     IconButton,
     InputAdornment,
+    LinearProgress,
     TextField,
     Typography,
     Link,
@@ -23,8 +26,10 @@ import {
     LockOutlined,
     ArrowForward,
     MarkEmailRead,
+    CheckCircle,
+    Cancel,
 } from '@mui/icons-material'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
@@ -52,6 +57,22 @@ const registerSchema = z.object({
 })
 
 type RegisterFormData = z.infer<typeof registerSchema>
+
+// Password requirement checks
+const passwordRequirements = [
+    { label: '8+ characters', test: (pw: string) => pw.length >= 8 },
+    { label: 'Uppercase letter', test: (pw: string) => /[A-Z]/.test(pw) },
+    { label: 'Lowercase letter', test: (pw: string) => /[a-z]/.test(pw) },
+    { label: 'Number', test: (pw: string) => /[0-9]/.test(pw) },
+    { label: 'Special character (!@#$%^&*)', test: (pw: string) => /[!@#$%^&*]/.test(pw) },
+]
+
+function getPasswordStrength(password: string): { label: string; value: number; color: 'error' | 'warning' | 'success' } {
+    const passed = passwordRequirements.filter(r => r.test(password)).length
+    if (passed <= 2) return { label: 'Weak', value: (passed / 5) * 100, color: 'error' }
+    if (passed <= 4) return { label: 'Medium', value: (passed / 5) * 100, color: 'warning' }
+    return { label: 'Strong', value: 100, color: 'success' }
+}
 
 // Bezier easing
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -137,6 +158,7 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
+    const [agreedToTerms, setAgreedToTerms] = useState(false)
 
     const {
         control,
@@ -152,6 +174,11 @@ export default function RegisterPage() {
             confirmPassword: '',
         },
     })
+
+    // Watch the password field for live requirements checklist
+    const watchedPassword = useWatch({ control, name: 'password' }) ?? ''
+
+    const passwordStrength = useMemo(() => getPasswordStrength(watchedPassword), [watchedPassword])
 
     const [registeredEmail, setRegisteredEmail] = useState('')
     const [registrationToken, setRegistrationToken] = useState('')
@@ -195,6 +222,7 @@ export default function RegisterPage() {
 
     return (
         <Box
+            component="main"
             sx={{
                 minHeight: '100vh',
                 display: 'flex',
@@ -322,7 +350,7 @@ export default function RegisterPage() {
                                     {verified ? (
                                         <>
                                             <Typography variant="body2" color="success.main" fontWeight={600} sx={{ mb: 3 }}>
-                                                ✓ Email verified successfully!
+                                                Email verified successfully!
                                             </Typography>
                                             <Button
                                                 fullWidth
@@ -409,7 +437,7 @@ export default function RegisterPage() {
                         <>
 
                         {/* Register Form */}
-                        <form onSubmit={handleSubmit(onSubmit)}>
+                        <form onSubmit={handleSubmit(onSubmit)} aria-label="Registration form">
                             {/* Error Alert */}
                             {error && (
                                 <motion.div
@@ -440,6 +468,9 @@ export default function RegisterPage() {
                                                 {...field}
                                                 fullWidth
                                                 label="First Name"
+                                                autoComplete="given-name"
+                                                required
+                                                aria-required="true"
                                                 error={!!errors.firstName}
                                                 helperText={errors.firstName?.message}
                                                 margin="dense"
@@ -473,10 +504,20 @@ export default function RegisterPage() {
                                                 {...field}
                                                 fullWidth
                                                 label="Last Name"
+                                                autoComplete="family-name"
+                                                required
+                                                aria-required="true"
                                                 error={!!errors.lastName}
                                                 helperText={errors.lastName?.message}
                                                 margin="dense"
                                                 disabled={loading || success}
+                                                InputProps={{
+                                                    startAdornment: (
+                                                        <InputAdornment position="start">
+                                                            <PersonOutlined sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                                        </InputAdornment>
+                                                    ),
+                                                }}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: '12px',
@@ -502,6 +543,9 @@ export default function RegisterPage() {
                                             fullWidth
                                             label="Email Address"
                                             type="email"
+                                            autoComplete="email"
+                                            required
+                                            aria-required="true"
                                             error={!!errors.email}
                                             helperText={errors.email?.message}
                                             margin="dense"
@@ -537,8 +581,10 @@ export default function RegisterPage() {
                                             fullWidth
                                             label="Password"
                                             type={showPassword ? 'text' : 'password'}
+                                            autoComplete="new-password"
+                                            required
+                                            aria-required="true"
                                             error={!!errors.password}
-                                            helperText={errors.password?.message}
                                             margin="dense"
                                             disabled={loading || success}
                                             InputProps={{
@@ -554,6 +600,7 @@ export default function RegisterPage() {
                                                             edge="end"
                                                             disabled={loading || success}
                                                             size="small"
+                                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
                                                         >
                                                             {showPassword ? <VisibilityOff /> : <Visibility />}
                                                         </IconButton>
@@ -571,6 +618,66 @@ export default function RegisterPage() {
                                         />
                                     )}
                                 />
+
+                                {/* Password strength meter */}
+                                {watchedPassword.length > 0 && (
+                                    <Box sx={{ mt: 1, mb: 0.5 }}>
+                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 0.5 }}>
+                                            <Typography variant="caption" color="text.secondary">
+                                                Password strength
+                                            </Typography>
+                                            <Typography
+                                                variant="caption"
+                                                fontWeight={600}
+                                                color={`${passwordStrength.color}.main`}
+                                            >
+                                                {passwordStrength.label}
+                                            </Typography>
+                                        </Box>
+                                        <LinearProgress
+                                            variant="determinate"
+                                            value={passwordStrength.value}
+                                            color={passwordStrength.color}
+                                            sx={{
+                                                height: 6,
+                                                borderRadius: 3,
+                                                backgroundColor: '#e2e8f0',
+                                            }}
+                                        />
+                                    </Box>
+                                )}
+
+                                {/* Password requirements checklist */}
+                                {watchedPassword.length > 0 && (
+                                    <Box sx={{ mt: 1, mb: 0.5 }}>
+                                        {passwordRequirements.map((req) => {
+                                            const passed = req.test(watchedPassword)
+                                            return (
+                                                <Box
+                                                    key={req.label}
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        gap: 0.5,
+                                                        py: 0.15,
+                                                    }}
+                                                >
+                                                    {passed ? (
+                                                        <CheckCircle sx={{ fontSize: 16, color: 'success.main' }} />
+                                                    ) : (
+                                                        <Cancel sx={{ fontSize: 16, color: 'text.disabled' }} />
+                                                    )}
+                                                    <Typography
+                                                        variant="caption"
+                                                        color={passed ? 'success.main' : 'text.secondary'}
+                                                    >
+                                                        {req.label}
+                                                    </Typography>
+                                                </Box>
+                                            )
+                                        })}
+                                    </Box>
+                                )}
                             </motion.div>
 
                             {/* Confirm Password Field */}
@@ -584,6 +691,9 @@ export default function RegisterPage() {
                                             fullWidth
                                             label="Confirm Password"
                                             type={showConfirmPassword ? 'text' : 'password'}
+                                            autoComplete="new-password"
+                                            required
+                                            aria-required="true"
                                             error={!!errors.confirmPassword}
                                             helperText={errors.confirmPassword?.message}
                                             margin="dense"
@@ -601,6 +711,7 @@ export default function RegisterPage() {
                                                             edge="end"
                                                             disabled={loading || success}
                                                             size="small"
+                                                            aria-label={showConfirmPassword ? 'Hide password' : 'Show password'}
                                                         >
                                                             {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                                                         </IconButton>
@@ -620,6 +731,33 @@ export default function RegisterPage() {
                                 />
                             </motion.div>
 
+                            {/* Terms of Service */}
+                            <motion.div variants={itemVariants}>
+                                <FormControlLabel
+                                    control={
+                                        <Checkbox
+                                            checked={agreedToTerms}
+                                            onChange={(e) => setAgreedToTerms(e.target.checked)}
+                                            size="small"
+                                            disabled={loading || success}
+                                        />
+                                    }
+                                    label={
+                                        <Typography variant="caption" color="text.secondary">
+                                            By registering, you agree to our{' '}
+                                            <Link href="/terms" target="_blank" underline="hover" sx={{ fontWeight: 600 }}>
+                                                Terms of Service
+                                            </Link>
+                                            {' '}and{' '}
+                                            <Link href="/privacy" target="_blank" underline="hover" sx={{ fontWeight: 600 }}>
+                                                Privacy Policy
+                                            </Link>
+                                        </Typography>
+                                    }
+                                    sx={{ mt: 1.5, alignItems: 'flex-start' }}
+                                />
+                            </motion.div>
+
                             {/* Submit Button */}
                             <motion.div variants={itemVariants}>
                                 <Button
@@ -627,11 +765,11 @@ export default function RegisterPage() {
                                     fullWidth
                                     variant="contained"
                                     size="large"
-                                    disabled={loading || success}
+                                    disabled={loading || success || !agreedToTerms}
                                     startIcon={!loading && <PersonAddOutlined />}
                                     endIcon={!loading && <ArrowForward />}
                                     sx={{
-                                        mt: 3,
+                                        mt: 2,
                                         mb: 2,
                                         py: 1.5,
                                         borderRadius: '12px',
@@ -665,10 +803,12 @@ export default function RegisterPage() {
                                 <Typography variant="body2" color="text.secondary">
                                     Already have an account?{' '}
                                     <Link
-                                        component="button"
-                                        type="button"
-                                        onClick={() => navigate('/login')}
+                                        href="/login"
                                         underline="hover"
+                                        onClick={(e) => {
+                                            e.preventDefault()
+                                            navigate('/login')
+                                        }}
                                         sx={{
                                             fontWeight: 600,
                                             color: 'primary.main',
