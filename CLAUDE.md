@@ -96,3 +96,13 @@ Enrollment UIs:
 - **P3 ✅**: Date of birth field shows format hint + respects html lang attribute
 
 See TODO.md for full integration audit (38 items, only AE-2/3/6/7 + IL8 remain — blocked on external deps).
+
+### Security fixes (2026-03-16):
+- **Email OTP enforcement**: RegisterPage now captures registration JWT token, shows 6-digit OTP
+  input after registration, and calls `/auth/verify-email` with Bearer token before allowing login.
+  "Skip for now" fallback still available. Fixed response access: `response.data.accessToken`
+  (HttpResponse wraps data in `.data` property).
+- **Admin nav gating**: Sidebar.tsx filters menu items by `user.isAdmin()` — non-admins no longer
+  see admin-only routes, eliminating 403 flood in browser console.
+- **CSP fix**: Added `cdn.jsdelivr.net` to `script-src` in both `vite.config.ts` and `.htaccess`
+  so MediaPipe face detection loads without being blocked.
