@@ -54,6 +54,7 @@ const menuItems: MenuItem[] = [
     {labelKey: 'nav.devices', icon: <DevicesOther/>, path: '/devices', adminOnly: true},
     {labelKey: 'nav.enrollments', icon: <Fingerprint/>, path: '/enrollments', adminOnly: true},
     {labelKey: 'nav.userEnrollment', icon: <HowToReg/>, path: '/user-enrollment'},
+    {labelKey: 'nav.biometricEnrollment', icon: <Fingerprint/>, path: '/enrollment'},
     {labelKey: 'nav.auditLogs', icon: <Security/>, path: '/audit-logs', adminOnly: true},
     {labelKey: 'nav.analytics', icon: <Analytics/>, path: '/analytics', adminOnly: true},
     {labelKey: 'nav.settings', icon: <Settings/>, path: '/settings'},

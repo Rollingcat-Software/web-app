@@ -16,6 +16,7 @@ const PAGE_TITLES: Record<string, string> = {
     '/devices': 'Devices — FIVUCSAS',
     '/enrollments': 'Enrollments — FIVUCSAS',
     '/user-enrollment': 'Identity Enrollment — FIVUCSAS',
+    '/enrollment': 'Biometric Enrollment — FIVUCSAS',
     '/audit-logs': 'Audit Logs — FIVUCSAS',
     '/analytics': 'Analytics — FIVUCSAS',
     '/guests': 'Guests — FIVUCSAS',
@@ -65,6 +66,7 @@ const AuthSessionsPage = lazy(() => import('./pages/AuthSessionsPage'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
 const UserEnrollmentPage = lazy(() => import('./features/userEnrollment/components/UserEnrollmentPage'))
 const GuestsPage = lazy(() => import('./pages/GuestsPage'))
+const BiometricEnrollmentPage = lazy(() => import('./features/auth/components/EnrollmentPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 
@@ -156,6 +158,7 @@ function App() {
                     <Route path="auth-sessions" element={<ErrorBoundary><AuthSessionsPage /></ErrorBoundary>} />
                     <Route path="enrollments" element={<ErrorBoundary><EnrollmentsListPage /></ErrorBoundary>} />
                     <Route path="user-enrollment" element={<ErrorBoundary><UserEnrollmentPage /></ErrorBoundary>} />
+                    <Route path="enrollment" element={<ErrorBoundary><BiometricEnrollmentPage /></ErrorBoundary>} />
                     <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
                     <Route path="guests" element={<ErrorBoundary><GuestsPage /></ErrorBoundary>} />
                     <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />

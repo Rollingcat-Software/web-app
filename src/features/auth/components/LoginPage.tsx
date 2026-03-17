@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -34,6 +34,7 @@ import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import FaceVerificationFlow from './FaceVerificationFlow'
+import SecondaryAuthFlow from './SecondaryAuthFlow'
 import { getBiometricService } from '@core/services/BiometricService'
 
 /**
@@ -125,11 +126,12 @@ const FloatingShape = ({ delay, size, left, top }: {
  */
 export default function LoginPage() {
     const navigate = useNavigate()
-    const { login, loading, error } = useAuth()
+    const { login, loading, error, user } = useAuth()
     const [showPassword, setShowPassword] = useState(false)
     const [faceLoginOpen, setFaceLoginOpen] = useState(false)
     const [faceError, setFaceError] = useState<string | null>(null)
     const [pageReady, setPageReady] = useState(false)
+    const [showSecondaryAuth, setShowSecondaryAuth] = useState(false)
 
     // Mark page ready after initial render
     useEffect(() => {
@@ -258,12 +260,35 @@ export default function LoginPage() {
                 email: data.email,
                 password: data.password,
             })
-            navigate('/')
+            // After successful password login, check for secondary auth
+            setShowSecondaryAuth(true)
         } catch (err) {
             if (import.meta.env.DEV) {
                 console.error('Login failed:', err)
             }
         }
+    }
+
+    const handleSecondaryAuthComplete = useCallback(() => {
+        setShowSecondaryAuth(false)
+        navigate('/')
+    }, [navigate])
+
+    const handleSecondaryAuthSkip = useCallback(() => {
+        setShowSecondaryAuth(false)
+        navigate('/')
+    }, [navigate])
+
+    // Show secondary auth flow after successful password login
+    if (showSecondaryAuth && user) {
+        return (
+            <SecondaryAuthFlow
+                userId={user.id}
+                tenantId={user.tenantId}
+                onComplete={handleSecondaryAuthComplete}
+                onSkip={handleSecondaryAuthSkip}
+            />
+        )
     }
 
     return (

@@ -12,6 +12,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
     tenants: 'Tenants',
     enrollments: 'Enrollments',
     'user-enrollment': 'Identity Enrollment',
+    enrollment: 'Biometric Enrollment',
     'audit-logs': 'Audit Logs',
     'auth-flows': 'Auth Flows',
     'auth-sessions': 'Auth Sessions',

@@ -27,6 +27,7 @@
     "devices": "Devices",
     "enrollments": "Enrollments",
     "userEnrollment": "Self Enrollment",
+    "biometricEnrollment": "Biometric Enrollment",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
     "settings": "Settings"
