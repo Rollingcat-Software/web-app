@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -13,6 +13,7 @@ import {
     DialogTitle,
     IconButton,
     InputAdornment,
+    Skeleton,
     TextField,
     Typography,
     Divider,
@@ -40,7 +41,7 @@ import { getBiometricService } from '@core/services/BiometricService'
  */
 const loginSchema = z.object({
     email: z.string().min(1, 'Email is required').email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
+    password: z.string().min(1, 'Password is required'),
 })
 
 type LoginFormData = z.infer<typeof loginSchema>
@@ -128,6 +129,13 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [faceLoginOpen, setFaceLoginOpen] = useState(false)
     const [faceError, setFaceError] = useState<string | null>(null)
+    const [pageReady, setPageReady] = useState(false)
+
+    // Mark page ready after initial render
+    useEffect(() => {
+        const timer = setTimeout(() => setPageReady(true), 300)
+        return () => clearTimeout(timer)
+    }, [])
 
     // Forgot password state
     const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
@@ -260,6 +268,7 @@ export default function LoginPage() {
 
     return (
         <Box
+            component="main"
             sx={{
                 minHeight: '100vh',
                 display: 'flex',
@@ -301,6 +310,20 @@ export default function LoginPage() {
                     }}
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
+                        {!pageReady ? (
+                            /* Loading skeleton while page initialises */
+                            <Box>
+                                <Box sx={{ display: 'flex', justifyContent: 'center', mb: 4 }}>
+                                    <Skeleton variant="rounded" width={80} height={80} sx={{ borderRadius: '20px' }} />
+                                </Box>
+                                <Skeleton variant="text" width="60%" sx={{ mx: 'auto', mb: 1, fontSize: '2rem' }} />
+                                <Skeleton variant="text" width="80%" sx={{ mx: 'auto', mb: 4 }} />
+                                <Skeleton variant="rounded" height={56} sx={{ mb: 2, borderRadius: '12px' }} />
+                                <Skeleton variant="rounded" height={56} sx={{ mb: 2, borderRadius: '12px' }} />
+                                <Skeleton variant="rounded" height={48} sx={{ mt: 3, borderRadius: '12px' }} />
+                            </Box>
+                        ) : (
+                        <>
                         {/* Logo */}
                         <motion.div variants={logoVariants}>
                             <Box
@@ -351,7 +374,7 @@ export default function LoginPage() {
                         </motion.div>
 
                         {/* Login Form */}
-                        <form onSubmit={handleSubmit(onSubmit)}>
+                        <form onSubmit={handleSubmit(onSubmit)} aria-label="Login form">
                             {/* Error Alert */}
                             {(error || faceError) && (
                                 <motion.div
@@ -361,12 +384,13 @@ export default function LoginPage() {
                                 >
                                     <Alert
                                         severity="error"
+                                        role="alert"
                                         sx={{
                                             mb: 3,
                                             borderRadius: '12px',
                                         }}
                                     >
-                                        {faceError || error?.message || 'Login failed. Please try again.'}
+                                        {faceError || 'Invalid credentials. Please try again.'}
                                     </Alert>
                                 </motion.div>
                             )}
@@ -386,6 +410,9 @@ export default function LoginPage() {
                                             helperText={errors.email?.message}
                                             margin="normal"
                                             autoFocus
+                                            required
+                                            autoComplete="email"
+                                            inputProps={{ 'aria-required': 'true' }}
                                             disabled={loading}
                                             InputProps={{
                                                 startAdornment: (
@@ -425,6 +452,9 @@ export default function LoginPage() {
                                             error={!!errors.password}
                                             helperText={errors.password?.message}
                                             margin="normal"
+                                            required
+                                            autoComplete="current-password"
+                                            inputProps={{ 'aria-required': 'true' }}
                                             disabled={loading}
                                             InputProps={{
                                                 startAdornment: (
@@ -440,6 +470,7 @@ export default function LoginPage() {
                                                             disabled={loading}
                                                             aria-label={showPassword ? 'Hide password' : 'Show password'}
                                                             sx={{
+                                                                color: 'text.primary',
                                                                 '&:hover': {
                                                                     backgroundColor: 'rgba(99, 102, 241, 0.08)',
                                                                 },
@@ -471,9 +502,11 @@ export default function LoginPage() {
                             <motion.div variants={itemVariants}>
                                 <Box sx={{ textAlign: 'right', mt: 1 }}>
                                     <Link
-                                        component="button"
-                                        type="button"
-                                        onClick={() => navigate('/forgot-password')}
+                                        href="/forgot-password"
+                                        onClick={(e: React.MouseEvent) => {
+                                            e.preventDefault()
+                                            navigate('/forgot-password')
+                                        }}
                                         underline="hover"
                                         sx={{
                                             fontSize: '0.875rem',
@@ -565,35 +598,19 @@ export default function LoginPage() {
                             </Button>
                         </motion.div>
 
-                        {/* Features */}
+                        {/* Supported auth methods (informational) */}
                         <motion.div variants={itemVariants}>
-                            <Box
+                            <Typography
+                                variant="caption"
                                 sx={{
-                                    display: 'flex',
-                                    justifyContent: 'center',
-                                    gap: 3,
-                                    flexWrap: 'wrap',
+                                    display: 'block',
+                                    textAlign: 'center',
+                                    color: 'text.disabled',
+                                    mt: 1,
                                 }}
                             >
-                                {['Face ID', 'Fingerprint', 'QR Code'].map((feature) => (
-                                    <Typography
-                                        key={feature}
-                                        variant="caption"
-                                        sx={{
-                                            color: 'text.secondary',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            gap: 0.5,
-                                            '&::before': {
-                                                content: '"\\2022"',
-                                                color: 'primary.main',
-                                            },
-                                        }}
-                                    >
-                                        {feature}
-                                    </Typography>
-                                ))}
-                            </Box>
+                                Supports Face ID, Fingerprint, and QR Code authentication
+                            </Typography>
                         </motion.div>
 
                         {/* Register Link */}
@@ -602,9 +619,11 @@ export default function LoginPage() {
                                 <Typography variant="body2" color="text.secondary">
                                     Don't have an account?{' '}
                                     <Link
-                                        component="button"
-                                        type="button"
-                                        onClick={() => navigate('/register')}
+                                        href="/register"
+                                        onClick={(e: React.MouseEvent) => {
+                                            e.preventDefault()
+                                            navigate('/register')
+                                        }}
                                         underline="hover"
                                         sx={{
                                             fontWeight: 600,
@@ -654,6 +673,8 @@ export default function LoginPage() {
                             </Box>
                         </motion.div>
                         )}
+                        </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -685,7 +706,7 @@ export default function LoginPage() {
                 <DialogTitle>Forgot Password</DialogTitle>
                 <DialogContent>
                     {forgotError && (
-                        <Alert severity="error" sx={{ mb: 2 }}>{forgotError}</Alert>
+                        <Alert severity="error" role="alert" sx={{ mb: 2 }}>{forgotError}</Alert>
                     )}
                     {forgotSuccess ? (
                         <>
@@ -732,7 +753,7 @@ export default function LoginPage() {
                 <DialogTitle>Reset Password</DialogTitle>
                 <DialogContent>
                     {resetError && (
-                        <Alert severity="error" sx={{ mb: 2 }}>{resetError}</Alert>
+                        <Alert severity="error" role="alert" sx={{ mb: 2 }}>{resetError}</Alert>
                     )}
                     {resetSuccess ? (
                         <Alert severity="success">
