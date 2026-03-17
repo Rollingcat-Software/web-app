@@ -442,7 +442,7 @@ export default function LoginPage() {
                                             InputProps={{
                                                 startAdornment: (
                                                     <InputAdornment position="start">
-                                                        <EmailOutlined sx={{ color: 'text.secondary' }} />
+                                                        <EmailOutlined sx={{ color: 'rgba(0, 0, 0, 0.54)' }} />
                                                     </InputAdornment>
                                                 ),
                                             }}
@@ -456,6 +456,20 @@ export default function LoginPage() {
                                                     '&.Mui-focused': {
                                                         backgroundColor: '#fff',
                                                     },
+                                                },
+                                                '& .MuiInputBase-input': {
+                                                    color: '#1a1a2e',
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: 'rgba(0, 0, 0, 0.6)',
+                                                },
+                                                '& .MuiInputLabel-root.Mui-focused': {
+                                                    color: '#6366f1',
+                                                },
+                                                '& input:-webkit-autofill': {
+                                                    WebkitBoxShadow: '0 0 0 100px #f8fafc inset',
+                                                    WebkitTextFillColor: '#1a1a2e',
+                                                    caretColor: '#1a1a2e',
                                                 },
                                             }}
                                         />
@@ -484,7 +498,7 @@ export default function LoginPage() {
                                             InputProps={{
                                                 startAdornment: (
                                                     <InputAdornment position="start">
-                                                        <LockOutlined sx={{ color: 'text.secondary' }} />
+                                                        <LockOutlined sx={{ color: 'rgba(0, 0, 0, 0.54)' }} />
                                                     </InputAdornment>
                                                 ),
                                                 endAdornment: (
@@ -516,6 +530,20 @@ export default function LoginPage() {
                                                     '&.Mui-focused': {
                                                         backgroundColor: '#fff',
                                                     },
+                                                },
+                                                '& .MuiInputBase-input': {
+                                                    color: '#1a1a2e',
+                                                },
+                                                '& .MuiInputLabel-root': {
+                                                    color: 'rgba(0, 0, 0, 0.6)',
+                                                },
+                                                '& .MuiInputLabel-root.Mui-focused': {
+                                                    color: '#6366f1',
+                                                },
+                                                '& input:-webkit-autofill': {
+                                                    WebkitBoxShadow: '0 0 0 100px #f8fafc inset',
+                                                    WebkitTextFillColor: '#1a1a2e',
+                                                    caretColor: '#1a1a2e',
                                                 },
                                             }}
                                         />
