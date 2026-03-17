@@ -115,8 +115,19 @@ export default function NotificationPanel() {
         }
     }, [auditLogService])
 
-    // Initial fetch and polling
+    // Initial fetch and polling — only for admin users (audit logs require admin permission)
     useEffect(() => {
+        // Check if user has admin role before polling audit logs
+        const storedUser = localStorage.getItem('fivucsas_user')
+        let isAdmin = false
+        try {
+            const userData = storedUser ? JSON.parse(storedUser) : null
+            isAdmin = userData?.role === 'ADMIN' || userData?.role === 'SUPER_ADMIN' ||
+                      (userData?.roles || []).some((r: string) => r === 'ADMIN' || r === 'SUPER_ADMIN')
+        } catch { /* ignore */ }
+
+        if (!isAdmin) return // Skip polling for non-admin users
+
         fetchNotifications()
         const interval = setInterval(fetchNotifications, POLL_INTERVAL)
         return () => clearInterval(interval)

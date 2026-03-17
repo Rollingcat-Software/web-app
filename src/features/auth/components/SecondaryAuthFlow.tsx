@@ -142,7 +142,7 @@ export default function SecondaryAuthFlow({
                 let enrollmentData: EnrollmentJSON[] = []
                 try {
                     const enrollRes = await httpClient.get<EnrollmentJSON[]>(
-                        `/enrollments/users/${userId}/enrollments`
+                        `/users/${userId}/enrollments`
                     )
                     enrollmentData = enrollRes.data
                 } catch {

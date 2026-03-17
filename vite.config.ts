@@ -50,10 +50,10 @@ function cspPlugin(): Plugin {
             // Development CSP allows unsafe-inline/eval for HMR
             const isProduction = ctx.server === undefined
             const scriptSrc = isProduction
-                ? "script-src 'self' https://cdn.jsdelivr.net"
+                ? "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net"
                 : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net"
             const connectSrc = isProduction
-                ? "connect-src 'self' https://auth.rollingcatsoftware.com https://bpa-fivucsas.rollingcatsoftware.com https://api.qrserver.com"
+                ? "connect-src 'self' https://auth.rollingcatsoftware.com https://bpa-fivucsas.rollingcatsoftware.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com"
                 : "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*"
 
             // Note: frame-ancestors is NOT included in meta tag because browsers ignore it there
