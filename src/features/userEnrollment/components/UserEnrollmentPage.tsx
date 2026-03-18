@@ -34,7 +34,7 @@ export default function UserEnrollmentPage() {
         )
     }
 
-    const handleIdInfoNext = (data: typeof idInfo) => {
+    const handleIdInfoNext = (data: NonNullable<typeof idInfo>) => {
         setIdInfo(data)
         nextStep()
     }
