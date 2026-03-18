@@ -12,6 +12,8 @@ import {
     Dialog,
     DialogTitle,
     DialogContent,
+    DialogActions,
+    DialogContentText,
     Table,
     TableBody,
     TableCell,
@@ -25,7 +27,7 @@ import {
     Select,
     MenuItem,
 } from '@mui/material'
-import { Add, Delete } from '@mui/icons-material'
+import { Add, Delete, Edit } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
 import { AuthFlowBuilder } from './AuthFlowBuilder'
@@ -37,6 +39,7 @@ import {
     OPERATION_TYPE_OPTIONS,
     getOperationTypeLabel,
     type OperationType,
+    type AuthFlowStep,
 } from '@domain/models/AuthMethod'
 import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
@@ -54,6 +57,14 @@ export default function AuthFlowsPage() {
     const [error, setError] = useState<string | null>(null)
     const [showBuilder, setShowBuilder] = useState(false)
     const [filterType, setFilterType] = useState<string>('')
+
+    // Edit state
+    const [editingFlow, setEditingFlow] = useState<AuthFlowResponse | null>(null)
+
+    // Delete confirmation state
+    const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+    const [deletingFlowId, setDeletingFlowId] = useState<string | null>(null)
+    const [deletingFlowName, setDeletingFlowName] = useState<string>('')
 
     const tenantId = user?.tenantId ?? ''
 
@@ -81,7 +92,7 @@ export default function AuthFlowsPage() {
         description: string
         operationType: OperationType
         isDefault: boolean
-        steps: { methodType: string; isRequired: boolean; timeout: number; maxAttempts: number; order: number }[]
+        steps: AuthFlowStep[]
     }) => {
         try {
             const command: CreateAuthFlowCommand = {
@@ -98,7 +109,18 @@ export default function AuthFlowsPage() {
                     allowsDelegation: false,
                 })),
             }
-            await authFlowRepo.createFlow(tenantId, command)
+
+            if (editingFlow) {
+                // For edit: delete the old flow and create a new one with updated data
+                // (The backend UpdateAuthFlowCommand only supports name/description/isDefault/isActive,
+                // not step changes. So we recreate the flow to apply step changes.)
+                await authFlowRepo.deleteFlow(tenantId, editingFlow.id)
+                await authFlowRepo.createFlow(tenantId, command)
+                setEditingFlow(null)
+            } else {
+                await authFlowRepo.createFlow(tenantId, command)
+            }
+
             setShowBuilder(false)
             await loadFlows()
         } catch (err) {
@@ -107,14 +129,54 @@ export default function AuthFlowsPage() {
         }
     }
 
-    const handleDelete = async (flowId: string) => {
+    const handleEditClick = (flow: AuthFlowResponse) => {
+        setEditingFlow(flow)
+        setShowBuilder(true)
+    }
+
+    const handleBuilderClose = () => {
+        setShowBuilder(false)
+        setEditingFlow(null)
+    }
+
+    const handleDeleteClick = (flowId: string, flowName: string) => {
+        setDeletingFlowId(flowId)
+        setDeletingFlowName(flowName)
+        setDeleteDialogOpen(true)
+    }
+
+    const handleDeleteConfirm = async () => {
+        if (!deletingFlowId) return
         try {
-            await authFlowRepo.deleteFlow(tenantId, flowId)
+            await authFlowRepo.deleteFlow(tenantId, deletingFlowId)
             await loadFlows()
         } catch (err) {
             logger.error('Failed to delete auth flow', err)
             setError('Failed to delete authentication flow')
         }
+        setDeleteDialogOpen(false)
+        setDeletingFlowId(null)
+        setDeletingFlowName('')
+    }
+
+    const handleDeleteCancel = () => {
+        setDeleteDialogOpen(false)
+        setDeletingFlowId(null)
+        setDeletingFlowName('')
+    }
+
+    // Convert AuthFlowResponse steps to AuthFlowStep[] for the builder
+    const getBuilderInitialSteps = (): AuthFlowStep[] => {
+        if (!editingFlow?.steps) return []
+        return editingFlow.steps.map((s, i) => ({
+            id: `step-${i}-${Date.now()}`,
+            order: s.stepOrder,
+            methodId: s.authMethodType,
+            methodType: s.authMethodType as unknown as AuthFlowStep['methodType'],
+            isRequired: s.isRequired,
+            timeout: s.timeoutSeconds ?? 120,
+            maxAttempts: s.maxAttempts ?? 3,
+        }))
     }
 
     return (
@@ -137,7 +199,7 @@ export default function AuthFlowsPage() {
                         <Button
                             variant="contained"
                             startIcon={<Add />}
-                            onClick={() => setShowBuilder(true)}
+                            onClick={() => { setEditingFlow(null); setShowBuilder(true) }}
                             sx={{
                                 py: 1.2,
                                 px: 3,
@@ -235,11 +297,22 @@ export default function AuthFlowsPage() {
                                             {flow.isDefault && <Chip label="Default" size="small" color="primary" />}
                                         </TableCell>
                                         <TableCell align="right">
-                                            <Tooltip title="Delete">
+                                            <Tooltip title="Edit flow">
                                                 <IconButton
                                                     size="small"
-                                                    onClick={() => handleDelete(flow.id)}
+                                                    onClick={() => handleEditClick(flow)}
+                                                    sx={{ color: 'primary.main', mr: 0.5 }}
+                                                    aria-label="Edit flow"
+                                                >
+                                                    <Edit fontSize="small" />
+                                                </IconButton>
+                                            </Tooltip>
+                                            <Tooltip title="Delete flow">
+                                                <IconButton
+                                                    size="small"
+                                                    onClick={() => handleDeleteClick(flow.id, flow.name)}
                                                     sx={{ color: 'error.main' }}
+                                                    aria-label="Delete flow"
                                                 >
                                                     <Delete fontSize="small" />
                                                 </IconButton>
@@ -252,14 +325,45 @@ export default function AuthFlowsPage() {
                     </TableContainer>
                 )}
 
-                {/* Builder Dialog */}
-                <Dialog open={showBuilder} onClose={() => setShowBuilder(false)} maxWidth="lg" fullWidth>
-                    <DialogTitle>Create Authentication Flow</DialogTitle>
+                {/* Builder Dialog (Create or Edit) */}
+                <Dialog open={showBuilder} onClose={handleBuilderClose} maxWidth="lg" fullWidth>
+                    <DialogTitle>
+                        {editingFlow ? 'Edit Authentication Flow' : 'Create Authentication Flow'}
+                    </DialogTitle>
                     <DialogContent>
                         <Box sx={{ pt: 1 }}>
-                            <AuthFlowBuilder onSave={handleSave} authMethods={authMethods} />
+                            <AuthFlowBuilder
+                                key={editingFlow?.id ?? 'new'}
+                                onSave={handleSave}
+                                authMethods={authMethods}
+                                initialSteps={editingFlow ? getBuilderInitialSteps() : undefined}
+                                initialName={editingFlow?.name}
+                                initialDescription={editingFlow?.description}
+                                initialOperationType={editingFlow?.operationType}
+                            />
                         </Box>
                     </DialogContent>
+                </Dialog>
+
+                {/* Delete Confirmation Dialog */}
+                <Dialog
+                    open={deleteDialogOpen}
+                    onClose={handleDeleteCancel}
+                    aria-labelledby="delete-flow-dialog-title"
+                >
+                    <DialogTitle id="delete-flow-dialog-title">Delete Authentication Flow</DialogTitle>
+                    <DialogContent>
+                        <DialogContentText>
+                            Are you sure you want to delete the flow "{deletingFlowName}"?
+                            This action cannot be undone.
+                        </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleDeleteCancel}>Cancel</Button>
+                        <Button onClick={handleDeleteConfirm} color="error" variant="contained">
+                            Delete
+                        </Button>
+                    </DialogActions>
                 </Dialog>
             </Box>
         </PageTransition>
