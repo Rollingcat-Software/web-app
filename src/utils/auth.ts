@@ -77,20 +77,30 @@ export function hasAuthCookies(): boolean {
 }
 
 /**
- * Clear authentication state
- * Note: We can't directly clear httpOnly cookies from JavaScript.
- * The logout endpoint on the backend must clear them.
+ * Clear all authentication state from client storage.
+ * Consolidates cleanup of all legacy token patterns into one function.
+ * Note: httpOnly cookies can only be cleared by the backend logout endpoint.
  */
 export function clearAuthState(): void {
-    // Clear any non-httpOnly auth state
-    if (typeof window !== 'undefined') {
-        // Clear any session storage that might have been used
-        sessionStorage.removeItem('access_token')
-        sessionStorage.removeItem('refresh_token')
+    if (typeof window === 'undefined') return
 
-        // Clear Redux persist if used
-        localStorage.removeItem('persist:auth')
-    }
+    // Clear all known legacy token patterns from sessionStorage
+    const sessionKeys = [
+        'access_token',
+        'refresh_token',
+        'fivucsas_dev_access_token',
+        'fivucsas_dev_refresh_token',
+        'fivucsas_prod_access_token',
+        'fivucsas_prod_refresh_token',
+    ]
+    sessionKeys.forEach(key => sessionStorage.removeItem(key))
+
+    // Clear all known legacy token patterns from localStorage
+    const localKeys = [
+        'persist:auth',
+        'fivucsas_token',
+    ]
+    localKeys.forEach(key => localStorage.removeItem(key))
 }
 
 /**
@@ -109,32 +119,9 @@ export function validateSecureContext(): void {
 }
 
 /**
- * Migration utility: Check if old sessionStorage tokens exist
- * Used for migrating from sessionStorage to httpOnly cookies
- */
-export function hasLegacyTokens(): boolean {
-    if (typeof window === 'undefined') return false
-
-    return !!(
-        sessionStorage.getItem('access_token') ||
-        sessionStorage.getItem('refresh_token') ||
-        sessionStorage.getItem('fivucsas_dev_access_token') ||
-        sessionStorage.getItem('fivucsas_dev_refresh_token') ||
-        sessionStorage.getItem('fivucsas_prod_access_token') ||
-        sessionStorage.getItem('fivucsas_prod_refresh_token')
-    )
-}
-
-/**
- * Migration utility: Clear legacy sessionStorage tokens
+ * Migration: clear any legacy tokens left behind from previous storage patterns.
+ * Call once on app startup. Safe to call multiple times (idempotent).
  */
 export function clearLegacyTokens(): void {
-    if (typeof window === 'undefined') return
-
-    sessionStorage.removeItem('access_token')
-    sessionStorage.removeItem('refresh_token')
-    sessionStorage.removeItem('fivucsas_dev_access_token')
-    sessionStorage.removeItem('fivucsas_dev_refresh_token')
-    sessionStorage.removeItem('fivucsas_prod_access_token')
-    sessionStorage.removeItem('fivucsas_prod_refresh_token')
+    clearAuthState()
 }

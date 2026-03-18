@@ -713,7 +713,7 @@ export default function EnrollmentPage() {
                 open={voiceEnrollOpen}
                 userId={userId}
                 apiBaseUrl={import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'}
-                token={localStorage.getItem('fivucsas_token')}
+                token={null}
                 onClose={() => setVoiceEnrollOpen(false)}
                 onSuccess={(action) => {
                     if (action === 'enroll') {

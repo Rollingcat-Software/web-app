@@ -307,6 +307,7 @@ export default function VoiceEnrollmentFlow({
             const res = await fetch(url, {
                 method: 'POST',
                 headers,
+                credentials: 'include',
                 body: JSON.stringify(body),
             })
             const data = await res.json().catch(() => null)
