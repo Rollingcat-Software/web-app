@@ -70,7 +70,7 @@ export default function UserFormPage() {
 
         try {
             if (isEditMode && id) {
-                const {password, ...updateData} = data
+                const {password: _password, ...updateData} = data
                 await updateUser(id, updateData)
             } else {
                 if (!data.password) {

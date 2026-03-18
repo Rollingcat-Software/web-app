@@ -10,11 +10,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { BrowserRouter } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
 import LoginPage from '@features/auth/components/LoginPage'
-import DashboardPage from '@features/dashboard/components/DashboardPage'
+// DashboardPage import removed - unused in current tests
 import { DependencyProvider } from '@app/providers/DependencyProvider'
 
 // Mock the auth service

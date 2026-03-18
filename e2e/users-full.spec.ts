@@ -55,7 +55,7 @@ test.describe('Users — Extended Tests', () => {
             await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
 
             // Click the rows-per-page combobox and select 25
-            const rowsPerPageSelect = page.locator('[aria-label="rows per page"], select').first()
+            const _rowsPerPageSelect = page.locator('[aria-label="rows per page"], select').first()
             // MUI renders a native <select> inside TablePagination
             const nativeSelect = page.locator('.MuiTablePagination-select').first()
             const hasNativeSelect = await nativeSelect.count() > 0

@@ -105,7 +105,7 @@ export function mapApiError(error: unknown): AppApiError {
         const responseData = error.response?.data as ApiErrorResponse | undefined
 
         // Get message from response or use default
-        let message = responseData?.message || ErrorMessages[code] || error.message
+        const message = responseData?.message || ErrorMessages[code] || error.message
 
         // For network errors
         if (!error.response) {

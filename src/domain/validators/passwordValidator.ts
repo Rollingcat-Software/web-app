@@ -36,7 +36,7 @@ export function calculatePasswordStrength(password: string): 'weak' | 'medium' |
     if (/[a-z]/.test(password)) score++
     if (/[0-9]/.test(password)) score++
     if (/[^A-Za-z0-9]/.test(password)) score++
-    if (/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/.test(password)) score++
+    if (/[!@#$%^&*()_+\-=[\]{};':"\\|,.<>/?]/.test(password)) score++
 
     if (score <= 3) return 'weak'
     if (score <= 5) return 'medium'
