@@ -58,10 +58,13 @@ function cspPlugin(): Plugin {
 
             // Note: frame-ancestors is NOT included in meta tag because browsers ignore it there
             // frame-ancestors MUST be sent via HTTP header (configured in .htaccess for production)
+            const mediaSrc = "media-src 'self' blob:"
+            const workerSrc = "worker-src 'self' blob:"
+
             return html.replace(
                 '<head>',
                 `<head>
-    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; ${connectSrc}; base-uri 'self'; form-action 'self';">`
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; ${scriptSrc}; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; ${connectSrc}; ${mediaSrc}; ${workerSrc}; base-uri 'self'; form-action 'self';">`
             )
         },
     }

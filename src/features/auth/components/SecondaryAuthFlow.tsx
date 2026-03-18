@@ -31,6 +31,64 @@ import type { AuthSessionResponse } from '@core/repositories/AuthSessionReposito
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
+/**
+ * Check which auth methods the current device can support
+ */
+async function getDeviceSupportedMethods(): Promise<Set<string>> {
+    const supported = new Set<string>()
+
+    // Always-available methods (no hardware dependency)
+    supported.add(AuthMethodType.TOTP)
+    supported.add(AuthMethodType.EMAIL_OTP)
+    supported.add(AuthMethodType.SMS_OTP)
+    supported.add(AuthMethodType.PASSWORD)
+    supported.add(AuthMethodType.QR_CODE) // QR can be shown on screen
+
+    // Camera check (for face and QR)
+    try {
+        if (navigator.mediaDevices) {
+            const devices = await navigator.mediaDevices.enumerateDevices()
+            if (devices.some((d) => d.kind === 'videoinput')) {
+                supported.add(AuthMethodType.FACE)
+            }
+        }
+    } catch {
+        // no camera
+    }
+
+    // Microphone check (for voice)
+    try {
+        if (navigator.mediaDevices) {
+            const devices = await navigator.mediaDevices.enumerateDevices()
+            if (devices.some((d) => d.kind === 'audioinput')) {
+                supported.add(AuthMethodType.VOICE)
+            }
+        }
+    } catch {
+        // no microphone
+    }
+
+    // WebAuthn check
+    if (window.PublicKeyCredential) {
+        supported.add(AuthMethodType.HARDWARE_KEY)
+        try {
+            const platformAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+            if (platformAvailable) {
+                supported.add(AuthMethodType.FINGERPRINT)
+            }
+        } catch {
+            // no platform authenticator
+        }
+    }
+
+    // NFC check
+    if ('NDEFReader' in window) {
+        supported.add(AuthMethodType.NFC_DOCUMENT)
+    }
+
+    return supported
+}
+
 interface SecondaryAuthFlowProps {
     userId: string
     tenantId: string
@@ -166,17 +224,29 @@ export default function SecondaryAuthFlow({
                     return
                 }
 
-                // Map to display format
+                // Check device capabilities to filter methods
+                const deviceSupported = await getDeviceSupportedMethods()
+
+                // Map to display format, filtering out methods not supported by current device
                 const methods: EnrolledMethod[] = enrolled
                     .map((e) => {
-                        const meta = METHOD_META[e.authMethodType ?? '']
+                        const methodType = e.authMethodType ?? ''
+                        const meta = METHOD_META[methodType]
                         if (!meta) return null
+                        // Only show methods the current device can handle
+                        if (!deviceSupported.has(methodType)) return null
                         return {
-                            type: e.authMethodType!,
+                            type: methodType,
                             ...meta,
                         }
                     })
                     .filter(Boolean) as EnrolledMethod[]
+
+                if (methods.length === 0) {
+                    // Device doesn't support any enrolled methods -- skip
+                    if (!cancelled) onSkip()
+                    return
+                }
 
                 // Step 2: Check if tenant has a configured auth flow for LOGIN
                 try {
@@ -237,7 +307,7 @@ export default function SecondaryAuthFlow({
     }, [userId, tenantId, httpClient, onSkip])
 
     // Handle auth session completion
-    const handleSessionComplete = useCallback(() => {
+    const handleSessionComplete = useCallback((_result?: { accessToken: string; userId: string }) => {
         onComplete()
     }, [onComplete])
 
