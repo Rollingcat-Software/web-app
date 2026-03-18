@@ -28,6 +28,8 @@
     "enrollments": "Enrollments",
     "userEnrollment": "Self Enrollment",
     "biometricEnrollment": "Biometric Enrollment",
+    "cardDetection": "Card Detection",
+    "faceSearch": "Face Search",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
     "settings": "Settings"

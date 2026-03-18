@@ -28,6 +28,8 @@
     "enrollments": "Kayıtlar",
     "userEnrollment": "Kendi Kaydı",
     "biometricEnrollment": "Biyometrik Kayıt",
+    "cardDetection": "Kart Algılama",
+    "faceSearch": "Yüz Arama",
     "auditLogs": "Denetim Kayıtları",
     "analytics": "Analitik",
     "settings": "Ayarlar"
