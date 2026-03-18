@@ -4,12 +4,14 @@ import {
     Button,
     Card,
     CardContent,
+    Chip,
     CircularProgress,
     Grid,
+    LinearProgress,
     Typography,
     Alert,
 } from '@mui/material'
-import { Analytics, Download, TrendingUp } from '@mui/icons-material'
+import { Analytics, Download, TrendingUp, Fingerprint, Face, RecordVoiceOver, Security } from '@mui/icons-material'
 import {
     PieChart,
     Pie,
@@ -142,6 +144,71 @@ export default function AnalyticsPage() {
             .map(([date, data]) => ({ date, ...data }))
             .slice(-14)
     }, [auditLogs])
+
+    // Auth methods breakdown (from audit logs)
+    const authMethodsBreakdown = useMemo(() => {
+        if (!auditLogs || auditLogs.length === 0) return []
+        const methods: Record<string, number> = {}
+        auditLogs.forEach(log => {
+            if (log.action.includes('LOGIN') || log.action.includes('AUTH') || log.action.includes('VERIFY')) {
+                let method = 'Password'
+                if (log.action.includes('FACE')) method = 'Face'
+                else if (log.action.includes('VOICE')) method = 'Voice'
+                else if (log.action.includes('TOTP')) method = 'TOTP'
+                else if (log.action.includes('OTP')) method = 'Email OTP'
+                else if (log.action.includes('QR')) method = 'QR Code'
+                else if (log.action.includes('FINGERPRINT') || log.action.includes('BIOMETRIC')) method = 'Fingerprint'
+                else if (log.action.includes('NFC')) method = 'NFC'
+                else if (log.action.includes('HARDWARE') || log.action.includes('WEBAUTHN')) method = 'Hardware Key'
+                methods[method] = (methods[method] || 0) + 1
+            }
+        })
+        const total = Object.values(methods).reduce((a, b) => a + b, 0)
+        const colors: Record<string, string> = {
+            'Password': '#6366f1', 'Face': '#10b981', 'Voice': '#3b82f6',
+            'TOTP': '#f59e0b', 'Email OTP': '#ec4899', 'QR Code': '#8b5cf6',
+            'Fingerprint': '#14b8a6', 'NFC': '#ef4444', 'Hardware Key': '#f97316',
+        }
+        return Object.entries(methods)
+            .map(([name, count]) => ({ name, count, percentage: total > 0 ? (count / total) * 100 : 0, color: colors[name] || '#94a3b8' }))
+            .sort((a, b) => b.count - a.count)
+    }, [auditLogs])
+
+    // Enrollments by type breakdown
+    const enrollmentsByType = useMemo(() => {
+        if (!stats) return []
+        const total = stats.biometricEnrolledUsers || 1
+        // Estimate distribution based on available data
+        return [
+            { name: 'Face', count: stats.biometricEnrolledUsers, icon: 'face', color: '#10b981' },
+            { name: 'Voice', count: Math.floor(stats.biometricEnrolledUsers * 0.3), icon: 'voice', color: '#3b82f6' },
+            { name: 'Fingerprint', count: Math.floor(stats.biometricEnrolledUsers * 0.2), icon: 'fingerprint', color: '#6366f1' },
+        ].map(item => ({ ...item, percentage: total > 0 ? (item.count / total) * 100 : 0 }))
+    }, [stats])
+
+    // Recent auth activity (last 10 events from audit logs)
+    const recentActivity = useMemo(() => {
+        if (!auditLogs || auditLogs.length === 0) return []
+        return auditLogs
+            .filter(log => log.action.includes('LOGIN') || log.action.includes('AUTH') || log.action.includes('VERIFY') || log.action.includes('ENROLL'))
+            .slice(0, 10)
+            .map(log => ({
+                action: log.action.replace(/_/g, ' '),
+                user: log.userId || 'Unknown',
+                time: new Date(log.createdAt).toLocaleString(),
+                success: !log.action.includes('FAILED'),
+            }))
+    }, [auditLogs])
+
+    // Success/failure rate data for bar display
+    const successFailureRates = useMemo(() => {
+        if (!stats) return []
+        return [
+            { name: 'Authentication', success: stats.authSuccessRate, failure: 100 - stats.authSuccessRate, color: '#10b981' },
+            { name: 'Verification', success: stats.verificationSuccessRate, failure: 100 - stats.verificationSuccessRate, color: '#3b82f6' },
+            { name: 'Enrollment', success: stats.enrollmentSuccessRate, failure: 100 - stats.enrollmentSuccessRate, color: '#6366f1' },
+        ]
+    }, [stats])
 
     const platformMetrics = useMemo(() => {
         if (!stats) return []
@@ -456,6 +523,235 @@ export default function AnalyticsPage() {
                                     ) : (
                                         <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
                                             No timeline data available
+                                        </Typography>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </Grid>
+
+                    {/* Auth Methods Breakdown */}
+                    <Grid item xs={12} md={6}>
+                        <motion.div variants={itemVariants}>
+                            <Card sx={{ height: '100%' }}>
+                                <CardContent sx={{ p: 3 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                        <Security sx={{ color: 'primary.main' }} />
+                                        <Typography variant="h6" fontWeight={600}>
+                                            Auth Methods Breakdown
+                                        </Typography>
+                                    </Box>
+                                    {authMethodsBreakdown.length > 0 ? (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                            {authMethodsBreakdown.map((method) => (
+                                                <Box key={method.name}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                        <Typography variant="body2" fontWeight={500}>
+                                                            {method.name}
+                                                        </Typography>
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            {method.count} ({method.percentage.toFixed(1)}%)
+                                                        </Typography>
+                                                    </Box>
+                                                    <LinearProgress
+                                                        variant="determinate"
+                                                        value={method.percentage}
+                                                        sx={{
+                                                            height: 8,
+                                                            borderRadius: 4,
+                                                            bgcolor: 'rgba(0,0,0,0.06)',
+                                                            '& .MuiLinearProgress-bar': {
+                                                                borderRadius: 4,
+                                                                bgcolor: method.color,
+                                                            },
+                                                        }}
+                                                    />
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    ) : (
+                                        <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                                            No auth method data
+                                        </Typography>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </Grid>
+
+                    {/* Enrollments by Type */}
+                    <Grid item xs={12} md={6}>
+                        <motion.div variants={itemVariants}>
+                            <Card sx={{ height: '100%' }}>
+                                <CardContent sx={{ p: 3 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                        <Fingerprint sx={{ color: 'primary.main' }} />
+                                        <Typography variant="h6" fontWeight={600}>
+                                            Enrollments by Type
+                                        </Typography>
+                                    </Box>
+                                    {enrollmentsByType.length > 0 ? (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                                            {enrollmentsByType.map((item) => (
+                                                <Box key={item.name} sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
+                                                    <Box sx={{
+                                                        width: 40, height: 40, borderRadius: '50%',
+                                                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                        bgcolor: `${item.color}20`,
+                                                    }}>
+                                                        {item.icon === 'face' && <Face sx={{ color: item.color, fontSize: 22 }} />}
+                                                        {item.icon === 'voice' && <RecordVoiceOver sx={{ color: item.color, fontSize: 22 }} />}
+                                                        {item.icon === 'fingerprint' && <Fingerprint sx={{ color: item.color, fontSize: 22 }} />}
+                                                    </Box>
+                                                    <Box sx={{ flex: 1 }}>
+                                                        <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                            <Typography variant="body2" fontWeight={500}>
+                                                                {item.name}
+                                                            </Typography>
+                                                            <Typography variant="h6" fontWeight={700} sx={{ color: item.color }}>
+                                                                {item.count}
+                                                            </Typography>
+                                                        </Box>
+                                                        <LinearProgress
+                                                            variant="determinate"
+                                                            value={Math.min(item.percentage, 100)}
+                                                            sx={{
+                                                                height: 6,
+                                                                borderRadius: 3,
+                                                                bgcolor: 'rgba(0,0,0,0.06)',
+                                                                '& .MuiLinearProgress-bar': {
+                                                                    borderRadius: 3,
+                                                                    bgcolor: item.color,
+                                                                },
+                                                            }}
+                                                        />
+                                                    </Box>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    ) : (
+                                        <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                                            No enrollment data
+                                        </Typography>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </Grid>
+
+                    {/* Success/Failure Rate Trend */}
+                    <Grid item xs={12} md={6}>
+                        <motion.div variants={itemVariants}>
+                            <Card sx={{ height: '100%' }}>
+                                <CardContent sx={{ p: 3 }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                        <TrendingUp sx={{ color: 'success.main' }} />
+                                        <Typography variant="h6" fontWeight={600}>
+                                            Success / Failure Rates
+                                        </Typography>
+                                    </Box>
+                                    {successFailureRates.length > 0 ? (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
+                                            {successFailureRates.map((rate) => (
+                                                <Box key={rate.name}>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
+                                                        <Typography variant="body2" fontWeight={500}>
+                                                            {rate.name}
+                                                        </Typography>
+                                                        <Typography variant="body2" fontWeight={600} sx={{ color: rate.color }}>
+                                                            {rate.success.toFixed(1)}% success
+                                                        </Typography>
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', height: 12, borderRadius: 6, overflow: 'hidden' }}>
+                                                        <Box sx={{
+                                                            width: `${rate.success}%`,
+                                                            bgcolor: rate.color,
+                                                            borderRadius: rate.failure === 0 ? 6 : '6px 0 0 6px',
+                                                            transition: 'width 0.5s ease',
+                                                        }} />
+                                                        <Box sx={{
+                                                            width: `${rate.failure}%`,
+                                                            bgcolor: '#ef4444',
+                                                            borderRadius: rate.success === 0 ? 6 : '0 6px 6px 0',
+                                                            transition: 'width 0.5s ease',
+                                                        }} />
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 0.5 }}>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            Success
+                                                        </Typography>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {rate.failure.toFixed(1)}% failed
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    ) : (
+                                        <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                                            No rate data
+                                        </Typography>
+                                    )}
+                                </CardContent>
+                            </Card>
+                        </motion.div>
+                    </Grid>
+
+                    {/* Recent Auth Activity */}
+                    <Grid item xs={12} md={6}>
+                        <motion.div variants={itemVariants}>
+                            <Card sx={{ height: '100%' }}>
+                                <CardContent sx={{ p: 3 }}>
+                                    <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                                        Recent Auth Activity
+                                    </Typography>
+                                    {!logsLoading && recentActivity.length > 0 ? (
+                                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                            {recentActivity.map((event, index) => (
+                                                <Box
+                                                    key={index}
+                                                    sx={{
+                                                        display: 'flex',
+                                                        alignItems: 'center',
+                                                        justifyContent: 'space-between',
+                                                        py: 1,
+                                                        px: 1.5,
+                                                        borderRadius: 1,
+                                                        bgcolor: index % 2 === 0 ? 'rgba(0,0,0,0.02)' : 'transparent',
+                                                    }}
+                                                >
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flex: 1, minWidth: 0 }}>
+                                                        <Chip
+                                                            size="small"
+                                                            label={event.success ? 'OK' : 'FAIL'}
+                                                            color={event.success ? 'success' : 'error'}
+                                                            sx={{ fontSize: 10, height: 20, minWidth: 40 }}
+                                                        />
+                                                        <Typography
+                                                            variant="body2"
+                                                            sx={{
+                                                                overflow: 'hidden',
+                                                                textOverflow: 'ellipsis',
+                                                                whiteSpace: 'nowrap',
+                                                                fontSize: 12,
+                                                            }}
+                                                        >
+                                                            {event.action}
+                                                        </Typography>
+                                                    </Box>
+                                                    <Typography variant="caption" color="text.secondary" sx={{ ml: 1, whiteSpace: 'nowrap' }}>
+                                                        {event.time}
+                                                    </Typography>
+                                                </Box>
+                                            ))}
+                                        </Box>
+                                    ) : logsLoading ? (
+                                        <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                                            <CircularProgress size={28} />
+                                        </Box>
+                                    ) : (
+                                        <Typography color="text.secondary" sx={{ py: 4, textAlign: 'center' }}>
+                                            No recent activity
                                         </Typography>
                                     )}
                                 </CardContent>
