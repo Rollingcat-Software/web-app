@@ -19,6 +19,8 @@ const BREADCRUMB_MAP: Record<string, string> = {
     devices: 'Devices',
     roles: 'Roles',
     guests: 'Guests',
+    'voice-search': 'Voice Search',
+    'nfc-enrollment': 'NFC Enrollment',
     analytics: 'Analytics',
     settings: 'Settings',
     create: 'Create',

@@ -30,6 +30,8 @@
     "biometricEnrollment": "Biyometrik Kayıt",
     "cardDetection": "Kart Algılama",
     "faceSearch": "Yüz Arama",
+    "voiceSearch": "Ses Arama",
+    "nfcEnrollment": "NFC Kayıt",
     "auditLogs": "Denetim Kayıtları",
     "analytics": "Analitik",
     "settings": "Ayarlar"
@@ -208,6 +210,26 @@
     "minutesAgo": "{{n}} dk önce",
     "hoursAgo": "{{n}} saat önce",
     "daysAgo": "{{n}} gün önce"
+  },
+  "nfc": {
+    "title": "NFC Kayıt",
+    "subtitle": "Bir NFC kartı tarayarak kayıt yapın, doğrulayın veya sahibini bulun.",
+    "unsupportedTitle": "Web NFC Kullanılamıyor",
+    "unsupportedDescription": "Web NFC yalnızca Android üzerinde Chrome'da desteklenmektedir. NFC kartları kaydetmek veya yönetmek için FIVUCSAS mobil uygulamasını kullanın.",
+    "unsupportedHint": "İpucu: Tarayıcı tabanlı NFC kaydı kullanmak için bu sayfayı NFC etkin Android Chrome'da açın.",
+    "waiting": "NFC kartınızı cihaza yaklaştırın...",
+    "cardDetected": "Kart Algılandı",
+    "scanPrompt": "Başlamak için \"NFC Kartı Tara\" düğmesine tıklayın",
+    "scanButton": "NFC Kartı Tara",
+    "enrollButton": "Bu Kartı Kaydet",
+    "verifyButton": "Kartı Doğrula",
+    "searchButton": "Kimin Kartı?",
+    "rescan": "Tekrar Tara",
+    "enrollSuccess": "NFC kartı başarıyla kaydedildi!",
+    "verifySuccess": "NFC kartı doğrulandı!",
+    "verifyFailed": "NFC kartı tanınmadı.",
+    "cardOwner": "Kart sahibi",
+    "noOwner": "Bu kart için kullanıcı bulunamadı."
   },
   "language": {
     "en": "İngilizce",

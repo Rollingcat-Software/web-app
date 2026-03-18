@@ -19,6 +19,8 @@ const PAGE_TITLES: Record<string, string> = {
     '/enrollment': 'Biometric Enrollment — FIVUCSAS',
     '/card-detection': 'Card Detection — FIVUCSAS',
     '/face-search': 'Face Search — FIVUCSAS',
+    '/voice-search': 'Voice Search — FIVUCSAS',
+    '/nfc-enrollment': 'NFC Enrollment — FIVUCSAS',
     '/audit-logs': 'Audit Logs — FIVUCSAS',
     '/analytics': 'Analytics — FIVUCSAS',
     '/guests': 'Guests — FIVUCSAS',
@@ -73,6 +75,8 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const CardDetectionPage = lazy(() => import('./pages/CardDetectionPage'))
 const FaceSearchPage = lazy(() => import('./pages/FaceSearchPage'))
+const VoiceSearchPage = lazy(() => import('./pages/VoiceSearchPage'))
+const NfcEnrollmentPage = lazy(() => import('./pages/NfcEnrollmentPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -165,6 +169,8 @@ function App() {
                     <Route path="enrollment" element={<ErrorBoundary><BiometricEnrollmentPage /></ErrorBoundary>} />
                     <Route path="card-detection" element={<ErrorBoundary><CardDetectionPage /></ErrorBoundary>} />
                     <Route path="face-search" element={<ErrorBoundary><FaceSearchPage /></ErrorBoundary>} />
+                    <Route path="voice-search" element={<ErrorBoundary><VoiceSearchPage /></ErrorBoundary>} />
+                    <Route path="nfc-enrollment" element={<ErrorBoundary><NfcEnrollmentPage /></ErrorBoundary>} />
                     <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
                     <Route path="guests" element={<ErrorBoundary><GuestsPage /></ErrorBoundary>} />
                     <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />

@@ -30,6 +30,8 @@
     "biometricEnrollment": "Biometric Enrollment",
     "cardDetection": "Card Detection",
     "faceSearch": "Face Search",
+    "voiceSearch": "Voice Search",
+    "nfcEnrollment": "NFC Enrollment",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
     "settings": "Settings"
@@ -208,6 +210,26 @@
     "minutesAgo": "{{n}} min ago",
     "hoursAgo": "{{n}}h ago",
     "daysAgo": "{{n}}d ago"
+  },
+  "nfc": {
+    "title": "NFC Enrollment",
+    "subtitle": "Scan an NFC card to enroll, verify, or search for its owner.",
+    "unsupportedTitle": "Web NFC Not Available",
+    "unsupportedDescription": "Web NFC is only supported on Chrome for Android. To enroll or manage NFC cards, please use the FIVUCSAS mobile app.",
+    "unsupportedHint": "Tip: Open this page on Chrome for Android with NFC enabled to use browser-based NFC enrollment.",
+    "waiting": "Hold your NFC card near the device...",
+    "cardDetected": "Card Detected",
+    "scanPrompt": "Click \"Scan NFC Card\" to begin",
+    "scanButton": "Scan NFC Card",
+    "enrollButton": "Enroll This Card",
+    "verifyButton": "Verify Card",
+    "searchButton": "Whose Card?",
+    "rescan": "Rescan",
+    "enrollSuccess": "NFC card enrolled successfully!",
+    "verifySuccess": "NFC card verified!",
+    "verifyFailed": "NFC card not recognized.",
+    "cardOwner": "Card owner",
+    "noOwner": "No user found for this card."
   },
   "language": {
     "en": "English",
