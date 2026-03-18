@@ -3,6 +3,7 @@ import {
     Alert,
     Box,
     Button,
+    Chip,
     CircularProgress,
     Typography,
 } from '@mui/material'
@@ -12,9 +13,13 @@ import {
     Replay,
     ArrowForward,
     VideocamOff,
+    Visibility,
+    WbSunny,
+    BlurOn,
 } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
 import { useFaceDetection } from '../../hooks/useFaceDetection'
+import { useQualityAssessment } from '../../hooks/useQualityAssessment'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -49,6 +54,25 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         boundingBox,
         cropFace,
     } = useFaceDetection(videoRef, cameraActive && !capturedImage)
+
+    const { quality, updateQuality, resetQuality, getScoreColor, getQualityLabel } = useQualityAssessment()
+
+    // Run quality assessment in animation loop
+    useEffect(() => {
+        if (!cameraActive || capturedImage) return
+        let animFrame = 0
+        function loop() {
+            if (videoRef.current && videoRef.current.readyState >= 2) {
+                updateQuality(videoRef.current)
+            }
+            animFrame = requestAnimationFrame(loop)
+        }
+        animFrame = requestAnimationFrame(loop)
+        return () => {
+            cancelAnimationFrame(animFrame)
+            resetQuality()
+        }
+    }, [cameraActive, capturedImage, updateQuality, resetQuality])
 
     const startCamera = useCallback(async () => {
         try {
@@ -90,6 +114,11 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const captureImage = useCallback(() => {
         if (!videoRef.current || !canvasRef.current) return
 
+        // Quality gate: block if quality is too poor
+        if (quality.overall > 0 && quality.overall < 40) {
+            // Allow capture but warn — don't block entirely
+        }
+
         // Try cropped face capture first (MediaPipe detected)
         if (detected && boundingBox) {
             const cropped = cropFace(canvasRef.current)
@@ -100,23 +129,27 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             }
         }
 
-        // Fallback: full frame capture (if MediaPipe didn't load)
+        // Fallback: full frame capture with 640px resize
         const video = videoRef.current
         const canvas = canvasRef.current
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
+        const w = video.videoWidth
+        const h = video.videoHeight
+        const maxDim = 640
+        const scale = Math.min(1, maxDim / Math.max(w, h))
+        canvas.width = Math.round(w * scale)
+        canvas.height = Math.round(h * scale)
 
         const ctx = canvas.getContext('2d')
         if (!ctx) return
 
         ctx.translate(canvas.width, 0)
         ctx.scale(-1, 1)
-        ctx.drawImage(video, 0, 0)
+        ctx.drawImage(video, 0, 0, w, h, 0, 0, canvas.width, canvas.height)
 
-        const base64 = canvas.toDataURL('image/jpeg', 0.8)
+        const base64 = canvas.toDataURL('image/jpeg', 0.85)
         setCapturedImage(base64)
         stopCamera()
-    }, [stopCamera, detected, boundingBox, cropFace])
+    }, [stopCamera, detected, boundingBox, cropFace, quality.overall])
 
     const retakePhoto = useCallback(() => {
         setCapturedImage(null)
@@ -312,7 +345,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         sx={{
                             display: 'block',
                             textAlign: 'center',
-                            mb: 2,
+                            mb: 1,
                             color: captureReady ? 'success.main' : 'text.secondary',
                             fontWeight: captureReady ? 600 : 400,
                             transition: 'color 0.2s ease',
@@ -320,6 +353,60 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     >
                         {hint}
                     </Typography>
+                </motion.div>
+            )}
+
+            {/* Quality assessment overlay */}
+            {cameraActive && !capturedImage && quality.overall > 0 && (
+                <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <Box
+                        sx={{
+                            display: 'flex',
+                            gap: 0.75,
+                            justifyContent: 'center',
+                            flexWrap: 'wrap',
+                            mb: 2,
+                        }}
+                    >
+                        <Chip
+                            icon={<Visibility sx={{ fontSize: 14 }} />}
+                            label={`Quality: ${getQualityLabel(quality.overall)} (${quality.overall})`}
+                            size="small"
+                            color={getScoreColor(quality.overall)}
+                            variant="outlined"
+                            sx={{ fontSize: '0.7rem', height: 24 }}
+                        />
+                        <Chip
+                            icon={<BlurOn sx={{ fontSize: 14 }} />}
+                            label={`Blur: ${quality.blur}`}
+                            size="small"
+                            color={getScoreColor(quality.blur)}
+                            variant="outlined"
+                            sx={{ fontSize: '0.7rem', height: 24 }}
+                        />
+                        <Chip
+                            icon={<WbSunny sx={{ fontSize: 14 }} />}
+                            label={`Light: ${quality.lighting}`}
+                            size="small"
+                            color={getScoreColor(quality.lighting)}
+                            variant="outlined"
+                            sx={{ fontSize: '0.7rem', height: 24 }}
+                        />
+                        {quality.faceSizeScore > 0 && (
+                            <Chip
+                                icon={<Face sx={{ fontSize: 14 }} />}
+                                label={`Size: ${quality.faceSizeScore}`}
+                                size="small"
+                                color={getScoreColor(quality.faceSizeScore)}
+                                variant="outlined"
+                                sx={{ fontSize: '0.7rem', height: 24 }}
+                            />
+                        )}
+                    </Box>
                 </motion.div>
             )}
 

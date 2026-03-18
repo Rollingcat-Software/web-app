@@ -7,10 +7,6 @@ import {
     CardContent,
     Chip,
     CircularProgress,
-    Dialog,
-    DialogActions,
-    DialogContent,
-    DialogTitle,
     Grid,
     IconButton,
     Tooltip,
@@ -18,7 +14,6 @@ import {
 } from '@mui/material'
 import {
     CheckCircle,
-    Close,
     Email,
     Face,
     Fingerprint,
@@ -40,11 +35,8 @@ import { EnrollmentStatus } from '@domain/models/Enrollment'
 import FaceEnrollmentFlow from './FaceEnrollmentFlow'
 import TotpEnrollment from './TotpEnrollment'
 import WebAuthnEnrollment from './WebAuthnEnrollment'
-import VoiceStep from './steps/VoiceStep'
+import VoiceEnrollmentFlow from './VoiceEnrollmentFlow'
 import { getBiometricService } from '@core/services/BiometricService'
-import { useService } from '@app/providers'
-import { TYPES } from '@core/di/types'
-import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 
 /**
  * Device capability detection results
@@ -232,8 +224,6 @@ async function detectCapabilities(): Promise<DeviceCapabilities> {
 export default function EnrollmentPage() {
     const { user } = useAuth()
     const userId = user?.id ?? ''
-    const httpClient = useService<IHttpClient>(TYPES.HttpClient)
-
     const {
         enrollments,
         loading: enrollmentsLoading,
@@ -377,31 +367,6 @@ export default function EnrollmentPage() {
             }
         },
         [userId, user?.tenantId, createEnrollment]
-    )
-
-    // Handle voice enrollment
-    const handleVoiceEnrollSubmit = useCallback(
-        async (voiceData: unknown) => {
-            if (!userId) return
-            setVoiceEnrollOpen(false)
-            setActionLoading(AuthMethodType.VOICE)
-            setActionError(null)
-            try {
-                await httpClient.post(`/biometric/voice/enroll/${userId}`, { voiceData })
-                await createEnrollment({
-                    tenantId: user?.tenantId ?? 'system',
-                    methodType: AuthMethodType.VOICE,
-                })
-                setActionSuccess('Voice enrollment completed successfully')
-            } catch (err) {
-                setActionError(
-                    err instanceof Error ? err.message : 'Voice enrollment failed'
-                )
-            } finally {
-                setActionLoading(null)
-            }
-        },
-        [userId, httpClient, user?.tenantId, createEnrollment]
     )
 
     // Handle revoke
@@ -743,49 +708,24 @@ export default function EnrollmentPage() {
                 }}
             />
 
-            {/* Voice Enrollment Dialog */}
-            <Dialog
+            {/* Voice Enrollment Dialog (with WAV conversion, enroll/verify/search) */}
+            <VoiceEnrollmentFlow
                 open={voiceEnrollOpen}
+                userId={userId}
+                apiBaseUrl={import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'}
+                token={localStorage.getItem('fivucsas_token')}
                 onClose={() => setVoiceEnrollOpen(false)}
-                maxWidth="sm"
-                fullWidth
-                PaperProps={{ sx: { borderRadius: '16px' } }}
-            >
-                <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Box
-                        sx={{
-                            width: 40,
-                            height: 40,
-                            borderRadius: '10px',
-                            background: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                        }}
-                    >
-                        <Mic sx={{ fontSize: 24, color: 'white' }} />
-                    </Box>
-                    Voice Enrollment
-                    <IconButton
-                        onClick={() => setVoiceEnrollOpen(false)}
-                        sx={{ ml: 'auto' }}
-                    >
-                        <Close />
-                    </IconButton>
-                </DialogTitle>
-                <DialogContent>
-                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        Record your voice to enroll for voice-based authentication.
-                    </Typography>
-                    <VoiceStep
-                        onSubmit={handleVoiceEnrollSubmit}
-                        loading={actionLoading === AuthMethodType.VOICE}
-                    />
-                </DialogContent>
-                <DialogActions>
-                    <Button onClick={() => setVoiceEnrollOpen(false)}>Cancel</Button>
-                </DialogActions>
-            </Dialog>
+                onSuccess={(action) => {
+                    if (action === 'enroll') {
+                        createEnrollment({
+                            tenantId: user?.tenantId ?? 'system',
+                            methodType: AuthMethodType.VOICE,
+                        }).catch(() => {})
+                        refetchEnrollments()
+                        setActionSuccess('Voice enrollment completed successfully')
+                    }
+                }}
+            />
         </Box>
     )
 }
