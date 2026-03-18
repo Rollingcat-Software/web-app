@@ -19,6 +19,7 @@ import {
 } from '@mui/material'
 import { Mic, RecordVoiceOver, Refresh, Stop } from '@mui/icons-material'
 import { useVoiceSearch } from '@hooks/useVoiceSearch'
+import { useTranslation } from 'react-i18next'
 
 // ── WAV Conversion Helpers (reused from VoiceEnrollmentFlow) ──
 
@@ -77,6 +78,7 @@ const MAX_RECORDING_SECONDS = 10
 
 export default function VoiceSearchPage() {
     const { searching, result, error: searchError, searchVoice, reset } = useVoiceSearch()
+    const { t } = useTranslation()
 
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const chunksRef = useRef<Blob[]>([])
@@ -217,7 +219,7 @@ export default function VoiceSearchPage() {
             startTimeRef.current = performance.now()
             setRecording(true)
         } catch {
-            setMicError('Unable to access microphone. Please grant permissions.')
+            setMicError(t('voiceSearch.microphoneError'))
         }
     }, [selectedMic, reset])
 
@@ -246,11 +248,10 @@ export default function VoiceSearchPage() {
     return (
         <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <RecordVoiceOver /> Voice Search
+                <RecordVoiceOver /> {t('voiceSearch.title')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Record your voice to search the enrolled speaker database. The system will identify
-                matching users using 1:N voice recognition.
+                {t('voiceSearch.subtitle')}
             </Typography>
 
             {micError && (
@@ -265,10 +266,10 @@ export default function VoiceSearchPage() {
                     {/* Microphone selector */}
                     {microphones.length > 1 && (
                         <FormControl fullWidth size="small" sx={{ mb: 2 }}>
-                            <InputLabel>Microphone</InputLabel>
+                            <InputLabel>{t('voiceSearch.microphone')}</InputLabel>
                             <Select
                                 value={selectedMic}
-                                label="Microphone"
+                                label={t('voiceSearch.microphone')}
                                 onChange={(e) => setSelectedMic(e.target.value)}
                                 disabled={recording}
                             >
@@ -311,14 +312,14 @@ export default function VoiceSearchPage() {
                             <Box sx={{ textAlign: 'center' }}>
                                 <Mic sx={{ fontSize: 40, color: 'success.main', mb: 1 }} />
                                 <Typography color="success.main" fontWeight={600}>
-                                    Recording ready ({recordingTime}s)
+                                    {t('common.recordingReady', { seconds: recordingTime })}
                                 </Typography>
                             </Box>
                         ) : (
                             <Box sx={{ textAlign: 'center' }}>
                                 <Mic sx={{ fontSize: 40, color: 'text.secondary', mb: 1 }} />
                                 <Typography color="text.secondary">
-                                    Click "Start Recording" to begin
+                                    {t('common.startRecordingPrompt')}
                                 </Typography>
                             </Box>
                         )}
@@ -347,7 +348,7 @@ export default function VoiceSearchPage() {
                                 startIcon={<Mic />}
                                 onClick={startRecording}
                             >
-                                Start Recording
+                                {t('voiceSearch.startRecording')}
                             </Button>
                         )}
 
@@ -358,7 +359,7 @@ export default function VoiceSearchPage() {
                                 startIcon={<Stop />}
                                 onClick={stopRecording}
                             >
-                                Stop Recording
+                                {t('voiceSearch.stopRecording')}
                             </Button>
                         )}
 
@@ -370,7 +371,7 @@ export default function VoiceSearchPage() {
                                     onClick={handleSearch}
                                     disabled={searching}
                                 >
-                                    Who Is This?
+                                    {t('voiceSearch.whoIsThis')}
                                 </Button>
                                 <Button
                                     variant="outlined"
@@ -378,7 +379,7 @@ export default function VoiceSearchPage() {
                                     onClick={handleReset}
                                     disabled={searching}
                                 >
-                                    Reset
+                                    {t('common.reset')}
                                 </Button>
                             </>
                         )}
@@ -390,10 +391,10 @@ export default function VoiceSearchPage() {
             {result && (
                 <Card>
                     <CardContent>
-                        <Typography variant="h6" gutterBottom>Search Results</Typography>
+                        <Typography variant="h6" gutterBottom>{t('voiceSearch.searchResults')}</Typography>
                         <Box sx={{ mb: 2 }}>
                             <Chip
-                                label={result.found ? 'Speaker Identified' : 'No Match'}
+                                label={result.found ? t('voiceSearch.speakerIdentified') : t('common.noMatchFound')}
                                 color={result.found ? 'success' : 'warning'}
                                 size="medium"
                             />
@@ -407,15 +408,15 @@ export default function VoiceSearchPage() {
                                             primary={
                                                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                                                     <Typography variant="body1">
-                                                        User ID: {match.userId}
+                                                        {t('common.userId')}: {match.userId}
                                                     </Typography>
                                                     {idx === 0 && (
-                                                        <Chip label="Best Match" size="small" color="primary" />
+                                                        <Chip label={t('common.bestMatch')} size="small" color="primary" />
                                                     )}
                                                 </Box>
                                             }
                                             secondary={
-                                                `Similarity: ${(match.similarity * 100).toFixed(1)}%`
+                                                `${t('common.similarity')}: ${(match.similarity * 100).toFixed(1)}%`
                                             }
                                         />
                                     </ListItem>
@@ -423,7 +424,7 @@ export default function VoiceSearchPage() {
                             </List>
                         ) : (
                             <Typography variant="body2" color="text.secondary">
-                                No matching voices found in the enrolled database.
+                                {t('voiceSearch.noMatching')}
                             </Typography>
                         )}
                     </CardContent>

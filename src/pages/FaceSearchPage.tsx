@@ -15,6 +15,7 @@ import {
 import { CameraAlt, Face, PersonSearch, Refresh } from '@mui/icons-material'
 import { useCamera } from '@features/userEnrollment/hooks/useCamera'
 import { useFaceSearch } from '@hooks/useFaceSearch'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Face Search Page ("Who Is This?")
@@ -26,6 +27,7 @@ export default function FaceSearchPage() {
     const { videoRef, stream, error: cameraError, requestAccess, captureFrame, stopCamera } = useCamera()
     const { searching, result, error: searchError, searchFace, reset } = useFaceSearch()
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
+    const { t } = useTranslation()
 
     const handleStartCamera = async () => {
         reset()
@@ -58,11 +60,10 @@ export default function FaceSearchPage() {
     return (
         <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <PersonSearch /> Face Search
+                <PersonSearch /> {t('faceSearch.title')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Capture a face to search the enrolled database. The system will identify
-                matching users using 1:N face recognition.
+                {t('faceSearch.subtitle')}
             </Typography>
 
             {cameraError && (
@@ -81,6 +82,7 @@ export default function FaceSearchPage() {
                             autoPlay
                             playsInline
                             muted
+                            aria-label={t('faceSearch.title')}
                             style={{
                                 width: '100%',
                                 maxHeight: 400,
@@ -99,7 +101,7 @@ export default function FaceSearchPage() {
                                 borderRadius: 2,
                             }}>
                                 <Typography color="text.secondary">
-                                    Click "Start Camera" to begin
+                                    {t('common.startCameraPrompt')}
                                 </Typography>
                             </Box>
                         )}
@@ -108,7 +110,7 @@ export default function FaceSearchPage() {
                             <Box sx={{ position: 'relative' }}>
                                 <img
                                     src={capturedImage}
-                                    alt="Captured face"
+                                    alt={t('faceSearch.title')}
                                     style={{
                                         width: '100%',
                                         maxHeight: 400,
@@ -129,7 +131,7 @@ export default function FaceSearchPage() {
                                         bgcolor: 'rgba(0,0,0,0.4)',
                                         borderRadius: 2,
                                     }}>
-                                        <CircularProgress sx={{ color: 'white' }} />
+                                        <CircularProgress sx={{ color: 'white' }} aria-label={t('common.loading')} />
                                     </Box>
                                 )}
                             </Box>
@@ -144,7 +146,7 @@ export default function FaceSearchPage() {
                                 startIcon={<CameraAlt />}
                                 onClick={handleStartCamera}
                             >
-                                Start Camera
+                                {t('common.startCamera')}
                             </Button>
                         ) : (
                             <>
@@ -154,13 +156,13 @@ export default function FaceSearchPage() {
                                     onClick={handleCaptureAndSearch}
                                     disabled={searching}
                                 >
-                                    Who Is This?
+                                    {t('faceSearch.whoIsThis')}
                                 </Button>
                                 <Button
                                     variant="outlined"
                                     onClick={() => { stopCamera(); handleReset() }}
                                 >
-                                    Stop Camera
+                                    {t('common.stopCamera')}
                                 </Button>
                             </>
                         )}
@@ -169,7 +171,7 @@ export default function FaceSearchPage() {
                                 startIcon={<Refresh />}
                                 onClick={handleReset}
                             >
-                                Reset
+                                {t('common.reset')}
                             </Button>
                         )}
                     </Box>
@@ -180,10 +182,10 @@ export default function FaceSearchPage() {
             {result && (
                 <Card>
                     <CardContent>
-                        <Typography variant="h6" gutterBottom>Search Results</Typography>
+                        <Typography variant="h6" gutterBottom>{t('faceSearch.searchResults')}</Typography>
                         <Box sx={{ mb: 2 }}>
                             <Chip
-                                label={result.found ? 'Match Found' : 'No Match'}
+                                label={result.found ? t('common.matchFound') : t('common.noMatchFound')}
                                 color={result.found ? 'success' : 'warning'}
                                 size="medium"
                             />
@@ -197,15 +199,15 @@ export default function FaceSearchPage() {
                                             primary={
                                                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
                                                     <Typography variant="body1">
-                                                        User ID: {match.userId}
+                                                        {t('common.userId')}: {match.userId}
                                                     </Typography>
                                                     {idx === 0 && (
-                                                        <Chip label="Best Match" size="small" color="primary" />
+                                                        <Chip label={t('common.bestMatch')} size="small" color="primary" />
                                                     )}
                                                 </Box>
                                             }
                                             secondary={
-                                                `Confidence: ${(match.confidence * 100).toFixed(1)}% | Distance: ${match.distance.toFixed(4)}`
+                                                `${t('common.confidence')}: ${(match.confidence * 100).toFixed(1)}% | ${t('common.distance')}: ${match.distance.toFixed(4)}`
                                             }
                                         />
                                     </ListItem>
@@ -213,7 +215,7 @@ export default function FaceSearchPage() {
                             </List>
                         ) : (
                             <Typography variant="body2" color="text.secondary">
-                                No matching faces found in the enrolled database.
+                                {t('faceSearch.noMatching')}
                             </Typography>
                         )}
                     </CardContent>

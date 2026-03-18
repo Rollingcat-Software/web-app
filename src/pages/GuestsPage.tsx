@@ -28,6 +28,7 @@ import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -60,17 +61,20 @@ const STATUS_COLORS: Record<string, 'warning' | 'success' | 'default' | 'error'>
     REVOKED: 'error',
 }
 
-const STATUS_OPTIONS: { label: string; value: StatusFilter }[] = [
-    { label: 'All', value: '' },
-    { label: 'Pending', value: 'PENDING' },
-    { label: 'Accepted', value: 'ACCEPTED' },
-    { label: 'Expired', value: 'EXPIRED' },
-    { label: 'Revoked', value: 'REVOKED' },
-]
+const STATUS_FILTER_VALUES: StatusFilter[] = ['', 'PENDING', 'ACCEPTED', 'EXPIRED', 'REVOKED']
 
 export default function GuestsPage() {
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
     const logger = useService<ILogger>(TYPES.Logger)
+    const { t } = useTranslation()
+
+    const STATUS_LABELS: Record<string, string> = {
+        '': t('common.all'),
+        'PENDING': t('common.pending'),
+        'ACCEPTED': t('common.accepted'),
+        'EXPIRED': t('common.expired'),
+        'REVOKED': t('common.revoked'),
+    }
 
     const [guests, setGuests] = useState<GuestInvitation[]>([])
     const [loading, setLoading] = useState(false)
@@ -112,7 +116,7 @@ export default function GuestsPage() {
             setGuests(res.data)
         } catch (err) {
             logger.error('Failed to load guests', err)
-            setError('Failed to load guest invitations')
+            setError(t('guests.loadFailed'))
         } finally {
             setLoading(false)
         }
@@ -147,12 +151,12 @@ export default function GuestsPage() {
             setInviteEmail('')
             setInviteDuration(24)
             setInviteMessage('')
-            showSuccess('Guest invitation sent successfully')
+            showSuccess(t('guests.inviteSuccess'))
             await loadGuests()
             await loadCount()
         } catch (err) {
             logger.error('Failed to invite guest', err)
-            setError('Failed to send guest invitation')
+            setError(t('guests.inviteFailed'))
         } finally {
             setInviteLoading(false)
         }
@@ -164,11 +168,11 @@ export default function GuestsPage() {
             await httpClient.post(`/guests/${extendGuestId}/extend`, { additionalHours: extendHours })
             setExtendOpen(false)
             setExtendHours(24)
-            showSuccess('Guest access extended successfully')
+            showSuccess(t('guests.extendSuccess'))
             await loadGuests()
         } catch (err) {
             logger.error('Failed to extend guest access', err)
-            setError('Failed to extend guest access')
+            setError(t('guests.extendFailed'))
         } finally {
             setExtendLoading(false)
         }
@@ -179,12 +183,12 @@ export default function GuestsPage() {
         try {
             await httpClient.post(`/guests/${revokeGuestId}/revoke`)
             setRevokeOpen(false)
-            showSuccess('Guest access revoked successfully')
+            showSuccess(t('guests.revokeSuccess'))
             await loadGuests()
             await loadCount()
         } catch (err) {
             logger.error('Failed to revoke guest access', err)
-            setError('Failed to revoke guest access')
+            setError(t('guests.revokeFailed'))
         } finally {
             setRevokeLoading(false)
         }
@@ -203,10 +207,10 @@ export default function GuestsPage() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
                         <Box>
                             <Typography variant="h4" fontWeight={700}>
-                                Guest Management
+                                {t('guests.title')}
                             </Typography>
                             <Typography variant="body1" color="text.secondary">
-                                Invite and manage temporary guest access
+                                {t('guests.subtitle')}
                             </Typography>
                         </Box>
                         <Button
@@ -214,7 +218,7 @@ export default function GuestsPage() {
                             startIcon={<PersonAdd />}
                             onClick={() => setInviteOpen(true)}
                         >
-                            Invite Guest
+                            {t('guests.inviteGuest')}
                         </Button>
                     </Box>
                 </motion.div>
@@ -223,18 +227,18 @@ export default function GuestsPage() {
                 {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
 
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 3, flexWrap: 'wrap' }}>
-                    {STATUS_OPTIONS.map((opt) => (
+                    {STATUS_FILTER_VALUES.map((val) => (
                         <Chip
-                            key={opt.value}
-                            label={opt.label}
-                            variant={statusFilter === opt.value ? 'filled' : 'outlined'}
-                            color={statusFilter === opt.value ? 'primary' : 'default'}
-                            onClick={() => setStatusFilter(opt.value)}
+                            key={val}
+                            label={STATUS_LABELS[val] || val}
+                            variant={statusFilter === val ? 'filled' : 'outlined'}
+                            color={statusFilter === val ? 'primary' : 'default'}
+                            onClick={() => setStatusFilter(val)}
                             clickable
                         />
                     ))}
                     <Chip
-                        label={`${activeCount} active`}
+                        label={t('guests.activeCount', { count: activeCount })}
                         size="small"
                         color="info"
                         variant="outlined"
@@ -250,10 +254,10 @@ export default function GuestsPage() {
                     <Paper sx={{ textAlign: 'center', py: 6, border: '1px solid', borderColor: 'divider', borderRadius: 2 }} elevation={0}>
                         <PersonAdd sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                         <Typography variant="h6" color="text.secondary">
-                            No guest invitations found
+                            {t('guests.noGuests')}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            Click "Invite Guest" to send a temporary access invitation
+                            {t('guests.noGuestsHint')}
                         </Typography>
                     </Paper>
                 ) : (
@@ -261,12 +265,12 @@ export default function GuestsPage() {
                         <Table>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Email</TableCell>
-                                    <TableCell>Guest Name</TableCell>
-                                    <TableCell>Status</TableCell>
-                                    <TableCell>Invited By</TableCell>
-                                    <TableCell>Access Period</TableCell>
-                                    <TableCell align="right">Actions</TableCell>
+                                    <TableCell>{t('common.email')}</TableCell>
+                                    <TableCell>{t('guests.guestName')}</TableCell>
+                                    <TableCell>{t('common.status')}</TableCell>
+                                    <TableCell>{t('guests.invitedBy')}</TableCell>
+                                    <TableCell>{t('guests.accessPeriod')}</TableCell>
+                                    <TableCell align="right">{t('common.actions')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -298,7 +302,7 @@ export default function GuestsPage() {
                                         <TableCell align="right">
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                                                 {guest.canExtend && (
-                                                    <Tooltip title="Extend access">
+                                                    <Tooltip title={t('guests.extendAccess')}>
                                                         <IconButton
                                                             size="small"
                                                             onClick={() => {
@@ -311,7 +315,7 @@ export default function GuestsPage() {
                                                     </Tooltip>
                                                 )}
                                                 {(guest.status === 'ACCEPTED' || guest.status === 'PENDING') && (
-                                                    <Tooltip title="Revoke access">
+                                                    <Tooltip title={t('guests.revokeAccess')}>
                                                         <IconButton
                                                             size="small"
                                                             onClick={() => {
@@ -335,10 +339,10 @@ export default function GuestsPage() {
 
                 {/* Invite Guest Dialog */}
                 <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} maxWidth="sm" fullWidth>
-                    <DialogTitle>Invite Guest</DialogTitle>
+                    <DialogTitle>{t('guests.inviteGuest')}</DialogTitle>
                     <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
                         <TextField
-                            label="Email"
+                            label={t('common.email')}
                             type="email"
                             value={inviteEmail}
                             onChange={(e) => setInviteEmail(e.target.value)}
@@ -346,7 +350,7 @@ export default function GuestsPage() {
                             required
                         />
                         <TextField
-                            label="Access Duration (hours)"
+                            label={t('common.accessDuration')}
                             type="number"
                             value={inviteDuration}
                             onChange={(e) => setInviteDuration(Number(e.target.value))}
@@ -354,7 +358,7 @@ export default function GuestsPage() {
                             fullWidth
                         />
                         <TextField
-                            label="Message (optional)"
+                            label={t('common.messageOptional')}
                             value={inviteMessage}
                             onChange={(e) => setInviteMessage(e.target.value)}
                             multiline
@@ -363,24 +367,24 @@ export default function GuestsPage() {
                         />
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={() => setInviteOpen(false)}>Cancel</Button>
+                        <Button onClick={() => setInviteOpen(false)}>{t('common.cancel')}</Button>
                         <Button
                             variant="contained"
                             onClick={handleInvite}
                             disabled={!inviteEmail || inviteDuration < 1 || inviteLoading}
                             startIcon={inviteLoading ? <CircularProgress size={16} /> : <Add />}
                         >
-                            Send Invitation
+                            {t('common.sendInvitation')}
                         </Button>
                     </DialogActions>
                 </Dialog>
 
                 {/* Extend Access Dialog */}
                 <Dialog open={extendOpen} onClose={() => setExtendOpen(false)} maxWidth="xs" fullWidth>
-                    <DialogTitle>Extend Guest Access</DialogTitle>
+                    <DialogTitle>{t('guests.extendGuestAccess')}</DialogTitle>
                     <DialogContent sx={{ pt: '16px !important' }}>
                         <TextField
-                            label="Additional Hours"
+                            label={t('common.additionalHours')}
                             type="number"
                             value={extendHours}
                             onChange={(e) => setExtendHours(Number(e.target.value))}
@@ -389,28 +393,28 @@ export default function GuestsPage() {
                         />
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={() => setExtendOpen(false)}>Cancel</Button>
+                        <Button onClick={() => setExtendOpen(false)}>{t('common.cancel')}</Button>
                         <Button
                             variant="contained"
                             onClick={handleExtend}
                             disabled={extendHours < 1 || extendLoading}
                             startIcon={extendLoading ? <CircularProgress size={16} /> : <Schedule />}
                         >
-                            Extend
+                            {t('common.extend')}
                         </Button>
                     </DialogActions>
                 </Dialog>
 
                 {/* Confirm Revoke Dialog */}
                 <Dialog open={revokeOpen} onClose={() => setRevokeOpen(false)} maxWidth="xs" fullWidth>
-                    <DialogTitle>Revoke Guest Access</DialogTitle>
+                    <DialogTitle>{t('guests.revokeGuestAccess')}</DialogTitle>
                     <DialogContent>
                         <Typography>
-                            Are you sure you want to revoke this guest's access? This action cannot be undone.
+                            {t('guests.revokeConfirm')}
                         </Typography>
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={() => setRevokeOpen(false)}>Cancel</Button>
+                        <Button onClick={() => setRevokeOpen(false)}>{t('common.cancel')}</Button>
                         <Button
                             variant="contained"
                             color="error"
@@ -418,7 +422,7 @@ export default function GuestsPage() {
                             disabled={revokeLoading}
                             startIcon={revokeLoading ? <CircularProgress size={16} /> : <Block />}
                         >
-                            Revoke
+                            {t('common.revoke')}
                         </Button>
                     </DialogActions>
                 </Dialog>

@@ -43,6 +43,7 @@ import {
 } from '@domain/models/AuthMethod'
 import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -51,6 +52,7 @@ export default function AuthFlowsPage() {
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
     const { authMethods, warning: authMethodWarning } = useAuthMethods()
+    const { t } = useTranslation()
 
     const [flows, setFlows] = useState<AuthFlowResponse[]>([])
     const [loading, setLoading] = useState(false)
@@ -76,7 +78,7 @@ export default function AuthFlowsPage() {
             setFlows(data)
         } catch (err) {
             logger.error('Failed to load auth flows', err)
-            setError('Failed to load authentication flows')
+            setError(t('authFlows.failedToLoad'))
         } finally {
             setLoading(false)
         }
@@ -125,7 +127,7 @@ export default function AuthFlowsPage() {
             await loadFlows()
         } catch (err) {
             logger.error('Failed to save auth flow', err)
-            setError('Failed to save authentication flow')
+            setError(t('authFlows.failedToSave'))
         }
     }
 
@@ -152,7 +154,7 @@ export default function AuthFlowsPage() {
             await loadFlows()
         } catch (err) {
             logger.error('Failed to delete auth flow', err)
-            setError('Failed to delete authentication flow')
+            setError(t('authFlows.failedToDelete'))
         }
         setDeleteDialogOpen(false)
         setDeletingFlowId(null)
@@ -190,10 +192,10 @@ export default function AuthFlowsPage() {
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                         <Box>
                             <Typography variant="h4" fontWeight={700}>
-                                Authentication Flows
+                                {t('authFlows.title')}
                             </Typography>
                             <Typography variant="body1" color="text.secondary">
-                                Configure multi-step authentication sequences per operation type
+                                {t('authFlows.subtitle')}
                             </Typography>
                         </Box>
                         <Button
@@ -206,7 +208,7 @@ export default function AuthFlowsPage() {
                                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                             }}
                         >
-                            Create Flow
+                            {t('authFlows.createFlow')}
                         </Button>
                     </Box>
                 </motion.div>
@@ -221,13 +223,13 @@ export default function AuthFlowsPage() {
                 {/* Filter */}
                 <Box sx={{ mb: 3 }}>
                     <FormControl size="small" sx={{ minWidth: 200 }}>
-                        <InputLabel>Filter by Operation</InputLabel>
+                        <InputLabel>{t('authFlows.filterByOperation')}</InputLabel>
                         <Select
                             value={filterType}
-                            label="Filter by Operation"
+                            label={t('authFlows.filterByOperation')}
                             onChange={(e) => setFilterType(e.target.value)}
                         >
-                            <MenuItem value="">All Operations</MenuItem>
+                            <MenuItem value="">{t('authFlows.allOperations')}</MenuItem>
                             {OPERATION_TYPE_OPTIONS.map((operationType) => (
                                 <MenuItem key={operationType.value} value={operationType.value}>
                                     {operationType.label}
@@ -246,13 +248,13 @@ export default function AuthFlowsPage() {
                     <Card>
                         <CardContent sx={{ textAlign: 'center', py: 6 }}>
                             <Typography variant="h6" color="text.secondary">
-                                No authentication flows configured
+                                {t('authFlows.noFlows')}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Create your first flow to get started
+                                {t('authFlows.noFlowsHint')}
                             </Typography>
                             <Button variant="outlined" startIcon={<Add />} onClick={() => setShowBuilder(true)}>
-                                Create Flow
+                                {t('authFlows.createFlow')}
                             </Button>
                         </CardContent>
                     </Card>
@@ -261,12 +263,12 @@ export default function AuthFlowsPage() {
                         <Table>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Name</TableCell>
-                                    <TableCell>Operation Type</TableCell>
-                                    <TableCell>Steps</TableCell>
-                                    <TableCell>Status</TableCell>
-                                    <TableCell>Default</TableCell>
-                                    <TableCell align="right">Actions</TableCell>
+                                    <TableCell>{t('common.name')}</TableCell>
+                                    <TableCell>{t('authFlows.operationType')}</TableCell>
+                                    <TableCell>{t('authFlows.stepsHeader')}</TableCell>
+                                    <TableCell>{t('common.status')}</TableCell>
+                                    <TableCell>{t('common.default')}</TableCell>
+                                    <TableCell align="right">{t('common.actions')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -284,17 +286,17 @@ export default function AuthFlowsPage() {
                                             <Chip label={getOperationTypeLabel(flow.operationType)} size="small" variant="outlined" />
                                         </TableCell>
                                         <TableCell>
-                                            <Chip label={`${flow.steps?.length ?? 0} steps`} size="small" />
+                                            <Chip label={`${flow.steps?.length ?? 0} ${t('common.steps')}`} size="small" />
                                         </TableCell>
                                         <TableCell>
                                             <Chip
-                                                label={flow.isActive ? 'Active' : 'Inactive'}
+                                                label={flow.isActive ? t('common.active') : t('common.inactive')}
                                                 size="small"
                                                 color={flow.isActive ? 'success' : 'default'}
                                             />
                                         </TableCell>
                                         <TableCell>
-                                            {flow.isDefault && <Chip label="Default" size="small" color="primary" />}
+                                            {flow.isDefault && <Chip label={t('common.default')} size="small" color="primary" />}
                                         </TableCell>
                                         <TableCell align="right">
                                             <Tooltip title="Edit flow">
@@ -328,7 +330,7 @@ export default function AuthFlowsPage() {
                 {/* Builder Dialog (Create or Edit) */}
                 <Dialog open={showBuilder} onClose={handleBuilderClose} maxWidth="lg" fullWidth>
                     <DialogTitle>
-                        {editingFlow ? 'Edit Authentication Flow' : 'Create Authentication Flow'}
+                        {editingFlow ? t('authFlows.editFlow') : t('authFlows.createFlowTitle')}
                     </DialogTitle>
                     <DialogContent>
                         <Box sx={{ pt: 1 }}>
@@ -351,17 +353,16 @@ export default function AuthFlowsPage() {
                     onClose={handleDeleteCancel}
                     aria-labelledby="delete-flow-dialog-title"
                 >
-                    <DialogTitle id="delete-flow-dialog-title">Delete Authentication Flow</DialogTitle>
+                    <DialogTitle id="delete-flow-dialog-title">{t('authFlows.deleteFlow')}</DialogTitle>
                     <DialogContent>
                         <DialogContentText>
-                            Are you sure you want to delete the flow "{deletingFlowName}"?
-                            This action cannot be undone.
+                            {t('authFlows.deleteConfirm', { name: deletingFlowName })}
                         </DialogContentText>
                     </DialogContent>
                     <DialogActions>
-                        <Button onClick={handleDeleteCancel}>Cancel</Button>
+                        <Button onClick={handleDeleteCancel}>{t('common.cancel')}</Button>
                         <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-                            Delete
+                            {t('common.delete')}
                         </Button>
                     </DialogActions>
                 </Dialog>

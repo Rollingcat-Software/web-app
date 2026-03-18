@@ -12,6 +12,7 @@ import {
 import { CameraAlt, CreditCard, Refresh } from '@mui/icons-material'
 import { useCamera } from '@features/userEnrollment/hooks/useCamera'
 import { useCardDetection } from '@hooks/useCardDetection'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Card Detection Page
@@ -24,6 +25,7 @@ export default function CardDetectionPage() {
     const { detecting, result, error: detectError, detectCard, reset } = useCardDetection()
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
+    const { t } = useTranslation()
 
     const handleStartCamera = async () => {
         reset()
@@ -51,11 +53,10 @@ export default function CardDetectionPage() {
     return (
         <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <CreditCard /> Card Detection
+                <CreditCard /> {t('cardDetection.title')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                Capture an image of an ID card, passport, or driver's license. The server-side YOLO model
-                will detect and classify the card type.
+                {t('cardDetection.subtitle')}
             </Typography>
 
             {cameraError && (
@@ -74,6 +75,7 @@ export default function CardDetectionPage() {
                             autoPlay
                             playsInline
                             muted
+                            aria-label={t('cardDetection.title')}
                             style={{
                                 width: '100%',
                                 maxHeight: 400,
@@ -92,7 +94,7 @@ export default function CardDetectionPage() {
                                 borderRadius: 2,
                             }}>
                                 <Typography color="text.secondary">
-                                    Click "Start Camera" to begin
+                                    {t('common.startCameraPrompt')}
                                 </Typography>
                             </Box>
                         )}
@@ -102,7 +104,7 @@ export default function CardDetectionPage() {
                             <Box sx={{ position: 'relative' }}>
                                 <img
                                     src={capturedImage}
-                                    alt="Captured card"
+                                    alt={t('cardDetection.title')}
                                     style={{
                                         width: '100%',
                                         maxHeight: 400,
@@ -123,7 +125,7 @@ export default function CardDetectionPage() {
                                         bgcolor: 'rgba(0,0,0,0.4)',
                                         borderRadius: 2,
                                     }}>
-                                        <CircularProgress sx={{ color: 'white' }} />
+                                        <CircularProgress sx={{ color: 'white' }} aria-label={t('common.loading')} />
                                     </Box>
                                 )}
                             </Box>
@@ -139,7 +141,7 @@ export default function CardDetectionPage() {
                                 startIcon={<CameraAlt />}
                                 onClick={handleStartCamera}
                             >
-                                Start Camera
+                                {t('common.startCamera')}
                             </Button>
                         ) : (
                             <>
@@ -148,13 +150,13 @@ export default function CardDetectionPage() {
                                     onClick={handleCapture}
                                     disabled={detecting}
                                 >
-                                    Capture & Detect
+                                    {t('common.captureAndDetect')}
                                 </Button>
                                 <Button
                                     variant="outlined"
                                     onClick={() => { stopCamera(); handleReset() }}
                                 >
-                                    Stop Camera
+                                    {t('common.stopCamera')}
                                 </Button>
                             </>
                         )}
@@ -163,7 +165,7 @@ export default function CardDetectionPage() {
                                 startIcon={<Refresh />}
                                 onClick={handleReset}
                             >
-                                Reset
+                                {t('common.reset')}
                             </Button>
                         )}
                     </Box>
@@ -174,23 +176,23 @@ export default function CardDetectionPage() {
             {result && (
                 <Card>
                     <CardContent>
-                        <Typography variant="h6" gutterBottom>Detection Result</Typography>
+                        <Typography variant="h6" gutterBottom>{t('cardDetection.detectionResult')}</Typography>
                         <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', alignItems: 'center' }}>
                             <Chip
-                                label={result.detected ? 'Card Detected' : 'No Card Found'}
+                                label={result.detected ? t('cardDetection.cardDetected') : t('cardDetection.noCardFound')}
                                 color={result.detected ? 'success' : 'default'}
                                 size="medium"
                             />
                             {result.cardType && (
                                 <Chip
-                                    label={`Type: ${result.cardType}`}
+                                    label={t('cardDetection.type', { type: result.cardType })}
                                     color="primary"
                                     variant="outlined"
                                 />
                             )}
                             {result.confidence > 0 && (
                                 <Chip
-                                    label={`Confidence: ${(result.confidence * 100).toFixed(1)}%`}
+                                    label={t('cardDetection.confidenceValue', { value: (result.confidence * 100).toFixed(1) })}
                                     variant="outlined"
                                 />
                             )}
