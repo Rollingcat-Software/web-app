@@ -11,7 +11,8 @@
     "test": "vitest",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest --coverage",
-    "build:analyze": "tsc && vite build --mode analyze"
+    "build:analyze": "tsc && vite build --mode analyze",
+    "build:adapter": "vite build --config vite.adapter.config.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",

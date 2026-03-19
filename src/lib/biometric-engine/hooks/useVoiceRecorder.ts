@@ -124,7 +124,6 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     return () => {
       stopInternal();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const stopInternal = () => {
