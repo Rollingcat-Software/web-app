@@ -5,12 +5,12 @@ import { useSettings } from '../useSettings'
 import { DependencyProvider } from '@app/providers/DependencyProvider'
 import { Container } from 'inversify'
 import { TYPES } from '@core/di/types'
-import { DEFAULT_SETTINGS } from '@domain/interfaces/ISettingsRepository'
+import type { UserSettings } from '@domain/interfaces/ISettingsRepository'
 
 // Mock useAuth
 vi.mock('@features/auth/hooks/useAuth', () => ({
     useAuth: () => ({
-        user: { id: 1, firstName: 'Test', lastName: 'User', email: 'test@example.com', role: 'ADMIN' },
+        user: { id: '1', firstName: 'Test', lastName: 'User', email: 'test@example.com', role: 'ADMIN' },
         isAuthenticated: true,
         loading: false,
         error: null,
@@ -20,23 +20,29 @@ vi.mock('@features/auth/hooks/useAuth', () => ({
 describe('useSettings', () => {
     let container: Container
     let mockSettingsService: {
-        loadSettings: ReturnType<typeof vi.fn>
-        saveSettings: ReturnType<typeof vi.fn>
-        resetSettings: ReturnType<typeof vi.fn>
+        getSettings: ReturnType<typeof vi.fn>
+        updateProfile: ReturnType<typeof vi.fn>
+        updateNotifications: ReturnType<typeof vi.fn>
+        updateSecurity: ReturnType<typeof vi.fn>
+        updateAppearance: ReturnType<typeof vi.fn>
+        changePassword: ReturnType<typeof vi.fn>
+        validatePassword: ReturnType<typeof vi.fn>
+    }
+    let mockErrorHandler: {
+        handle: ReturnType<typeof vi.fn>
     }
 
-    const mockSettings = {
-        theme: 'dark' as const,
-        language: 'en',
-        timezone: 'UTC',
-        dateFormat: 'YYYY-MM-DD',
-        notificationsEnabled: true,
+    const mockSettings: UserSettings = {
+        userId: '1',
+        firstName: 'Test',
+        lastName: 'User',
         emailNotifications: true,
         loginAlerts: true,
         securityAlerts: true,
         weeklyReports: false,
         twoFactorEnabled: false,
-        sessionTimeout: 30,
+        sessionTimeoutMinutes: 30,
+        darkMode: false,
         compactView: false,
     }
 
@@ -52,13 +58,22 @@ describe('useSettings', () => {
 
     beforeEach(() => {
         mockSettingsService = {
-            loadSettings: vi.fn().mockResolvedValue(mockSettings),
-            saveSettings: vi.fn().mockResolvedValue(mockSettings),
-            resetSettings: vi.fn().mockResolvedValue(DEFAULT_SETTINGS),
+            getSettings: vi.fn().mockResolvedValue(mockSettings),
+            updateProfile: vi.fn().mockResolvedValue(mockSettings),
+            updateNotifications: vi.fn().mockResolvedValue(mockSettings),
+            updateSecurity: vi.fn().mockResolvedValue(mockSettings),
+            updateAppearance: vi.fn().mockResolvedValue(mockSettings),
+            changePassword: vi.fn().mockResolvedValue(undefined),
+            validatePassword: vi.fn().mockReturnValue({ valid: true, errors: [] }),
+        }
+
+        mockErrorHandler = {
+            handle: vi.fn(),
         }
 
         container = new Container()
         container.bind(TYPES.SettingsService).toConstantValue(mockSettingsService)
+        container.bind(TYPES.ErrorHandler).toConstantValue(mockErrorHandler)
     })
 
     it('should load settings on mount', async () => {
@@ -73,12 +88,12 @@ describe('useSettings', () => {
         })
 
         expect(result.current.settings).toEqual(mockSettings)
-        expect(mockSettingsService.loadSettings).toHaveBeenCalledWith(1)
+        expect(mockSettingsService.getSettings).toHaveBeenCalled()
     })
 
     it('should handle load error', async () => {
         const error = new Error('Load failed')
-        mockSettingsService.loadSettings.mockRejectedValue(error)
+        mockSettingsService.getSettings.mockRejectedValue(error)
 
         const { result } = renderHook(() => useSettings(), {
             wrapper: createWrapper(),
@@ -88,13 +103,14 @@ describe('useSettings', () => {
             expect(result.current.loading).toBe(false)
         })
 
-        expect(result.current.error).toEqual(error)
+        expect(result.current.error).toBe('Load failed')
         expect(result.current.settings).toBeNull()
+        expect(mockErrorHandler.handle).toHaveBeenCalledWith(error)
     })
 
-    it('should update settings', async () => {
-        const updatedSettings = { ...mockSettings, theme: 'light' as const }
-        mockSettingsService.saveSettings.mockResolvedValue(updatedSettings)
+    it('should update profile', async () => {
+        const updatedSettings = { ...mockSettings, firstName: 'Updated' }
+        mockSettingsService.updateProfile.mockResolvedValue(updatedSettings)
 
         const { result } = renderHook(() => useSettings(), {
             wrapper: createWrapper(),
@@ -105,14 +121,17 @@ describe('useSettings', () => {
         })
 
         await act(async () => {
-            await result.current.updateSettings({ theme: 'light' })
+            await result.current.updateProfile({ firstName: 'Updated', lastName: 'User' })
         })
 
-        expect(mockSettingsService.saveSettings).toHaveBeenCalledWith(1, { theme: 'light' })
-        expect(result.current.settings?.theme).toBe('light')
+        expect(mockSettingsService.updateProfile).toHaveBeenCalledWith({
+            firstName: 'Updated',
+            lastName: 'User',
+        })
+        expect(result.current.settings?.firstName).toBe('Updated')
     })
 
-    it('should reset settings', async () => {
+    it('should refresh settings', async () => {
         const { result } = renderHook(() => useSettings(), {
             wrapper: createWrapper(),
         })
@@ -121,22 +140,16 @@ describe('useSettings', () => {
             expect(result.current.loading).toBe(false)
         })
 
+        // Call refresh
         await act(async () => {
-            await result.current.resetSettings()
+            await result.current.refresh()
         })
 
-        expect(mockSettingsService.resetSettings).toHaveBeenCalledWith(1)
-        expect(result.current.settings).toEqual(DEFAULT_SETTINGS)
+        // getSettings should have been called twice (mount + refresh)
+        expect(mockSettingsService.getSettings).toHaveBeenCalledTimes(2)
     })
 
-    it('should set saving state during update', async () => {
-        let resolvePromise: (value: unknown) => void
-        mockSettingsService.saveSettings.mockReturnValue(
-            new Promise((resolve) => {
-                resolvePromise = resolve
-            })
-        )
-
+    it('should validate password', async () => {
         const { result } = renderHook(() => useSettings(), {
             wrapper: createWrapper(),
         })
@@ -145,16 +158,9 @@ describe('useSettings', () => {
             expect(result.current.loading).toBe(false)
         })
 
-        act(() => {
-            result.current.updateSettings({ theme: 'light' })
-        })
+        const validation = result.current.validatePassword('TestPass123!')
 
-        expect(result.current.saving).toBe(true)
-
-        await act(async () => {
-            resolvePromise!(mockSettings)
-        })
-
-        expect(result.current.saving).toBe(false)
+        expect(mockSettingsService.validatePassword).toHaveBeenCalledWith('TestPass123!')
+        expect(validation).toEqual({ valid: true, errors: [] })
     })
 })

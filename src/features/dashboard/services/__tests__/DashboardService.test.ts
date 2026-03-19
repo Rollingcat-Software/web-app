@@ -12,11 +12,16 @@ describe('DashboardService', () => {
     const mockStats = new DashboardStats(
         1247, // totalUsers
         1089, // activeUsers
-        23, // pendingEnrollments
+        100,  // inactiveUsers
+        58,   // suspendedUsers
+        800,  // biometricEnrolledUsers
+        5000, // totalVerifications
+        5,    // totalTenants
+        23,   // pendingEnrollments
         1156, // successfulEnrollments
-        68, // failedEnrollments
+        68,   // failedEnrollments
         98.5, // authSuccessRate
-        94.4 // verificationSuccessRate
+        94.4  // verificationSuccessRate
     )
 
     beforeEach(() => {

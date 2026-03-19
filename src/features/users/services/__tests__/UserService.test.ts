@@ -13,25 +13,25 @@ describe('UserService', () => {
     let mockLogger: ILogger
 
     const mockUser = new User(
-        1,
+        '1',
         'test@example.com',
         'Test',
         'User',
         UserRole.USER,
         UserStatus.ACTIVE,
-        1,
+        '1',
         new Date(),
         new Date()
     )
 
     const mockSuperAdmin = new User(
-        99,
+        '99',
         'admin@example.com',
         'Super',
         'Admin',
         UserRole.SUPER_ADMIN,
         UserStatus.ACTIVE,
-        1,
+        '1',
         new Date(),
         new Date()
     )
@@ -45,6 +45,7 @@ describe('UserService', () => {
             create: vi.fn(),
             update: vi.fn(),
             delete: vi.fn(),
+            search: vi.fn(),
         }
 
         // Create mock logger
@@ -75,17 +76,14 @@ describe('UserService', () => {
                 totalPages: 1,
             }
 
-            vi.mocked(mockUserRepository.findAll).mockResolvedValue(mockResult)
+            // When search is provided, the service uses the search endpoint
+            vi.mocked(mockUserRepository.search).mockResolvedValue(mockResult)
 
             // Act
             const result = await userService.getUsers(filters, 0, 20)
 
-            // Assert
-            expect(mockUserRepository.findAll).toHaveBeenCalledWith({
-                page: 0,
-                pageSize: 20,
-                filters: filters,
-            })
+            // Assert - search endpoint is used when filters.search is provided
+            expect(mockUserRepository.search).toHaveBeenCalledWith('test')
             expect(result).toEqual(mockResult)
             expect(mockLogger.debug).toHaveBeenCalledWith('Getting users', {
                 filters,
@@ -135,10 +133,10 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.findById).mockResolvedValue(mockUser)
 
             // Act
-            const result = await userService.getUserById(1)
+            const result = await userService.getUserById('1')
 
             // Assert
-            expect(mockUserRepository.findById).toHaveBeenCalledWith(1)
+            expect(mockUserRepository.findById).toHaveBeenCalledWith('1')
             expect(result).toEqual(mockUser)
             expect(mockLogger.debug).toHaveBeenCalledWith('Getting user 1')
         })
@@ -148,8 +146,8 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.findById).mockResolvedValue(null)
 
             // Act & Assert
-            await expect(userService.getUserById(999)).rejects.toThrow(NotFoundError)
-            await expect(userService.getUserById(999)).rejects.toThrow('User with ID 999 not found')
+            await expect(userService.getUserById('999')).rejects.toThrow(NotFoundError)
+            await expect(userService.getUserById('999')).rejects.toThrow('User with ID 999 not found')
         })
     })
 
@@ -160,17 +158,17 @@ describe('UserService', () => {
             lastName: 'User',
             password: 'SecurePass123!@#',
             role: UserRole.USER,
-            tenantId: 1,
+            tenantId: '1',
         }
 
         it('should create user with valid data', async () => {
             // Arrange
             const newUser = new User(
-                2,
+                '2',
                 validCreateData.email,
                 validCreateData.firstName,
                 validCreateData.lastName,
-                validCreateData.role,
+                validCreateData.role as UserRole,
                 UserStatus.PENDING_ENROLLMENT,
                 validCreateData.tenantId,
                 new Date(),
@@ -277,11 +275,11 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.update).mockResolvedValue(updatedUser)
 
             // Act
-            const result = await userService.updateUser(1, validUpdateData)
+            const result = await userService.updateUser('1', validUpdateData)
 
             // Assert
-            expect(mockUserRepository.findById).toHaveBeenCalledWith(1)
-            expect(mockUserRepository.update).toHaveBeenCalledWith(1, validUpdateData)
+            expect(mockUserRepository.findById).toHaveBeenCalledWith('1')
+            expect(mockUserRepository.update).toHaveBeenCalledWith('1', validUpdateData)
             expect(result).toEqual(updatedUser)
             expect(mockLogger.info).toHaveBeenCalledWith('Updating user 1')
             expect(mockLogger.info).toHaveBeenCalledWith('User updated successfully', { userId: updatedUser.id })
@@ -294,7 +292,7 @@ describe('UserService', () => {
             }
 
             // Act & Assert
-            await expect(userService.updateUser(1, invalidData)).rejects.toThrow(ValidationError)
+            await expect(userService.updateUser('1', invalidData)).rejects.toThrow(ValidationError)
             expect(mockUserRepository.findById).not.toHaveBeenCalled()
         })
 
@@ -303,8 +301,8 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.findById).mockResolvedValue(null)
 
             // Act & Assert
-            await expect(userService.updateUser(999, validUpdateData)).rejects.toThrow(NotFoundError)
-            await expect(userService.updateUser(999, validUpdateData)).rejects.toThrow('User with ID 999 not found')
+            await expect(userService.updateUser('999', validUpdateData)).rejects.toThrow(NotFoundError)
+            await expect(userService.updateUser('999', validUpdateData)).rejects.toThrow('User with ID 999 not found')
             expect(mockUserRepository.update).not.toHaveBeenCalled()
         })
 
@@ -314,13 +312,13 @@ describe('UserService', () => {
                 email: 'newemail@example.com',
             }
             const conflictingUser = new User(
-                2,
+                '2',
                 'newemail@example.com',
                 'Other',
                 'User',
                 UserRole.USER,
                 UserStatus.ACTIVE,
-                1,
+                '1',
                 new Date(),
                 new Date()
             )
@@ -329,8 +327,8 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.findByEmail).mockResolvedValue(conflictingUser)
 
             // Act & Assert
-            await expect(userService.updateUser(1, updateData)).rejects.toThrow(ConflictError)
-            await expect(userService.updateUser(1, updateData)).rejects.toThrow(
+            await expect(userService.updateUser('1', updateData)).rejects.toThrow(ConflictError)
+            await expect(userService.updateUser('1', updateData)).rejects.toThrow(
                 'User with email newemail@example.com already exists'
             )
             expect(mockUserRepository.update).not.toHaveBeenCalled()
@@ -358,11 +356,11 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.update).mockResolvedValue(updatedUser)
 
             // Act
-            const result = await userService.updateUser(1, updateData)
+            const result = await userService.updateUser('1', updateData)
 
             // Assert
             expect(mockUserRepository.findByEmail).not.toHaveBeenCalled()
-            expect(mockUserRepository.update).toHaveBeenCalledWith(1, updateData)
+            expect(mockUserRepository.update).toHaveBeenCalledWith('1', updateData)
             expect(result).toEqual(updatedUser)
         })
 
@@ -373,7 +371,7 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.update).mockRejectedValue(error)
 
             // Act & Assert
-            await expect(userService.updateUser(1, validUpdateData)).rejects.toThrow('Database error')
+            await expect(userService.updateUser('1', validUpdateData)).rejects.toThrow('Database error')
             expect(mockLogger.error).toHaveBeenCalledWith('Failed to update user 1', error)
         })
     })
@@ -385,13 +383,13 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.delete).mockResolvedValue(undefined)
 
             // Act
-            await userService.deleteUser(1)
+            await userService.deleteUser('1')
 
             // Assert
-            expect(mockUserRepository.findById).toHaveBeenCalledWith(1)
-            expect(mockUserRepository.delete).toHaveBeenCalledWith(1)
+            expect(mockUserRepository.findById).toHaveBeenCalledWith('1')
+            expect(mockUserRepository.delete).toHaveBeenCalledWith('1')
             expect(mockLogger.info).toHaveBeenCalledWith('Deleting user 1')
-            expect(mockLogger.info).toHaveBeenCalledWith('User deleted successfully', { userId: 1 })
+            expect(mockLogger.info).toHaveBeenCalledWith('User deleted successfully', { userId: '1' })
         })
 
         it('should throw NotFoundError when user not found', async () => {
@@ -399,8 +397,8 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.findById).mockResolvedValue(null)
 
             // Act & Assert
-            await expect(userService.deleteUser(999)).rejects.toThrow(NotFoundError)
-            await expect(userService.deleteUser(999)).rejects.toThrow('User with ID 999 not found')
+            await expect(userService.deleteUser('999')).rejects.toThrow(NotFoundError)
+            await expect(userService.deleteUser('999')).rejects.toThrow('User with ID 999 not found')
             expect(mockUserRepository.delete).not.toHaveBeenCalled()
         })
 
@@ -409,8 +407,8 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.findById).mockResolvedValue(mockSuperAdmin)
 
             // Act & Assert
-            await expect(userService.deleteUser(99)).rejects.toThrow(BusinessError)
-            await expect(userService.deleteUser(99)).rejects.toThrow('Cannot delete super admin users')
+            await expect(userService.deleteUser('99')).rejects.toThrow(BusinessError)
+            await expect(userService.deleteUser('99')).rejects.toThrow('Cannot delete super admin users')
             expect(mockUserRepository.delete).not.toHaveBeenCalled()
         })
 
@@ -421,7 +419,7 @@ describe('UserService', () => {
             vi.mocked(mockUserRepository.delete).mockRejectedValue(error)
 
             // Act & Assert
-            await expect(userService.deleteUser(1)).rejects.toThrow('Database error')
+            await expect(userService.deleteUser('1')).rejects.toThrow('Database error')
             expect(mockLogger.error).toHaveBeenCalledWith('Failed to delete user 1', error)
         })
     })

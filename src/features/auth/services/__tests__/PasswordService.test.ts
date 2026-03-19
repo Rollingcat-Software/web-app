@@ -172,10 +172,17 @@ describe('PasswordService', () => {
             expect(result.errors).toHaveLength(0)
         })
 
-        it('should return medium for moderately complex passwords', () => {
+        it('should return strong for passwords meeting all criteria', () => {
             const result = passwordService.validatePassword('Pass123!')
-            expect(result.strength).toBe('medium')
+            expect(result.strength).toBe('strong')
             expect(result.isValid).toBe(true)
+        })
+
+        it('should return medium for passwords missing some criteria', () => {
+            // Has length >= 8, uppercase, lowercase, number but no special char => score 4
+            const result = passwordService.validatePassword('Abcdefg1')
+            expect(result.strength).toBe('medium')
+            expect(result.isValid).toBe(false)
         })
     })
 })
