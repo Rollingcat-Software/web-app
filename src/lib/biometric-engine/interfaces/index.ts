@@ -20,6 +20,7 @@ import type {
   LivenessResult,
   NormalizedLandmark,
   PixelLandmark,
+  PuzzleStepResult,
   QualityReport,
   SmileMetrics,
 } from '../types';
@@ -87,6 +88,10 @@ export interface IBiometricPuzzle {
     yaw: number,
     pitch: number,
   ): ChallengeCheckResult;
+  getIsActive(): boolean;
+  getIsComplete(): boolean;
+  getPassed(): boolean;
+  getResults(): PuzzleStepResult[];
   isAvailable(): boolean;
 }
 

@@ -205,3 +205,22 @@ export {
   LEFT_EYEBROW_OUTLINE,
   RIGHT_EYEBROW_OUTLINE,
 } from './core/constants';
+
+// ===== React Hooks =====
+export {
+  useBiometricEngine,
+  useFaceDetection,
+  useLivenessPuzzle,
+  useFaceEnrollment,
+  useVoiceRecorder,
+  useCardDetection,
+} from './hooks';
+
+export type {
+  UseBiometricEngineReturn,
+  UseFaceDetectionReturn,
+  UseLivenessPuzzleReturn,
+  UseFaceEnrollmentReturn,
+  UseVoiceRecorderReturn,
+  UseCardDetectionReturn,
+} from './hooks';
