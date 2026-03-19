@@ -314,7 +314,8 @@ export function useLivenessPuzzle() {
             const headers: Record<string, string> = { 'Content-Type': 'application/json' }
             if (token) headers['Authorization'] = `Bearer ${token}`
 
-            const challengeRes = await fetch(`${apiBaseUrl}/api/v1/enrollment/liveness/challenge`, {
+            // apiBaseUrl already includes /api/v1
+            const challengeRes = await fetch(`${apiBaseUrl}/enrollment/liveness/challenge`, {
                 method: 'POST',
                 headers,
                 body: JSON.stringify({}),
@@ -440,7 +441,7 @@ export function useLivenessPuzzle() {
             const verifyHeaders: Record<string, string> = {}
             if (token) verifyHeaders['Authorization'] = `Bearer ${token}`
 
-            const verifyRes = await fetch(`${apiBaseUrl}/api/v1/enrollment/liveness/verify`, {
+            const verifyRes = await fetch(`${apiBaseUrl}/enrollment/liveness/verify`, {
                 method: 'POST',
                 headers: verifyHeaders,
                 body: formData,

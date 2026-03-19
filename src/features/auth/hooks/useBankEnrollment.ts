@@ -228,7 +228,8 @@ export function useBankEnrollment() {
             })
 
             let success = false
-            const multiRes = await fetch(`${apiBaseUrl}/api/v1/biometric/enroll/multi/${userId}`, {
+            // apiBaseUrl already includes /api/v1
+            const multiRes = await fetch(`${apiBaseUrl}/biometric/enroll/multi/${userId}`, {
                 method: 'POST',
                 headers,
                 body: formData,
@@ -249,7 +250,7 @@ export function useBankEnrollment() {
                 for (let k = 0; k < capturedBlobs.length; k++) {
                     const singleForm = new FormData()
                     singleForm.append('image', capturedBlobs[k], `face_${k}.jpg`)
-                    const singleRes = await fetch(`${apiBaseUrl}/api/v1/biometric/enroll/${userId}`, {
+                    const singleRes = await fetch(`${apiBaseUrl}/biometric/enroll/${userId}`, {
                         method: 'POST',
                         headers,
                         body: singleForm,

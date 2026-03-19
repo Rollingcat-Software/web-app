@@ -289,17 +289,18 @@ export default function VoiceEnrollmentFlow({
             let url: string
             let body: object
 
+            // apiBaseUrl already includes /api/v1 (e.g. https://auth.rollingcatsoftware.com/api/v1)
             switch (action) {
                 case 'enroll':
-                    url = `${apiBaseUrl}/api/v1/biometric/voice/enroll/${userId}`
+                    url = `${apiBaseUrl}/biometric/voice/enroll/${userId}`
                     body = { voiceData: voiceBase64 }
                     break
                 case 'verify':
-                    url = `${apiBaseUrl}/api/v1/biometric/voice/verify/${userId}`
+                    url = `${apiBaseUrl}/biometric/voice/verify/${userId}`
                     body = { voiceData: voiceBase64 }
                     break
                 case 'search':
-                    url = `${apiBaseUrl}/api/v1/biometric/voice/search`
+                    url = `${apiBaseUrl}/biometric/voice/search`
                     body = { voiceData: voiceBase64 }
                     break
             }
