@@ -2,9 +2,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { Container } from 'inversify'
 import { SettingsService } from '../SettingsService'
 import { TYPES } from '@core/di/types'
-import type { IAuthService } from '@domain/interfaces/IAuthService'
-import type { ISettingsRepository, UserSettings } from '@domain/interfaces/ISettingsRepository'
-import type { INotifier } from '@domain/interfaces/INotifier'
+import type { UserSettings } from '@domain/interfaces/ISettingsRepository'
 import { User, UserRole, UserStatus } from '@domain/models/User'
 
 describe('SettingsService', () => {
