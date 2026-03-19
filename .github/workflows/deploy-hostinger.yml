@@ -1,0 +1,33 @@
+name: Deploy to Hostinger
+
+on:
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**.md'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - run: npm run build
+
+      - name: Deploy via rsync
+        uses: burnett01/rsync-deployments@7.0.1
+        with:
+          switches: -avz --delete --exclude auth-test
+          path: dist/
+          remote_path: ~/domains/ica-fivucsas.rollingcatsoftware.com/public_html/
+          remote_host: 46.202.158.52
+          remote_port: 65002
+          remote_user: u349700627
+          remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}
