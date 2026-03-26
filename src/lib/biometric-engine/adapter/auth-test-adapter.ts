@@ -77,11 +77,6 @@ const FIVUCSAS = {
 
 (window as any).FIVUCSAS = FIVUCSAS;
 
-// Log availability for debugging
-console.log(
-  '[FIVUCSAS] Biometric Engine adapter loaded (v' +
-    FIVUCSAS.__adapterVersion +
-    '). Access via window.FIVUCSAS'
-);
+// Adapter loaded - no console output in production
 
 export default FIVUCSAS;

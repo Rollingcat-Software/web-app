@@ -28,6 +28,7 @@ export const TYPES = {
     AuthFlowRepository: Symbol.for('AuthFlowRepository'),
     AuthSessionRepository: Symbol.for('AuthSessionRepository'),
     DeviceRepository: Symbol.for('DeviceRepository'),
+    GuestRepository: Symbol.for('GuestRepository'),
 
     // Services
     AuthService: Symbol.for('AuthService'),
@@ -42,6 +43,7 @@ export const TYPES = {
     AuthFlowService: Symbol.for('AuthFlowService'),
     AuthSessionService: Symbol.for('AuthSessionService'),
     DeviceService: Symbol.for('DeviceService'),
+    GuestService: Symbol.for('GuestService'),
 
     // External Services
     BiometricService: Symbol.for('BiometricService'),

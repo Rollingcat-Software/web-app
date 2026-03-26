@@ -1,5 +1,8 @@
 import { useState, useCallback, useRef } from 'react'
 import axios from 'axios'
+import { useService } from '@app/providers'
+import { TYPES } from '@core/di/types'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
 
 export interface CardDetectionResult {
     detected: boolean
@@ -24,6 +27,7 @@ interface UseCardDetectionReturn {
  * which proxies to the biometric-processor YOLO model.
  */
 export function useCardDetection(): UseCardDetectionReturn {
+    const tokenService = useService<ITokenService>(TYPES.TokenService)
     const [detecting, setDetecting] = useState(false)
     const [result, setResult] = useState<CardDetectionResult | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -44,17 +48,8 @@ export function useCardDetection(): UseCardDetectionReturn {
             const formData = new FormData()
             formData.append('file', imageBlob, 'capture.jpg')
 
-            // Get token from sessionStorage
-            const stored = sessionStorage.getItem('fivucsas_auth')
-            let token = ''
-            if (stored) {
-                try {
-                    const parsed = JSON.parse(stored)
-                    token = parsed.accessToken || ''
-                } catch {
-                    // ignore
-                }
-            }
+            // Get token from TokenService (consolidated storage)
+            const token = (await tokenService.getAccessToken()) || ''
 
             const response = await axios.post(`${apiUrl}/biometric/card-detect`, formData, {
                 headers: {

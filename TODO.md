@@ -117,13 +117,13 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 | PASSWORD | PasswordStep | N/A | Yes | Working |
 | EMAIL_OTP | EmailOtpStep | N/A | Yes | Working |
 | SMS_OTP | SmsOtpStep | N/A | Yes | Working |
-| TOTP | TotpStep | TotpEnrollment (disconnected) | Yes (TotpController) | Partially working |
+| TOTP | TotpStep | TotpEnrollment (connected) | Yes (TotpController) | Working |
 | QR_CODE | QrCodeStep | N/A | Yes (QrCodeController) | Working |
 | FACE | FaceCaptureStep | FaceEnrollmentFlow | Yes | Working |
-| FINGERPRINT | FingerprintStep | **MISSING** | Stub (always fails) | **BROKEN** |
+| FINGERPRINT | FingerprintStep | FingerprintEnrollment | Stub (always fails) | Enrollment UI ready, backend stub |
 | VOICE | VoiceStep (disabled) | **MISSING** | Stub (always fails) | **BROKEN** |
 | NFC_DOCUMENT | NfcStep (placeholder) | **MISSING** | Stub (always fails) | **BROKEN** |
-| HARDWARE_KEY | HardwareKeyStep | **MISSING** | Yes (WebAuthnController) | Needs enrollment UI |
+| HARDWARE_KEY | HardwareKeyStep | WebAuthnEnrollment | Yes (WebAuthnController) | Working |
 
 ### Auth Enrollment TODOs
 

@@ -3,10 +3,15 @@ import {useNavigate, useParams} from 'react-router-dom'
 import {Controller, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import {z} from 'zod'
-import {Alert, Box, Button, CircularProgress, MenuItem, Paper, TextField, Typography,} from '@mui/material'
+import {
+    Alert, Box, Button, Checkbox, Chip, CircularProgress, FormControl, FormHelperText,
+    InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, TextField, Typography,
+} from '@mui/material'
+import type {SelectChangeEvent} from '@mui/material'
 import {Cancel, Save} from '@mui/icons-material'
 import {useUsers, useUser} from '@features/users'
 import {useTenants} from '@features/tenants'
+import {useRoles} from '@features/roles'
 import {UserRole, UserStatus} from '@domain/models/User'
 
 const userSchema = z.object({
@@ -29,9 +34,11 @@ export default function UserFormPage() {
     const {createUser, updateUser} = useUsers()
     const {user: existingUser, loading: fetchLoading} = useUser(id ?? '')
     const {tenants, loading: tenantsLoading} = useTenants()
+    const {roles: availableRoles, loading: rolesLoading} = useRoles()
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const [selectedRoleIds, setSelectedRoleIds] = useState<string[]>([])
 
     const {
         control,
@@ -102,6 +109,11 @@ export default function UserFormPage() {
             handleSubmit(onSubmit)()
         }
     }, [handleSubmit, onSubmit])
+
+    const handleRoleSelectionChange = useCallback((event: SelectChangeEvent<string[]>) => {
+        const value = event.target.value
+        setSelectedRoleIds(typeof value === 'string' ? value.split(',') : value)
+    }, [])
 
     if (isEditMode && fetchLoading) {
         return (
@@ -261,6 +273,47 @@ export default function UserFormPage() {
                                 </TextField>
                             )}
                         />
+
+                        <FormControl fullWidth disabled={rolesLoading}>
+                            <InputLabel id="roles-multi-select-label">Assigned Roles</InputLabel>
+                            <Select
+                                labelId="roles-multi-select-label"
+                                id="roles-multi-select"
+                                multiple
+                                value={selectedRoleIds}
+                                onChange={handleRoleSelectionChange}
+                                input={<OutlinedInput label="Assigned Roles"/>}
+                                renderValue={(selected) => (
+                                    <Box sx={{display: 'flex', flexWrap: 'wrap', gap: 0.5}}>
+                                        {selected.map((roleId) => {
+                                            const role = availableRoles.find((r) => r.id === roleId)
+                                            return (
+                                                <Chip
+                                                    key={roleId}
+                                                    label={role?.name ?? roleId}
+                                                    size="small"
+                                                />
+                                            )
+                                        })}
+                                    </Box>
+                                )}
+                            >
+                                {availableRoles.filter((r) => r.active).map((role) => (
+                                    <MenuItem key={role.id} value={role.id}>
+                                        <Checkbox checked={selectedRoleIds.includes(role.id)}/>
+                                        <ListItemText
+                                            primary={role.name}
+                                            secondary={role.description}
+                                        />
+                                    </MenuItem>
+                                ))}
+                            </Select>
+                            <FormHelperText>
+                                {rolesLoading
+                                    ? 'Loading roles...'
+                                    : 'Select one or more roles to assign to this user'}
+                            </FormHelperText>
+                        </FormControl>
 
                         <Box sx={{display: 'flex', gap: 2, justifyContent: 'flex-end', mt: 2}}>
                             <Button
