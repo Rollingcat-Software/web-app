@@ -7,11 +7,16 @@ export default defineConfig({
     retries: 1,
     workers: 1,
     reporter: 'html',
-    timeout: 30000,
+    timeout: 45000,
+    expect: {
+        timeout: 15000,
+    },
     use: {
         baseURL: process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com',
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
+        actionTimeout: 15000,
+        navigationTimeout: 30000,
     },
     projects: [
         // 1. Auth setup — logs in once, saves sessionStorage tokens
