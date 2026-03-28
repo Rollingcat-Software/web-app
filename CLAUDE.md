@@ -58,6 +58,18 @@ Enrollment UIs:
 - AuthSessionRepository.completeStep(): data wrapping fix — was sending flat data, now sends { data } (fixed ALL secondary auth methods)
 - ESLint warnings: 42→38 (under max 40 cap)
 
+### New pages and components (2026-03-28):
+- **WidgetDemoPage** (`/widget-demo`) — live preview of embeddable auth widget
+- **DeveloperPortalPage** (`/developer-portal`) — SDK documentation and integration guide
+- **verify-app/** — standalone extracted auth widget components (`src/features/auth/components/verify-app/`)
+- **sdk/** — @fivucsas/auth-js SDK module (`src/features/auth/components/sdk/`)
+- **react/** — @fivucsas/auth-react components (`src/features/auth/components/react/`)
+
+### CI/CD (2026-03-28):
+- Playwright E2E workflow added to GitHub Actions (`playwright.yml`)
+- E2E test failures reduced: 54→9
+- Current test counts: 304 unit (Vitest), 276+ E2E (Playwright)
+
 ### Connected (March 2026):
 - TotpEnrollment.tsx connected to backend TotpController (setup, verify, status, disable)
 - QrCodeStep.tsx connected to backend QrCodeController (generate, invalidate, countdown, auto-refresh)

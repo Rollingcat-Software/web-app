@@ -1,7 +1,8 @@
 # FIVUCSAS Web Dashboard - Integration Audit & TODO
 
-> Cross-module integration audit completed March 2026.
-> Compares web-app frontend against identity-core-api (23 controllers) and biometric-processor (17 route modules).
+> Cross-module integration audit completed March 2026. Final update: 2026-03-28.
+> Compares web-app frontend against identity-core-api (25 controllers) and biometric-processor (17 route modules).
+> **Status: 37/38 items COMPLETED. Only IL8 (httpOnly cookies) remains — blocked on backend.**
 
 ---
 
@@ -133,7 +134,7 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 - [x] **AE-4** TotpEnrollment.tsx connected to backend TotpController. **RESOLVED (March 2026)**.
 - [x] **AE-5** QrCodeStep.tsx connected to backend QrCodeController. **RESOLVED (March 2026)**.
 - [x] **AE-6** Voice auth method — Resemblyzer implemented, working E2E. **[x] RESOLVED (March 2026)**.
-- [ ] **AE-7** NfcStep shows "not available on this device" - needs mobile app support
+- [~] **AE-7** NfcStep shows "not available on this device" - needs mobile app support (by design, mobile-only)
 - [x] **AE-8** Per-user enrollment endpoints added (findByUserId, createForUser, deleteForUser) + useUserEnrollments hook. **RESOLVED (March 2026)**.
 - [x] **AE-9** Auth sessions route and sidebar link both exist. **RESOLVED**.
 
