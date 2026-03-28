@@ -55,3 +55,8 @@ out
 Thumbs.db
 
 pnpm-lock.yaml
+
+# Widget build outputs
+dist-verify/
+dist-sdk/
+dist-adapter/
