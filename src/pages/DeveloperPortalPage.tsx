@@ -247,13 +247,15 @@ if (code) {
                     <Box
                         sx={{
                             display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' },
                             justifyContent: 'space-between',
-                            alignItems: 'flex-start',
+                            alignItems: { xs: 'stretch', sm: 'flex-start' },
+                            gap: { xs: 2, sm: 0 },
                             mb: 3,
                         }}
                     >
                         <Box>
-                            <Typography variant="h4" fontWeight={700}>
+                            <Typography variant="h4" fontWeight={700} sx={{ fontSize: { xs: '1.5rem', sm: '2.125rem' } }}>
                                 {t('developerPortal.title')}
                             </Typography>
                             <Typography variant="body1" color="text.secondary">
@@ -264,6 +266,7 @@ if (code) {
                             variant="contained"
                             startIcon={<Add />}
                             onClick={() => setRegisterOpen(true)}
+                            sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
                         >
                             {t('developerPortal.registerApp')}
                         </Button>
@@ -320,9 +323,9 @@ if (code) {
                     <TableContainer
                         component={Paper}
                         elevation={0}
-                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 4 }}
+                        sx={{ border: '1px solid', borderColor: 'divider', borderRadius: 2, mb: 4, overflow: 'auto', WebkitOverflowScrolling: 'touch' }}
                     >
-                        <Table>
+                        <Table sx={{ minWidth: 650 }}>
                             <TableHead>
                                 <TableRow>
                                     <TableCell>{t('developerPortal.appName')}</TableCell>
@@ -421,14 +424,14 @@ if (code) {
                     <Paper
                         elevation={0}
                         sx={{
-                            p: 3,
+                            p: { xs: 2, sm: 3 },
                             border: '1px solid',
                             borderColor: 'divider',
                             borderRadius: 2,
                             mt: 2,
                         }}
                     >
-                        <Typography variant="h5" fontWeight={700} gutterBottom>
+                        <Typography variant="h5" fontWeight={700} gutterBottom sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
                             {t('developerPortal.quickStart')}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -464,10 +467,11 @@ if (code) {
                                     position: 'relative',
                                     bgcolor: 'grey.900',
                                     color: 'grey.100',
-                                    p: 2,
+                                    p: { xs: 1.5, sm: 2 },
                                     borderRadius: 1,
                                     overflow: 'auto',
-                                    fontSize: 13,
+                                    WebkitOverflowScrolling: 'touch',
+                                    fontSize: { xs: 11, sm: 13 },
                                     fontFamily: 'monospace',
                                     whiteSpace: 'pre',
                                 }}
@@ -510,10 +514,11 @@ if (code) {
                                     position: 'relative',
                                     bgcolor: 'grey.900',
                                     color: 'grey.100',
-                                    p: 2,
+                                    p: { xs: 1.5, sm: 2 },
                                     borderRadius: 1,
                                     overflow: 'auto',
-                                    fontSize: 13,
+                                    WebkitOverflowScrolling: 'touch',
+                                    fontSize: { xs: 11, sm: 13 },
                                     fontFamily: 'monospace',
                                     whiteSpace: 'pre',
                                 }}

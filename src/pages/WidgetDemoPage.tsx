@@ -41,51 +41,53 @@ import {
 import { FivucsasAuth } from '@/verify-app/sdk/FivucsasAuth'
 import type { VerifyResult } from '@/verify-app/sdk/FivucsasAuth'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useTranslation } from 'react-i18next'
 
 // ─── Status ─────────────────────────────────────────────────────────
 
 type DemoStatus = 'idle' | 'verifying' | 'complete' | 'error' | 'cancelled'
 
 function StatusIndicator({ status }: { status: DemoStatus }) {
-    const config: Record<DemoStatus, { label: string; color: string; icon: React.ReactNode }> = {
+    const { t } = useTranslation()
+    const config: Record<DemoStatus, { labelKey: string; color: string; icon: React.ReactNode }> = {
         idle: {
-            label: 'Idle',
+            labelKey: 'widgetDemo.statusIdle',
             color: 'text.secondary',
             icon: <HourglassEmpty sx={{ fontSize: 16 }} />,
         },
         verifying: {
-            label: 'Verifying...',
+            labelKey: 'widgetDemo.statusVerifying',
             color: 'info.main',
             icon: <Timer sx={{ fontSize: 16 }} />,
         },
         complete: {
-            label: 'Complete',
+            labelKey: 'widgetDemo.statusComplete',
             color: 'success.main',
             icon: <CheckCircle sx={{ fontSize: 16 }} />,
         },
         error: {
-            label: 'Error',
+            labelKey: 'widgetDemo.statusError',
             color: 'error.main',
             icon: <ErrorOutline sx={{ fontSize: 16 }} />,
         },
         cancelled: {
-            label: 'Cancelled',
+            labelKey: 'widgetDemo.statusCancelled',
             color: 'warning.main',
             icon: <ErrorOutline sx={{ fontSize: 16 }} />,
         },
     }
 
-    const { label, color, icon } = config[status]
+    const { labelKey, color, icon } = config[status]
 
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
             <Typography variant="caption" color="text.secondary" fontWeight={500}>
-                Status:
+                {t('widgetDemo.statusLabel')}
             </Typography>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color }}>
                 {icon}
                 <Typography variant="caption" fontWeight={600} color="inherit">
-                    {label}
+                    {t(labelKey)}
                 </Typography>
             </Box>
         </Box>
@@ -223,6 +225,7 @@ export function VerifyButton({ userId, onComplete }: VerifyButtonProps) {
 
 function CodeBlock({ code, language }: { code: string; language: string }) {
     const [copied, setCopied] = useState(false)
+    const { t } = useTranslation()
 
     const handleCopy = useCallback(() => {
         navigator.clipboard.writeText(code).then(() => {
@@ -251,7 +254,7 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
                     '&:hover': { bgcolor: 'rgba(30,30,46,1)', borderColor: 'rgba(255,255,255,0.2)' },
                 }}
             >
-                {copied ? 'Copied!' : 'Copy'}
+                {copied ? t('widgetDemo.codeCopied') : t('widgetDemo.codeCopy')}
             </Button>
             <Chip
                 label={language}
@@ -272,18 +275,19 @@ function CodeBlock({ code, language }: { code: string; language: string }) {
             <Box
                 component="pre"
                 sx={{
-                    p: 2,
+                    p: { xs: 1.5, sm: 2 },
                     pt: 4.5,
                     borderRadius: '8px',
                     bgcolor: '#1e1e2e',
                     color: '#cdd6f4',
-                    fontSize: '0.8rem',
+                    fontSize: { xs: '0.7rem', sm: '0.8rem' },
                     lineHeight: 1.6,
                     overflow: 'auto',
-                    maxHeight: 420,
+                    maxHeight: { xs: 320, sm: 420 },
                     fontFamily: '"JetBrains Mono", "Fira Code", "Cascadia Code", monospace',
                     border: '1px solid',
                     borderColor: 'rgba(255,255,255,0.06)',
+                    WebkitOverflowScrolling: 'touch',
                     '&::-webkit-scrollbar': { height: 6, width: 6 },
                     '&::-webkit-scrollbar-thumb': {
                         bgcolor: 'rgba(255,255,255,0.15)',
@@ -393,6 +397,7 @@ const AUTH_METHODS = [
 
 export default function WidgetDemoPage() {
     const { user } = useAuth()
+    const { t } = useTranslation()
     const [activeTab, setActiveTab] = useState(0)
     const [demoResult, setDemoResult] = useState<VerifyResult | null>(null)
     const [demoError, setDemoError] = useState<string | null>(null)
@@ -466,16 +471,16 @@ export default function WidgetDemoPage() {
     const isRunning = demoStatus === 'verifying'
 
     return (
-        <Box sx={{ maxWidth: 960, mx: 'auto' }}>
+        <Box sx={{ maxWidth: 960, mx: 'auto', px: { xs: 1.5, sm: 2, md: 0 } }}>
             {/* ── Page Header ────────────────────────────────────── */}
             <Box sx={{ mb: 4 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
                     <Web sx={{ fontSize: 28, color: 'primary.main' }} />
-                    <Typography variant="h5" fontWeight={700}>
-                        Auth Widget
+                    <Typography variant="h5" fontWeight={700} sx={{ fontSize: { xs: '1.25rem', sm: '1.5rem' } }}>
+                        {t('widgetDemo.title')}
                     </Typography>
                     <Chip
-                        label="Embeddable SDK"
+                        label={t('widgetDemo.badge')}
                         size="small"
                         color="primary"
                         variant="outlined"
@@ -483,9 +488,7 @@ export default function WidgetDemoPage() {
                     />
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ maxWidth: 640 }}>
-                    The FIVUCSAS embeddable authentication widget -- like Stripe Elements, but for
-                    biometric identity verification. Drop a single script tag into any website to add
-                    multi-factor biometric auth.
+                    {t('widgetDemo.description')}
                 </Typography>
             </Box>
 
@@ -494,38 +497,38 @@ export default function WidgetDemoPage() {
                 <Grid item xs={6} sm={3}>
                     <StatCard
                         value="10"
-                        label="Auth Methods"
+                        label={t('widgetDemo.authMethods')}
                         icon={<Security sx={{ fontSize: 28 }} />}
                     />
                 </Grid>
                 <Grid item xs={6} sm={3}>
                     <StatCard
                         value="9.5KB"
-                        label="SDK Size (gzip)"
+                        label={t('widgetDemo.sdkSize')}
                         icon={<Inventory2 sx={{ fontSize: 28 }} />}
                     />
                 </Grid>
                 <Grid item xs={6} sm={3}>
                     <StatCard
-                        value="Zero"
-                        label="Dependencies"
+                        value={t('widgetDemo.zero')}
+                        label={t('widgetDemo.dependencies')}
                         icon={<Layers sx={{ fontSize: 28 }} />}
                     />
                 </Grid>
                 <Grid item xs={6} sm={3}>
                     <StatCard
                         value="OAuth 2.0"
-                        label="OIDC Compatible"
+                        label={t('widgetDemo.oidcCompatible')}
                         icon={<VerifiedUser sx={{ fontSize: 28 }} />}
                     />
                 </Grid>
             </Grid>
 
             {/* ── Live Demo ───────────────────────────────────────── */}
-            <Paper sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
+            <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: '12px' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1, flexWrap: 'wrap', gap: 1 }}>
                     <Typography variant="h6" fontWeight={600}>
-                        Live Demo
+                        {t('widgetDemo.liveDemo')}
                     </Typography>
                     <StatusIndicator status={demoStatus} />
                 </Box>
@@ -534,8 +537,15 @@ export default function WidgetDemoPage() {
                     postMessage and renders inside an isolated iframe.
                 </Typography>
 
-                <Grid container spacing={2} sx={{ mb: 2 }}>
-                    <Grid item xs={12} sm={5}>
+                <Box
+                    sx={{
+                        display: 'flex',
+                        flexDirection: { xs: 'column', sm: 'row' },
+                        gap: 2,
+                        mb: 2,
+                    }}
+                >
+                    <Box sx={{ flex: { xs: '1 1 auto', sm: '1 1 0' } }}>
                         <Button
                             fullWidth
                             variant="contained"
@@ -558,12 +568,12 @@ export default function WidgetDemoPage() {
                         <Typography
                             variant="caption"
                             color="text.secondary"
-                            sx={{ display: 'block', mt: 0.75, textAlign: 'center' }}
+                            sx={{ display: { xs: 'none', sm: 'block' }, mt: 0.75, textAlign: 'center' }}
                         >
                             Opens verification in a centered overlay
                         </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={5}>
+                    </Box>
+                    <Box sx={{ flex: { xs: '1 1 auto', sm: '1 1 0' } }}>
                         <Button
                             fullWidth
                             variant="outlined"
@@ -577,13 +587,13 @@ export default function WidgetDemoPage() {
                         <Typography
                             variant="caption"
                             color="text.secondary"
-                            sx={{ display: 'block', mt: 0.75, textAlign: 'center' }}
+                            sx={{ display: { xs: 'none', sm: 'block' }, mt: 0.75, textAlign: 'center' }}
                         >
                             Embeds verification directly in the page below
                         </Typography>
-                    </Grid>
-                    <Grid item xs={12} sm={2} sx={{ display: 'flex', alignItems: 'flex-start' }}>
-                        {isRunning && (
+                    </Box>
+                    {isRunning && (
+                        <Box sx={{ flex: { xs: '1 1 auto', sm: '0 0 auto' } }}>
                             <Button
                                 fullWidth
                                 variant="text"
@@ -594,9 +604,9 @@ export default function WidgetDemoPage() {
                             >
                                 Stop
                             </Button>
-                        )}
-                    </Grid>
-                </Grid>
+                        </Box>
+                    )}
+                </Box>
 
                 {/* Inline widget container */}
                 <Box
@@ -644,7 +654,7 @@ export default function WidgetDemoPage() {
             </Paper>
 
             {/* ── Architecture ────────────────────────────────────── */}
-            <Paper sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
+            <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: '12px' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <AccountTree sx={{ color: 'primary.main' }} />
                     <Typography variant="h6" fontWeight={600}>
@@ -726,7 +736,7 @@ export default function WidgetDemoPage() {
             </Paper>
 
             {/* ── Integration Examples ────────────────────────────── */}
-            <Paper sx={{ p: 3, mb: 3, borderRadius: '12px' }}>
+            <Paper sx={{ p: { xs: 2, sm: 3 }, mb: 3, borderRadius: '12px' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <Code sx={{ color: 'primary.main' }} />
                     <Typography variant="h6" fontWeight={600}>
@@ -737,9 +747,12 @@ export default function WidgetDemoPage() {
                 <Tabs
                     value={activeTab}
                     onChange={(_, v) => setActiveTab(v)}
+                    variant="scrollable"
+                    scrollButtons="auto"
+                    allowScrollButtonsMobile
                     sx={{
                         mb: 2,
-                        '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 40 },
+                        '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 40, fontSize: { xs: '0.8rem', sm: '0.875rem' } },
                     }}
                 >
                     <Tab label="HTML / Script Tag" />
