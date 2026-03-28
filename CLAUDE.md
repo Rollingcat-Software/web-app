@@ -64,11 +64,29 @@ Enrollment UIs:
 - **verify-app/** — standalone extracted auth widget components (`src/features/auth/components/verify-app/`)
 - **sdk/** — @fivucsas/auth-js SDK module (`src/features/auth/components/sdk/`)
 - **react/** — @fivucsas/auth-react components (`src/features/auth/components/react/`)
+- **VerificationFlowBuilderPage** (`/verification/flows`) — verification pipeline builder with template selector
+- **VerificationDashboardPage** (`/verification/dashboard`) — completion rates, avg time, failure reasons
+- **VerificationSessionDetailPage** (`/verification/sessions/:id`) — step-by-step results with confidence scores
+- **VerificationRepository** — API client for verification pipeline CRUD
+- **useVerification hook** — verification flow state management
+- **Admin-only route guard** — ProtectedRoute pattern for admin pages (verification, developer portal)
+
+### Verification pipeline (2026-03-28):
+- Verification flow builder extends auth flow builder pattern for document/biometric verification
+- Template selector with 5 industry templates (Banking KYC, Healthcare, Education, Government, Fintech)
+- Per-step threshold configuration (face match %, liveness %)
+- Session detail shows step-by-step results with confidence scores and document images
+
+### Playwright E2E tests (2026-03-28):
+- 28 Playwright spec files covering verification pages, auth flows, and admin pages
+- Verification flow builder E2E test
+- Verification dashboard E2E test
 
 ### CI/CD (2026-03-28):
 - Playwright E2E workflow added to GitHub Actions (`playwright.yml`)
-- E2E test failures reduced: 54→9
-- Current test counts: 304 unit (Vitest), 276+ E2E (Playwright)
+- E2E test failures reduced: 54→0
+- Current test counts: 304 unit (Vitest), 28 Playwright spec files
+- Android CI and iOS CI GitHub Actions workflows added
 
 ### Connected (March 2026):
 - TotpEnrollment.tsx connected to backend TotpController (setup, verify, status, disable)
@@ -90,6 +108,11 @@ Enrollment UIs:
 - AuthSessionRepository.completeStep(): proper { data } wrapping for all secondary auth methods
 - VoiceStep.tsx: Resemblyzer 256-dim voice verification via biometric-processor
 - All 10 auth step components wired to backend (9 working, NFC stub)
+- Liveness 415 fix: explicit multipart Content-Type header for face upload
+- Quality score display fix in face capture step
+- Profile menu and card type display fixes
+- Login page cleanup (removed debug elements)
+- Hardware key info tooltip added
 
 ### Model alignment with backend (all resolved):
 - AuthMethodType UPPERCASE, Enrollment fields, EnrollmentStatus enum, User pagination, DeviceResponse fields
