@@ -132,15 +132,15 @@ export default function EnrollmentComplete({
             <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
                 {status.qualityScore !== undefined && (
                     <Chip
-                        label={`Quality: ${Math.round(status.qualityScore * 100)}%`}
-                        color={status.qualityScore >= 0.7 ? 'success' : 'warning'}
+                        label={`Quality: ${Math.round(status.qualityScore > 1 ? status.qualityScore : status.qualityScore * 100)}%`}
+                        color={(status.qualityScore > 1 ? status.qualityScore : status.qualityScore * 100) >= 70 ? 'success' : 'warning'}
                         variant="outlined"
                     />
                 )}
                 {status.livenessScore !== undefined && (
                     <Chip
-                        label={`Liveness: ${Math.round(status.livenessScore * 100)}%`}
-                        color={status.livenessScore >= 0.7 ? 'success' : 'warning'}
+                        label={`Liveness: ${Math.round(status.livenessScore > 1 ? status.livenessScore : status.livenessScore * 100)}%`}
+                        color={(status.livenessScore > 1 ? status.livenessScore : status.livenessScore * 100) >= 70 ? 'success' : 'warning'}
                         variant="outlined"
                     />
                 )}
