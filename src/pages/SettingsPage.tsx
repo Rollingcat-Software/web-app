@@ -15,6 +15,7 @@ import {
     Paper,
     Switch,
     TextField,
+    Tooltip,
     Typography,
 } from '@mui/material'
 import {
@@ -298,9 +299,13 @@ export default function SettingsPage() {
                                 {firstName?.[0]}
                                 {lastName?.[0]}
                             </Avatar>
-                            <Button variant="outlined" size="small">
-                                {t('settings.changeAvatar')}
-                            </Button>
+                            <Tooltip title={t('settings.comingSoon')} arrow>
+                                <span>
+                                    <Button variant="outlined" size="small" disabled>
+                                        {t('settings.changeAvatar')}
+                                    </Button>
+                                </span>
+                            </Tooltip>
                         </Box>
 
                         <Grid container spacing={2}>
@@ -658,16 +663,17 @@ export default function SettingsPage() {
                                 label={t('settings.securityAlerts')}
                             />
 
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={weeklyReports}
-                                        onChange={(e) => setWeeklyReports(e.target.checked)}
-                                        disabled={saving === 'notifications'}
-                                    />
-                                }
-                                label={t('settings.weeklyReports')}
-                            />
+                            <Tooltip title={t('settings.comingSoon')} arrow>
+                                <FormControlLabel
+                                    control={
+                                        <Switch
+                                            checked={false}
+                                            disabled
+                                        />
+                                    }
+                                    label={`${t('settings.weeklyReports')} (${t('settings.comingSoon')})`}
+                                />
+                            </Tooltip>
                         </Box>
 
                         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
