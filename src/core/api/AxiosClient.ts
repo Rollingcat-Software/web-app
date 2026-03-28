@@ -50,7 +50,9 @@ export class AxiosClient implements IHttpClient {
             // SECURITY: Send cookies with requests (required for httpOnly cookies)
             withCredentials: true,
             headers: {
-                'Content-Type': 'application/json',
+                // Note: Do NOT set Content-Type here — axios auto-sets it
+                // to multipart/form-data with boundary for FormData,
+                // and application/json for plain objects
             },
         })
 

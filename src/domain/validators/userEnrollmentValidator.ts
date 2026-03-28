@@ -14,7 +14,7 @@ export const IdInfoSchema = z.object({
         .string()
         .min(2, 'Full name must be at least 2 characters')
         .max(200, 'Full name must be at most 200 characters')
-        .regex(/^[a-zA-Z\s'-]+$/, 'Full name must contain only letters, spaces, hyphens, and apostrophes'),
+        .regex(/^[\p{L}\s'-]+$/u, 'Full name must contain only letters, spaces, hyphens, and apostrophes'),
 })
 
 export type IdInfoInput = z.infer<typeof IdInfoSchema>

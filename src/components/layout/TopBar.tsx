@@ -13,7 +13,7 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material'
-import {AccountCircle, DarkMode, Language, LightMode, Logout, Menu as MenuIcon, Settings,} from '@mui/icons-material'
+import {DarkMode, Language, LightMode, Logout, Menu as MenuIcon, Settings,} from '@mui/icons-material'
 import {useAuth} from '@features/auth/hooks/useAuth'
 import {useThemeMode} from '@app/providers/ThemeModeProvider'
 import {useTranslation} from 'react-i18next'
@@ -160,15 +160,6 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                             </Typography>
                         </Box>
                         <Divider/>
-                        <MenuItem onClick={() => {
-                            handleClose();
-                            navigate('/settings')
-                        }}>
-                            <ListItemIcon>
-                                <AccountCircle fontSize="small"/>
-                            </ListItemIcon>
-                            {t('topbar.profileSettings')}
-                        </MenuItem>
                         <MenuItem onClick={handleSettings}>
                             <ListItemIcon>
                                 <Settings fontSize="small"/>
