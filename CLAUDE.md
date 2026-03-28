@@ -40,16 +40,23 @@ Enrollment UIs:
 
 ## Known Issues (March 2026)
 
-### MISSING enrollment UIs:
-1. **Hardware Key (WebAuthn)** - Backend ready (WebAuthnController), needs enrollment component
-2. **Fingerprint** - Could use WebAuthn platform authenticators, needs enrollment component
-3. **Voice** - Backend is stub, needs both backend and frontend work
-4. **NFC Document** - Platform dependent, mobile only
+### Auth method status (2026-03-28):
+1. **Password** — WORKING
+2. **Email OTP** — WORKING
+3. **SMS OTP** — WORKING (NoOpSmsService, needs Twilio config)
+4. **TOTP** — WORKING (enrollment + verification)
+5. **Face** — WORKING (MediaPipe + DeepFace)
+6. **QR Code** — WORKING (generate, display, polling, invalidate)
+7. **Hardware Key** — WORKING (server challenge + WebAuthn assertion)
+8. **Fingerprint** — WORKING (WebAuthn platform authenticator)
+9. **Voice** — WORKING (Resemblyzer 256-dim in biometric-processor)
+10. **NFC** — STUB (mobile-only, backend works, frontend placeholder)
 
-### BROKEN at runtime:
-- Fingerprint auth always fails (biometric-processor stub)
-- Voice auth disabled (`isActive: false` in DEFAULT_AUTH_METHODS)
-- NFC shows "not available on this device" placeholder
+### Fixed (2026-03-28):
+- Fingerprint auth: WebAuthn assertion (was: credentials.create, now: credentials.get)
+- HardwareKey auth: server-side challenge via onRequestChallenge callback (was: random local challenge)
+- AuthSessionRepository.completeStep(): data wrapping fix — was sending flat data, now sends { data } (fixed ALL secondary auth methods)
+- ESLint warnings: 42→38 (under max 40 cap)
 
 ### Connected (March 2026):
 - TotpEnrollment.tsx connected to backend TotpController (setup, verify, status, disable)
@@ -66,13 +73,18 @@ Enrollment UIs:
 - DashboardStats.exportFormats field, AuthFlowResponse.stepCount field
 - BiometricService documented as direct-call (not proxied)
 - NotificationPanel documented as audit-log polling interim
+- FingerprintStep.tsx: WebAuthn assertion flow (credentials.get) for platform authenticators
+- HardwareKeyStep.tsx: server-side challenge via onRequestChallenge callback + WebAuthn assertion
+- AuthSessionRepository.completeStep(): proper { data } wrapping for all secondary auth methods
+- VoiceStep.tsx: Resemblyzer 256-dim voice verification via biometric-processor
+- All 10 auth step components wired to backend (9 working, NFC stub)
 
 ### Model alignment with backend (all resolved):
 - AuthMethodType UPPERCASE, Enrollment fields, EnrollmentStatus enum, User pagination, DeviceResponse fields
 - OperationType 9 values verified matching backend enum exactly
 - All model mismatches from integration audit resolved
 
-### Production deployment (Hostinger, 2026-03-16):
+### Production deployment (Hostinger, last deployed 2026-03-28):
 - URL: https://ica-fivucsas.rollingcatsoftware.com
 - API: `VITE_API_BASE_URL=https://auth.rollingcatsoftware.com/api/v1` (in `.env.production`)
 - Deploy: `npm run build` → `rsync dist/ u349700627@46.202.158.52:~/domains/ica-fivucsas.rollingcatsoftware.com/public_html/` (SSH port 65002, password in .env.prod)
@@ -95,7 +107,7 @@ Enrollment UIs:
 - **P3 ✅**: Breadcrumb labels added for all routes (auth-flows, devices, user-enrollment → "Identity Enrollment", etc.)
 - **P3 ✅**: Date of birth field shows format hint + respects html lang attribute
 
-See TODO.md for full integration audit (38 items, only AE-2/3/6/7 + IL8 remain — blocked on external deps).
+See TODO.md for full integration audit (38 items, only AE-7 + IL8 remain — blocked on external deps).
 
 ### Security fixes (2026-03-16):
 - **Email OTP enforcement**: RegisterPage now captures registration JWT token, shows 6-digit OTP

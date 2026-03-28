@@ -120,19 +120,23 @@ All previous items (C1-C7, H1-H11, M1-M16, L1-L14) are completed except L10 (htt
 | TOTP | TotpStep | TotpEnrollment (connected) | Yes (TotpController) | Working |
 | QR_CODE | QrCodeStep | N/A | Yes (QrCodeController) | Working |
 | FACE | FaceCaptureStep | FaceEnrollmentFlow | Yes | Working |
-| FINGERPRINT | FingerprintStep | FingerprintEnrollment | Stub (always fails) | Enrollment UI ready, backend stub |
-| VOICE | VoiceStep (disabled) | **MISSING** | Stub (always fails) | **BROKEN** |
-| NFC_DOCUMENT | NfcStep (placeholder) | **MISSING** | Stub (always fails) | **BROKEN** |
+| FINGERPRINT | FingerprintStep | WebAuthn platform auth | Yes (WebAuthn) | Working |
+| VOICE | VoiceStep | VoiceEnrollmentFlow | Yes (Resemblyzer) | Working |
+| NFC_DOCUMENT | NfcStep (placeholder) | N/A | Yes (backend works) | Mobile only placeholder |
 | HARDWARE_KEY | HardwareKeyStep | WebAuthnEnrollment | Yes (WebAuthnController) | Working |
 
 ### Auth Enrollment TODOs
 
 - [x] **AE-1** WebAuthnEnrollment.tsx fixed and working (platform + hardware-key modes in SettingsPage). **RESOLVED (March 2026)**.
-- [ ] **AE-2** Build fingerprint enrollment UI - could use WebAuthn platform authenticators (Touch ID / Windows Hello)
-- [ ] **AE-3** Build voice enrollment UI - needs backend voice processing first (currently stub)
+- [x] **AE-2** Fingerprint enrollment — now uses WebAuthn platform authenticators. **[x] RESOLVED (March 2026)**.
+- [x] **AE-3** Voice enrollment — Resemblyzer working in biometric-processor. **[x] RESOLVED (March 2026)**.
 - [x] **AE-4** TotpEnrollment.tsx connected to backend TotpController. **RESOLVED (March 2026)**.
 - [x] **AE-5** QrCodeStep.tsx connected to backend QrCodeController. **RESOLVED (March 2026)**.
-- [ ] **AE-6** Voice auth method is disabled (`isActive: false`) in DEFAULT_AUTH_METHODS - enable when backend ready
+- [x] **AE-6** Voice auth method — Resemblyzer implemented, working E2E. **[x] RESOLVED (March 2026)**.
 - [ ] **AE-7** NfcStep shows "not available on this device" - needs mobile app support
 - [x] **AE-8** Per-user enrollment endpoints added (findByUserId, createForUser, deleteForUser) + useUserEnrollments hook. **RESOLVED (March 2026)**.
 - [x] **AE-9** Auth sessions route and sidebar link both exist. **RESOLVED**.
+
+## CRITICAL BUG FIXED (2026-03-28)
+
+- [x] **BF-1** AuthSessionRepository.completeStep() was sending flat data `{ voiceData: "..." }` instead of `{ data: { voiceData: "..." } }`. This broke ALL secondary auth methods through the multi-step flow. Fixed by wrapping data in { data }.
