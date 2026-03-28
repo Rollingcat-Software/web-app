@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-React 18 / TypeScript 5 admin dashboard for FIVUCSAS biometric identity platform.
+React 18 / TypeScript 5 / Vite 8 admin dashboard for FIVUCSAS biometric identity platform.
 Clean Architecture with InversifyJS dependency injection, Material-UI, Zod validation.
 
 ## Build & Run
