@@ -112,10 +112,16 @@ export default defineConfig(({ mode }) => ({
         chunkSizeWarningLimit: 500,
         rollupOptions: {
             output: {
-                manualChunks: {
-                    'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-                    'mui-vendor': ['@mui/material', '@mui/icons-material'],
-                    'redux-vendor': ['@reduxjs/toolkit', 'react-redux', 'redux-persist'],
+                manualChunks(id: string) {
+                    if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) {
+                        return 'react-vendor';
+                    }
+                    if (id.includes('node_modules/@mui/material') || id.includes('node_modules/@mui/icons-material')) {
+                        return 'mui-vendor';
+                    }
+                    if (id.includes('node_modules/@reduxjs/toolkit') || id.includes('node_modules/react-redux') || id.includes('node_modules/redux-persist')) {
+                        return 'redux-vendor';
+                    }
                 },
             },
         },

@@ -57,9 +57,13 @@ export default defineConfig({
         chunkSizeWarningLimit: 400,
         rollupOptions: {
             output: {
-                manualChunks: {
-                    'react-vendor': ['react', 'react-dom'],
-                    'mui-vendor': ['@mui/material', '@mui/icons-material'],
+                manualChunks(id: string) {
+                    if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
+                        return 'react-vendor';
+                    }
+                    if (id.includes('node_modules/@mui/material') || id.includes('node_modules/@mui/icons-material')) {
+                        return 'mui-vendor';
+                    }
                 },
             },
         },
