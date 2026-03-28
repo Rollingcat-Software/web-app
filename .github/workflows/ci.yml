@@ -3,12 +3,30 @@ name: CI
 on:
   push:
     branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package*.json'
+      - 'tsconfig*.json'
+      - 'vite.config.*'
+      - '.github/workflows/ci.yml'
   pull_request:
     branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'package*.json'
+      - 'tsconfig*.json'
+      - 'vite.config.*'
+      - '.github/workflows/ci.yml'
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-and-test:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
 
     strategy:
       matrix:
@@ -47,7 +65,7 @@ jobs:
           retention-days: 7
 
   code-quality:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, linux, x64]
 
     steps:
       - name: Checkout repository
