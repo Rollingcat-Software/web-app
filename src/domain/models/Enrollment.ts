@@ -141,7 +141,8 @@ export class Enrollment {
     /**
      * Create Enrollment from plain object (deserialization)
      */
-    static fromJSON(data: any): Enrollment {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    static fromJSON(data: Record<string, any>): Enrollment {
         // Map status - backend may return various status strings
         const statusMap: Record<string, EnrollmentStatus> = {
             'NOT_ENROLLED': EnrollmentStatus.NOT_ENROLLED,

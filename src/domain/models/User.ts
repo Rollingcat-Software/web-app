@@ -122,7 +122,8 @@ export class User {
      * Create User from plain object (deserialization)
      * SECURITY: Properly typed to prevent type confusion attacks
      */
-    static fromJSON(data: any): User {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    static fromJSON(data: Record<string, any>): User {
         // Backend sends role as string, map to enum
         const roleStr = (data.role ?? 'USER').toUpperCase()
         const roleMap: Record<string, UserRole> = {
