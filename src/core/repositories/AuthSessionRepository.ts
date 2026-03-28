@@ -44,6 +44,7 @@ export interface StepResultResponse {
     message?: string
     nextStepOrder?: number
     sessionCompleted: boolean
+    data?: Record<string, unknown>
 }
 
 export interface QrTokenResponse {
@@ -118,7 +119,7 @@ export class AuthSessionRepository {
 
             const response = await this.httpClient.post<StepResultResponse>(
                 `/auth/sessions/${sessionId}/steps/${stepOrder}`,
-                data
+                { data }
             )
 
             this.logger.info('Step completed', {

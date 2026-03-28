@@ -20,9 +20,16 @@ const itemVariants: Variants = {
     },
 }
 
+interface ChallengeResponse {
+    challenge: string
+    rpId?: string
+    timeout?: string
+}
+
 interface HardwareKeyStepProps {
     challenge?: string
     rpId?: string
+    onRequestChallenge?: () => Promise<ChallengeResponse | null>
     onSubmit: (data: {
         credentialId: string
         authenticatorData: string
@@ -43,8 +50,9 @@ function arrayBufferToBase64(buffer: ArrayBuffer): string {
 }
 
 export default function HardwareKeyStep({
-    challenge,
-    rpId,
+    challenge: challengeProp,
+    rpId: rpIdProp,
+    onRequestChallenge,
     onSubmit,
     loading,
     error,
@@ -61,6 +69,22 @@ export default function HardwareKeyStep({
                 setKeyError('WebAuthn is not supported in this browser.')
                 setWaiting(false)
                 return
+            }
+
+            // Determine challenge and rpId: prefer prop, then server, then random fallback
+            let challenge = challengeProp
+            let rpId = rpIdProp
+
+            if (!challenge && onRequestChallenge) {
+                try {
+                    const serverChallenge = await onRequestChallenge()
+                    if (serverChallenge?.challenge) {
+                        challenge = serverChallenge.challenge
+                        rpId = serverChallenge.rpId ?? rpId
+                    }
+                } catch {
+                    // Server challenge request failed; fall back to local random challenge
+                }
             }
 
             const challengeBytes = challenge
@@ -99,7 +123,7 @@ export default function HardwareKeyStep({
         } finally {
             setWaiting(false)
         }
-    }, [challenge, rpId, onSubmit])
+    }, [challengeProp, rpIdProp, onRequestChallenge, onSubmit])
 
     const isProcessing = loading || waiting
 

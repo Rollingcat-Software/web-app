@@ -368,7 +368,7 @@ export default function MultiStepAuthFlow({
             case 'FINGERPRINT':
                 return (
                     <FingerprintStep
-                        onSubmit={(data) => handleStepSubmit({ data })}
+                        onSubmit={(data) => handleStepSubmit({ fingerprintData: data })}
                         loading={loading}
                         error={error}
                     />
@@ -386,6 +386,22 @@ export default function MultiStepAuthFlow({
             case 'HARDWARE_KEY':
                 return (
                     <HardwareKeyStep
+                        onRequestChallenge={async () => {
+                            const result = await authSessionRepo.completeStep(
+                                sessionId,
+                                currentStep.stepOrder,
+                                { action: 'challenge' }
+                            )
+                            const data = result.data
+                            if (data && typeof data.challenge === 'string') {
+                                return {
+                                    challenge: data.challenge,
+                                    rpId: typeof data.rpId === 'string' ? data.rpId : undefined,
+                                    timeout: typeof data.timeout === 'string' ? data.timeout : undefined,
+                                }
+                            }
+                            return null
+                        }}
                         onSubmit={(data) => handleStepSubmit(data)}
                         loading={loading}
                         error={error}

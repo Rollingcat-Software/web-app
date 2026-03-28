@@ -20,13 +20,23 @@ const itemVariants: Variants = {
     },
 }
 
+function arrayBufferToBase64(buffer: ArrayBuffer): string {
+    const bytes = new Uint8Array(buffer)
+    let binary = ''
+    for (let i = 0; i < bytes.byteLength; i++) {
+        binary += String.fromCharCode(bytes[i])
+    }
+    return btoa(binary)
+}
+
 interface FingerprintStepProps {
+    challenge?: string
     onSubmit: (data: string) => void
     loading: boolean
     error?: string
 }
 
-export default function FingerprintStep({ onSubmit, loading, error }: FingerprintStepProps) {
+export default function FingerprintStep({ challenge, onSubmit, loading, error }: FingerprintStepProps) {
     const [waiting, setWaiting] = useState(false)
     const [unavailable, setUnavailable] = useState(false)
 
@@ -36,49 +46,53 @@ export default function FingerprintStep({ onSubmit, loading, error }: Fingerprin
 
         // Attempt to use WebAuthn platform authenticator (fingerprint/biometric)
         try {
-            if (window.PublicKeyCredential) {
-                const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                if (available) {
-                    const challenge = new Uint8Array(32)
-                    crypto.getRandomValues(challenge)
-
-                    const credential = await navigator.credentials.create({
-                        publicKey: {
-                            challenge,
-                            rp: { name: 'FIVUCSAS', id: window.location.hostname },
-                            user: {
-                                id: new Uint8Array(16),
-                                name: 'user',
-                                displayName: 'User',
-                            },
-                            pubKeyCredParams: [
-                                { type: 'public-key', alg: -7 },
-                                { type: 'public-key', alg: -257 },
-                            ],
-                            authenticatorSelection: {
-                                authenticatorAttachment: 'platform',
-                                userVerification: 'required',
-                            },
-                            timeout: 60000,
-                        },
-                    })
-
-                    if (credential) {
-                        onSubmit(btoa(JSON.stringify({ credentialId: credential.id })))
-                        return
-                    }
-                }
+            if (!window.PublicKeyCredential) {
+                setUnavailable(true)
+                setWaiting(false)
+                return
             }
 
-            // No WebAuthn platform authenticator available
-            setUnavailable(true)
-            setWaiting(false)
-            return
-        } catch (_err) {
-            // User cancelled or error occurred, reset waiting state
+            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+            if (!available) {
+                setUnavailable(true)
+                setWaiting(false)
+                return
+            }
+
+            const challengeBytes = challenge
+                ? Uint8Array.from(atob(challenge), (c) => c.charCodeAt(0))
+                : (() => {
+                      const arr = new Uint8Array(32)
+                      crypto.getRandomValues(arr)
+                      return arr
+                  })()
+
+            const credential = await navigator.credentials.get({
+                publicKey: {
+                    challenge: challengeBytes,
+                    rpId: window.location.hostname,
+                    userVerification: 'required',
+                    timeout: 60000,
+                },
+            })
+
+            if (credential && 'response' in credential) {
+                const assertionResponse = credential.response as AuthenticatorAssertionResponse
+
+                onSubmit(btoa(JSON.stringify({
+                    credentialId: credential.id,
+                    authenticatorData: arrayBufferToBase64(assertionResponse.authenticatorData),
+                    clientDataJSON: arrayBufferToBase64(assertionResponse.clientDataJSON),
+                    signature: arrayBufferToBase64(assertionResponse.signature),
+                })))
+            }
+        } catch (err) {
+            if (err instanceof DOMException && err.name === 'NotAllowedError') {
+                // User cancelled or timed out
+            }
             setWaiting(false)
         }
-    }, [onSubmit])
+    }, [challenge, onSubmit])
 
     const isProcessing = loading || waiting
 

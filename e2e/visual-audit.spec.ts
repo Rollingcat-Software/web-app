@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * FIVUCSAS Visual Audit - Comprehensive UI Testing
  * Tests every page, form, button, dialog, and interaction
