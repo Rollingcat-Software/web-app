@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -9,146 +9,25 @@ import {
     Typography,
 } from '@mui/material'
 import {
-    Email,
-    Face,
-    Fingerprint,
-    Key,
-    Mic,
-    Nfc,
-    PhonelinkLock,
-    QrCode2,
-    SmsOutlined,
     ArrowBack,
+    VerifiedUser,
 } from '@mui/icons-material'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { AuthMethodType } from '@domain/models/AuthMethod'
 import { EnrollmentStatus, type EnrollmentJSON } from '@domain/models/Enrollment'
-import MultiStepAuthFlow from './MultiStepAuthFlow'
+import { FivucsasAuth } from '@/verify-app/sdk/FivucsasAuth'
 import type { AuthSessionResponse } from '@core/repositories/AuthSessionRepository'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
-
-/**
- * Check which auth methods the current device can support
- */
-async function getDeviceSupportedMethods(): Promise<Set<string>> {
-    const supported = new Set<string>()
-
-    // Always-available methods (no hardware dependency)
-    supported.add(AuthMethodType.TOTP)
-    supported.add(AuthMethodType.EMAIL_OTP)
-    supported.add(AuthMethodType.SMS_OTP)
-    supported.add(AuthMethodType.PASSWORD)
-    supported.add(AuthMethodType.QR_CODE) // QR can be shown on screen
-
-    // Camera check (for face and QR)
-    try {
-        if (navigator.mediaDevices) {
-            const devices = await navigator.mediaDevices.enumerateDevices()
-            if (devices.some((d) => d.kind === 'videoinput')) {
-                supported.add(AuthMethodType.FACE)
-            }
-        }
-    } catch {
-        // no camera
-    }
-
-    // Microphone check (for voice)
-    try {
-        if (navigator.mediaDevices) {
-            const devices = await navigator.mediaDevices.enumerateDevices()
-            if (devices.some((d) => d.kind === 'audioinput')) {
-                supported.add(AuthMethodType.VOICE)
-            }
-        }
-    } catch {
-        // no microphone
-    }
-
-    // WebAuthn check
-    if (window.PublicKeyCredential) {
-        supported.add(AuthMethodType.HARDWARE_KEY)
-        try {
-            const platformAvailable = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-            if (platformAvailable) {
-                supported.add(AuthMethodType.FINGERPRINT)
-            }
-        } catch {
-            // no platform authenticator
-        }
-    }
-
-    // NFC check
-    if ('NDEFReader' in window) {
-        supported.add(AuthMethodType.NFC_DOCUMENT)
-    }
-
-    return supported
-}
 
 interface SecondaryAuthFlowProps {
     userId: string
     tenantId: string
     onComplete: () => void
     onSkip: () => void
-}
-
-interface EnrolledMethod {
-    type: string
-    label: string
-    icon: React.ReactNode
-    gradient: string
-}
-
-const METHOD_META: Record<string, { label: string; icon: React.ReactNode; gradient: string }> = {
-    [AuthMethodType.FACE]: {
-        label: 'Face Recognition',
-        icon: <Face sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #8b5cf6 0%, #06b6d4 100%)',
-    },
-    [AuthMethodType.FINGERPRINT]: {
-        label: 'Fingerprint',
-        icon: <Fingerprint sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-    },
-    [AuthMethodType.VOICE]: {
-        label: 'Voice Recognition',
-        icon: <Mic sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #ec4899 0%, #f43f5e 100%)',
-    },
-    [AuthMethodType.TOTP]: {
-        label: 'Authenticator App',
-        icon: <PhonelinkLock sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-    },
-    [AuthMethodType.EMAIL_OTP]: {
-        label: 'Email OTP',
-        icon: <Email sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #3b82f6 0%, #2563eb 100%)',
-    },
-    [AuthMethodType.SMS_OTP]: {
-        label: 'SMS OTP',
-        icon: <SmsOutlined sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-    },
-    [AuthMethodType.QR_CODE]: {
-        label: 'QR Code',
-        icon: <QrCode2 sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #64748b 0%, #475569 100%)',
-    },
-    [AuthMethodType.HARDWARE_KEY]: {
-        label: 'Hardware Key',
-        icon: <Key sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-    },
-    [AuthMethodType.NFC_DOCUMENT]: {
-        label: 'NFC Document',
-        icon: <Nfc sx={{ fontSize: 28, color: 'white' }} />,
-        gradient: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
-    },
 }
 
 interface AuthFlowListResponse {
@@ -169,8 +48,8 @@ interface AuthFlowListResponse {
  * 1. If the user has enrolled biometric methods
  * 2. If the tenant has a configured auth flow for LOGIN
  *
- * If a flow exists, it starts an auth session and uses MultiStepAuthFlow.
- * If no flow but enrollments exist, it shows a method selector.
+ * If a flow exists, it starts an auth session and uses the FIVUCSAS
+ * embeddable verify widget (dogfooding — our own platform uses its own widget).
  * If no enrollments, it calls onSkip to complete login immediately.
  */
 export default function SecondaryAuthFlow({
@@ -183,9 +62,10 @@ export default function SecondaryAuthFlow({
 
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
-    const [enrolledMethods, setEnrolledMethods] = useState<EnrolledMethod[]>([])
     const [authSession, setAuthSession] = useState<AuthSessionResponse | null>(null)
-    const [verifying, setVerifying] = useState(false)
+    const [widgetActive, setWidgetActive] = useState(false)
+    const containerRef = useRef<HTMLDivElement>(null)
+    const authInstanceRef = useRef<FivucsasAuth | null>(null)
 
     // Check enrollments and tenant auth flows
     useEffect(() => {
@@ -224,30 +104,6 @@ export default function SecondaryAuthFlow({
                     return
                 }
 
-                // Check device capabilities to filter methods
-                const deviceSupported = await getDeviceSupportedMethods()
-
-                // Map to display format, filtering out methods not supported by current device
-                const methods: EnrolledMethod[] = enrolled
-                    .map((e) => {
-                        const methodType = e.authMethodType ?? ''
-                        const meta = METHOD_META[methodType]
-                        if (!meta) return null
-                        // Only show methods the current device can handle
-                        if (!deviceSupported.has(methodType)) return null
-                        return {
-                            type: methodType,
-                            ...meta,
-                        }
-                    })
-                    .filter(Boolean) as EnrolledMethod[]
-
-                if (methods.length === 0) {
-                    // Device doesn't support any enrolled methods -- skip
-                    if (!cancelled) onSkip()
-                    return
-                }
-
                 // Step 2: Check if tenant has a configured auth flow for LOGIN
                 try {
                     const flowRes = await httpClient.get<AuthFlowListResponse[]>(
@@ -278,13 +134,11 @@ export default function SecondaryAuthFlow({
                         return
                     }
                 } catch {
-                    // No auth flow configured -- fall through to manual method selection
+                    // No auth flow configured -- skip secondary auth
                 }
 
-                if (!cancelled) {
-                    setEnrolledMethods(methods)
-                    setLoading(false)
-                }
+                // No auth flow configured and no manual fallback needed -- skip
+                if (!cancelled) onSkip()
             } catch (err) {
                 if (!cancelled) {
                     setError(
@@ -306,75 +160,67 @@ export default function SecondaryAuthFlow({
         }
     }, [userId, tenantId, httpClient, onSkip])
 
-    // Handle auth session completion
-    const handleSessionComplete = useCallback((_result?: { accessToken: string; userId: string }) => {
-        onComplete()
-    }, [onComplete])
+    // Launch the FIVUCSAS verify widget when auth session is ready and container is mounted
+    useEffect(() => {
+        if (!authSession || !containerRef.current || widgetActive) return
 
-    // Handle manual method selection and verification
-    const handleMethodSelect = useCallback(
-        async (_method: string) => {
-            setVerifying(true)
-            setError(null)
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
+        const baseUrl = window.location.origin + '/verify'
 
-            try {
-                // Start a single-step auth session for the selected method
-                const sessionRes = await httpClient.post<AuthSessionResponse>(
-                    '/auth/sessions',
-                    {
-                        tenantId,
-                        userId,
-                        operationType: 'APP_LOGIN',
-                    }
-                )
-                setAuthSession(sessionRes.data)
-            } catch (err) {
-                setError(
-                    err instanceof Error
-                        ? err.message
-                        : 'Failed to start verification session'
-                )
-                setVerifying(false)
+        const auth = new FivucsasAuth({
+            clientId: 'fivucsas-web-app',
+            baseUrl,
+            apiBaseUrl,
+            locale: (document.documentElement.lang as 'en' | 'tr') || 'en',
+            theme: { primaryColor: '#6366f1', borderRadius: '12px' },
+        })
+
+        authInstanceRef.current = auth
+        setWidgetActive(true)
+
+        auth.verify({
+            flow: 'login',
+            userId,
+            sessionId: authSession.sessionId,
+            container: containerRef.current,
+            onStepChange: (step) => {
+                if (import.meta.env.DEV) {
+                    console.log('[SecondaryAuth] Step change:', step)
+                }
+            },
+            onError: (err) => {
+                setError(err.message)
+                setWidgetActive(false)
+            },
+            onCancel: () => {
+                setWidgetActive(false)
+                onSkip()
+            },
+        }).then(() => {
+            // Verification complete
+            onComplete()
+        }).catch((err) => {
+            // Handle cancellation gracefully
+            if (err instanceof Error && err.message.includes('cancelled')) {
+                onSkip()
+            } else if (err instanceof Error && err.message.includes('destroyed')) {
+                // Component unmounted — no action needed
+            } else {
+                setError(err instanceof Error ? err.message : 'Verification failed')
+                setWidgetActive(false)
             }
-        },
-        [httpClient, tenantId, userId]
-    )
+        })
 
-    // If we have an active auth session, use MultiStepAuthFlow
-    if (authSession) {
-        return (
-            <Box
-                sx={{
-                    minHeight: '100vh',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    background:
-                        'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                    backgroundSize: '400% 400%',
-                    animation: 'gradientShift 15s ease infinite',
-                    '@keyframes gradientShift': {
-                        '0%': { backgroundPosition: '0% 50%' },
-                        '50%': { backgroundPosition: '100% 50%' },
-                        '100%': { backgroundPosition: '0% 50%' },
-                    },
-                    p: 2,
-                }}
-            >
-                <MultiStepAuthFlow
-                    sessionId={authSession.sessionId}
-                    steps={authSession.steps.map((s) => ({
-                        stepOrder: s.stepOrder,
-                        methodType: s.authMethodType,
-                        status: s.status,
-                        isRequired: s.isRequired,
-                    }))}
-                    onComplete={handleSessionComplete}
-                    onCancel={onSkip}
-                />
-            </Box>
-        )
-    }
+        return () => {
+            authInstanceRef.current?.destroy()
+            authInstanceRef.current = null
+        }
+    }, [authSession, userId, onComplete, onSkip, widgetActive])
+
+    const handleRetry = useCallback(() => {
+        setError(null)
+        setWidgetActive(false)
+    }, [])
 
     // Loading state
     if (loading) {
@@ -407,7 +253,7 @@ export default function SecondaryAuthFlow({
         )
     }
 
-    // Method selector (no auth flow configured, but user has enrollments)
+    // Widget view — embeds the FIVUCSAS verify-app inline
     return (
         <Box
             sx={{
@@ -415,6 +261,7 @@ export default function SecondaryAuthFlow({
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
+                flexDirection: 'column',
                 background:
                     'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
                 backgroundSize: '400% 400%',
@@ -462,86 +309,59 @@ export default function SecondaryAuthFlow({
                             color="text.secondary"
                             sx={{ mb: 3 }}
                         >
-                            Choose a verification method to complete your login
+                            Complete the verification steps below to sign in
                         </Typography>
 
                         {error && (
-                            <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+                            <Alert
+                                severity="error"
+                                sx={{ mb: 2, borderRadius: '12px' }}
+                                action={
+                                    <Button color="inherit" size="small" onClick={handleRetry}>
+                                        Retry
+                                    </Button>
+                                }
+                            >
                                 {error}
                             </Alert>
                         )}
 
-                        {/* Method list */}
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                            <AnimatePresence>
-                                {enrolledMethods.map((method, index) => (
-                                    <motion.div
-                                        key={method.type}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{
-                                            delay: index * 0.1,
-                                            duration: 0.3,
-                                            ease: easeOut,
-                                        }}
-                                    >
-                                        <Button
-                                            fullWidth
-                                            variant="outlined"
-                                            onClick={() =>
-                                                handleMethodSelect(method.type)
-                                            }
-                                            disabled={verifying}
-                                            sx={{
-                                                py: 1.5,
-                                                px: 2,
-                                                borderRadius: '14px',
-                                                justifyContent: 'flex-start',
-                                                gap: 2,
-                                                borderColor: 'divider',
-                                                textTransform: 'none',
-                                                '&:hover': {
-                                                    borderColor: 'primary.main',
-                                                    backgroundColor:
-                                                        'rgba(99, 102, 241, 0.04)',
-                                                },
-                                            }}
-                                        >
-                                            <Box
-                                                sx={{
-                                                    width: 44,
-                                                    height: 44,
-                                                    borderRadius: '12px',
-                                                    background: method.gradient,
-                                                    display: 'flex',
-                                                    alignItems: 'center',
-                                                    justifyContent: 'center',
-                                                    flexShrink: 0,
-                                                }}
-                                            >
-                                                {method.icon}
-                                            </Box>
-                                            <Typography
-                                                variant="body1"
-                                                fontWeight={600}
-                                                color="text.primary"
-                                            >
-                                                {method.label}
-                                            </Typography>
-                                        </Button>
-                                    </motion.div>
-                                ))}
-                            </AnimatePresence>
+                        {/* Verify widget container */}
+                        <Box
+                            ref={containerRef}
+                            sx={{
+                                minHeight: 300,
+                                borderRadius: '12px',
+                                overflow: 'hidden',
+                                border: '1px solid',
+                                borderColor: 'divider',
+                            }}
+                        />
+
+                        {/* "Secured by FIVUCSAS" badge */}
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: 0.5,
+                                mt: 2,
+                                opacity: 0.5,
+                            }}
+                        >
+                            <VerifiedUser sx={{ fontSize: 14, color: 'text.disabled' }} />
+                            <Typography variant="caption" color="text.disabled">
+                                Secured by FIVUCSAS
+                            </Typography>
                         </Box>
 
                         {/* Skip button */}
-                        <Box sx={{ textAlign: 'center', mt: 3 }}>
+                        <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button
                                 variant="text"
                                 size="small"
                                 onClick={onSkip}
                                 startIcon={<ArrowBack />}
-                                disabled={verifying}
                                 sx={{
                                     color: 'text.secondary',
                                     fontWeight: 500,

@@ -27,6 +27,7 @@ import {
     LockOutlined,
     EmailOutlined,
     ArrowForward,
+    VerifiedUser,
 } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -731,19 +732,25 @@ export default function LoginPage() {
                     </CardContent>
                 </Card>
 
-                {/* Footer */}
+                {/* Footer — "Secured by FIVUCSAS" badge */}
                 <motion.div variants={itemVariants}>
-                    <Typography
-                        variant="caption"
+                    <Box
                         sx={{
-                            display: 'block',
-                            textAlign: 'center',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: 0.5,
                             mt: 3,
-                            color: 'rgba(255, 255, 255, 0.8)',
                         }}
                     >
-                        Protected by enterprise-grade security
-                    </Typography>
+                        <VerifiedUser sx={{ fontSize: 14, color: 'rgba(255, 255, 255, 0.7)' }} />
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
+                        >
+                            Secured by FIVUCSAS
+                        </Typography>
+                    </Box>
                 </motion.div>
             </motion.div>
 

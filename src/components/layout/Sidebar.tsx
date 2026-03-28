@@ -29,6 +29,7 @@ import {
     Security,
     Settings,
     Shield,
+    Web,
 } from '@mui/icons-material'
 import {useTranslation} from 'react-i18next'
 import {useAuth} from '@features/auth/hooks/useAuth'
@@ -65,6 +66,7 @@ const menuItems: MenuItem[] = [
     {labelKey: 'nav.nfcEnrollment', icon: <Contactless/>, path: '/nfc-enrollment'},
     {labelKey: 'nav.auditLogs', icon: <Security/>, path: '/audit-logs', adminOnly: true},
     {labelKey: 'nav.analytics', icon: <Analytics/>, path: '/analytics', adminOnly: true},
+    {labelKey: 'nav.widgetDemo', icon: <Web/>, path: '/widget-demo'},
     {labelKey: 'nav.settings', icon: <Settings/>, path: '/settings'},
 ]
 

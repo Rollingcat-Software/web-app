@@ -63,6 +63,7 @@
     "nfcEnrollment": "NFC Enrollment",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
+    "widgetDemo": "Auth Widget",
     "settings": "Settings"
   },
   "topbar": {

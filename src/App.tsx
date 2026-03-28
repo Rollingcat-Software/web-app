@@ -21,6 +21,7 @@ const PAGE_TITLES: Record<string, string> = {
     '/face-search': 'Face Search — FIVUCSAS',
     '/voice-search': 'Voice Search — FIVUCSAS',
     '/nfc-enrollment': 'NFC Enrollment — FIVUCSAS',
+    '/widget-demo': 'Auth Widget — FIVUCSAS',
     '/audit-logs': 'Audit Logs — FIVUCSAS',
     '/analytics': 'Analytics — FIVUCSAS',
     '/guests': 'Guests — FIVUCSAS',
@@ -77,6 +78,7 @@ const CardDetectionPage = lazy(() => import('./pages/CardDetectionPage'))
 const FaceSearchPage = lazy(() => import('./pages/FaceSearchPage'))
 const VoiceSearchPage = lazy(() => import('./pages/VoiceSearchPage'))
 const NfcEnrollmentPage = lazy(() => import('./pages/NfcEnrollmentPage'))
+const WidgetDemoPage = lazy(() => import('./pages/WidgetDemoPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -171,6 +173,7 @@ function App() {
                     <Route path="face-search" element={<ErrorBoundary><FaceSearchPage /></ErrorBoundary>} />
                     <Route path="voice-search" element={<ErrorBoundary><VoiceSearchPage /></ErrorBoundary>} />
                     <Route path="nfc-enrollment" element={<ErrorBoundary><NfcEnrollmentPage /></ErrorBoundary>} />
+                    <Route path="widget-demo" element={<ErrorBoundary><WidgetDemoPage /></ErrorBoundary>} />
                     <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
                     <Route path="guests" element={<ErrorBoundary><GuestsPage /></ErrorBoundary>} />
                     <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
