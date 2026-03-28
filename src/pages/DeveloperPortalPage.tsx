@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
     Alert,
     Box,
@@ -32,10 +32,13 @@ import {
     VisibilityOff,
     Code,
     CheckCircle,
-    Warning,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
+import { useService } from '@app/providers'
+import { TYPES } from '@core/di/types'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { ILogger } from '@domain/interfaces/ILogger'
 import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -48,7 +51,7 @@ interface OAuth2App {
     id: string
     appName: string
     clientId: string
-    clientSecret: string // stored only in local state for demo
+    clientSecret?: string // only present in creation response
     redirectUris: string[]
     scopes: string[]
     status: 'ACTIVE' | 'INACTIVE'
@@ -60,15 +63,6 @@ const AVAILABLE_SCOPES = ['openid', 'profile', 'email', 'auth'] as const
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
-
-function generateId(prefix: string): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789'
-    let result = prefix
-    for (let i = 0; i < 32; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length))
-    }
-    return result
-}
 
 function maskClientId(clientId: string): string {
     if (clientId.length <= 12) return clientId
@@ -88,10 +82,14 @@ function formatDate(iso: string): string {
 // ---------------------------------------------------------------------------
 
 export default function DeveloperPortalPage() {
+    const httpClient = useService<IHttpClient>(TYPES.HttpClient)
+    const logger = useService<ILogger>(TYPES.Logger)
     const { t } = useTranslation()
 
-    // --- App state (local / mock) ---
+    // --- App state (from backend) ---
     const [apps, setApps] = useState<OAuth2App[]>([])
+    const [loading, setLoading] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     // Register dialog
     const [registerOpen, setRegisterOpen] = useState(false)
@@ -103,11 +101,12 @@ export default function DeveloperPortalPage() {
     // Credentials reveal dialog
     const [credentialsApp, setCredentialsApp] = useState<OAuth2App | null>(null)
 
-    // View secret
-    const [visibleSecrets, setVisibleSecrets] = useState<Record<string, boolean>>({})
+    // View secret (not functional for existing apps — secret is hashed server-side)
+    const [visibleSecrets] = useState<Record<string, boolean>>({})
 
     // Delete confirm
     const [deleteTarget, setDeleteTarget] = useState<OAuth2App | null>(null)
+    const [deleteLoading, setDeleteLoading] = useState(false)
 
     // Feedback
     const [success, setSuccess] = useState<string | null>(null)
@@ -117,6 +116,25 @@ export default function DeveloperPortalPage() {
         setSuccess(msg)
         setTimeout(() => setSuccess(null), 4000)
     }, [])
+
+    // --- Load apps from backend ---
+    const loadApps = useCallback(async () => {
+        setLoading(true)
+        setError(null)
+        try {
+            const res = await httpClient.get<OAuth2App[]>('/oauth2/clients')
+            setApps(res.data)
+        } catch (err) {
+            logger.error('Failed to load OAuth2 clients', err)
+            setError(t('developerPortal.loadFailed'))
+        } finally {
+            setLoading(false)
+        }
+    }, [httpClient, logger, t])
+
+    useEffect(() => {
+        loadApps()
+    }, [loadApps])
 
     // --- Copy to clipboard ---
     const handleCopy = useCallback(async (text: string, label: string) => {
@@ -129,57 +147,63 @@ export default function DeveloperPortalPage() {
         }
     }, [])
 
-    // --- Register new app (mock) ---
+    // --- Register new app (real API) ---
     const handleRegister = useCallback(async () => {
         setRegisterLoading(true)
-        // Simulate a network call
-        await new Promise((r) => setTimeout(r, 600))
+        try {
+            const res = await httpClient.post<OAuth2App>('/oauth2/clients', {
+                appName: appName.trim(),
+                redirectUris: redirectUris.trim(),
+                scopes: [...selectedScopes],
+            })
 
-        const newApp: OAuth2App = {
-            id: crypto.randomUUID?.() ?? generateId(''),
-            appName: appName.trim(),
-            clientId: generateId('fiv_'),
-            clientSecret: generateId('fiv_secret_'),
-            redirectUris: redirectUris
-                .split(',')
-                .map((u) => u.trim())
-                .filter(Boolean),
-            scopes: [...selectedScopes],
-            status: 'ACTIVE',
-            createdAt: new Date().toISOString(),
+            const newApp = res.data
+
+            // Prepend to list
+            setApps((prev) => [
+                { ...newApp, clientSecret: undefined },
+                ...prev.filter((a) => a.id !== newApp.id),
+            ])
+
+            setRegisterOpen(false)
+
+            // Reset form
+            setAppName('')
+            setRedirectUris('')
+            setSelectedScopes(['openid'])
+
+            // Show credentials (secret is in the creation response only)
+            setCredentialsApp(newApp)
+        } catch (err) {
+            logger.error('Failed to register OAuth2 client', err)
+            setError(t('developerPortal.registerFailed'))
+        } finally {
+            setRegisterLoading(false)
         }
+    }, [appName, redirectUris, selectedScopes, httpClient, logger, t])
 
-        setApps((prev) => [newApp, ...prev])
-        setRegisterLoading(false)
-        setRegisterOpen(false)
-
-        // Reset form
-        setAppName('')
-        setRedirectUris('')
-        setSelectedScopes(['openid'])
-
-        // Show credentials
-        setCredentialsApp(newApp)
-    }, [appName, redirectUris, selectedScopes])
-
-    // --- Delete app (mock) ---
-    const handleDelete = useCallback(() => {
+    // --- Delete app (real API) ---
+    const handleDelete = useCallback(async () => {
         if (!deleteTarget) return
-        setApps((prev) => prev.filter((a) => a.id !== deleteTarget.id))
-        setDeleteTarget(null)
-        showSuccess(t('developerPortal.deleteSuccess'))
-    }, [deleteTarget, showSuccess, t])
+        setDeleteLoading(true)
+        try {
+            await httpClient.delete(`/oauth2/clients/${deleteTarget.id}`)
+            setApps((prev) => prev.filter((a) => a.id !== deleteTarget.id))
+            setDeleteTarget(null)
+            showSuccess(t('developerPortal.deleteSuccess'))
+        } catch (err) {
+            logger.error('Failed to delete OAuth2 client', err)
+            setError(t('developerPortal.deleteFailed'))
+        } finally {
+            setDeleteLoading(false)
+        }
+    }, [deleteTarget, httpClient, logger, showSuccess, t])
 
     // --- Toggle scope ---
     const toggleScope = (scope: string) => {
         setSelectedScopes((prev) =>
             prev.includes(scope) ? prev.filter((s) => s !== scope) : [...prev, scope]
         )
-    }
-
-    // --- Toggle secret visibility ---
-    const toggleSecretVisibility = (id: string) => {
-        setVisibleSecrets((prev) => ({ ...prev, [id]: !prev[id] }))
     }
 
     // --- Quick Start code snippets ---
@@ -246,10 +270,11 @@ if (code) {
                     </Box>
                 </motion.div>
 
-                {/* --- Backend integration notice --- */}
-                <Alert severity="info" icon={<Warning />} sx={{ mb: 2 }}>
-                    {t('developerPortal.backendPending')}
-                </Alert>
+                {error && (
+                    <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>
+                        {error}
+                    </Alert>
+                )}
 
                 {success && (
                     <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>
@@ -257,8 +282,15 @@ if (code) {
                     </Alert>
                 )}
 
+                {/* --- Loading spinner --- */}
+                {loading && (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
+                        <CircularProgress />
+                    </Box>
+                )}
+
                 {/* --- Registered Apps Table --- */}
-                {apps.length === 0 ? (
+                {!loading && apps.length === 0 ? (
                     <Paper
                         sx={{
                             textAlign: 'center',
@@ -284,7 +316,7 @@ if (code) {
                             {t('developerPortal.registerApp')}
                         </Button>
                     </Paper>
-                ) : (
+                ) : !loading && (
                     <TableContainer
                         component={Paper}
                         elevation={0}
@@ -349,16 +381,18 @@ if (code) {
                                         <TableCell align="right">
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
                                                 <Tooltip title={t('developerPortal.viewSecret')}>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => toggleSecretVisibility(app.id)}
-                                                    >
-                                                        {visibleSecrets[app.id] ? (
-                                                            <VisibilityOff fontSize="small" />
-                                                        ) : (
-                                                            <Visibility fontSize="small" />
-                                                        )}
-                                                    </IconButton>
+                                                    <span>
+                                                        <IconButton
+                                                            size="small"
+                                                            disabled
+                                                        >
+                                                            {visibleSecrets[app.id] ? (
+                                                                <VisibilityOff fontSize="small" />
+                                                            ) : (
+                                                                <Visibility fontSize="small" />
+                                                            )}
+                                                        </IconButton>
+                                                    </span>
                                                 </Tooltip>
                                                 <Tooltip title={t('common.delete')}>
                                                     <IconButton
@@ -370,37 +404,6 @@ if (code) {
                                                     </IconButton>
                                                 </Tooltip>
                                             </Box>
-                                            {visibleSecrets[app.id] && (
-                                                <Box
-                                                    sx={{
-                                                        mt: 1,
-                                                        p: 1,
-                                                        bgcolor: 'action.hover',
-                                                        borderRadius: 1,
-                                                        textAlign: 'left',
-                                                    }}
-                                                >
-                                                    <Typography
-                                                        variant="caption"
-                                                        fontFamily="monospace"
-                                                        sx={{ wordBreak: 'break-all', fontSize: 11 }}
-                                                    >
-                                                        {app.clientSecret}
-                                                    </Typography>
-                                                    <IconButton
-                                                        size="small"
-                                                        onClick={() => handleCopy(app.clientSecret, 'secret')}
-                                                        sx={{ ml: 0.5 }}
-                                                    >
-                                                        <ContentCopy sx={{ fontSize: 14 }} />
-                                                    </IconButton>
-                                                    {copied === 'secret' && (
-                                                        <Typography variant="caption" color="success.main" sx={{ ml: 1 }}>
-                                                            Copied!
-                                                        </Typography>
-                                                    )}
-                                                </Box>
-                                            )}
                                         </TableCell>
                                     </TableRow>
                                 ))}
@@ -687,7 +690,7 @@ if (code) {
                                             <IconButton
                                                 size="small"
                                                 onClick={() =>
-                                                    handleCopy(credentialsApp.clientSecret, 'cred-secret')
+                                                    handleCopy(credentialsApp.clientSecret ?? '', 'cred-secret')
                                                 }
                                             >
                                                 <ContentCopy sx={{ fontSize: 16 }} />
@@ -722,7 +725,13 @@ if (code) {
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={() => setDeleteTarget(null)}>{t('common.cancel')}</Button>
-                        <Button variant="contained" color="error" onClick={handleDelete}>
+                        <Button
+                            variant="contained"
+                            color="error"
+                            onClick={handleDelete}
+                            disabled={deleteLoading}
+                            startIcon={deleteLoading ? <CircularProgress size={16} /> : undefined}
+                        >
                             {t('common.delete')}
                         </Button>
                     </DialogActions>
