@@ -356,7 +356,7 @@ if (code) {
                                                 >
                                                     {maskClientId(app.clientId)}
                                                 </Typography>
-                                                <Tooltip title={copied === app.clientId ? 'Copied!' : 'Copy Client ID'}>
+                                                <Tooltip title={copied === app.clientId ? t('developerPortal.copied') : t('developerPortal.copyClientId')}>
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => handleCopy(app.clientId, app.clientId)}
@@ -493,7 +493,7 @@ if (code) {
                             </Box>
                             {copied === 'script' && (
                                 <Typography variant="caption" color="success.main">
-                                    Copied to clipboard!
+                                    {t('developerPortal.copiedToClipboard')}
                                 </Typography>
                             )}
                         </Box>
@@ -540,7 +540,7 @@ if (code) {
                             </Box>
                             {copied === 'callback' && (
                                 <Typography variant="caption" color="success.main">
-                                    Copied to clipboard!
+                                    {t('developerPortal.copiedToClipboard')}
                                 </Typography>
                             )}
                         </Box>
@@ -635,7 +635,7 @@ if (code) {
                                 {/* Client ID */}
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Client ID
+                                        {t('developerPortal.clientId')}
                                     </Typography>
                                     <Box
                                         sx={{
@@ -654,7 +654,7 @@ if (code) {
                                         >
                                             {credentialsApp.clientId}
                                         </Typography>
-                                        <Tooltip title={copied === 'cred-id' ? 'Copied!' : 'Copy'}>
+                                        <Tooltip title={copied === 'cred-id' ? t('developerPortal.copied') : t('developerPortal.copy')}>
                                             <IconButton
                                                 size="small"
                                                 onClick={() =>
@@ -670,7 +670,7 @@ if (code) {
                                 {/* Client Secret */}
                                 <Box>
                                     <Typography variant="caption" color="text.secondary">
-                                        Client Secret
+                                        {t('developerPortal.clientSecret')}
                                     </Typography>
                                     <Box
                                         sx={{
@@ -691,7 +691,7 @@ if (code) {
                                         >
                                             {credentialsApp.clientSecret}
                                         </Typography>
-                                        <Tooltip title={copied === 'cred-secret' ? 'Copied!' : 'Copy'}>
+                                        <Tooltip title={copied === 'cred-secret' ? t('developerPortal.copied') : t('developerPortal.copy')}>
                                             <IconButton
                                                 size="small"
                                                 onClick={() =>

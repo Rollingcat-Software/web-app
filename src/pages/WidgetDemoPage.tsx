@@ -440,7 +440,7 @@ export default function WidgetDemoPage() {
                         setDemoStatus('error')
                     },
                     onCancel: () => {
-                        setDemoError('Verification cancelled by user')
+                        setDemoError(t('widgetDemo.verificationCancelled'))
                         setDemoStatus('cancelled')
                     },
                 })
@@ -459,7 +459,7 @@ export default function WidgetDemoPage() {
                 authRef.current = null
             }
         },
-        [user?.id],
+        [user?.id, t],
     )
 
     const handleStopDemo = useCallback(() => {
@@ -533,8 +533,7 @@ export default function WidgetDemoPage() {
                     <StatusIndicator status={demoStatus} />
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Try the widget in real time. The SDK communicates with the verify-app via
-                    postMessage and renders inside an isolated iframe.
+                    {t('widgetDemo.liveDemoDesc')}
                 </Typography>
 
                 <Box
@@ -563,14 +562,14 @@ export default function WidgetDemoPage() {
                                 },
                             }}
                         >
-                            Try Modal Demo
+                            {t('widgetDemo.tryModal')}
                         </Button>
                         <Typography
                             variant="caption"
                             color="text.secondary"
                             sx={{ display: { xs: 'none', sm: 'block' }, mt: 0.75, textAlign: 'center' }}
                         >
-                            Opens verification in a centered overlay
+                            {t('widgetDemo.tryModalHint')}
                         </Typography>
                     </Box>
                     <Box sx={{ flex: { xs: '1 1 auto', sm: '1 1 0' } }}>
@@ -582,14 +581,14 @@ export default function WidgetDemoPage() {
                             disabled={isRunning}
                             sx={{ py: 1.5, borderRadius: '10px' }}
                         >
-                            Try Inline Demo
+                            {t('widgetDemo.tryInline')}
                         </Button>
                         <Typography
                             variant="caption"
                             color="text.secondary"
                             sx={{ display: { xs: 'none', sm: 'block' }, mt: 0.75, textAlign: 'center' }}
                         >
-                            Embeds verification directly in the page below
+                            {t('widgetDemo.tryInlineHint')}
                         </Typography>
                     </Box>
                     {isRunning && (
@@ -602,7 +601,7 @@ export default function WidgetDemoPage() {
                                 onClick={handleStopDemo}
                                 sx={{ py: 1.5, borderRadius: '10px' }}
                             >
-                                Stop
+                                {t('widgetDemo.stop')}
                             </Button>
                         </Box>
                     )}
@@ -634,15 +633,15 @@ export default function WidgetDemoPage() {
                                 fontSize: '0.7rem',
                             }}
                         >
-                            Inline widget container
+                            {t('widgetDemo.inlineContainer')}
                         </Typography>
                     )}
                 </Box>
 
                 {demoResult && (
                     <Alert severity="success" sx={{ mt: 2, borderRadius: '8px' }}>
-                        <strong>Verification complete.</strong> Session: {demoResult.sessionId}.
-                        Methods: {demoResult.completedMethods.join(', ') || 'none'}.
+                        <strong>{t('widgetDemo.verificationComplete')}</strong> {t('widgetDemo.session')}: {demoResult.sessionId}.
+                        {t('widgetDemo.methods')}: {demoResult.completedMethods.join(', ') || t('widgetDemo.none')}.
                     </Alert>
                 )}
 
@@ -658,18 +657,17 @@ export default function WidgetDemoPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <AccountTree sx={{ color: 'primary.main' }} />
                     <Typography variant="h6" fontWeight={600}>
-                        Architecture
+                        {t('widgetDemo.architecture')}
                     </Typography>
                 </Box>
                 <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                    Three-layer architecture isolating sensitive biometric capture inside a sandboxed
-                    iframe. The host page never touches raw biometric data.
+                    {t('widgetDemo.architectureDesc')}
                 </Typography>
 
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, mb: 3 }}>
                     <ArchitectureLayer
-                        title="Layer 1 -- Developer API"
-                        subtitle="Your application integrates here"
+                        title={t('widgetDemo.layer1Title')}
+                        subtitle={t('widgetDemo.layer1Subtitle')}
                         items={[
                             'FivucsasAuth SDK',
                             'Web Component',
@@ -683,8 +681,8 @@ export default function WidgetDemoPage() {
                         <Typography variant="caption">postMessage</Typography>
                     </Box>
                     <ArchitectureLayer
-                        title="Layer 2 -- Orchestration"
-                        subtitle="Manages auth flow steps inside the iframe"
+                        title={t('widgetDemo.layer2Title')}
+                        subtitle={t('widgetDemo.layer2Subtitle')}
                         items={[
                             'Multi-Step Controller',
                             'Session Manager',
@@ -698,8 +696,8 @@ export default function WidgetDemoPage() {
                         <Typography variant="caption">Internal API calls</Typography>
                     </Box>
                     <ArchitectureLayer
-                        title="Layer 3 -- Secure Capture"
-                        subtitle="Biometric data stays within the sandboxed origin"
+                        title={t('widgetDemo.layer3Title')}
+                        subtitle={t('widgetDemo.layer3Subtitle')}
                         items={[
                             'Camera (Face)',
                             'Microphone (Voice)',
@@ -714,7 +712,7 @@ export default function WidgetDemoPage() {
                 <Divider sx={{ mb: 2 }} />
 
                 <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 1.5 }}>
-                    Supported Auth Methods
+                    {t('widgetDemo.supportedMethods')}
                 </Typography>
                 <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                     {AUTH_METHODS.map(({ name, icon }) => (
@@ -740,7 +738,7 @@ export default function WidgetDemoPage() {
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                     <Code sx={{ color: 'primary.main' }} />
                     <Typography variant="h6" fontWeight={600}>
-                        Integration Examples
+                        {t('widgetDemo.integrationExamples')}
                     </Typography>
                 </Box>
 
@@ -755,9 +753,9 @@ export default function WidgetDemoPage() {
                         '& .MuiTab-root': { textTransform: 'none', fontWeight: 600, minHeight: 40, fontSize: { xs: '0.8rem', sm: '0.875rem' } },
                     }}
                 >
-                    <Tab label="HTML / Script Tag" />
-                    <Tab label="JavaScript / TypeScript" />
-                    <Tab label="React" />
+                    <Tab label={t('widgetDemo.tabHtml')} />
+                    <Tab label={t('widgetDemo.tabJs')} />
+                    <Tab label={t('widgetDemo.tabReact')} />
                 </Tabs>
 
                 <Divider sx={{ mb: 2 }} />
@@ -765,31 +763,27 @@ export default function WidgetDemoPage() {
                 {activeTab === 0 && (
                     <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            The simplest integration. Drop the script tag and Web Component into any
-                            HTML page. No build tools required -- just a complete working page.
+                            {t('widgetDemo.htmlDesc')}
                         </Typography>
                         <CodeBlock code={SCRIPT_TAG_EXAMPLE} language="html" />
 
                         <Card variant="outlined" sx={{ mt: 2, p: 2, borderRadius: '8px' }}>
                             <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>
-                                Web Component Events
+                                {t('widgetDemo.webComponentEvents')}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" component="div">
                                 <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
                                     <li>
-                                        <code>fivucsas-complete</code> -- Verification succeeded
-                                        (detail: VerifyResult)
+                                        <code>fivucsas-complete</code> -- {t('widgetDemo.eventComplete')}
                                     </li>
                                     <li>
-                                        <code>fivucsas-error</code> -- An error occurred (detail: {'{'}{' '}
-                                        message {'}'})
+                                        <code>fivucsas-error</code> -- {t('widgetDemo.eventError')}
                                     </li>
                                     <li>
-                                        <code>fivucsas-cancel</code> -- User cancelled the flow
+                                        <code>fivucsas-cancel</code> -- {t('widgetDemo.eventCancel')}
                                     </li>
                                     <li>
-                                        <code>fivucsas-step-change</code> -- Step progress (detail:{' '}
-                                        {'{'} method, progress, total {'}'})
+                                        <code>fivucsas-step-change</code> -- {t('widgetDemo.eventStepChange')}
                                     </li>
                                 </Box>
                             </Typography>
@@ -800,34 +794,30 @@ export default function WidgetDemoPage() {
                 {activeTab === 1 && (
                     <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            Full programmatic control. Use the FivucsasAuth class directly for modal or
-                            inline embedding with promise-based completion.
+                            {t('widgetDemo.jsDesc')}
                         </Typography>
                         <CodeBlock code={PROGRAMMATIC_EXAMPLE} language="typescript" />
 
                         <Card variant="outlined" sx={{ mt: 2, p: 2, borderRadius: '8px' }}>
                             <Typography variant="subtitle2" fontWeight={600} sx={{ mb: 0.5 }}>
-                                Configuration Options
+                                {t('widgetDemo.configOptions')}
                             </Typography>
                             <Typography variant="body2" color="text.secondary" component="div">
                                 <Box component="ul" sx={{ m: 0, pl: 2.5 }}>
                                     <li>
-                                        <code>clientId</code> -- Your application identifier
-                                        (required)
+                                        <code>clientId</code> -- {t('widgetDemo.configClientId')}
                                     </li>
                                     <li>
-                                        <code>baseUrl</code> -- Verify app URL (default:
-                                        verify.fivucsas.com)
+                                        <code>baseUrl</code> -- {t('widgetDemo.configBaseUrl')}
                                     </li>
                                     <li>
-                                        <code>apiBaseUrl</code> -- Identity Core API URL
+                                        <code>apiBaseUrl</code> -- {t('widgetDemo.configApiBaseUrl')}
                                     </li>
                                     <li>
-                                        <code>locale</code> -- &apos;en&apos; or &apos;tr&apos;
+                                        <code>locale</code> -- {t('widgetDemo.configLocale')}
                                     </li>
                                     <li>
-                                        <code>theme</code> -- {'{'} primaryColor, borderRadius,
-                                        fontFamily, mode {'}'}
+                                        <code>theme</code> -- {t('widgetDemo.configTheme')}
                                     </li>
                                 </Box>
                             </Typography>
@@ -838,9 +828,7 @@ export default function WidgetDemoPage() {
                 {activeTab === 2 && (
                     <Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                            Complete React component with TypeScript types, error handling, and inline
-                            container support. This is the same pattern the FIVUCSAS dashboard uses
-                            internally.
+                            {t('widgetDemo.reactDesc')}
                         </Typography>
                         <CodeBlock code={REACT_EXAMPLE} language="tsx" />
                     </Box>
@@ -861,7 +849,7 @@ export default function WidgetDemoPage() {
             >
                 <VerifiedUser sx={{ fontSize: 14 }} />
                 <Typography variant="caption" color="text.secondary">
-                    FIVUCSAS dogfooding -- the platform consuming its own auth widget
+                    {t('widgetDemo.footer')}
                 </Typography>
             </Box>
         </Box>
