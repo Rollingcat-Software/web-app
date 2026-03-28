@@ -194,22 +194,26 @@ test.describe('Audit Logs Page', () => {
             await page.waitForLoadState('networkidle')
             await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
 
-            const actionTypeSelect = page.getByRole('combobox', { name: /action type/i })
+            // Use getByLabel for reliable MUI TextField select targeting
+            const actionTypeSelect = page.getByLabel(/action type/i)
             await actionTypeSelect.click()
 
-            // Select the first non-"ALL" option
-            const options = page.getByRole('option')
-            const count = await options.count()
-            if (count < 2) {
+            // Wait for dropdown options to render
+            await expect(page.getByRole('option', { name: /all actions/i })).toBeVisible({ timeout: 5000 })
+
+            // Select a specific action option (not a subheader)
+            // MUI ListSubheader renders as role="option" too, so nth(1) may hit a subheader
+            const userLoginOption = page.getByRole('option', { name: /^user login$/i })
+            if (await userLoginOption.count() === 0) {
                 await page.keyboard.press('Escape')
                 return
             }
+            const selectedLabel = await userLoginOption.textContent()
+            await userLoginOption.click()
 
-            const firstActionOption = options.nth(1)
-            const selectedLabel = await firstActionOption.textContent()
-            await firstActionOption.click()
-
-            await page.waitForTimeout(500)
+            // Wait for data to reload after filter change
+            await page.waitForLoadState('networkidle')
+            await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
 
             // After selecting a specific action, rows should only show that action or empty state
             const rowCount = await page.locator('tbody tr').count()
@@ -220,7 +224,8 @@ test.describe('Audit Logs Page', () => {
             }
 
             // Reset filter for next tests
-            await actionTypeSelect.click()
+            await page.getByLabel(/action type/i).click()
+            await expect(page.getByRole('option', { name: /all actions/i })).toBeVisible({ timeout: 5000 })
             await page.getByRole('option', { name: /all actions/i }).click()
 
             expect(typeof selectedLabel).toBe('string')
@@ -233,22 +238,27 @@ test.describe('Audit Logs Page', () => {
 
             const totalCount = await page.locator('tbody tr').count()
 
-            const actionTypeSelect = page.getByRole('combobox', { name: /action type/i })
+            // Use getByLabel for reliable MUI TextField select targeting
+            const actionTypeSelect = page.getByLabel(/action type/i)
 
             // Apply a filter
             await actionTypeSelect.click()
-            const options = page.getByRole('option')
-            if (await options.count() < 2) {
+            await expect(page.getByRole('option', { name: /all actions/i })).toBeVisible({ timeout: 5000 })
+            const userLoginOption = page.getByRole('option', { name: /^user login$/i })
+            if (await userLoginOption.count() === 0) {
                 await page.keyboard.press('Escape')
                 return
             }
-            await options.nth(1).click()
-            await page.waitForTimeout(300)
+            await userLoginOption.click()
+            await page.waitForLoadState('networkidle')
+            await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
 
             // Reset
-            await actionTypeSelect.click()
+            await page.getByLabel(/action type/i).click()
+            await expect(page.getByRole('option', { name: /all actions/i })).toBeVisible({ timeout: 5000 })
             await page.getByRole('option', { name: /all actions/i }).click()
-            await page.waitForTimeout(300)
+            await page.waitForLoadState('networkidle')
+            await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
 
             const restoredCount = await page.locator('tbody tr').count()
             expect(restoredCount).toBe(totalCount)

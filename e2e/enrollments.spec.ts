@@ -127,18 +127,22 @@ test.describe('Enrollments Page', () => {
             await page.goto(`${BASE_URL}/enrollments`)
             await page.waitForLoadState('networkidle')
 
+            // Wait for page to fully render (heading or table or empty state)
+            await expect(page.getByRole('heading', { name: /biometric enrollments/i })).toBeVisible({ timeout: 15000 })
+
             // The select has label "Status"
-            await expect(page.getByRole('combobox', { name: /status/i })).toBeVisible({ timeout: 10000 })
+            await expect(page.getByLabel(/status/i)).toBeVisible({ timeout: 10000 })
         })
 
         test('should list all status options in the dropdown', async ({ page }) => {
             await page.goto(`${BASE_URL}/enrollments`)
             await page.waitForLoadState('networkidle')
+            await expect(page.getByRole('heading', { name: /biometric enrollments/i })).toBeVisible({ timeout: 15000 })
 
-            await page.getByRole('combobox', { name: /status/i }).click()
+            await page.getByLabel(/status/i).click()
 
             await expect(page.getByRole('option', { name: /all statuses/i })).toBeVisible({ timeout: 5000 })
-            await expect(page.getByRole('option', { name: /success/i })).toBeVisible()
+            await expect(page.getByRole('option', { name: /enrolled/i })).toBeVisible()
             await expect(page.getByRole('option', { name: /pending/i })).toBeVisible()
             await expect(page.getByRole('option', { name: /processing/i })).toBeVisible()
             await expect(page.getByRole('option', { name: /failed/i })).toBeVisible()
@@ -147,16 +151,19 @@ test.describe('Enrollments Page', () => {
             await page.keyboard.press('Escape')
         })
 
-        test('should filter by SUCCESS status and show only success enrollments', async ({ page }) => {
+        test('should filter by ENROLLED status and show only enrolled enrollments', async ({ page }) => {
             await page.goto(`${BASE_URL}/enrollments`)
+            await page.waitForLoadState('networkidle')
+            await expect(page.getByRole('heading', { name: /biometric enrollments/i })).toBeVisible({ timeout: 15000 })
+            await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
+
+            await page.getByLabel(/status/i).click()
+            await expect(page.getByRole('option', { name: /enrolled/i })).toBeVisible({ timeout: 5000 })
+            await page.getByRole('option', { name: /^enrolled$/i }).click()
             await page.waitForLoadState('networkidle')
             await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
 
-            await page.getByRole('combobox', { name: /status/i }).click()
-            await page.getByRole('option', { name: /^success$/i }).click()
-            await page.waitForLoadState('networkidle')
-
-            // After filtering, every visible status chip should say "SUCCESS" or we get empty state
+            // After filtering, every visible status chip should say "ENROLLED" or we get empty state
             const rows = page.locator('tbody tr')
             const rowCount = await rows.count()
 
@@ -164,7 +171,7 @@ test.describe('Enrollments Page', () => {
                 // At least verify the first visible status chip
                 const firstStatusChip = rows.first().locator('[class*="MuiChip"]').first()
                 const chipText = await firstStatusChip.textContent()
-                expect(chipText?.toUpperCase()).toContain('SUCCESS')
+                expect(chipText?.toUpperCase()).toContain('ENROLLED')
             } else {
                 await expect(page.getByText(/no enrollments found/i)).toBeVisible()
             }
@@ -178,14 +185,18 @@ test.describe('Enrollments Page', () => {
             const totalCount = await page.locator('tbody tr').count()
 
             // Apply a filter
-            await page.getByRole('combobox', { name: /status/i }).click()
+            await page.getByLabel(/status/i).click()
+            await expect(page.getByRole('option', { name: /failed/i })).toBeVisible({ timeout: 5000 })
             await page.getByRole('option', { name: /failed/i }).click()
-            await page.waitForTimeout(500)
+            await page.waitForLoadState('networkidle')
+            await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
 
             // Reset to ALL
-            await page.getByRole('combobox', { name: /status/i }).click()
+            await page.getByLabel(/status/i).click()
+            await expect(page.getByRole('option', { name: /all statuses/i })).toBeVisible({ timeout: 5000 })
             await page.getByRole('option', { name: /all statuses/i }).click()
-            await page.waitForTimeout(500)
+            await page.waitForLoadState('networkidle')
+            await expect(page.locator('[role="progressbar"]')).toHaveCount(0, { timeout: 15000 })
 
             const restoredCount = await page.locator('tbody tr').count()
             expect(restoredCount).toBe(totalCount)
