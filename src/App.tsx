@@ -23,6 +23,9 @@ const PAGE_TITLES: Record<string, string> = {
     '/nfc-enrollment': 'NFC Enrollment — FIVUCSAS',
     '/widget-demo': 'Auth Widget — FIVUCSAS',
     '/developer-portal': 'Developer Portal — FIVUCSAS',
+    '/verification-flows': 'Verification Flows — FIVUCSAS',
+    '/verification-dashboard': 'Verification Dashboard — FIVUCSAS',
+    '/verification-sessions': 'Verification Session — FIVUCSAS',
     '/audit-logs': 'Audit Logs — FIVUCSAS',
     '/analytics': 'Analytics — FIVUCSAS',
     '/guests': 'Guests — FIVUCSAS',
@@ -81,6 +84,9 @@ const VoiceSearchPage = lazy(() => import('./pages/VoiceSearchPage'))
 const NfcEnrollmentPage = lazy(() => import('./pages/NfcEnrollmentPage'))
 const WidgetDemoPage = lazy(() => import('./pages/WidgetDemoPage'))
 const DeveloperPortalPage = lazy(() => import('./pages/DeveloperPortalPage'))
+const VerificationFlowBuilderPage = lazy(() => import('./pages/VerificationFlowBuilderPage'))
+const VerificationDashboardPage = lazy(() => import('./pages/VerificationDashboardPage'))
+const VerificationSessionDetailPage = lazy(() => import('./pages/VerificationSessionDetailPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -191,6 +197,9 @@ function App() {
                     <Route path="nfc-enrollment" element={<ErrorBoundary><NfcEnrollmentPage /></ErrorBoundary>} />
                     <Route path="widget-demo" element={<AdminRoute><ErrorBoundary><WidgetDemoPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="developer-portal" element={<AdminRoute><ErrorBoundary><DeveloperPortalPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="verification-flows" element={<AdminRoute><ErrorBoundary><VerificationFlowBuilderPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="verification-dashboard" element={<AdminRoute><ErrorBoundary><VerificationDashboardPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="verification-sessions/:id" element={<AdminRoute><ErrorBoundary><VerificationSessionDetailPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
                     <Route path="guests" element={<ErrorBoundary><GuestsPage /></ErrorBoundary>} />
                     <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />

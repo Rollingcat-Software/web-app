@@ -55,6 +55,9 @@ export const TYPES = {
     // Password
     PasswordService: Symbol.for('PasswordService'),
 
+    // Verification
+    VerificationRepository: Symbol.for('VerificationRepository'),
+
     // Validators
     UserValidator: Symbol.for('UserValidator'),
     AuthValidator: Symbol.for('AuthValidator'),

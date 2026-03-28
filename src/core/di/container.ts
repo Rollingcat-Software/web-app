@@ -42,6 +42,7 @@ import { AuthFlowRepository } from '@core/repositories/AuthFlowRepository'
 import { AuthSessionRepository } from '@core/repositories/AuthSessionRepository'
 import { DeviceRepository } from '@core/repositories/DeviceRepository'
 import { UserEnrollmentRepository } from '@core/repositories/UserEnrollmentRepository'
+import { VerificationRepository } from '@core/repositories/VerificationRepository'
 import { AuthService } from '@features/auth/services/AuthService'
 import { UserService } from '@features/users/services/UserService'
 import { TenantService } from '@features/tenants/services/TenantService'
@@ -109,6 +110,7 @@ container.bind<AuthFlowRepository>(TYPES.AuthFlowRepository).to(AuthFlowReposito
 container.bind<AuthSessionRepository>(TYPES.AuthSessionRepository).to(AuthSessionRepository).inSingletonScope()
 container.bind<DeviceRepository>(TYPES.DeviceRepository).to(DeviceRepository).inSingletonScope()
 container.bind<IUserEnrollmentRepository>(TYPES.UserEnrollmentRepository).to(UserEnrollmentRepository).inSingletonScope()
+container.bind<VerificationRepository>(TYPES.VerificationRepository).to(VerificationRepository).inSingletonScope()
 
 // Bind services
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService).inSingletonScope()
