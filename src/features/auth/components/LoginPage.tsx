@@ -510,10 +510,10 @@ export default function LoginPage() {
                                                             disabled={loading}
                                                             aria-label={showPassword ? 'Hide password' : 'Show password'}
                                                             sx={{
-                                                                color: '#64748b',
+                                                                color: 'action.active',
                                                                 '&:hover': {
-                                                                    backgroundColor: 'rgba(99, 102, 241, 0.08)',
-                                                                    color: '#6366f1',
+                                                                    backgroundColor: 'action.hover',
+                                                                    color: 'primary.main',
                                                                 },
                                                             }}
                                                         >

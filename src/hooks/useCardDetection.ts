@@ -63,7 +63,7 @@ export function useCardDetection(): UseCardDetectionReturn {
             const data = response.data
             const detectionResult: CardDetectionResult = {
                 detected: data.detected ?? data.success ?? false,
-                cardType: data.card_type ?? data.cardType ?? null,
+                cardType: data.class_name ?? data.card_type ?? data.cardType ?? null,
                 confidence: data.confidence ?? 0,
                 boundingBox: data.bounding_box ?? data.boundingBox ?? null,
                 message: data.message ?? (data.detected ? 'Card detected' : 'No card detected'),
