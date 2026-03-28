@@ -421,11 +421,18 @@ export default function WebAuthnEnrollment({
                                 <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
                                     Registration Complete!
                                 </Typography>
-                                <Typography variant="body2" color="text.secondary">
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                     {isPlatform
                                         ? 'Your device biometric has been registered. You can now use it for authentication.'
                                         : 'Your security key has been registered. You can now use it for authentication.'}
                                 </Typography>
+                                <Alert severity="success" variant="outlined" sx={{ textAlign: 'left' }}>
+                                    <Typography variant="body2">
+                                        <strong>How to verify it works:</strong> Next time you log in, choose{' '}
+                                        {isPlatform ? 'Fingerprint' : 'Hardware Key'} as your auth method. Your browser
+                                        will prompt you to use your {isPlatform ? 'biometric (Touch ID, Windows Hello, etc.)' : 'security key'}.
+                                    </Typography>
+                                </Alert>
                             </Box>
                         )}
 

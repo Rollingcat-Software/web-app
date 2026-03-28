@@ -21,12 +21,28 @@ export default function LivenessDetectionStep({ onComplete, onBack }: LivenessDe
     }, [requestAccess, requestChallenge])
 
     const handleStartLiveness = async () => {
+        // Verify camera is producing frames before starting
+        const testFrame = captureFrame()
+        if (!testFrame) {
+            // Camera not ready — re-request access
+            await requestAccess()
+            // Small delay for video to initialize
+            await new Promise((r) => setTimeout(r, 500))
+        }
+
         const livenessResult = await performLiveness(captureFrame)
         if (livenessResult?.passed) {
             // Capture a high-quality face frame immediately after liveness success
             const face = captureFrame()
             if (face) {
                 onComplete(livenessResult.token, livenessResult.score, face)
+            } else {
+                // Retry capture after short delay (mobile cameras may need time)
+                await new Promise((r) => setTimeout(r, 300))
+                const retryFace = captureFrame()
+                if (retryFace) {
+                    onComplete(livenessResult.token, livenessResult.score, retryFace)
+                }
             }
         }
     }
