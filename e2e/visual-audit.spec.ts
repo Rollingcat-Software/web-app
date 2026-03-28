@@ -7,6 +7,10 @@
 import { test, expect, Page } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
+import { fileURLToPath } from 'url'
+
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 const SESSION_FILE = path.join(__dirname, '.auth', 'session.json')
 const SCREENSHOT_DIR = path.join(__dirname, '..', 'test-results', 'visual-audit')
