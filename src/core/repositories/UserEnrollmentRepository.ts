@@ -37,7 +37,8 @@ export class UserEnrollmentRepository implements IUserEnrollmentRepository {
             formData.append('faceImage', data.faceImage, 'face.jpg')
             const response = await this.httpClient.post<UserEnrollmentStatusResponse>(
                 '/enrollment/submit',
-                formData
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             )
             this.logger.info('[UserEnrollmentRepo] POST /enrollment/submit → response', {
                 status: response.data.status,
@@ -101,9 +102,13 @@ export class UserEnrollmentRepository implements IUserEnrollmentRepository {
             frames.forEach((frame, index) => {
                 formData.append(`frame_${index}`, frame, `frame_${index}.jpg`)
             })
+            // Explicitly set Content-Type to multipart/form-data so Spring
+            // accepts the request (fixes 415 Unsupported Media Type).
+            // Axios will append the boundary parameter automatically.
             const response = await this.httpClient.post<LivenessResult>(
                 '/enrollment/liveness/verify',
-                formData
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } }
             )
             this.logger.info('[UserEnrollmentRepo] POST /enrollment/liveness/verify → response', {
                 passed: response.data.passed,
