@@ -145,8 +145,9 @@ test.describe('Users — Extended Tests', () => {
             await expect(page.getByLabel(/first name/i)).toBeVisible()
             await expect(page.getByLabel(/last name/i)).toBeVisible()
             await expect(page.getByLabel(/password/i)).toBeVisible()
-            await expect(page.getByLabel(/role/i)).toBeVisible()
-            await expect(page.getByLabel(/tenant/i)).toBeVisible()
+            // MUI Select fields use combobox role — Role select includes value in name ("Role User")
+            await expect(page.getByRole('combobox', { name: /^role/i })).toBeVisible()
+            await expect(page.getByRole('combobox', { name: /^tenant$/i })).toBeVisible()
         })
 
         test('should show Zod validation error for invalid email', async ({ page }) => {
