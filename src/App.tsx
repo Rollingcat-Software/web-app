@@ -133,6 +133,20 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
     return <>{children}</>
 }
 
+/**
+ * Admin Route Component
+ * Redirects non-admin users to the dashboard
+ */
+const AdminRoute = ({ children }: ProtectedRouteProps) => {
+    const { user } = useAuth()
+
+    if (!user?.isAdmin()) {
+        return <Navigate to="/" replace />
+    }
+
+    return <>{children}</>
+}
+
 function App() {
     return (
         <ErrorBoundary>
@@ -175,8 +189,8 @@ function App() {
                     <Route path="face-search" element={<ErrorBoundary><FaceSearchPage /></ErrorBoundary>} />
                     <Route path="voice-search" element={<ErrorBoundary><VoiceSearchPage /></ErrorBoundary>} />
                     <Route path="nfc-enrollment" element={<ErrorBoundary><NfcEnrollmentPage /></ErrorBoundary>} />
-                    <Route path="widget-demo" element={<ErrorBoundary><WidgetDemoPage /></ErrorBoundary>} />
-                    <Route path="developer-portal" element={<ErrorBoundary><DeveloperPortalPage /></ErrorBoundary>} />
+                    <Route path="widget-demo" element={<AdminRoute><ErrorBoundary><WidgetDemoPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="developer-portal" element={<AdminRoute><ErrorBoundary><DeveloperPortalPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
                     <Route path="guests" element={<ErrorBoundary><GuestsPage /></ErrorBoundary>} />
                     <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />

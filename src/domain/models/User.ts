@@ -62,10 +62,10 @@ export class User {
     }
 
     /**
-     * Check if user is admin (ADMIN or SUPER_ADMIN)
+     * Check if user is admin (ADMIN, TENANT_ADMIN, or SUPER_ADMIN)
      */
     isAdmin(): boolean {
-        return this.role === UserRole.ADMIN || this.role === UserRole.SUPER_ADMIN
+        return this.role === UserRole.ADMIN || this.role === UserRole.TENANT_ADMIN || this.role === UserRole.SUPER_ADMIN
     }
 
     /**

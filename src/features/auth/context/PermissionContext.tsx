@@ -39,7 +39,7 @@ export function PermissionProvider({ children }: PermissionProviderProps) {
             permissions,
             role,
             isSuperAdmin: role === 'SUPER_ADMIN',
-            isAdmin: role === 'SUPER_ADMIN' || role === 'ADMIN',
+            isAdmin: role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'TENANT_ADMIN',
             hasPermission: (permission: Permission) => permissions.includes(permission),
             hasAnyPermission: (perms: Permission[]) =>
                 perms.some((p) => permissions.includes(p)),
