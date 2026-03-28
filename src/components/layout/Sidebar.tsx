@@ -27,6 +27,7 @@ import {
     PersonAdd,
     RecordVoiceOver,
     Security,
+    Code,
     Settings,
     Shield,
     Web,
@@ -67,6 +68,7 @@ const menuItems: MenuItem[] = [
     {labelKey: 'nav.auditLogs', icon: <Security/>, path: '/audit-logs', adminOnly: true},
     {labelKey: 'nav.analytics', icon: <Analytics/>, path: '/analytics', adminOnly: true},
     {labelKey: 'nav.widgetDemo', icon: <Web/>, path: '/widget-demo'},
+    {labelKey: 'nav.developerPortal', icon: <Code/>, path: '/developer-portal', adminOnly: true},
     {labelKey: 'nav.settings', icon: <Settings/>, path: '/settings'},
 ]
 
