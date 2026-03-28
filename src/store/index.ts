@@ -9,7 +9,10 @@ import {
     REGISTER,
     REHYDRATE,
 } from 'redux-persist'
-import storage from 'redux-persist/lib/storage'
+import storageModule from 'redux-persist/lib/storage'
+
+// Vite 8/Rolldown CJS interop: the module may be { default: storage } or storage directly
+const storage = (storageModule as any).default || storageModule
 
 /**
  * Minimal Redux store
