@@ -377,6 +377,12 @@ export default function WebAuthnEnrollment({
                                     sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                 />
 
+                                {!isPlatform && (
+                                    <Alert severity="info" sx={{ mb: 3 }}>
+                                        This requires a FIDO2/WebAuthn compatible security key such as YubiKey, Google Titan, or SoloKey. Regular USB drives will not work. If you don't have a hardware key, use Fingerprint enrollment instead — it uses your device's built-in biometric (Touch ID, Windows Hello, Android fingerprint).
+                                    </Alert>
+                                )}
+
                                 <Button
                                     fullWidth
                                     variant="contained"

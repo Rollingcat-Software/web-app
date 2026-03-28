@@ -16,6 +16,7 @@ import {
     Skeleton,
     TextField,
     Typography,
+    Collapse,
     Divider,
     Link,
 } from '@mui/material'
@@ -27,6 +28,7 @@ import {
     LockOutlined,
     EmailOutlined,
     ArrowForward,
+    ExpandMore,
     VerifiedUser,
 } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
@@ -133,6 +135,7 @@ export default function LoginPage() {
     const [faceError, setFaceError] = useState<string | null>(null)
     const [pageReady, setPageReady] = useState(false)
     const [showSecondaryAuth, setShowSecondaryAuth] = useState(false)
+    const [showMoreLoginOptions, setShowMoreLoginOptions] = useState(false)
 
     // Mark page ready after initial render
     useEffect(() => {
@@ -616,17 +619,46 @@ export default function LoginPage() {
                             </motion.div>
                         </form>
 
-                        {/* Divider */}
+                        {/* More login options toggle */}
                         <motion.div variants={itemVariants}>
-                            <Divider sx={{ my: 3 }}>
+                            <Box sx={{ textAlign: 'center', mt: 2 }}>
+                                <Link
+                                    component="button"
+                                    type="button"
+                                    variant="body2"
+                                    underline="hover"
+                                    onClick={() => setShowMoreLoginOptions(!showMoreLoginOptions)}
+                                    sx={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 0.5,
+                                        color: 'text.secondary',
+                                        cursor: 'pointer',
+                                        fontWeight: 500,
+                                        '&:hover': { color: 'primary.main' },
+                                    }}
+                                >
+                                    More login options
+                                    <ExpandMore
+                                        sx={{
+                                            fontSize: 18,
+                                            transition: 'transform 0.3s ease',
+                                            transform: showMoreLoginOptions ? 'rotate(180deg)' : 'rotate(0deg)',
+                                        }}
+                                    />
+                                </Link>
+                            </Box>
+                        </motion.div>
+
+                        <Collapse in={showMoreLoginOptions} timeout={300}>
+                            {/* Divider */}
+                            <Divider sx={{ my: 2 }}>
                                 <Typography variant="caption" color="text.secondary">
                                     Or continue with
                                 </Typography>
                             </Divider>
-                        </motion.div>
 
-                        {/* Face Login Button */}
-                        <motion.div variants={itemVariants}>
+                            {/* Face Login Button */}
                             <Button
                                 fullWidth
                                 variant="outlined"
@@ -651,10 +683,8 @@ export default function LoginPage() {
                             >
                                 Login with Face ID
                             </Button>
-                        </motion.div>
 
-                        {/* Supported auth methods (informational) */}
-                        <motion.div variants={itemVariants}>
+                            {/* Supported auth methods (informational) */}
                             <Typography
                                 variant="caption"
                                 sx={{
@@ -666,7 +696,7 @@ export default function LoginPage() {
                             >
                                 Supports Face ID, Fingerprint, and QR Code authentication
                             </Typography>
-                        </motion.div>
+                        </Collapse>
 
                         {/* Register Link */}
                         <motion.div variants={itemVariants}>
