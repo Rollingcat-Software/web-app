@@ -50,9 +50,9 @@ test.describe('Login Page Audit', () => {
         await page.waitForLoadState('networkidle')
         await screenshotPage(page, '01-login-page')
 
-        // Check all elements
-        await expect(page.getByPlaceholder(/email/i)).toBeVisible()
-        await expect(page.getByPlaceholder(/password/i)).toBeVisible()
+        // Check all elements (MUI TextFields use labels, not placeholders)
+        await expect(page.locator('input[name="email"]')).toBeVisible()
+        await expect(page.locator('input[name="password"]')).toBeVisible()
         await expect(page.getByRole('button', { name: /sign in|login|log in/i })).toBeVisible()
 
         // Test empty form submission
@@ -64,8 +64,8 @@ test.describe('Login Page Audit', () => {
     test('login page - invalid credentials', async ({ page }) => {
         await page.goto('/login')
         await page.waitForLoadState('networkidle')
-        await page.getByPlaceholder(/email/i).fill('wrong@email.com')
-        await page.getByPlaceholder(/password/i).fill('WrongPassword123!')
+        await page.locator('input[name="email"]').fill('wrong@email.com')
+        await page.locator('input[name="password"]').fill('WrongPassword123!')
         await page.getByRole('button', { name: /sign in|login|log in/i }).click()
         await page.waitForTimeout(3000)
         await screenshotPage(page, '01-login-invalid-credentials')
@@ -74,8 +74,8 @@ test.describe('Login Page Audit', () => {
     test('login page - successful login', async ({ page }) => {
         await page.goto('/login')
         await page.waitForLoadState('networkidle')
-        await page.getByPlaceholder(/email/i).fill('admin@fivucsas.local')
-        await page.getByPlaceholder(/password/i).fill('Test@123')
+        await page.locator('input[name="email"]').fill('admin@fivucsas.local')
+        await page.locator('input[name="password"]').fill('Test@123')
         await page.getByRole('button', { name: /sign in|login|log in/i }).click()
         await page.waitForTimeout(3000)
         await screenshotPage(page, '01-login-success-redirect')

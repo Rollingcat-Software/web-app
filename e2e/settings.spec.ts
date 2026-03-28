@@ -269,11 +269,13 @@ test.describe('Settings Page', () => {
     // Appearance section
     // -------------------------------------------------------------------------
 
-    test('appearance section: dark mode toggle is visible', async ({ page }) => {
+    test('appearance section: compact view toggle is present (dark mode removed, TopBar only)', async ({ page }) => {
+        // Dark mode toggle was removed from Settings page — TopBar is authoritative
+        // Verify the appearance section renders with Compact View instead
         await page.goto(`${BASE_URL}/settings`)
         await page.waitForLoadState('networkidle')
 
-        await expect(page.getByText(/dark mode/i)).toBeVisible({ timeout: 15000 })
+        await expect(page.getByText(/compact view/i)).toBeVisible({ timeout: 15000 })
     })
 
     test('appearance section: compact view toggle is visible', async ({ page }) => {

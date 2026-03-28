@@ -165,9 +165,18 @@ test.describe('Global Navigation', () => {
     // Logout flow
     // -------------------------------------------------------------------------
 
-    test('logout: clicking Logout redirects to /login', async ({ page }) => {
-        await page.goto(`${BASE_URL}/`)
-        await page.waitForLoadState('networkidle')
+    test('logout: clicking Logout redirects to /login', async ({ browser }) => {
+        // Use a fresh context with its own login so the shared session token
+        // is NOT blacklisted by the backend logout endpoint.
+        const ctx = await browser.newContext()
+        const page = await ctx.newPage()
+
+        // Login with a fresh token
+        await page.goto(`${BASE_URL}/login`)
+        await page.locator('input[name="email"]').fill('admin@fivucsas.local')
+        await page.locator('input[name="password"]').fill('Test@123')
+        await page.getByRole('button', { name: /sign in/i }).click()
+        await expect(page.getByRole('button', { name: 'Users' })).toBeVisible({ timeout: 15000 })
 
         const avatarBtn = page.getByRole('button', { name: /user menu/i })
         await expect(avatarBtn).toBeVisible({ timeout: 15000 })
@@ -180,6 +189,7 @@ test.describe('Global Navigation', () => {
 
         // After logout the app navigates to /login
         await expect(page).toHaveURL(/login/, { timeout: 10000 })
+        await ctx.close()
     })
 
     // -------------------------------------------------------------------------
