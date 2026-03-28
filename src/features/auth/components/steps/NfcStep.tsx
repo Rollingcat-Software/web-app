@@ -107,9 +107,9 @@ export default function NfcStep({ error }: NfcStepProps) {
 
             <motion.div variants={itemVariants}>
                 <Alert severity="warning" sx={{ borderRadius: '12px' }}>
-                    NFC document scanning is not available on this device.
-                    This feature requires a mobile device with NFC capability.
-                    Please use a supported mobile device to complete this authentication step.
+                    NFC document scanning requires Chrome on Android. Please open this
+                    page in Chrome on your Android device to complete this authentication
+                    step.
                 </Alert>
             </motion.div>
 
@@ -125,9 +125,10 @@ export default function NfcStep({ error }: NfcStepProps) {
                     }}
                 >
                     <Typography variant="caption" color="text.secondary" display="block">
-                        Supported documents: National ID cards, passports, and residence
-                        permits with NFC chips. Available on Android devices with NFC support
-                        and iPhones (iPhone 7 and later).
+                        Web NFC is only supported in Chrome for Android. Desktop browsers
+                        (including Brave, Firefox, and Safari) and iOS do not support this
+                        API. Supported documents: National ID cards, passports, and
+                        residence permits with NFC chips.
                     </Typography>
                 </Box>
             </motion.div>

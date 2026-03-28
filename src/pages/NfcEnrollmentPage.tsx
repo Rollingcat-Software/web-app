@@ -18,6 +18,7 @@ import {
     VerifiedUser,
 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@features/auth/hooks/useAuth'
 
 /**
  * Check if Web NFC API is available (Chrome on Android only).
@@ -34,6 +35,8 @@ interface NfcResult {
 
 export default function NfcEnrollmentPage() {
     const { t } = useTranslation()
+    const { user } = useAuth()
+    const isAdmin = user?.isAdmin() ?? false
     const nfcSupported = isWebNfcSupported()
 
     const [serialNumber, setSerialNumber] = useState<string | null>(null)
@@ -165,13 +168,13 @@ export default function NfcEnrollmentPage() {
                         <Typography variant="body1" color="text.secondary" sx={{ mb: 2, maxWidth: 500, mx: 'auto' }}>
                             {t(
                                 'nfc.unsupportedDescription',
-                                'Web NFC is only supported on Chrome for Android. To enroll or manage NFC cards, please use the FIVUCSAS mobile app.'
+                                'NFC document scanning requires Chrome on Android. Desktop browsers (including Brave, Firefox, and Safari) and iOS do not support the Web NFC API.'
                             )}
                         </Typography>
                         <Alert severity="info" sx={{ maxWidth: 500, mx: 'auto' }}>
                             {t(
                                 'nfc.unsupportedHint',
-                                'Tip: Open this page on Chrome for Android with NFC enabled to use browser-based NFC enrollment.'
+                                'Tip: Open this page in Chrome on your Android device with NFC enabled to scan and save your NFC card.'
                             )}
                         </Alert>
                     </CardContent>
@@ -186,7 +189,9 @@ export default function NfcEnrollmentPage() {
                 <Contactless /> {t('nfc.title', 'NFC Enrollment')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                {t('nfc.subtitle', 'Scan an NFC card to enroll, verify, or search for its owner.')}
+                {isAdmin
+                    ? t('nfc.subtitleAdmin', 'Scan an NFC card to enroll, verify, or search for its owner.')
+                    : t('nfc.subtitle', 'Scan and save your NFC-enabled ID card for authentication.')}
             </Typography>
 
             {scanError && (
@@ -257,6 +262,7 @@ export default function NfcEnrollmentPage() {
                             </Button>
                         )}
 
+
                         {scanning && (
                             <Button
                                 variant="outlined"
@@ -275,26 +281,30 @@ export default function NfcEnrollmentPage() {
                                     onClick={() => doNfcAction('enroll')}
                                     disabled={actionLoading !== null}
                                 >
-                                    {t('nfc.enrollButton', 'Enroll This Card')}
+                                    {t('nfc.enrollButton', 'Scan & Save Card')}
                                 </Button>
-                                <Button
-                                    variant="contained"
-                                    color="primary"
-                                    startIcon={actionLoading === 'verify' ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <VerifiedUser />}
-                                    onClick={() => doNfcAction('verify')}
-                                    disabled={actionLoading !== null}
-                                >
-                                    {t('nfc.verifyButton', 'Verify Card')}
-                                </Button>
-                                <Button
-                                    variant="contained"
-                                    color="secondary"
-                                    startIcon={actionLoading === 'search' ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <PersonSearch />}
-                                    onClick={() => doNfcAction('search')}
-                                    disabled={actionLoading !== null}
-                                >
-                                    {t('nfc.searchButton', "Whose Card?")}
-                                </Button>
+                                {isAdmin && (
+                                    <Button
+                                        variant="contained"
+                                        color="primary"
+                                        startIcon={actionLoading === 'verify' ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <VerifiedUser />}
+                                        onClick={() => doNfcAction('verify')}
+                                        disabled={actionLoading !== null}
+                                    >
+                                        {t('nfc.verifyButton', 'Verify Card')}
+                                    </Button>
+                                )}
+                                {isAdmin && (
+                                    <Button
+                                        variant="contained"
+                                        color="secondary"
+                                        startIcon={actionLoading === 'search' ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <PersonSearch />}
+                                        onClick={() => doNfcAction('search')}
+                                        disabled={actionLoading !== null}
+                                    >
+                                        {t('nfc.searchButton', "Whose Card?")}
+                                    </Button>
+                                )}
                                 <Button
                                     variant="outlined"
                                     startIcon={<Refresh />}
