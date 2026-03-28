@@ -25,6 +25,7 @@ import {
     sendCancel,
     sendError,
     onParentMessage,
+    setParentOrigin,
 } from './postMessageBridge'
 import { useResizeObserver } from './useResizeObserver'
 
@@ -78,6 +79,9 @@ export default function VerifyApp() {
     useEffect(() => {
         return onParentMessage((msg) => {
             if (msg.type === 'fivucsas:config') {
+                if (msg.payload.allowedOrigin) {
+                    setParentOrigin(msg.payload.allowedOrigin)
+                }
                 if (msg.payload.theme) setThemeMode(msg.payload.theme)
                 if (msg.payload.locale) {
                     // i18n language change if needed

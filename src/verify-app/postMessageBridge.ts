@@ -36,14 +36,22 @@ export type InboundMessage = ParentConfigMessage
 // ─── Send to Parent ──────────────────────────────────────────────
 
 /**
+ * Stores the allowed origin received from the parent's config message.
+ * When set, postMessage will be restricted to this origin instead of '*'.
+ */
+let parentOrigin: string = '*'
+
+export function setParentOrigin(origin: string): void {
+    parentOrigin = origin
+}
+
+/**
  * Send a message to the parent window (if we are embedded).
  * In standalone mode (window.parent === window), this is a no-op.
  */
 export function sendToParent(msg: VerifyMessage): void {
     if (window.parent !== window) {
-        // In production, restrict targetOrigin to the allowed origin
-        // configured by the parent. For now, '*' is used during development.
-        window.parent.postMessage(msg, '*')
+        window.parent.postMessage(msg, parentOrigin)
     }
 }
 

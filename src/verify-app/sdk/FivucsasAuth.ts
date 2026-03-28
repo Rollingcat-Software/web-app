@@ -211,7 +211,7 @@ export class FivucsasAuth {
             'allow',
             "camera 'src'; microphone 'src'; publickey-credentials-get 'src'"
         );
-        iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin');
+        iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin allow-popups allow-modals');
         iframe.setAttribute('title', 'FIVUCSAS Identity Verification');
         container.appendChild(iframe);
         return iframe;
@@ -252,13 +252,16 @@ export class FivucsasAuth {
 
     private buildIframeUrl(options: VerifyOptions): string {
         const url = new URL(this.config.baseUrl);
-        url.searchParams.set('clientId', this.config.clientId);
+        // Use snake_case params to match VerifyApp's parseUrlParams()
+        url.searchParams.set('client_id', this.config.clientId);
 
         if (options.flow) url.searchParams.set('flow', options.flow);
-        if (options.userId) url.searchParams.set('userId', options.userId);
-        if (options.sessionId) url.searchParams.set('sessionId', options.sessionId);
+        if (options.userId) url.searchParams.set('user_id', options.userId);
+        if (options.sessionId) url.searchParams.set('session_id', options.sessionId);
         if (options.methods?.length) url.searchParams.set('methods', options.methods.join(','));
         if (this.config.locale) url.searchParams.set('locale', this.config.locale);
+        if (this.config.apiBaseUrl) url.searchParams.set('api_base_url', this.config.apiBaseUrl);
+        if (this.config.theme?.mode) url.searchParams.set('theme', this.config.theme.mode);
 
         return url.toString();
     }
