@@ -51,10 +51,10 @@ export function useLiveness(): UseLivenessReturn {
             abortRef.current = false
 
             try {
-                // Capture frames at ~200ms intervals for ~3 seconds
+                // Capture 3 frames at ~500ms intervals (backend accepts frame_0, frame_1, frame_2)
                 const frames: Blob[] = []
-                const captureCount = 15
-                const interval = 200
+                const captureCount = 3
+                const interval = 500
 
                 for (let i = 0; i < captureCount; i++) {
                     if (abortRef.current) return null

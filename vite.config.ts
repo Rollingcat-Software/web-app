@@ -29,7 +29,7 @@ function cspPlugin(): Plugin {
                         "font-src 'self' https://fonts.gstatic.com",
                         "img-src 'self' data: https:",
                         "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*",
-                        "frame-ancestors 'none'",
+                        "frame-ancestors 'self'",
                         "base-uri 'self'",
                         "form-action 'self'",
                     ].join('; ')
@@ -37,7 +37,7 @@ function cspPlugin(): Plugin {
 
                 // SECURITY: Additional security headers
                 res.setHeader('X-Content-Type-Options', 'nosniff')
-                res.setHeader('X-Frame-Options', 'DENY')
+                res.setHeader('X-Frame-Options', 'SAMEORIGIN')
                 res.setHeader('X-XSS-Protection', '1; mode=block')
                 res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
                 res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
