@@ -54,6 +54,9 @@ import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { AuditLog } from '@domain/models/AuditLog'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { container } from '@core/di/container'
+import { TYPES } from '@core/di/types'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 
 // Bezier easing
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -286,18 +289,28 @@ function UserDashboardContent() {
     const navigate = useNavigate()
     const userId = user?.id ?? ''
     const { enrollments, loading: enrollmentsLoading } = useUserEnrollments(userId)
-    const { auditLogs, loading: logsLoading } = useAuditLogs({ userId })
 
-    // Filter login-related logs for "Recent Login Activity"
+    // Fetch audit logs directly with error suppression — avoids 403 for non-admin users
     const [loginLogs, setLoginLogs] = useState<AuditLog[]>([])
+    const [logsLoading, setLogsLoading] = useState(true)
+
     useEffect(() => {
-        if (auditLogs.length > 0) {
-            const logins = auditLogs
-                .filter((log) => log.action === 'USER_LOGIN' || log.action === 'USER_LOGIN_FAILED')
-                .slice(0, 5)
-            setLoginLogs(logins)
+        const fetchLogs = async () => {
+            try {
+                const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                const response = await httpClient.get<{ content?: AuditLog[]; items?: AuditLog[] }>('/audit-logs', {
+                    params: { userId, page: 0, size: 5 }
+                })
+                const logs = response.data.content ?? response.data.items ?? (Array.isArray(response.data) ? response.data as unknown as AuditLog[] : [])
+                setLoginLogs(logs.filter((l) => l.action === 'USER_LOGIN' || l.action === 'USER_LOGIN_FAILED').slice(0, 5))
+            } catch {
+                // Silently handle 403 — user doesn't have audit log permission
+            } finally {
+                setLogsLoading(false)
+            }
         }
-    }, [auditLogs])
+        if (userId) fetchLogs()
+    }, [userId])
 
     const enrolledMethods = enrollments.filter((e) => e.isSuccessful())
     const loading = enrollmentsLoading || logsLoading

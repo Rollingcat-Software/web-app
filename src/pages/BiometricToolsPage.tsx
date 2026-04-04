@@ -27,7 +27,7 @@ export default function BiometricToolsPage() {
                 <Tab icon={<Face />} label="Face Search" iconPosition="start" />
                 <Tab icon={<RecordVoiceOver />} label="Voice Search" iconPosition="start" />
                 <Tab icon={<CreditCard />} label="Card Detection" iconPosition="start" />
-                <Tab icon={<Contactless />} label="NFC Scan" iconPosition="start" />
+                <Tab icon={<Contactless />} label="NFC Scanner" iconPosition="start" />
             </Tabs>
             {tab === 0 && <FaceSearchPage />}
             {tab === 1 && <VoiceSearchPage />}

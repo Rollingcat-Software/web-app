@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -19,6 +19,9 @@ import {
 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { container } from '@core/di/container'
+import { TYPES } from '@core/di/types'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
 
 /**
  * Check if Web NFC API is available (Chrome on Android only).
@@ -44,6 +47,8 @@ export default function NfcEnrollmentPage() {
     const [scanError, setScanError] = useState<string | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [actionResult, setActionResult] = useState<NfcResult | null>(null)
+    const [cardEnrolled, setCardEnrolled] = useState<boolean | null>(null)
+    const autoVerifyDone = useRef(false)
 
     const startNfcScan = useCallback(async () => {
         if (!nfcSupported) return
@@ -107,7 +112,8 @@ export default function NfcEnrollmentPage() {
                     break
             }
 
-            const token = localStorage.getItem('access_token')
+            const tokenService = container.get<ITokenService>(TYPES.TokenService)
+            const token = await tokenService.getAccessToken()
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
@@ -120,16 +126,24 @@ export default function NfcEnrollmentPage() {
                 switch (action) {
                     case 'enroll':
                         message = t('nfc.enrollSuccess', 'NFC card enrolled successfully!')
+                        setCardEnrolled(true)
                         break
                     case 'verify':
-                        message = data.verified
-                            ? t('nfc.verifySuccess', 'NFC card verified!')
-                            : t('nfc.verifyFailed', 'NFC card not recognized.')
+                        if (data.verified) {
+                            message = data.userId
+                                ? `${t('nfc.verifySuccess', 'NFC card verified!')} — ${t('nfc.cardOwner', 'Card owner')}: ${data.userId}`
+                                : t('nfc.verifySuccess', 'NFC card verified!')
+                            setCardEnrolled(true)
+                        } else {
+                            message = t('nfc.verifyFailed', 'NFC card not recognized.')
+                            setCardEnrolled(false)
+                        }
                         break
                     case 'search':
                         message = data.userId
                             ? `${t('nfc.cardOwner', 'Card owner')}: ${data.userId}`
                             : t('nfc.noOwner', 'No user found for this card.')
+                        setCardEnrolled(!!data.userId)
                         break
                 }
                 setActionResult({ success: true, message, data })
@@ -153,14 +167,24 @@ export default function NfcEnrollmentPage() {
         setSerialNumber(null)
         setScanError(null)
         setActionResult(null)
+        setCardEnrolled(null)
+        autoVerifyDone.current = false
     }
+
+    // Auto-verify after card detection
+    useEffect(() => {
+        if (serialNumber && !autoVerifyDone.current) {
+            autoVerifyDone.current = true
+            doNfcAction('verify')
+        }
+    }, [serialNumber, doNfcAction])
 
     // Unsupported browser view
     if (!nfcSupported) {
         return (
             <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
                 <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                    <Contactless /> {t('nfc.title', 'NFC Enrollment')}
+                    <Contactless /> {t('nfc.title', 'NFC Scanner')}
                 </Typography>
 
                 <Card>
@@ -190,7 +214,7 @@ export default function NfcEnrollmentPage() {
     return (
         <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                <Contactless /> {t('nfc.title', 'NFC Enrollment')}
+                <Contactless /> {t('nfc.title', 'NFC Scanner')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 {isAdmin
@@ -280,15 +304,6 @@ export default function NfcEnrollmentPage() {
                             <>
                                 <Button
                                     variant="contained"
-                                    color="success"
-                                    startIcon={actionLoading === 'enroll' ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <HowToReg />}
-                                    onClick={() => doNfcAction('enroll')}
-                                    disabled={actionLoading !== null}
-                                >
-                                    {t('nfc.enrollButton', 'Scan & Save Card')}
-                                </Button>
-                                <Button
-                                    variant="contained"
                                     color="primary"
                                     startIcon={actionLoading === 'verify' ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <VerifiedUser />}
                                     onClick={() => doNfcAction('verify')}
@@ -305,6 +320,17 @@ export default function NfcEnrollmentPage() {
                                         disabled={actionLoading !== null}
                                     >
                                         {t('nfc.searchButton', 'Search All')}
+                                    </Button>
+                                )}
+                                {cardEnrolled === false && (
+                                    <Button
+                                        variant="outlined"
+                                        color="success"
+                                        startIcon={actionLoading === 'enroll' ? <CircularProgress size={16} /> : <HowToReg />}
+                                        onClick={() => doNfcAction('enroll')}
+                                        disabled={actionLoading !== null}
+                                    >
+                                        {t('nfc.enrollButton', 'Enroll Card')}
                                     </Button>
                                 )}
                                 <Button
