@@ -35,6 +35,9 @@ import { useAuth } from '../hooks/useAuth'
 import FaceVerificationFlow from './FaceVerificationFlow'
 import SecondaryAuthFlow from './SecondaryAuthFlow'
 import { getBiometricService } from '@core/services/BiometricService'
+import { container } from '@core/di/container'
+import { TYPES } from '@core/di/types'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 
 /**
  * Login form validation schema
@@ -259,8 +262,19 @@ export default function LoginPage() {
                 email: data.email,
                 password: data.password,
             })
-            // After successful password login, check for secondary auth
-            setShowSecondaryAuth(true)
+            // After successful password login, check for tenant auth flow
+            // Only show secondary auth if tenant has a multi-step flow
+            try {
+                const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                const flowRes = await httpClient.get<Array<{ stepCount?: number; steps?: unknown[] }>>('/auth-flows')
+                const flows = Array.isArray(flowRes.data) ? flowRes.data : []
+                const hasMultiStep = flows.some(f => (f.stepCount ?? f.steps?.length ?? 0) > 1)
+                if (hasMultiStep) {
+                    setShowSecondaryAuth(true)
+                    return
+                }
+            } catch { /* no auth flows accessible — skip 2FA */ }
+            navigate('/')
         } catch (err) {
             if (import.meta.env.DEV) {
                 console.error('Login failed:', err)
