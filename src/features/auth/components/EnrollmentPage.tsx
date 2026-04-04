@@ -47,6 +47,7 @@ import { getBiometricService } from '@core/services/BiometricService'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ISettingsService } from '@domain/interfaces/ISettingsService'
 
 /**
@@ -456,13 +457,19 @@ export default function EnrollmentPage() {
                 // for 2+ images (quality-weighted template fusion)
                 await biometric.enrollFace(userId, images, user?.tenantId)
 
-                // Only create the enrollment record after biometric call succeeds
+                // Create enrollment record then complete it (PENDING → ENROLLED)
                 await createEnrollment({
                     tenantId: user?.tenantId ?? 'system',
                     methodType: AuthMethodType.FACE,
                 })
+                // Complete the enrollment to set status ENROLLED
+                try {
+                    const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                    await httpClient.put(`/users/${userId}/enrollments/FACE/complete`, {})
+                } catch { /* best effort — enrollment record exists regardless */ }
 
                 setFaceEnrollOpen(false)
+                refetchEnrollments()
                 setSnackbar({ open: true, message: 'Face Recognition enrolled successfully', severity: 'success' })
             } catch (err) {
                 setFaceEnrollOpen(false)
@@ -807,6 +814,10 @@ export default function EnrollmentPage() {
                         createEnrollment({
                             tenantId: user?.tenantId ?? 'system',
                             methodType: AuthMethodType.VOICE,
+                        }).then(() => {
+                            // Complete enrollment (PENDING → ENROLLED)
+                            const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                            httpClient.put(`/users/${userId}/enrollments/VOICE/complete`, {}).catch(() => {})
                         }).catch(() => {})
                         refetchEnrollments()
                         setSnackbar({ open: true, message: 'Voice Recognition enrolled successfully', severity: 'success' })

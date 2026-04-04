@@ -10,7 +10,7 @@ export default function BiometricToolsPage() {
     const [tab, setTab] = useState(0)
 
     return (
-        <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 2, sm: 3 } }}>
+        <Box sx={{ maxWidth: 900, mx: 'auto', px: { xs: 1, sm: 3 } }}>
             <Typography variant="h4" fontWeight={700} sx={{ mb: 0.5 }}>
                 Biometric Tools
             </Typography>
