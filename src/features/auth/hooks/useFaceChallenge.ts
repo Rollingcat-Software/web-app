@@ -35,11 +35,11 @@ export interface VerificationState {
 }
 
 const ENROLLMENT_STAGES: { stage: ChallengeStage; instruction: string; holdMs: number }[] = [
-    { stage: 'position', instruction: 'Position your face in the oval', holdMs: 1000 },
-    { stage: 'frontal', instruction: 'Look straight at the camera', holdMs: 1200 },
-    { stage: 'turn_left', instruction: 'Slowly turn your head left', holdMs: 1200 },
-    { stage: 'turn_right', instruction: 'Slowly turn your head right', holdMs: 1200 },
-    { stage: 'blink', instruction: 'Blink naturally', holdMs: 1500 },
+    { stage: 'position', instruction: 'Position your face in the oval', holdMs: 300 },
+    { stage: 'frontal', instruction: 'Look straight at the camera', holdMs: 300 },
+    { stage: 'turn_left', instruction: 'Slowly turn your head left', holdMs: 300 },
+    { stage: 'turn_right', instruction: 'Slowly turn your head right', holdMs: 300 },
+    { stage: 'blink', instruction: 'Blink naturally', holdMs: 400 },
 ]
 
 const HEAD_TURN_THRESHOLD = 0.06 // relaxed for mobile front cameras
