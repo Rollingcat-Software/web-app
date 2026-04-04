@@ -107,7 +107,7 @@ export default function NfcEnrollmentPage() {
                     break
             }
 
-            const token = localStorage.getItem('fivucsas_token')
+            const token = localStorage.getItem('access_token')
             const headers: Record<string, string> = {
                 'Content-Type': 'application/json',
                 ...(token ? { Authorization: `Bearer ${token}` } : {}),
