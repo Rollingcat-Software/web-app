@@ -37,6 +37,7 @@ interface WebAuthnCredential {
     id: string
     credentialId: string
     deviceName: string
+    transports: string
     createdAt: string
     lastUsedAt: string
 }
@@ -388,7 +389,8 @@ export default function WebAuthnEnrollment({
                                     label="Device Name (optional)"
                                     value={deviceName}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceName(e.target.value)}
-                                    placeholder={isPlatform ? 'e.g., MacBook Pro Touch ID' : 'e.g., YubiKey 5'}
+                                    placeholder={isPlatform ? 'e.g., My Phone, MacBook Touch ID' : 'e.g., YubiKey 5, Titan Key'}
+                                    InputLabelProps={{ shrink: true }}
                                     sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                 />
 
@@ -457,14 +459,20 @@ export default function WebAuthnEnrollment({
                             </Box>
                         )}
 
-                        {/* Existing credentials list */}
-                        {credentials.length > 0 && activeStep === 0 && (
+                        {/* Existing credentials list — filtered by transport type */}
+                        {(() => {
+                            const filtered = credentials.filter((c) => {
+                                const t = (c.transports || '').toLowerCase()
+                                if (isPlatform) return t.includes('internal') || t.includes('hybrid') || t === ''
+                                return t.includes('usb') || t.includes('ble') || t.includes('nfc')
+                            })
+                            return filtered.length > 0 && activeStep === 0 ? (
                             <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                                    Registered Credentials ({credentials.length})
+                                    Registered Credentials ({filtered.length})
                                 </Typography>
                                 <List dense>
-                                    {credentials.map((cred) => (
+                                    {filtered.map((cred) => (
                                         <ListItem key={cred.id} sx={{ borderRadius: '8px', mb: 0.5 }}>
                                             <ListItemIcon>
                                                 <Key fontSize="small" />
@@ -487,7 +495,8 @@ export default function WebAuthnEnrollment({
                                 </List>
                                 {loadingCredentials && <CircularProgress size={20} sx={{ display: 'block', mx: 'auto' }} />}
                             </Box>
-                        )}
+                            ) : null
+                        })()}
                     </>
                 )}
             </DialogContent>
