@@ -444,12 +444,12 @@ export default function NotificationPanel() {
                                                     cursor: 'pointer',
                                                     bgcolor: isRead ? 'transparent' : 'rgba(99, 102, 241, 0.04)',
                                                     '&:hover': { bgcolor: 'action.hover' },
-                                                    borderLeft: log.isFailed()
+                                                    borderLeft: (typeof log.isFailed === 'function' ? log.isFailed() : log.action?.includes('FAILED'))
                                                         ? '3px solid'
                                                         : isRead
                                                             ? 'none'
                                                             : '3px solid',
-                                                    borderColor: log.isFailed()
+                                                    borderColor: (typeof log.isFailed === 'function' ? log.isFailed() : log.action?.includes('FAILED'))
                                                         ? 'error.main'
                                                         : 'primary.main',
                                                     transition: 'background-color 0.2s',

@@ -312,7 +312,7 @@ function UserDashboardContent() {
         if (userId) fetchLogs()
     }, [userId])
 
-    const enrolledMethods = enrollments.filter((e) => e.isSuccessful())
+    const enrolledMethods = enrollments.filter((e) => typeof e.isSuccessful === 'function' ? e.isSuccessful() : e.status === 'ENROLLED' || e.status === 'SUCCESS')
     const loading = enrollmentsLoading || logsLoading
 
     return (
