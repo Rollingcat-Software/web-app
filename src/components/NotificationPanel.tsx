@@ -32,6 +32,8 @@ import {
 } from '@mui/icons-material'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
+import { container } from '@core/di/container'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { IAuditLogService } from '@domain/interfaces/IAuditLogService'
 import type { AuditLog } from '@domain/models/AuditLog'
 import { useTranslation } from 'react-i18next'
@@ -242,12 +244,34 @@ export default function NotificationPanel() {
     const fetchNotifications = useCallback(async () => {
         try {
             setLoading(true)
-            const result = await auditLogService.getAuditLogs(
-                undefined,
-                0,
-                MAX_NOTIFICATIONS
-            )
-            setNotifications(result.items)
+            // Try admin endpoint first, fall back to user endpoint
+            try {
+                const result = await auditLogService.getAuditLogs(
+                    undefined,
+                    0,
+                    MAX_NOTIFICATIONS
+                )
+                setNotifications(result.items)
+            } catch {
+                // Admin endpoint failed (403) — try user's own activity
+                const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                const response = await httpClient.get<{ content?: Array<Record<string, unknown>> }>('/my/activity', {
+                    params: { page: 0, size: MAX_NOTIFICATIONS }
+                })
+                const items = response.data.content ?? []
+                // Map to AuditLog-like objects
+                setNotifications(items.map((item: Record<string, unknown>) => ({
+                    id: String(item.id ?? ''),
+                    action: String(item.action ?? ''),
+                    userId: String(item.userId ?? ''),
+                    ipAddress: String(item.ipAddress ?? ''),
+                    userAgent: String(item.userAgent ?? ''),
+                    details: String(item.details ?? ''),
+                    createdAt: item.createdAt ? new Date(String(item.createdAt)) : new Date(),
+                    userName: String(item.userName ?? ''),
+                    userEmail: String(item.userEmail ?? ''),
+                }) as unknown as AuditLog))
+            }
         } catch {
             // Silently fail - notifications are not critical
         } finally {
@@ -255,17 +279,8 @@ export default function NotificationPanel() {
         }
     }, [auditLogService])
 
-    // Initial fetch and polling - only for admin users
+    // Initial fetch and polling - works for all authenticated users
     useEffect(() => {
-        const storedUser = localStorage.getItem('fivucsas_user')
-        let isAdmin = false
-        try {
-            const userData = storedUser ? JSON.parse(storedUser) : null
-            isAdmin = userData?.role === 'ADMIN' || userData?.role === 'SUPER_ADMIN' ||
-                      (userData?.roles || []).some((r: string) => r === 'ADMIN' || r === 'SUPER_ADMIN')
-        } catch { /* ignore */ }
-
-        if (!isAdmin) return
 
         fetchNotifications()
         pollRef.current = setInterval(fetchNotifications, POLL_INTERVAL)

@@ -298,8 +298,8 @@ function UserDashboardContent() {
         const fetchLogs = async () => {
             try {
                 const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
-                const response = await httpClient.get<{ content?: AuditLog[]; items?: AuditLog[] }>('/audit-logs', {
-                    params: { userId, page: 0, size: 5 }
+                const response = await httpClient.get<{ content?: AuditLog[]; items?: AuditLog[] }>('/my/activity', {
+                    params: { page: 0, size: 10 }
                 })
                 const logs = response.data.content ?? response.data.items ?? (Array.isArray(response.data) ? response.data as unknown as AuditLog[] : [])
                 setLoginLogs(logs.filter((l) => l.action === 'USER_LOGIN' || l.action === 'USER_LOGIN_FAILED').slice(0, 5))
