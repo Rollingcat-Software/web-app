@@ -267,17 +267,30 @@ const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[]
     )
 })
 
-/** Map auth method type to icon and label */
-const METHOD_INFO: Record<string, { icon: React.ReactNode; label: string }> = {
-    FACE: { icon: <Face sx={{ fontSize: 18 }} />, label: 'Face Recognition' },
-    FINGERPRINT: { icon: <Fingerprint sx={{ fontSize: 18 }} />, label: 'Fingerprint' },
-    VOICE: { icon: <Mic sx={{ fontSize: 18 }} />, label: 'Voice Recognition' },
-    TOTP: { icon: <PhonelinkLock sx={{ fontSize: 18 }} />, label: 'Authenticator (TOTP)' },
-    EMAIL_OTP: { icon: <Email sx={{ fontSize: 18 }} />, label: 'Email OTP' },
-    SMS_OTP: { icon: <SmsOutlined sx={{ fontSize: 18 }} />, label: 'SMS OTP' },
-    QR_CODE: { icon: <QrCode2 sx={{ fontSize: 18 }} />, label: 'QR Code' },
-    HARDWARE_KEY: { icon: <Key sx={{ fontSize: 18 }} />, label: 'Hardware Key' },
-    NFC_DOCUMENT: { icon: <Nfc sx={{ fontSize: 18 }} />, label: 'NFC Document' },
+/** Map auth method type to icon */
+const METHOD_ICONS: Record<string, React.ReactNode> = {
+    FACE: <Face sx={{ fontSize: 18 }} />,
+    FINGERPRINT: <Fingerprint sx={{ fontSize: 18 }} />,
+    VOICE: <Mic sx={{ fontSize: 18 }} />,
+    TOTP: <PhonelinkLock sx={{ fontSize: 18 }} />,
+    EMAIL_OTP: <Email sx={{ fontSize: 18 }} />,
+    SMS_OTP: <SmsOutlined sx={{ fontSize: 18 }} />,
+    QR_CODE: <QrCode2 sx={{ fontSize: 18 }} />,
+    HARDWARE_KEY: <Key sx={{ fontSize: 18 }} />,
+    NFC_DOCUMENT: <Nfc sx={{ fontSize: 18 }} />,
+}
+
+/** i18n translation keys for each auth method */
+const METHOD_LABEL_KEYS: Record<string, string> = {
+    FACE: 'methods.face',
+    FINGERPRINT: 'methods.fingerprint',
+    VOICE: 'methods.voice',
+    TOTP: 'methods.totp',
+    EMAIL_OTP: 'methods.emailOtp',
+    SMS_OTP: 'methods.smsOtp',
+    QR_CODE: 'methods.qrCode',
+    HARDWARE_KEY: 'methods.hardwareKey',
+    NFC_DOCUMENT: 'methods.nfcDocument',
 }
 
 /**
@@ -301,8 +314,11 @@ function UserDashboardContent() {
                 const response = await httpClient.get<{ content?: AuditLog[]; items?: AuditLog[] }>('/my/activity', {
                     params: { page: 0, size: 10 }
                 })
-                const logs = response.data.content ?? response.data.items ?? (Array.isArray(response.data) ? response.data as unknown as AuditLog[] : [])
-                setLoginLogs(logs.filter((l) => l.action === 'USER_LOGIN' || l.action === 'USER_LOGIN_FAILED').slice(0, 5))
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const rawLogs: any[] = response.data.content ?? response.data.items ?? (Array.isArray(response.data) ? response.data : [])
+                // Map API fields (timestamp → createdAt)
+                const mapped = rawLogs.map((l) => ({ ...l, createdAt: l.createdAt ?? l.timestamp ?? null }))
+                setLoginLogs(mapped.filter((l) => l.action === 'USER_LOGIN' || l.action === 'USER_LOGIN_FAILED').slice(0, 5) as AuditLog[])
             } catch {
                 // Silently handle 403 — user doesn't have audit log permission
             } finally {
@@ -412,7 +428,7 @@ function UserDashboardContent() {
                                                     <CalendarToday fontSize="small" color="action" />
                                                 </ListItemIcon>
                                                 <ListItemText
-                                                    primary={<Typography variant="body2" color="text.secondary">Member Since</Typography>}
+                                                    primary={<Typography variant="body2" color="text.secondary">{t('dashboard.memberSince', 'Member Since')}</Typography>}
                                                     secondary={
                                                         <Typography variant="body1">
                                                             {(() => { try { return user?.createdAt ? format(new Date(user.createdAt), 'MMMM dd, yyyy') : 'N/A' } catch { return 'N/A' } })()}
@@ -439,7 +455,7 @@ function UserDashboardContent() {
                                                 </Typography>
                                             </Box>
                                             <Chip
-                                                label={`${enrolledMethods.length} active`}
+                                                label={`${enrolledMethods.length} ${t('dashboard.active', 'active')}`}
                                                 size="small"
                                                 color={enrolledMethods.length > 0 ? 'success' : 'default'}
                                             />
@@ -463,10 +479,9 @@ function UserDashboardContent() {
                                             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
                                                 {enrolledMethods.map((enrollment) => {
                                                     const methodType = enrollment.authMethodType || ''
-                                                    const info = METHOD_INFO[methodType] || {
-                                                        icon: <Security sx={{ fontSize: 18 }} />,
-                                                        label: methodType.replace(/_/g, ' '),
-                                                    }
+                                                    const icon = METHOD_ICONS[methodType] || <Security sx={{ fontSize: 18 }} />
+                                                    const labelKey = METHOD_LABEL_KEYS[methodType]
+                                                    const label = labelKey ? t(labelKey, methodType.replace(/_/g, ' ')) : methodType.replace(/_/g, ' ')
                                                     return (
                                                         <Box
                                                             key={enrollment.id}
@@ -481,9 +496,9 @@ function UserDashboardContent() {
                                                                 borderColor: 'rgba(16, 185, 129, 0.2)',
                                                             }}
                                                         >
-                                                            <Box sx={{ color: 'success.main' }}>{info.icon}</Box>
+                                                            <Box sx={{ color: 'success.main' }}>{icon}</Box>
                                                             <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>
-                                                                {info.label}
+                                                                {label}
                                                             </Typography>
                                                             <CheckCircle sx={{ fontSize: 18, color: 'success.main' }} />
                                                         </Box>
@@ -525,7 +540,7 @@ function UserDashboardContent() {
                                                             primary={
                                                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                                                                     <Chip
-                                                                        label={log.action === 'USER_LOGIN' ? 'Successful Login' : 'Failed Login'}
+                                                                        label={log.action === 'USER_LOGIN' ? t('dashboard.successfulLogin', 'Successful Login') : t('dashboard.failedLogin', 'Failed Login')}
                                                                         size="small"
                                                                         color={log.action === 'USER_LOGIN' ? 'success' : 'error'}
                                                                         sx={{ fontSize: '0.7rem', height: 22 }}

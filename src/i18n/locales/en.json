@@ -112,7 +112,22 @@
     "quickActions": "Quick Actions",
     "manageEnrollments": "Manage Enrollments",
     "biometricTools": "Biometric Tools",
-    "settingsAction": "Settings"
+    "settingsAction": "Settings",
+    "memberSince": "Member Since",
+    "active": "active",
+    "successfulLogin": "Successful Login",
+    "failedLogin": "Failed Login"
+  },
+  "methods": {
+    "face": "Face Recognition",
+    "fingerprint": "Fingerprint",
+    "voice": "Voice Recognition",
+    "totp": "Authenticator (TOTP)",
+    "emailOtp": "Email OTP",
+    "smsOtp": "SMS OTP",
+    "qrCode": "QR Code",
+    "hardwareKey": "Hardware Key",
+    "nfcDocument": "NFC Document"
   },
   "settings": {
     "title": "Settings",

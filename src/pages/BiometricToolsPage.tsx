@@ -29,7 +29,7 @@ export default function BiometricToolsPage() {
                 <Tab icon={<CreditCard sx={{ fontSize: 18 }} />} label="Card" iconPosition="start" />
                 <Tab icon={<Contactless sx={{ fontSize: 18 }} />} label="NFC" iconPosition="start" />
             </Tabs>
-            <Box sx={{ '& > div': { maxWidth: '100%', px: 0, py: 0 }, '& > div > div': { maxWidth: '100%' } }}>
+            <Box sx={{ overflow: 'hidden', '& *': { maxWidth: '100% !important' }, '& > div > div': { px: '0 !important', py: '0 !important', mx: '0 !important' } }}>
                 {tab === 0 && <FaceSearchPage />}
                 {tab === 1 && <VoiceSearchPage />}
                 {tab === 2 && <CardDetectionPage />}

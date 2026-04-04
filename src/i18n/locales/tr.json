@@ -108,11 +108,26 @@
     "noEnrollments": "Henüz kimlik doğrulama yöntemi kayıtlı değil.",
     "enrollNow": "Şimdi Kayıt Ol",
     "recentLogins": "Son Giriş Aktivitesi",
-    "noLoginHistory": "Son giriş aktivitesi yok",
     "quickActions": "Hızlı İşlemler",
     "manageEnrollments": "Kayıtları Yönet",
     "biometricTools": "Biyometrik Araçlar",
-    "settingsAction": "Ayarlar"
+    "settingsAction": "Ayarlar",
+    "memberSince": "Üyelik Tarihi",
+    "active": "aktif",
+    "successfulLogin": "Başarılı Giriş",
+    "failedLogin": "Başarısız Giriş",
+    "noLoginHistory": "Giriş geçmişi yöneticilere açıktır. Erişim için yöneticinize başvurun."
+  },
+  "methods": {
+    "face": "Yüz Tanıma",
+    "fingerprint": "Parmak İzi",
+    "voice": "Ses Tanıma",
+    "totp": "Doğrulayıcı (TOTP)",
+    "emailOtp": "E-posta OTP",
+    "smsOtp": "SMS OTP",
+    "qrCode": "QR Kod",
+    "hardwareKey": "Güvenlik Anahtarı",
+    "nfcDocument": "NFC Belge"
   },
   "settings": {
     "title": "Ayarlar",

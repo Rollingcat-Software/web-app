@@ -11,7 +11,6 @@ import {
 } from '@mui/material'
 import {
     Contactless,
-    HowToReg,
     PersonSearch,
     PhoneAndroid,
     Refresh,
@@ -47,7 +46,7 @@ export default function NfcEnrollmentPage() {
     const [scanError, setScanError] = useState<string | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
     const [actionResult, setActionResult] = useState<NfcResult | null>(null)
-    const [cardEnrolled, setCardEnrolled] = useState<boolean | null>(null)
+    const [, setCardEnrolled] = useState<boolean | null>(null)
     const autoVerifyDone = useRef(false)
 
     const startNfcScan = useCallback(async () => {
@@ -320,17 +319,6 @@ export default function NfcEnrollmentPage() {
                                         disabled={actionLoading !== null}
                                     >
                                         {t('nfc.searchButton', 'Search All')}
-                                    </Button>
-                                )}
-                                {cardEnrolled === false && (
-                                    <Button
-                                        variant="outlined"
-                                        color="success"
-                                        startIcon={actionLoading === 'enroll' ? <CircularProgress size={16} /> : <HowToReg />}
-                                        onClick={() => doNfcAction('enroll')}
-                                        disabled={actionLoading !== null}
-                                    >
-                                        {t('nfc.enrollButton', 'Enroll Card')}
                                     </Button>
                                 )}
                                 <Button
