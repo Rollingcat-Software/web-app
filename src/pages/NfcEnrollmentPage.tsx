@@ -50,7 +50,6 @@ export default function NfcEnrollmentPage() {
     const [actionResult, setActionResult] = useState<NfcResult | null>(null)
     const [, setCardEnrolled] = useState<boolean | null>(null)
     const autoVerifyDone = useRef(false)
-    const _unused = [setCardEnrolled] // suppress TS unused warning
 
     const startNfcScan = useCallback(async () => {
         if (!nfcSupported) return
@@ -375,4 +374,16 @@ export default function NfcEnrollmentPage() {
                                     variant="outlined"
                                     startIcon={<Refresh />}
                                     onClick={handleReset}
+                                    disabled={actionLoading !== null}
+                                >
+                                    {t('nfc.rescan', 'Rescan')}
+                                </Button>
+                            </>
+                        )}
+                    </Box>
+                </CardContent>
+            </Card>
+        </Box>
+    )
+}
                             
