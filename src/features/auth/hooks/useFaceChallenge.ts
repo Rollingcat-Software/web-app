@@ -35,15 +35,15 @@ export interface VerificationState {
 }
 
 const ENROLLMENT_STAGES: { stage: ChallengeStage; instruction: string; holdMs: number }[] = [
-    { stage: 'position', instruction: 'Position your face in the oval', holdMs: 1500 },
-    { stage: 'frontal', instruction: 'Look straight at the camera', holdMs: 2000 },
-    { stage: 'turn_left', instruction: 'Slowly turn your head left', holdMs: 1800 },
-    { stage: 'turn_right', instruction: 'Slowly turn your head right', holdMs: 1800 },
-    { stage: 'blink', instruction: 'Blink naturally', holdMs: 2500 },
+    { stage: 'position', instruction: 'Position your face in the oval', holdMs: 1000 },
+    { stage: 'frontal', instruction: 'Look straight at the camera', holdMs: 1200 },
+    { stage: 'turn_left', instruction: 'Slowly turn your head left', holdMs: 1200 },
+    { stage: 'turn_right', instruction: 'Slowly turn your head right', holdMs: 1200 },
+    { stage: 'blink', instruction: 'Blink naturally', holdMs: 1500 },
 ]
 
-const HEAD_TURN_THRESHOLD = 0.08 // relaxed for mobile front cameras
-const STAGE_TIMEOUT_MS = 12000 // auto-advance after 12s if stuck
+const HEAD_TURN_THRESHOLD = 0.06 // relaxed for mobile front cameras
+const STAGE_TIMEOUT_MS = 6000 // auto-advance after 6s if stuck (soft timeout)
 
 export function useFaceChallenge() {
     const [challengeState, setChallengeState] = useState<ChallengeState>({
