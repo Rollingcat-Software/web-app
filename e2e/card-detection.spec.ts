@@ -96,4 +96,19 @@ test.describe('Card Detection (Biometric Tools)', () => {
         // No detection result card should be visible initially
         const resultHeading = page.getByText(/detection result/i)
         await expect(resultHeading).toHaveCount(0)
+    })
+
+    test('should have flip camera button on card detection tab', async ({ page }) => {
+        await page.goto(`${BASE_URL}/biometric-tools`)
+        await page.waitForLoadState('networkidle')
+
+        const cardTab = page.getByRole('tab').nth(2)
+        await expect(cardTab).toBeVisible({ timeout: 15000 })
+        await cardTab.click()
+
+        // Flip button should be available
+        const flipBtn = page.getByRole('button', { name: /flip/i })
+        await expect(flipBtn).toBeVisible({ timeout: 10000 })
+    })
+})
   
