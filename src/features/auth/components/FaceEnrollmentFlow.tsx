@@ -106,8 +106,9 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
     }, [challengeState.stage, challengeState.captures.length, stopCamera])
 
     const handleSubmit = () => {
+        // Don't close here — the parent (EnrollmentPage) will close the dialog
+        // after the biometric API call completes (success or failure)
         onComplete(challengeState.captures)
-        onClose()
     }
 
     const handleRetry = () => {

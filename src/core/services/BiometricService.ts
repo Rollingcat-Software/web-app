@@ -65,25 +65,92 @@ export class BiometricService {
     }
 
     /**
-     * Enroll a face for a user (1:1 registration)
+     * Enroll a face for a user (1:1 registration).
+     * When multiple images are provided, uses the /enroll/multi endpoint
+     * for quality-weighted template fusion (30-40% better accuracy).
      */
-    async enrollFace(userId: string, imageBase64: string, tenantId?: string): Promise<EnrollmentResult> {
-        const blob = this.base64ToBlob(imageBase64)
+    async enrollFace(userId: string, imageBase64: string | string[], tenantId?: string): Promise<EnrollmentResult> {
+        const images = Array.isArray(imageBase64) ? imageBase64 : [imageBase64]
+
+        try {
+            if (images.length >= 2) {
+                return await this.enrollFaceMulti(userId, images, tenantId)
+            }
+
+            const blob = this.base64ToBlob(images[0])
+            const formData = new FormData()
+            formData.append('file', blob, 'face.jpg')
+            formData.append('user_id', userId)
+            if (tenantId) formData.append('tenant_id', tenantId)
+
+            const response = await this.client.post('/enroll', formData, {
+                headers: { 'Content-Type': 'multipart/form-data' },
+            })
+
+            return {
+                success: true,
+                userId,
+                confidence: response.data.quality_score != null ? response.data.quality_score / 100 : 1.0,
+                message: response.data.message ?? 'Face enrolled successfully',
+            }
+        } catch (error) {
+            throw this.mapEnrollmentError(error)
+        }
+    }
+
+    /**
+     * Enroll using multiple images with quality-weighted fusion.
+     */
+    private async enrollFaceMulti(userId: string, images: string[], tenantId?: string): Promise<EnrollmentResult> {
         const formData = new FormData()
-        formData.append('file', blob, 'face.jpg')
         formData.append('user_id', userId)
         if (tenantId) formData.append('tenant_id', tenantId)
 
-        const response = await this.client.post('/enroll', formData, {
+        for (let i = 0; i < images.length; i++) {
+            const blob = this.base64ToBlob(images[i])
+            formData.append('files', blob, `face_${i}.jpg`)
+        }
+
+        const response = await this.client.post('/enroll/multi', formData, {
             headers: { 'Content-Type': 'multipart/form-data' },
         })
 
         return {
             success: true,
             userId,
-            confidence: response.data.quality_score != null ? response.data.quality_score / 100 : 1.0,
+            confidence: response.data.fused_quality_score != null ? response.data.fused_quality_score / 100 : 1.0,
             message: response.data.message ?? 'Face enrolled successfully',
         }
+    }
+
+    /**
+     * Map biometric API errors to user-friendly messages.
+     */
+    private mapEnrollmentError(error: unknown): Error {
+        if (axios.isAxiosError(error) && error.response) {
+            const status = error.response.status
+            const data = error.response.data
+            const errorCode = data?.error_code ?? ''
+            const detail = data?.detail ?? data?.message ?? ''
+
+            if (status === 400) {
+                switch (errorCode) {
+                    case 'FACE_NOT_DETECTED':
+                        return new Error('No face detected in the captured image. Please try again with better lighting and ensure your face is clearly visible.')
+                    case 'MULTIPLE_FACES':
+                        return new Error('Multiple faces detected. Please ensure only your face is in the frame.')
+                    case 'POOR_IMAGE_QUALITY':
+                        return new Error('Image quality is too low. Please try again with better lighting and hold still during capture.')
+                    default:
+                        return new Error(detail || 'Face enrollment failed. Please try again.')
+                }
+            }
+            if (status === 409) {
+                return new Error('Face is already enrolled. Revoke the existing enrollment first to re-enroll.')
+            }
+            return new Error(detail || `Face enrollment failed (HTTP ${status}). Please try again.`)
+        }
+        return error instanceof Error ? error : new Error('Face enrollment failed. Please try again.')
     }
 
     /**

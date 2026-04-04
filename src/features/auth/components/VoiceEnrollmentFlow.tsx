@@ -129,6 +129,7 @@ export default function VoiceEnrollmentFlow({
     const analyserRef = useRef<AnalyserNode | null>(null)
     const animFrameRef = useRef<number>(0)
     const startTimeRef = useRef(0)
+    const maxAmplitudeRef = useRef(0)
 
     const [recording, setRecording] = useState(false)
     const [recordingTime, setRecordingTime] = useState(0)
@@ -181,6 +182,8 @@ export default function VoiceEnrollmentFlow({
                 samples.push(Math.abs(v - 128) / 128)
             }
             setWaveformData(samples)
+            const maxAmp = Math.max(...samples)
+            if (maxAmp > maxAmplitudeRef.current) maxAmplitudeRef.current = maxAmp
             animFrameRef.current = requestAnimationFrame(draw)
         }
         animFrameRef.current = requestAnimationFrame(draw)
@@ -198,6 +201,7 @@ export default function VoiceEnrollmentFlow({
             setRecordingTime(0)
             setActionResult(null)
             chunksRef.current = []
+            maxAmplitudeRef.current = 0
 
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
             streamRef.current = stream
@@ -221,6 +225,13 @@ export default function VoiceEnrollmentFlow({
 
             mediaRecorder.onstop = async () => {
                 const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+
+                if (maxAmplitudeRef.current < 0.05) {
+                    setMicError('No voice detected. Please speak clearly into the microphone and try again.')
+                    stream.getTracks().forEach(t => t.stop())
+                    return
+                }
+
                 const duration = (performance.now() - startTimeRef.current) / 1000
                 const origSampleRate = audioCtxRef.current?.sampleRate || 48000
 

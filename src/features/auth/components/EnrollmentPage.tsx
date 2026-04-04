@@ -423,17 +423,25 @@ export default function EnrollmentPage() {
             setActionError(null)
             try {
                 const biometric = getBiometricService()
-                await biometric.enrollFace(userId, images[0], user?.tenantId)
+                // Send all captured images — enrollFace will use /enroll/multi
+                // for 2+ images (quality-weighted template fusion)
+                await biometric.enrollFace(userId, images, user?.tenantId)
 
-                // Also create the enrollment record in the backend
+                // Only create the enrollment record after biometric call succeeds
                 await createEnrollment({
                     tenantId: user?.tenantId ?? 'system',
                     methodType: AuthMethodType.FACE,
                 })
 
+                setFaceEnrollOpen(false)
                 setSnackbar({ open: true, message: 'Face Recognition enrolled successfully', severity: 'success' })
             } catch (err) {
-                setSnackbar({ open: true, message: err instanceof Error ? err.message : 'Face enrollment failed', severity: 'error' })
+                setFaceEnrollOpen(false)
+                setSnackbar({
+                    open: true,
+                    message: err instanceof Error ? err.message : 'Face enrollment failed. Please try again.',
+                    severity: 'error',
+                })
             } finally {
                 setActionLoading(null)
             }

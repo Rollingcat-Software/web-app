@@ -157,15 +157,24 @@ export function useFaceChallenge() {
                 let capturedImage: string | null = null
                 if (canvasRef.current) {
                     capturedImage = cropFace(canvasRef.current)
-                    // If cropFace returned null (no bounding box), capture full frame
+                    // If cropFace returned null (no bounding box), capture a center crop
+                    // that approximates a face region rather than the full frame.
+                    // The biometric-processor rejects full-frame images where it can't detect a face.
                     if (!capturedImage && canvasRef.current) {
                         const video = document.querySelector('video')
                         if (video && video.videoWidth > 0) {
-                            canvasRef.current.width = video.videoWidth
-                            canvasRef.current.height = video.videoHeight
+                            // Crop center ~50% of frame (face is usually centered in selfie mode)
+                            const vw = video.videoWidth
+                            const vh = video.videoHeight
+                            const cropSize = Math.min(vw, vh) * 0.6
+                            const sx = (vw - cropSize) / 2
+                            const sy = (vh - cropSize) / 2.5 // shift slightly up (face is upper-center)
+                            const size = Math.round(cropSize)
+                            canvasRef.current.width = size
+                            canvasRef.current.height = size
                             const ctx = canvasRef.current.getContext('2d')
                             if (ctx) {
-                                ctx.drawImage(video, 0, 0)
+                                ctx.drawImage(video, sx, Math.max(0, sy), cropSize, cropSize, 0, 0, size, size)
                                 capturedImage = canvasRef.current.toDataURL('image/jpeg', 0.85)
                             }
                         }
