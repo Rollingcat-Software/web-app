@@ -9,6 +9,7 @@ import {
     CircularProgress,
     Grid,
     IconButton,
+    Snackbar,
     Tooltip,
     Typography,
 } from '@mui/material'
@@ -27,7 +28,7 @@ import {
     VerifiedUser,
     WarningAmber,
 } from '@mui/icons-material'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { AuthMethodType } from '@domain/models/AuthMethod'
@@ -37,6 +38,9 @@ import TotpEnrollment from './TotpEnrollment'
 import WebAuthnEnrollment from './WebAuthnEnrollment'
 import VoiceEnrollmentFlow from './VoiceEnrollmentFlow'
 import { getBiometricService } from '@core/services/BiometricService'
+import { container } from '@core/di/container'
+import { TYPES } from '@core/di/types'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
 
 /**
  * Device capability detection results
@@ -156,6 +160,18 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
 ]
 
+const METHOD_LABELS: Record<string, string> = {
+    FACE: 'Face Recognition',
+    FINGERPRINT: 'Fingerprint / Biometric',
+    VOICE: 'Voice Recognition',
+    TOTP: 'Authenticator App (TOTP)',
+    EMAIL_OTP: 'Email OTP',
+    SMS_OTP: 'SMS OTP',
+    QR_CODE: 'QR Code',
+    HARDWARE_KEY: 'Hardware Security Key',
+    NFC_DOCUMENT: 'NFC Document',
+}
+
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
 /**
@@ -198,6 +214,8 @@ async function detectCapabilities(): Promise<DeviceCapabilities> {
     caps.webauthn = !!window.PublicKeyCredential
 
     // WebAuthn platform authenticator check
+    // Brave throws on isUserVerifyingPlatformAuthenticatorAvailable() — treat as available
+    // so users can still attempt enrollment (WebAuthn will prompt for permission)
     try {
         if (window.PublicKeyCredential) {
             caps.webauthnPlatform =
@@ -206,7 +224,7 @@ async function detectCapabilities(): Promise<DeviceCapabilities> {
             caps.webauthnPlatform = false
         }
     } catch {
-        caps.webauthnPlatform = false
+        caps.webauthnPlatform = !!window.PublicKeyCredential
     }
 
     // NFC check
@@ -248,9 +266,11 @@ export default function EnrollmentPage() {
     const [webauthnMode, setWebauthnMode] = useState<'hardware-key' | 'platform'>('hardware-key')
     const [voiceEnrollOpen, setVoiceEnrollOpen] = useState(false)
 
+    const [accessToken, setAccessToken] = useState<string | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
-    const [actionError, setActionError] = useState<string | null>(null)
-    const [actionSuccess, setActionSuccess] = useState<string | null>(null)
+    const [, setActionError] = useState<string | null>(null)
+    const [, setActionSuccess] = useState<string | null>(null)
+    const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({ open: false, message: '', severity: 'info' })
 
     // Detect device capabilities on mount
     useEffect(() => {
@@ -258,6 +278,12 @@ export default function EnrollmentPage() {
             setCapabilities(caps)
             setCapsLoading(false)
         })
+    }, [])
+
+    // Fetch access token for voice endpoints
+    useEffect(() => {
+        const tokenService = container.get<ITokenService>(TYPES.TokenService)
+        tokenService.getAccessToken().then(setAccessToken).catch(() => {})
     }, [])
 
     // Build enrollment status map
@@ -318,24 +344,21 @@ export default function EnrollmentPage() {
                 case AuthMethodType.EMAIL_OTP:
                 case AuthMethodType.SMS_OTP:
                 case AuthMethodType.QR_CODE:
-                    // For these methods, just create the enrollment record
                     setActionLoading(type)
                     try {
                         await createEnrollment({
                             tenantId: user?.tenantId ?? 'system',
                             methodType: type,
                         })
-                        setActionSuccess(`${type} enrollment created successfully`)
+                        setSnackbar({ open: true, message: `${METHOD_LABELS[type] ?? type} enrolled successfully`, severity: 'success' })
                     } catch (err) {
-                        setActionError(
-                            err instanceof Error ? err.message : `Failed to enroll ${type}`
-                        )
+                        setSnackbar({ open: true, message: err instanceof Error ? err.message : `Failed to enroll ${METHOD_LABELS[type] ?? type}`, severity: 'error' })
                     } finally {
                         setActionLoading(null)
                     }
                     break
                 default:
-                    setActionError(`Enrollment for ${type} is not yet supported in the browser.`)
+                    setSnackbar({ open: true, message: `${METHOD_LABELS[type] ?? type} enrollment is not yet supported in the browser.`, severity: 'info' })
             }
         },
         [createEnrollment, user?.tenantId]
@@ -357,11 +380,9 @@ export default function EnrollmentPage() {
                     methodType: AuthMethodType.FACE,
                 })
 
-                setActionSuccess('Face enrollment completed successfully')
+                setSnackbar({ open: true, message: 'Face Recognition enrolled successfully', severity: 'success' })
             } catch (err) {
-                setActionError(
-                    err instanceof Error ? err.message : 'Face enrollment failed'
-                )
+                setSnackbar({ open: true, message: err instanceof Error ? err.message : 'Face enrollment failed', severity: 'error' })
             } finally {
                 setActionLoading(null)
             }
@@ -377,11 +398,9 @@ export default function EnrollmentPage() {
             setActionSuccess(null)
             try {
                 await revokeEnrollment(type)
-                setActionSuccess(`${type} enrollment revoked`)
+                setSnackbar({ open: true, message: `${METHOD_LABELS[type] ?? type} enrollment revoked`, severity: 'success' })
             } catch (err) {
-                setActionError(
-                    err instanceof Error ? err.message : `Failed to revoke ${type}`
-                )
+                setSnackbar({ open: true, message: err instanceof Error ? err.message : `Failed to revoke ${METHOD_LABELS[type] ?? type}`, severity: 'error' })
             } finally {
                 setActionLoading(null)
             }
@@ -448,39 +467,7 @@ export default function EnrollmentPage() {
                 />
             </Box>
 
-            {/* Alerts */}
-            <AnimatePresence>
-                {actionError && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                    >
-                        <Alert
-                            severity="error"
-                            onClose={() => setActionError(null)}
-                            sx={{ mb: 2, borderRadius: '12px' }}
-                        >
-                            {actionError}
-                        </Alert>
-                    </motion.div>
-                )}
-                {actionSuccess && (
-                    <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: 'auto' }}
-                        exit={{ opacity: 0, height: 0 }}
-                    >
-                        <Alert
-                            severity="success"
-                            onClose={() => setActionSuccess(null)}
-                            sx={{ mb: 2, borderRadius: '12px' }}
-                        >
-                            {actionSuccess}
-                        </Alert>
-                    </motion.div>
-                )}
-            </AnimatePresence>
+            {/* Alerts removed — using Snackbar instead */}
 
             {/* Loading state */}
             {loading ? (
@@ -685,9 +672,13 @@ export default function EnrollmentPage() {
                 userId={userId}
                 onClose={() => setTotpEnrollOpen(false)}
                 onSuccess={() => {
+                    createEnrollment({
+                        tenantId: user?.tenantId ?? 'system',
+                        methodType: AuthMethodType.TOTP,
+                    }).catch(() => {})
                     setTotpEnrollOpen(false)
                     refetchEnrollments()
-                    setActionSuccess('TOTP setup completed successfully')
+                    setSnackbar({ open: true, message: 'Authenticator App (TOTP) enrolled successfully', severity: 'success' })
                 }}
             />
 
@@ -698,13 +689,20 @@ export default function EnrollmentPage() {
                 mode={webauthnMode}
                 onClose={() => setWebauthnEnrollOpen(false)}
                 onSuccess={() => {
+                    const methodType = webauthnMode === 'platform' ? AuthMethodType.FINGERPRINT : AuthMethodType.HARDWARE_KEY
+                    createEnrollment({
+                        tenantId: user?.tenantId ?? 'system',
+                        methodType,
+                    }).catch(() => {})
                     setWebauthnEnrollOpen(false)
                     refetchEnrollments()
-                    setActionSuccess(
-                        webauthnMode === 'platform'
-                            ? 'Fingerprint enrollment completed'
-                            : 'Hardware key registration completed'
-                    )
+                    setSnackbar({
+                        open: true,
+                        message: webauthnMode === 'platform'
+                            ? 'Fingerprint / Biometric enrolled successfully'
+                            : 'Hardware Security Key enrolled successfully',
+                        severity: 'success',
+                    })
                 }}
             />
 
@@ -713,7 +711,7 @@ export default function EnrollmentPage() {
                 open={voiceEnrollOpen}
                 userId={userId}
                 apiBaseUrl={import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'}
-                token={null}
+                token={accessToken}
                 onClose={() => setVoiceEnrollOpen(false)}
                 onSuccess={(action) => {
                     if (action === 'enroll') {
@@ -722,10 +720,26 @@ export default function EnrollmentPage() {
                             methodType: AuthMethodType.VOICE,
                         }).catch(() => {})
                         refetchEnrollments()
-                        setActionSuccess('Voice enrollment completed successfully')
+                        setSnackbar({ open: true, message: 'Voice Recognition enrolled successfully', severity: 'success' })
                     }
                 }}
             />
+
+            <Snackbar
+                open={snackbar.open}
+                autoHideDuration={4000}
+                onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+            >
+                <Alert
+                    onClose={() => setSnackbar(prev => ({ ...prev, open: false }))}
+                    severity={snackbar.severity}
+                    variant="filled"
+                    sx={{ width: '100%', borderRadius: '12px' }}
+                >
+                    {snackbar.message}
+                </Alert>
+            </Snackbar>
         </Box>
     )
 }

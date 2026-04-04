@@ -52,6 +52,15 @@ Enrollment UIs:
 9. **Voice** — WORKING (Resemblyzer 256-dim in biometric-processor)
 10. **NFC** — STUB (mobile-only, backend works, frontend placeholder)
 
+### Enrollment page fixes (2026-04-04):
+- ✅ **Enrollment status fix**: Backend `startEnrollment()` now auto-completes for non-biometric methods. Frontend creates enrollment records for TOTP and WebAuthn on success. "0 enrolled" counter now works correctly.
+- ✅ **Face enrollment mobile UX**: Head turn threshold relaxed (0.12→0.08), blink detection relaxed, 12s stage timeout with auto-advance, larger instruction chip
+- ✅ **WebAuthn credential delete**: New `/by-id/{uuid}` endpoint avoids base64url URL encoding issues
+- ✅ **Floating notifications**: Replaced top-of-page Alerts with bottom-center Snackbar (auto-dismiss 4s)
+- ✅ **Human-readable messages**: METHOD_LABELS map for all 9 method types, no more raw enum names
+- ✅ **Better WebAuthn errors**: DOMException switch/case with mobile-friendly guidance
+- ✅ **NFC unsupported toast**: Snackbar instead of invisible top Alert
+
 ### Fixed (2026-03-28):
 - Fingerprint auth: WebAuthn assertion (was: credentials.create, now: credentials.get)
 - HardwareKey auth: server-side challenge via onRequestChallenge callback (was: random local challenge)

@@ -2,6 +2,7 @@ import { useState, useRef, useCallback, useEffect } from 'react'
 import {
     Box,
     Button,
+    CircularProgress,
     Dialog,
     DialogContent,
     IconButton,
@@ -41,7 +42,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
     const [cameraError, setCameraError] = useState<string | null>(null)
     const [started, setStarted] = useState(false)
 
-    const detection = useFaceDetection(videoRef, cameraActive && started)
+    const detection = useFaceDetection(videoRef, cameraActive)
     const { challengeState, updateChallenge, resetChallenge } = useFaceChallenge()
 
     const startCamera = useCallback(async () => {
@@ -302,21 +303,40 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                             <Chip
                                 label={challengeState.instruction}
                                 icon={
-                                    <span style={{ fontSize: '1.1rem' }}>
+                                    <span style={{ fontSize: '1.3rem' }}>
                                         {STAGE_ICONS[challengeState.stage]}
                                     </span>
                                 }
                                 sx={{
-                                    bgcolor: 'rgba(255,255,255,0.1)',
+                                    bgcolor: 'rgba(255,255,255,0.15)',
                                     color: 'white',
-                                    fontSize: '0.9rem',
-                                    py: 2.5,
-                                    px: 1,
-                                    fontWeight: 500,
+                                    fontSize: { xs: '1rem', sm: '0.9rem' },
+                                    py: 3,
+                                    px: 2,
+                                    fontWeight: 600,
+                                    maxWidth: '90%',
+                                    height: 'auto',
+                                    '& .MuiChip-label': {
+                                        whiteSpace: 'normal',
+                                        textAlign: 'center',
+                                    },
                                 }}
                             />
                         </motion.div>
                     </AnimatePresence>
+
+                    {started && challengeState.stage !== 'complete' && (
+                        <Typography
+                            variant="caption"
+                            sx={{
+                                color: 'rgba(255,255,255,0.4)',
+                                mt: 1,
+                                display: 'block',
+                            }}
+                        >
+                            Follow the instruction above. It will auto-advance if needed.
+                        </Typography>
+                    )}
 
                     {cameraError && (
                         <Typography variant="body2" color="error" sx={{ mt: 1 }}>
@@ -334,6 +354,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                             size="large"
                             onClick={() => setStarted(true)}
                             disabled={!cameraActive}
+                            startIcon={!cameraActive ? <CircularProgress size={18} color="inherit" /> : undefined}
                             sx={{
                                 py: 1.5,
                                 borderRadius: '12px',
@@ -344,7 +365,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                 },
                             }}
                         >
-                            Begin Enrollment
+                            {!cameraActive ? 'Starting Camera...' : 'Begin Enrollment'}
                         </Button>
                     )}
 

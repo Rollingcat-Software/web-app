@@ -151,11 +151,15 @@ export default function WebAuthnEnrollment({
             }
 
             if (isPlatform) {
-                const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
-                if (!available) {
-                    setError('No platform authenticator (fingerprint/biometric) available on this device.')
-                    setLoading(false)
-                    return
+                try {
+                    const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+                    if (!available) {
+                        setError('No platform authenticator (fingerprint/biometric) available on this device.')
+                        setLoading(false)
+                        return
+                    }
+                } catch {
+                    // Brave throws here — proceed anyway and let WebAuthn prompt the user
                 }
             }
 
@@ -258,14 +262,25 @@ export default function WebAuthnEnrollment({
                 setActiveStep(0)
             }
         } catch (err) {
-            if (err instanceof DOMException && err.name === 'NotAllowedError') {
-                setError('Registration was cancelled or timed out. Please try again.')
-            } else if (err instanceof DOMException && err.name === 'InvalidStateError') {
-                setError('This authenticator is already registered.')
-            } else if (err instanceof DOMException && err.name === 'SecurityError') {
-                setError('Security error: The RP ID does not match the current origin.')
+            if (err instanceof DOMException) {
+                switch (err.name) {
+                    case 'NotAllowedError':
+                        setError('Registration was cancelled or timed out. Please try again.')
+                        break
+                    case 'InvalidStateError':
+                        setError('This authenticator is already registered. Remove it first, then re-register.')
+                        break
+                    case 'SecurityError':
+                        setError('Security error: The domain does not match the server configuration. Contact support.')
+                        break
+                    case 'AbortError':
+                        setError('The operation was aborted. Please try again.')
+                        break
+                    default:
+                        setError(`Authenticator error: ${err.message || 'Your device may not support this authentication method. Try using Fingerprint enrollment instead.'}`)
+                }
             } else {
-                setError(err instanceof Error ? err.message : 'Failed to register credential')
+                setError(err instanceof Error ? err.message : 'Failed to register credential. Check your connection and try again.')
             }
             setActiveStep(0)
         } finally {
@@ -273,12 +288,12 @@ export default function WebAuthnEnrollment({
         }
     }, [httpClient, userId, deviceName, isPlatform, loadCredentials, onSuccess])
 
-    const handleDeleteCredential = useCallback(async (credentialId: string) => {
+    const handleDeleteCredential = useCallback(async (id: string) => {
         try {
-            await httpClient.delete(`/webauthn/credentials/${credentialId}`)
+            await httpClient.delete(`/webauthn/credentials/by-id/${id}`)
             await loadCredentials()
         } catch {
-            setError('Failed to delete credential')
+            setError('Failed to delete credential. Please try again.')
         }
     }, [httpClient, loadCredentials])
 
@@ -462,7 +477,7 @@ export default function WebAuthnEnrollment({
                                                 <IconButton
                                                     edge="end"
                                                     size="small"
-                                                    onClick={() => handleDeleteCredential(cred.credentialId)}
+                                                    onClick={() => handleDeleteCredential(cred.id)}
                                                 >
                                                     <Delete fontSize="small" />
                                                 </IconButton>

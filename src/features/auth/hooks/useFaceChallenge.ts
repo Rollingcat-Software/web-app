@@ -42,7 +42,8 @@ const ENROLLMENT_STAGES: { stage: ChallengeStage; instruction: string; holdMs: n
     { stage: 'blink', instruction: 'Blink naturally', holdMs: 2500 },
 ]
 
-const HEAD_TURN_THRESHOLD = 0.12 // bounding box center offset from video center
+const HEAD_TURN_THRESHOLD = 0.08 // relaxed for mobile front cameras
+const STAGE_TIMEOUT_MS = 12000 // auto-advance after 12s if stuck
 
 export function useFaceChallenge() {
     const [challengeState, setChallengeState] = useState<ChallengeState>({
@@ -60,6 +61,7 @@ export function useFaceChallenge() {
     const capturesRef = useRef<string[]>([])
     const prevConfidenceRef = useRef<number>(0)
     const blinkDetectedRef = useRef(false)
+    const stageStartRef = useRef<number>(Date.now())
 
     const resetChallenge = useCallback(() => {
         stageIndexRef.current = 0
@@ -67,6 +69,7 @@ export function useFaceChallenge() {
         holdStartRef.current = null
         prevConfidenceRef.current = 0
         blinkDetectedRef.current = false
+        stageStartRef.current = Date.now()
         setChallengeState({
             stage: 'position',
             stageIndex: 0,
@@ -109,7 +112,7 @@ export function useFaceChallenge() {
                 // Detect blink via confidence dip: confidence drops then recovers
                 const currentConf = detection.confidence
                 const prevConf = prevConfidenceRef.current
-                if (prevConf > 0.7 && currentConf < 0.55) {
+                if (prevConf > 0.6 && currentConf < 0.5) {
                     blinkDetectedRef.current = true
                 }
                 prevConfidenceRef.current = currentConf
@@ -132,15 +135,20 @@ export function useFaceChallenge() {
         const currentStage = ENROLLMENT_STAGES[idx]
         const conditionMet = checkStageCondition(currentStage.stage, detection)
 
-        if (conditionMet) {
+        const stageElapsed = Date.now() - stageStartRef.current
+        const timeoutReached = stageElapsed > STAGE_TIMEOUT_MS && detection.detected
+
+        if (conditionMet || timeoutReached) {
             if (!holdStartRef.current) {
                 holdStartRef.current = Date.now()
             }
 
             const elapsed = Date.now() - holdStartRef.current
-            const stageProgress = Math.min(1, elapsed / currentStage.holdMs)
+            // If timeout reached, use shorter hold time (500ms) to quickly capture
+            const requiredHold = timeoutReached && !conditionMet ? 500 : currentStage.holdMs
+            const stageProgress = Math.min(1, elapsed / requiredHold)
 
-            if (elapsed >= currentStage.holdMs) {
+            if (elapsed >= requiredHold) {
                 // Stage complete — capture image
                 let capturedImage: string | null = null
                 if (canvasRef.current) {
@@ -155,6 +163,7 @@ export function useFaceChallenge() {
                 holdStartRef.current = null
                 blinkDetectedRef.current = false
                 prevConfidenceRef.current = 0
+                stageStartRef.current = Date.now()
 
                 if (nextIdx >= ENROLLMENT_STAGES.length) {
                     setChallengeState({
