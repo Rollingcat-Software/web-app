@@ -9,7 +9,7 @@ import {
     CircularProgress,
     Typography,
 } from '@mui/material'
-import { CameraAlt, CreditCard, Refresh } from '@mui/icons-material'
+import { CameraAlt, CameraswitchOutlined, CreditCard, Refresh } from '@mui/icons-material'
 import { useCamera } from '@features/userEnrollment/hooks/useCamera'
 import { useCardDetection } from '@hooks/useCardDetection'
 import { useTranslation } from 'react-i18next'
@@ -21,7 +21,7 @@ import { useTranslation } from 'react-i18next'
  * Provides camera preview, capture, and detection result display.
  */
 export default function CardDetectionPage() {
-    const { videoRef, stream, error: cameraError, requestAccess, captureFrame, stopCamera } = useCamera()
+    const { videoRef, stream, error: cameraError, requestAccess, captureFrame, stopCamera, flipCamera } = useCamera()
     const { detecting, result, error: detectError, detectCard, reset } = useCardDetection()
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
@@ -30,7 +30,7 @@ export default function CardDetectionPage() {
     const handleStartCamera = async () => {
         reset()
         setCapturedImage(null)
-        await requestAccess()
+        await requestAccess('environment') // rear camera for card scanning
     }
 
     const handleCapture = async () => {
@@ -151,6 +151,13 @@ export default function CardDetectionPage() {
                                     disabled={detecting}
                                 >
                                     {t('common.captureAndDetect')}
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    startIcon={<CameraswitchOutlined />}
+                                    onClick={flipCamera}
+                                >
+                                    Flip
                                 </Button>
                                 <Button
                                     variant="outlined"

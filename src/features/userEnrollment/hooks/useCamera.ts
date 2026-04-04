@@ -5,9 +5,11 @@ interface UseCameraReturn {
     stream: MediaStream | null
     hasPermission: boolean | null
     error: string | null
-    requestAccess: () => Promise<boolean>
+    facingMode: 'user' | 'environment'
+    requestAccess: (preferredFacing?: 'user' | 'environment') => Promise<boolean>
     captureFrame: () => Blob | null
     stopCamera: () => void
+    flipCamera: () => Promise<void>
 }
 
 function mapCameraError(error: unknown): string {
@@ -36,6 +38,7 @@ export function useCamera(): UseCameraReturn {
     const [stream, setStream] = useState<MediaStream | null>(null)
     const [hasPermission, setHasPermission] = useState<boolean | null>(null)
     const [error, setError] = useState<string | null>(null)
+    const [facingMode, setFacingMode] = useState<'user' | 'environment'>('user')
 
     const stopCamera = useCallback(() => {
         if (streamRef.current) {
@@ -48,11 +51,13 @@ export function useCamera(): UseCameraReturn {
         }
     }, [])
 
-    const requestAccess = useCallback(async (): Promise<boolean> => {
+    const requestAccess = useCallback(async (preferredFacing?: 'user' | 'environment'): Promise<boolean> => {
+        const facing = preferredFacing ?? facingMode
+        if (preferredFacing) setFacingMode(preferredFacing)
         setError(null)
         try {
             const mediaStream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user' },
+                video: { facingMode: facing },
             })
             streamRef.current = mediaStream
             setStream(mediaStream)
@@ -67,7 +72,14 @@ export function useCamera(): UseCameraReturn {
             setError(mapCameraError(err))
             return false
         }
-    }, [])
+    }, [facingMode])
+
+    const flipCamera = useCallback(async (): Promise<void> => {
+        stopCamera()
+        const newFacing = facingMode === 'user' ? 'environment' : 'user'
+        setFacingMode(newFacing)
+        await requestAccess(newFacing)
+    }, [facingMode, stopCamera, requestAccess])
 
     const captureFrame = useCallback((): Blob | null => {
         const video = videoRef.current
@@ -106,8 +118,10 @@ export function useCamera(): UseCameraReturn {
         stream,
         hasPermission,
         error,
+        facingMode,
         requestAccess,
         captureFrame,
         stopCamera,
+        flipCamera,
     }
 }

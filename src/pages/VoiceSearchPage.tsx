@@ -407,16 +407,28 @@ export default function VoiceSearchPage() {
                                         <ListItemText
                                             primary={
                                                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                                    <Typography variant="body1">
-                                                        {t('common.userId')}: {match.userId}
+                                                    <Typography variant="body1" fontWeight={match.userName ? 600 : 400}>
+                                                        {match.userName || match.userId}
                                                     </Typography>
+                                                    {match.userEmail && (
+                                                        <Typography variant="body2" color="text.secondary">
+                                                            ({match.userEmail})
+                                                        </Typography>
+                                                    )}
                                                     {idx === 0 && (
                                                         <Chip label={t('common.bestMatch')} size="small" color="primary" />
                                                     )}
                                                 </Box>
                                             }
                                             secondary={
-                                                `${t('common.similarity')}: ${(match.similarity * 100).toFixed(1)}%`
+                                                <Box component="span">
+                                                    {`${t('common.similarity')}: ${(match.similarity * 100).toFixed(1)}%`}
+                                                    {match.userName && (
+                                                        <Typography variant="caption" color="text.disabled" component="span" sx={{ ml: 1 }}>
+                                                            ID: {match.userId}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
                                             }
                                         />
                                     </ListItem>

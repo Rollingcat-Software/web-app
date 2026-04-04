@@ -12,7 +12,7 @@ import {
     ListItemText,
     Typography,
 } from '@mui/material'
-import { CameraAlt, Face, PersonSearch, Refresh } from '@mui/icons-material'
+import { CameraAlt, CameraswitchOutlined, Face, PersonSearch, Refresh } from '@mui/icons-material'
 import { useCamera } from '@features/userEnrollment/hooks/useCamera'
 import { useFaceSearch } from '@hooks/useFaceSearch'
 import { useTranslation } from 'react-i18next'
@@ -24,7 +24,7 @@ import { useTranslation } from 'react-i18next'
  * for matching users (1:N identification).
  */
 export default function FaceSearchPage() {
-    const { videoRef, stream, error: cameraError, requestAccess, captureFrame, stopCamera } = useCamera()
+    const { videoRef, stream, error: cameraError, requestAccess, captureFrame, stopCamera, flipCamera } = useCamera()
     const { searching, result, error: searchError, searchFace, reset } = useFaceSearch()
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const { t } = useTranslation()
@@ -157,6 +157,13 @@ export default function FaceSearchPage() {
                                     disabled={searching}
                                 >
                                     {t('faceSearch.whoIsThis')}
+                                </Button>
+                                <Button
+                                    variant="outlined"
+                                    startIcon={<CameraswitchOutlined />}
+                                    onClick={flipCamera}
+                                >
+                                    Flip
                                 </Button>
                                 <Button
                                     variant="outlined"

@@ -17,10 +17,7 @@ const PAGE_TITLES: Record<string, string> = {
     '/enrollments': 'Enrollments — FIVUCSAS',
     '/user-enrollment': 'Identity Enrollment — FIVUCSAS',
     '/enrollment': 'Biometric Enrollment — FIVUCSAS',
-    '/card-detection': 'Card Detection — FIVUCSAS',
-    '/face-search': 'Face Search — FIVUCSAS',
-    '/voice-search': 'Voice Search — FIVUCSAS',
-    '/nfc-enrollment': 'NFC Enrollment — FIVUCSAS',
+    '/biometric-tools': 'Biometric Tools — FIVUCSAS',
     '/widget-demo': 'Auth Widget — FIVUCSAS',
     '/developer-portal': 'Developer Portal — FIVUCSAS',
     '/verification-flows': 'Verification Flows — FIVUCSAS',
@@ -78,10 +75,7 @@ const GuestsPage = lazy(() => import('./pages/GuestsPage'))
 const BiometricEnrollmentPage = lazy(() => import('./features/auth/components/EnrollmentPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
-const CardDetectionPage = lazy(() => import('./pages/CardDetectionPage'))
-const FaceSearchPage = lazy(() => import('./pages/FaceSearchPage'))
-const VoiceSearchPage = lazy(() => import('./pages/VoiceSearchPage'))
-const NfcEnrollmentPage = lazy(() => import('./pages/NfcEnrollmentPage'))
+const BiometricToolsPage = lazy(() => import('./pages/BiometricToolsPage'))
 const WidgetDemoPage = lazy(() => import('./pages/WidgetDemoPage'))
 const DeveloperPortalPage = lazy(() => import('./pages/DeveloperPortalPage'))
 const VerificationFlowBuilderPage = lazy(() => import('./pages/VerificationFlowBuilderPage'))
@@ -191,10 +185,11 @@ function App() {
                     <Route path="enrollments" element={<ErrorBoundary><EnrollmentsListPage /></ErrorBoundary>} />
                     <Route path="user-enrollment" element={<ErrorBoundary><UserEnrollmentPage /></ErrorBoundary>} />
                     <Route path="enrollment" element={<ErrorBoundary><BiometricEnrollmentPage /></ErrorBoundary>} />
-                    <Route path="card-detection" element={<ErrorBoundary><CardDetectionPage /></ErrorBoundary>} />
-                    <Route path="face-search" element={<ErrorBoundary><FaceSearchPage /></ErrorBoundary>} />
-                    <Route path="voice-search" element={<ErrorBoundary><VoiceSearchPage /></ErrorBoundary>} />
-                    <Route path="nfc-enrollment" element={<ErrorBoundary><NfcEnrollmentPage /></ErrorBoundary>} />
+                    <Route path="biometric-tools" element={<ErrorBoundary><BiometricToolsPage /></ErrorBoundary>} />
+                    <Route path="card-detection" element={<Navigate to="/biometric-tools" replace />} />
+                    <Route path="face-search" element={<Navigate to="/biometric-tools" replace />} />
+                    <Route path="voice-search" element={<Navigate to="/biometric-tools" replace />} />
+                    <Route path="nfc-enrollment" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="widget-demo" element={<AdminRoute><ErrorBoundary><WidgetDemoPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="developer-portal" element={<AdminRoute><ErrorBoundary><DeveloperPortalPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="verification-flows" element={<AdminRoute><ErrorBoundary><VerificationFlowBuilderPage /></ErrorBoundary></AdminRoute>} />

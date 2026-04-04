@@ -61,6 +61,7 @@
     "faceSearch": "Face Search",
     "voiceSearch": "Voice Search",
     "nfcEnrollment": "NFC Enrollment",
+    "biometricTools": "Biometric Tools",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
     "verificationFlows": "Verification Flows",

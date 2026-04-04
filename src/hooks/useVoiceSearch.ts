@@ -3,6 +3,8 @@ import { useState, useCallback, useRef } from 'react'
 interface VoiceSearchMatch {
     userId: string
     similarity: number
+    userName?: string
+    userEmail?: string
 }
 
 interface VoiceSearchResult {
@@ -41,10 +43,14 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
 
         try {
             const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
+            const token = localStorage.getItem('fivucsas_token')
 
             const res = await fetch(`${apiBaseUrl}/biometric/voice/search`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                },
                 body: JSON.stringify({ voiceData: audioBase64 }),
             })
 
@@ -60,6 +66,22 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
                     similarity: m.similarity,
                 })
             )
+
+            // Resolve user details for all matches (best-effort)
+            await Promise.all(matches.map(async (match) => {
+                try {
+                    const userRes = await fetch(`${apiBaseUrl}/users/${match.userId}`, {
+                        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                    })
+                    if (userRes.ok) {
+                        const user = await userRes.json()
+                        const firstName = user.firstName || user.data?.firstName || ''
+                        const lastName = user.lastName || user.data?.lastName || ''
+                        match.userName = `${firstName} ${lastName}`.trim() || undefined
+                        match.userEmail = user.email || user.data?.email || undefined
+                    }
+                } catch { /* best-effort */ }
+            }))
 
             const searchResult: VoiceSearchResult = {
                 found: matches.length > 0,
