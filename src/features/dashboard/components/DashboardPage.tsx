@@ -391,7 +391,7 @@ function UserDashboardContent() {
                                                 </ListItemIcon>
                                                 <ListItemText
                                                     primary={<Typography variant="body2" color="text.secondary">Tenant</Typography>}
-                                                    secondary={<Typography variant="body1">{user?.tenantId || 'Default'}</Typography>}
+                                                    secondary={<Typography variant="body1">{user?.tenantId ? 'Marmara University' : 'Default'}</Typography>}
                                                 />
                                             </ListItem>
                                             <ListItem sx={{ px: 0 }}>
@@ -560,7 +560,7 @@ function UserDashboardContent() {
                                             <Button
                                                 variant="outlined"
                                                 startIcon={<Security />}
-                                                onClick={() => navigate('/auth-test')}
+                                                onClick={() => navigate('/biometric-tools')}
                                                 sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
                                             >
                                                 {t('dashboard.biometricTools', 'Biometric Tools')}

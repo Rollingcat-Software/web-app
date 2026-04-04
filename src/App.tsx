@@ -31,6 +31,8 @@ const PAGE_TITLES: Record<string, string> = {
     '/register': 'Create Account — FIVUCSAS',
     '/forgot-password': 'Forgot Password — FIVUCSAS',
     '/reset-password': 'Reset Password — FIVUCSAS',
+    '/terms': 'Terms of Service — FIVUCSAS',
+    '/privacy': 'Privacy Policy — FIVUCSAS',
 }
 
 function PageTitle() {
@@ -80,6 +82,8 @@ const DeveloperPortalPage = lazy(() => import('./pages/DeveloperPortalPage'))
 const VerificationFlowBuilderPage = lazy(() => import('./pages/VerificationFlowBuilderPage'))
 const VerificationDashboardPage = lazy(() => import('./pages/VerificationDashboardPage'))
 const VerificationSessionDetailPage = lazy(() => import('./pages/VerificationSessionDetailPage'))
+const TermsPage = lazy(() => import('./pages/TermsPage'))
+const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -157,6 +161,8 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/terms" element={<TermsPage />} />
+                <Route path="/privacy" element={<PrivacyPage />} />
 
                 {/* Protected Routes */}
                 <Route

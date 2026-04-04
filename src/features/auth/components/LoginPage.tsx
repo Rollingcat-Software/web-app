@@ -16,24 +16,16 @@ import {
     Skeleton,
     TextField,
     Typography,
-    Collapse,
-    Divider,
     Link,
 } from '@mui/material'
 import {
-    Face,
     Fingerprint,
     Visibility,
     VisibilityOff,
     LockOutlined,
     EmailOutlined,
     ArrowForward,
-    ExpandMore,
     VerifiedUser,
-    QrCode2,
-    PhonelinkLock,
-    Key,
-    RecordVoiceOver,
 } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -139,7 +131,6 @@ export default function LoginPage() {
     const [faceError, setFaceError] = useState<string | null>(null)
     const [pageReady, setPageReady] = useState(false)
     const [showSecondaryAuth, setShowSecondaryAuth] = useState(false)
-    const [showMoreLoginOptions, setShowMoreLoginOptions] = useState(false)
 
     // Mark page ready after initial render
     useEffect(() => {
@@ -623,202 +614,28 @@ export default function LoginPage() {
                             </motion.div>
                         </form>
 
-                        {/* More login options toggle */}
+                        {/* Multi-factor auth info */}
                         <motion.div variants={itemVariants}>
-                            <Box sx={{ textAlign: 'center', mt: 2 }}>
-                                <Link
-                                    component="button"
-                                    type="button"
-                                    variant="body2"
-                                    underline="hover"
-                                    onClick={() => setShowMoreLoginOptions(!showMoreLoginOptions)}
-                                    sx={{
-                                        display: 'inline-flex',
-                                        alignItems: 'center',
-                                        gap: 0.5,
-                                        color: 'text.secondary',
-                                        cursor: 'pointer',
-                                        fontWeight: 500,
-                                        '&:hover': { color: 'primary.main' },
-                                    }}
-                                >
-                                    More login options
-                                    <ExpandMore
-                                        sx={{
-                                            fontSize: 18,
-                                            transition: 'transform 0.3s ease',
-                                            transform: showMoreLoginOptions ? 'rotate(180deg)' : 'rotate(0deg)',
-                                        }}
-                                    />
-                                </Link>
-                            </Box>
-                        </motion.div>
-
-                        <Collapse in={showMoreLoginOptions} timeout={300}>
-                            {/* Divider */}
-                            <Divider sx={{ my: 2 }}>
-                                <Typography variant="caption" color="text.secondary">
-                                    Or use alternative authentication
-                                </Typography>
-                            </Divider>
-
-                            {/* Alternative auth method buttons */}
-                            <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
-                                {/* Face ID */}
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => setFaceLoginOpen(true)}
-                                    disabled={loading}
-                                    startIcon={<Face />}
-                                    sx={{
-                                        py: 1.2,
-                                        borderRadius: '12px',
-                                        fontSize: '0.82rem',
-                                        fontWeight: 600,
-                                        borderColor: 'rgba(139, 92, 246, 0.3)',
-                                        color: '#8b5cf6',
-                                        '&:hover': {
-                                            borderColor: '#8b5cf6',
-                                            backgroundColor: 'rgba(139, 92, 246, 0.04)',
-                                        },
-                                        transition: 'all 0.3s ease',
-                                    }}
-                                >
-                                    Face ID
-                                </Button>
-
-                                {/* Fingerprint (WebAuthn) */}
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => {
-                                        // Fingerprint uses WebAuthn platform authenticator
-                                        // which requires a user context; redirect to dedicated flow
-                                        navigate('/login/fingerprint')
-                                    }}
-                                    disabled={loading}
-                                    startIcon={<Fingerprint />}
-                                    sx={{
-                                        py: 1.2,
-                                        borderRadius: '12px',
-                                        fontSize: '0.82rem',
-                                        fontWeight: 600,
-                                        borderColor: 'rgba(99, 102, 241, 0.3)',
-                                        color: '#6366f1',
-                                        '&:hover': {
-                                            borderColor: '#6366f1',
-                                            backgroundColor: 'rgba(99, 102, 241, 0.04)',
-                                        },
-                                        transition: 'all 0.3s ease',
-                                    }}
-                                >
-                                    Fingerprint
-                                </Button>
-
-                                {/* QR Code */}
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => navigate('/login/qr')}
-                                    disabled={loading}
-                                    startIcon={<QrCode2 />}
-                                    sx={{
-                                        py: 1.2,
-                                        borderRadius: '12px',
-                                        fontSize: '0.82rem',
-                                        fontWeight: 600,
-                                        borderColor: 'rgba(59, 130, 246, 0.3)',
-                                        color: '#3b82f6',
-                                        '&:hover': {
-                                            borderColor: '#3b82f6',
-                                            backgroundColor: 'rgba(59, 130, 246, 0.04)',
-                                        },
-                                        transition: 'all 0.3s ease',
-                                    }}
-                                >
-                                    QR Code
-                                </Button>
-
-                                {/* Authenticator App (TOTP) */}
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => navigate('/login/totp')}
-                                    disabled={loading}
-                                    startIcon={<PhonelinkLock />}
-                                    sx={{
-                                        py: 1.2,
-                                        borderRadius: '12px',
-                                        fontSize: '0.82rem',
-                                        fontWeight: 600,
-                                        borderColor: 'rgba(16, 185, 129, 0.3)',
-                                        color: '#10b981',
-                                        '&:hover': {
-                                            borderColor: '#10b981',
-                                            backgroundColor: 'rgba(16, 185, 129, 0.04)',
-                                        },
-                                        transition: 'all 0.3s ease',
-                                    }}
-                                >
-                                    TOTP
-                                </Button>
-
-                                {/* Hardware Key */}
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => navigate('/login/hardware-key')}
-                                    disabled={loading}
-                                    startIcon={<Key />}
-                                    sx={{
-                                        py: 1.2,
-                                        borderRadius: '12px',
-                                        fontSize: '0.82rem',
-                                        fontWeight: 600,
-                                        borderColor: 'rgba(245, 158, 11, 0.3)',
-                                        color: '#f59e0b',
-                                        '&:hover': {
-                                            borderColor: '#f59e0b',
-                                            backgroundColor: 'rgba(245, 158, 11, 0.04)',
-                                        },
-                                        transition: 'all 0.3s ease',
-                                    }}
-                                >
-                                    Security Key
-                                </Button>
-
-                                {/* Voice */}
-                                <Button
-                                    variant="outlined"
-                                    onClick={() => navigate('/login/voice')}
-                                    disabled={loading}
-                                    startIcon={<RecordVoiceOver />}
-                                    sx={{
-                                        py: 1.2,
-                                        borderRadius: '12px',
-                                        fontSize: '0.82rem',
-                                        fontWeight: 600,
-                                        borderColor: 'rgba(236, 72, 153, 0.3)',
-                                        color: '#ec4899',
-                                        '&:hover': {
-                                            borderColor: '#ec4899',
-                                            backgroundColor: 'rgba(236, 72, 153, 0.04)',
-                                        },
-                                        transition: 'all 0.3s ease',
-                                    }}
-                                >
-                                    Voice
-                                </Button>
-                            </Box>
-
-                            <Typography
-                                variant="caption"
+                            <Box
                                 sx={{
-                                    display: 'block',
-                                    textAlign: 'center',
-                                    color: 'text.disabled',
-                                    mt: 1.5,
+                                    mt: 2,
+                                    p: 2,
+                                    borderRadius: '12px',
+                                    bgcolor: 'rgba(99, 102, 241, 0.06)',
+                                    border: '1px solid',
+                                    borderColor: 'rgba(99, 102, 241, 0.15)',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 1.5,
                                 }}
                             >
-                                Available methods depend on your enrollment status
-                            </Typography>
-                        </Collapse>
+                                <VerifiedUser sx={{ fontSize: 20, color: 'primary.main', flexShrink: 0 }} />
+                                <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
+                                    After signing in, you may be asked for additional verification
+                                    (face, fingerprint, TOTP, etc.) depending on your tenant's security policy.
+                                </Typography>
+                            </Box>
+                        </motion.div>
 
                         {/* Register Link */}
                         <motion.div variants={itemVariants}>
