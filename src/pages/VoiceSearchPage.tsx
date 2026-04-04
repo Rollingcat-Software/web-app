@@ -199,7 +199,7 @@ export default function VoiceSearchPage() {
                 const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
 
                 if (maxAmplitudeRef.current < 0.05) {
-                    setMicError('No voice detected. Please speak clearly into the microphone and try again.')
+                    setMicError(t('common.noVoiceDetected'))
                     stream.getTracks().forEach(t => t.stop())
                     return
                 }
@@ -231,7 +231,7 @@ export default function VoiceSearchPage() {
         } catch {
             setMicError(t('voiceSearch.microphoneError'))
         }
-    }, [selectedMic, reset])
+    }, [selectedMic, reset, t])
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current?.state === 'recording') {
@@ -256,7 +256,7 @@ export default function VoiceSearchPage() {
     const hasRecording = voiceBase64 !== null && !recording
 
     return (
-        <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
+        <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <RecordVoiceOver /> {t('voiceSearch.title')}
             </Typography>

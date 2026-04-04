@@ -43,7 +43,13 @@
     "captureAndDetect": "Capture & Detect",
     "accessDuration": "Access Duration (hours)",
     "messageOptional": "Message (optional)",
-    "additionalHours": "Additional Hours"
+    "additionalHours": "Additional Hours",
+    "flip": "Flip",
+    "user": "User",
+    "from": "from",
+    "role": "Role",
+    "tenant": "Tenant",
+    "noVoiceDetected": "No voice detected. Please speak clearly into the microphone and try again."
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -283,7 +289,40 @@
     "loginAlerts": "Login Alerts",
     "securityEvents": "Security Events",
     "enrollmentChanges": "Enrollment Changes",
-    "systemChanges": "System Changes"
+    "systemChanges": "System Changes",
+    "actions": {
+      "USER_LOGIN": "User logged in",
+      "USER_LOGOUT": "User logged out",
+      "USER_LOGIN_FAILED": "Failed login attempt",
+      "USER_CREATED": "New user created",
+      "USER_UPDATED": "User profile updated",
+      "USER_DELETED": "User deleted",
+      "USER_STATUS_CHANGED": "User status changed",
+      "USER_ROLE_ASSIGNED": "Role assigned to user",
+      "USER_ROLE_REMOVED": "Role removed from user",
+      "TOKEN_REFRESH": "Token refreshed",
+      "PASSWORD_CHANGE": "Password changed",
+      "PASSWORD_RESET_REQUEST": "Password reset requested",
+      "PASSWORD_RESET": "Password reset completed",
+      "TENANT_CREATED": "Tenant created",
+      "TENANT_UPDATED": "Tenant updated",
+      "TENANT_DELETED": "Tenant deleted",
+      "TENANT_STATUS_CHANGED": "Tenant status changed",
+      "ROLE_CREATED": "Role created",
+      "ROLE_UPDATED": "Role updated",
+      "ROLE_DELETED": "Role deleted",
+      "PERMISSION_ADDED": "Permission added",
+      "PERMISSION_REMOVED": "Permission removed",
+      "BIOMETRIC_ENROLLED": "Biometric enrollment completed",
+      "BIOMETRIC_VERIFIED": "Biometric verification successful",
+      "BIOMETRIC_VERIFICATION_FAILED": "Biometric verification failed",
+      "BIOMETRIC_DELETED": "Biometric data deleted",
+      "SETTINGS_UPDATED": "Settings updated",
+      "SECURITY_SETTINGS_UPDATED": "Security settings updated",
+      "NOTIFICATION_SETTINGS_UPDATED": "Notification settings updated",
+      "APPEARANCE_SETTINGS_UPDATED": "Appearance settings updated",
+      "FAILED_LOGIN_ATTEMPT": "Failed login attempt"
+    }
   },
   "nfc": {
     "title": "NFC Scanner",
@@ -528,6 +567,22 @@
     "backToDashboard": "Back to Dashboard",
     "stepProgress": "Step Progress",
     "verificationLevel": "Verification Level"
+  },
+  "biometricTools": {
+    "title": "Biometric Tools",
+    "subtitle": "Search, detect, and verify using biometric data",
+    "faceTab": "Face",
+    "voiceTab": "Voice",
+    "cardTab": "Card",
+    "nfcTab": "NFC"
+  },
+  "secondaryAuth": {
+    "checking": "Checking security requirements...",
+    "title": "Additional Verification",
+    "subtitle": "Complete the verification steps below to sign in",
+    "retry": "Retry",
+    "securedBy": "Secured by FIVUCSAS",
+    "skipForNow": "Skip for now"
   },
   "language": {
     "en": "English",

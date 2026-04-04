@@ -13,6 +13,7 @@ import {
     VerifiedUser,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -58,6 +59,7 @@ export default function SecondaryAuthFlow({
     onComplete,
     onSkip,
 }: SecondaryAuthFlowProps) {
+    const { t } = useTranslation()
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
 
     const [loading, setLoading] = useState(true)
@@ -66,9 +68,20 @@ export default function SecondaryAuthFlow({
     const [widgetActive, setWidgetActive] = useState(false)
     const containerRef = useRef<HTMLDivElement>(null)
     const authInstanceRef = useRef<FivucsasAuth | null>(null)
+    const skippedRef = useRef(false)
+
+    // If userId or tenantId is missing, skip immediately
+    useEffect(() => {
+        if ((!userId || !tenantId) && !skippedRef.current) {
+            skippedRef.current = true
+            onSkip()
+        }
+    }, [userId, tenantId, onSkip])
 
     // Check enrollments and tenant auth flows
     useEffect(() => {
+        if (!userId || !tenantId) return
+
         let cancelled = false
 
         const checkSecondaryAuth = async () => {
@@ -82,7 +95,7 @@ export default function SecondaryAuthFlow({
                     const enrollRes = await httpClient.get<EnrollmentJSON[]>(
                         `/users/${userId}/enrollments`
                     )
-                    enrollmentData = enrollRes.data
+                    enrollmentData = enrollRes.data ?? []
                 } catch {
                     // No enrollments endpoint or error - skip secondary auth
                     if (!cancelled) onSkip()
@@ -151,9 +164,7 @@ export default function SecondaryAuthFlow({
             }
         }
 
-        if (userId && tenantId) {
-            checkSecondaryAuth()
-        }
+        checkSecondaryAuth()
 
         return () => {
             cancelled = true
@@ -167,21 +178,34 @@ export default function SecondaryAuthFlow({
         const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
         const baseUrl = window.location.origin + '/verify'
 
-        const auth = new FivucsasAuth({
-            clientId: 'fivucsas-web-app',
-            baseUrl,
-            apiBaseUrl,
-            locale: (document.documentElement.lang as 'en' | 'tr') || 'en',
-            theme: { primaryColor: '#6366f1', borderRadius: '12px' },
-        })
+        let auth: FivucsasAuth
+        try {
+            auth = new FivucsasAuth({
+                clientId: 'fivucsas-web-app',
+                baseUrl,
+                apiBaseUrl,
+                locale: (document.documentElement.lang as 'en' | 'tr') || 'en',
+                theme: { primaryColor: '#6366f1', borderRadius: '12px' },
+            })
+        } catch (initErr) {
+            setError(initErr instanceof Error ? initErr.message : 'Failed to initialize verification widget')
+            return
+        }
 
         authInstanceRef.current = auth
         setWidgetActive(true)
 
+        const sessionId = authSession.sessionId ?? (authSession as unknown as Record<string, unknown>).id as string
+        if (!sessionId) {
+            setError('Invalid auth session — no session ID')
+            setWidgetActive(false)
+            return
+        }
+
         auth.verify({
             flow: 'login',
             userId,
-            sessionId: authSession.sessionId,
+            sessionId,
             container: containerRef.current,
             onStepChange: (step) => {
                 if (import.meta.env.DEV) {
@@ -212,7 +236,7 @@ export default function SecondaryAuthFlow({
         })
 
         return () => {
-            authInstanceRef.current?.destroy()
+            try { authInstanceRef.current?.destroy() } catch { /* ignore cleanup errors */ }
             authInstanceRef.current = null
         }
     }, [authSession, userId, onComplete, onSkip, widgetActive])
@@ -220,6 +244,8 @@ export default function SecondaryAuthFlow({
     const handleRetry = useCallback(() => {
         setError(null)
         setWidgetActive(false)
+        setAuthSession(null)
+        setLoading(true)
     }, [])
 
     // Loading state
@@ -246,7 +272,7 @@ export default function SecondaryAuthFlow({
                 >
                     <CircularProgress sx={{ mb: 2 }} />
                     <Typography variant="body1" color="text.secondary">
-                        Checking security requirements...
+                        {t('secondaryAuth.checking')}
                     </Typography>
                 </Card>
             </Box>
@@ -302,14 +328,14 @@ export default function SecondaryAuthFlow({
                                 WebkitTextFillColor: 'transparent',
                             }}
                         >
-                            Additional Verification
+                            {t('secondaryAuth.title')}
                         </Typography>
                         <Typography
                             variant="body2"
                             color="text.secondary"
                             sx={{ mb: 3 }}
                         >
-                            Complete the verification steps below to sign in
+                            {t('secondaryAuth.subtitle')}
                         </Typography>
 
                         {error && (
@@ -318,7 +344,7 @@ export default function SecondaryAuthFlow({
                                 sx={{ mb: 2, borderRadius: '12px' }}
                                 action={
                                     <Button color="inherit" size="small" onClick={handleRetry}>
-                                        Retry
+                                        {t('secondaryAuth.retry')}
                                     </Button>
                                 }
                             >
@@ -351,7 +377,7 @@ export default function SecondaryAuthFlow({
                         >
                             <VerifiedUser sx={{ fontSize: 14, color: 'text.disabled' }} />
                             <Typography variant="caption" color="text.disabled">
-                                Secured by FIVUCSAS
+                                {t('secondaryAuth.securedBy')}
                             </Typography>
                         </Box>
 
@@ -371,7 +397,7 @@ export default function SecondaryAuthFlow({
                                     },
                                 }}
                             >
-                                Skip for now
+                                {t('secondaryAuth.skipForNow')}
                             </Button>
                         </Box>
                     </CardContent>

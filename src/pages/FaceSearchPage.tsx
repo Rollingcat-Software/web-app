@@ -58,7 +58,7 @@ export default function FaceSearchPage() {
     }
 
     return (
-        <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
+        <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <PersonSearch /> {t('faceSearch.title')}
             </Typography>
@@ -163,7 +163,7 @@ export default function FaceSearchPage() {
                                     startIcon={<CameraswitchOutlined />}
                                     onClick={flipCamera}
                                 >
-                                    Flip
+                                    {t('common.flip')}
                                 </Button>
                                 <Button
                                     variant="outlined"

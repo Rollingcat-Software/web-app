@@ -68,7 +68,7 @@ export default function NfcEnrollmentPage() {
             })
 
             ndef.addEventListener('readingerror', () => {
-                setScanError('Failed to read NFC tag. Try again.')
+                setScanError(t('nfc.readError', 'Failed to read NFC tag. Try again.'))
                 setScanning(false)
             })
         } catch (err) {
@@ -181,7 +181,7 @@ export default function NfcEnrollmentPage() {
     // Unsupported browser view
     if (!nfcSupported) {
         return (
-            <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
+            <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
                 <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                     <Contactless /> {t('nfc.title', 'NFC Scanner')}
                 </Typography>
@@ -211,7 +211,7 @@ export default function NfcEnrollmentPage() {
     }
 
     return (
-        <Box sx={{ maxWidth: 800, mx: 'auto', py: 3 }}>
+        <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
             <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                 <Contactless /> {t('nfc.title', 'NFC Scanner')}
             </Typography>

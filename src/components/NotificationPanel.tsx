@@ -123,7 +123,7 @@ function getActionIcon(action: string) {
 
 // --- Time formatting ---
 
-function formatTimeAgo(date: Date, t: (key: string) => string): string {
+function formatTimeAgo(date: Date, t: (key: string, options?: Record<string, unknown>) => string): string {
     const now = new Date()
     const diffMs = now.getTime() - date.getTime()
     const diffMin = Math.floor(diffMs / 60_000)
@@ -131,9 +131,9 @@ function formatTimeAgo(date: Date, t: (key: string) => string): string {
     const diffDays = Math.floor(diffMs / 86_400_000)
 
     if (diffMin < 1) return t('notifications.justNow')
-    if (diffMin < 60) return t('notifications.minutesAgo').replace('{{n}}', String(diffMin))
-    if (diffHours < 24) return t('notifications.hoursAgo').replace('{{n}}', String(diffHours))
-    return t('notifications.daysAgo').replace('{{n}}', String(diffDays))
+    if (diffMin < 60) return t('notifications.minutesAgo', { n: diffMin })
+    if (diffHours < 24) return t('notifications.hoursAgo', { n: diffHours })
+    return t('notifications.daysAgo', { n: diffDays })
 }
 
 // --- Date grouping ---
@@ -179,41 +179,12 @@ function saveReadIds(ids: Set<string>) {
 
 // --- Extended action descriptions ---
 
-function getActionDescription(action: string): string {
-    const descriptions: Record<string, string> = {
-        USER_LOGIN: 'User logged in',
-        USER_LOGOUT: 'User logged out',
-        USER_LOGIN_FAILED: 'Failed login attempt',
-        USER_CREATED: 'New user created',
-        USER_UPDATED: 'User profile updated',
-        USER_DELETED: 'User deleted',
-        USER_STATUS_CHANGED: 'User status changed',
-        USER_ROLE_ASSIGNED: 'Role assigned to user',
-        USER_ROLE_REMOVED: 'Role removed from user',
-        TOKEN_REFRESH: 'Token refreshed',
-        PASSWORD_CHANGE: 'Password changed',
-        PASSWORD_RESET_REQUEST: 'Password reset requested',
-        PASSWORD_RESET: 'Password reset completed',
-        TENANT_CREATED: 'Tenant created',
-        TENANT_UPDATED: 'Tenant updated',
-        TENANT_DELETED: 'Tenant deleted',
-        TENANT_STATUS_CHANGED: 'Tenant status changed',
-        ROLE_CREATED: 'Role created',
-        ROLE_UPDATED: 'Role updated',
-        ROLE_DELETED: 'Role deleted',
-        PERMISSION_ADDED: 'Permission added',
-        PERMISSION_REMOVED: 'Permission removed',
-        BIOMETRIC_ENROLLED: 'Biometric enrollment completed',
-        BIOMETRIC_VERIFIED: 'Biometric verification successful',
-        BIOMETRIC_VERIFICATION_FAILED: 'Biometric verification failed',
-        BIOMETRIC_DELETED: 'Biometric data deleted',
-        SETTINGS_UPDATED: 'Settings updated',
-        SECURITY_SETTINGS_UPDATED: 'Security settings updated',
-        NOTIFICATION_SETTINGS_UPDATED: 'Notification settings updated',
-        APPEARANCE_SETTINGS_UPDATED: 'Appearance settings updated',
-        FAILED_LOGIN_ATTEMPT: 'Failed login attempt',
-    }
-    return descriptions[action] || action.replace(/_/g, ' ').toLowerCase()
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getActionDescription(action: string, t: any): string {
+    const key = `notifications.actions.${action}`
+    const translated = t(key, { defaultValue: '' })
+    if (translated && translated !== key) return translated
+    return action.replace(/_/g, ' ').toLowerCase()
 }
 
 /**
@@ -466,7 +437,7 @@ export default function NotificationPanel() {
                                                                 fontWeight={isRead ? 400 : 600}
                                                                 sx={{ flex: 1 }}
                                                             >
-                                                                {getActionDescription(log.action)}
+                                                                {getActionDescription(log.action, t)}
                                                             </Typography>
                                                             <Chip
                                                                 label={getCategoryLabel(category, t)}

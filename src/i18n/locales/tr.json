@@ -43,7 +43,13 @@
     "captureAndDetect": "Yakala & Algıla",
     "accessDuration": "Erişim Süresi (saat)",
     "messageOptional": "Mesaj (isteğe bağlı)",
-    "additionalHours": "Ek Saatler"
+    "additionalHours": "Ek Saatler",
+    "flip": "Çevir",
+    "user": "Kullanıcı",
+    "from": "kaynak",
+    "role": "Rol",
+    "tenant": "Kiracı",
+    "noVoiceDetected": "Ses algılanamadı. Lütfen mikrofona net bir şekilde konuşun ve tekrar deneyin."
   },
   "nav": {
     "dashboard": "Kontrol Paneli",
@@ -283,7 +289,40 @@
     "loginAlerts": "Giriş Uyarıları",
     "securityEvents": "Güvenlik Olayları",
     "enrollmentChanges": "Kayıt Değişiklikleri",
-    "systemChanges": "Sistem Değişiklikleri"
+    "systemChanges": "Sistem Değişiklikleri",
+    "actions": {
+      "USER_LOGIN": "Kullanıcı giriş yaptı",
+      "USER_LOGOUT": "Kullanıcı çıkış yaptı",
+      "USER_LOGIN_FAILED": "Başarısız giriş denemesi",
+      "USER_CREATED": "Yeni kullanıcı oluşturuldu",
+      "USER_UPDATED": "Kullanıcı profili güncellendi",
+      "USER_DELETED": "Kullanıcı silindi",
+      "USER_STATUS_CHANGED": "Kullanıcı durumu değişti",
+      "USER_ROLE_ASSIGNED": "Kullanıcıya rol atandı",
+      "USER_ROLE_REMOVED": "Kullanıcıdan rol kaldırıldı",
+      "TOKEN_REFRESH": "Token yenilendi",
+      "PASSWORD_CHANGE": "Şifre değiştirildi",
+      "PASSWORD_RESET_REQUEST": "Şifre sıfırlama istendi",
+      "PASSWORD_RESET": "Şifre sıfırlandı",
+      "TENANT_CREATED": "Kiracı oluşturuldu",
+      "TENANT_UPDATED": "Kiracı güncellendi",
+      "TENANT_DELETED": "Kiracı silindi",
+      "TENANT_STATUS_CHANGED": "Kiracı durumu değişti",
+      "ROLE_CREATED": "Rol oluşturuldu",
+      "ROLE_UPDATED": "Rol güncellendi",
+      "ROLE_DELETED": "Rol silindi",
+      "PERMISSION_ADDED": "İzin eklendi",
+      "PERMISSION_REMOVED": "İzin kaldırıldı",
+      "BIOMETRIC_ENROLLED": "Biyometrik kayıt tamamlandı",
+      "BIOMETRIC_VERIFIED": "Biyometrik doğrulama başarılı",
+      "BIOMETRIC_VERIFICATION_FAILED": "Biyometrik doğrulama başarısız",
+      "BIOMETRIC_DELETED": "Biyometrik veri silindi",
+      "SETTINGS_UPDATED": "Ayarlar güncellendi",
+      "SECURITY_SETTINGS_UPDATED": "Güvenlik ayarları güncellendi",
+      "NOTIFICATION_SETTINGS_UPDATED": "Bildirim ayarları güncellendi",
+      "APPEARANCE_SETTINGS_UPDATED": "Görünüm ayarları güncellendi",
+      "FAILED_LOGIN_ATTEMPT": "Başarısız giriş denemesi"
+    }
   },
   "nfc": {
     "title": "NFC Tarayıcı",
@@ -528,6 +567,22 @@
     "backToDashboard": "Panele Dön",
     "stepProgress": "Adım İlerlemesi",
     "verificationLevel": "Doğrulama Seviyesi"
+  },
+  "biometricTools": {
+    "title": "Biyometrik Araçlar",
+    "subtitle": "Biyometrik verilerle arama, algılama ve doğrulama yapın",
+    "faceTab": "Yüz",
+    "voiceTab": "Ses",
+    "cardTab": "Kart",
+    "nfcTab": "NFC"
+  },
+  "secondaryAuth": {
+    "checking": "Güvenlik gereksinimleri kontrol ediliyor...",
+    "title": "Ek Doğrulama",
+    "subtitle": "Giriş yapmak için aşağıdaki doğrulama adımlarını tamamlayın",
+    "retry": "Tekrar Dene",
+    "securedBy": "FIVUCSAS tarafından korunmaktadır",
+    "skipForNow": "Şimdilik geç"
   },
   "language": {
     "en": "İngilizce",

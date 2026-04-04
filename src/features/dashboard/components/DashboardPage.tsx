@@ -250,14 +250,14 @@ const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[]
                                     sx={{ fontSize: '0.7rem', height: 22 }}
                                 />
                                 <Typography variant="caption" color="text.secondary">
-                                    User {log.userId}
+                                    {t('common.user')} {log.userId}
                                 </Typography>
                             </Box>
                         }
                         secondary={
                             <Typography variant="caption" color="text.secondary">
                                 {(() => { try { return format(new Date(log.createdAt), 'MMM dd, HH:mm:ss') } catch { return 'N/A' } })()}
-                                {log.ipAddress && ` from ${log.ipAddress}`}
+                                {log.ipAddress && ` ${t('common.from')} ${log.ipAddress}`}
                             </Typography>
                         }
                     />
@@ -393,7 +393,7 @@ function UserDashboardContent() {
                                                     <Email fontSize="small" color="action" />
                                                 </ListItemIcon>
                                                 <ListItemText
-                                                    primary={<Typography variant="body2" color="text.secondary">Email</Typography>}
+                                                    primary={<Typography variant="body2" color="text.secondary">{t('common.email')}</Typography>}
                                                     secondary={<Typography variant="body1">{user?.email}</Typography>}
                                                 />
                                             </ListItem>
@@ -402,7 +402,7 @@ function UserDashboardContent() {
                                                     <Shield fontSize="small" color="action" />
                                                 </ListItemIcon>
                                                 <ListItemText
-                                                    primary={<Typography variant="body2" color="text.secondary">Role</Typography>}
+                                                    primary={<Typography variant="body2" color="text.secondary">{t('common.role')}</Typography>}
                                                     secondary={
                                                         <Chip
                                                             label={user?.role?.replace(/_/g, ' ')}
@@ -419,7 +419,7 @@ function UserDashboardContent() {
                                                     <Business fontSize="small" color="action" />
                                                 </ListItemIcon>
                                                 <ListItemText
-                                                    primary={<Typography variant="body2" color="text.secondary">Tenant</Typography>}
+                                                    primary={<Typography variant="body2" color="text.secondary">{t('common.tenant')}</Typography>}
                                                     secondary={<Typography variant="body1">{user?.tenantId ? 'Marmara University' : 'Default'}</Typography>}
                                                 />
                                             </ListItem>
@@ -547,7 +547,7 @@ function UserDashboardContent() {
                                                                     />
                                                                     {log.ipAddress && (
                                                                         <Typography variant="caption" color="text.secondary">
-                                                                            from {log.ipAddress}
+                                                                            {t('common.from')} {log.ipAddress}
                                                                         </Typography>
                                                                     )}
                                                                 </Box>
