@@ -94,12 +94,12 @@ export default function NfcEnrollmentPage() {
                 case 'enroll':
                     url = `${apiBaseUrl}/nfc/enroll`
                     method = 'POST'
-                    body = JSON.stringify({ serialNumber })
+                    body = JSON.stringify({ cardSerial: serialNumber })
                     break
                 case 'verify':
                     url = `${apiBaseUrl}/nfc/verify`
                     method = 'POST'
-                    body = JSON.stringify({ serialNumber })
+                    body = JSON.stringify({ cardSerial: serialNumber })
                     break
                 case 'search':
                     url = `${apiBaseUrl}/nfc/search/${encodeURIComponent(serialNumber)}`
@@ -107,7 +107,11 @@ export default function NfcEnrollmentPage() {
                     break
             }
 
-            const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+            const token = localStorage.getItem('fivucsas_token')
+            const headers: Record<string, string> = {
+                'Content-Type': 'application/json',
+                ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            }
             const res = await fetch(url, { method, headers, body })
             const data = await res.json().catch(() => null)
 
