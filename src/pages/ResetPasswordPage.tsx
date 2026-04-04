@@ -287,7 +287,7 @@ export default function ResetPasswordPage() {
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
                                     {email
-                                        ? t('auth.resetPasswordCodeSent', `A 6-digit code has been sent to ${email}`)
+                                        ? t('auth.resetPasswordCodeSent', { email, defaultValue: `A 6-digit code has been sent to ${email}` })
                                         : t('auth.resetPasswordSubtitle')}
                                 </Typography>
                             </Box>

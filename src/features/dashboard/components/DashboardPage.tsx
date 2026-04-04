@@ -1,7 +1,10 @@
-import { memo } from 'react'
+import { memo, useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import {
     Alert,
+    Avatar,
     Box,
+    Button,
     Card,
     CardContent,
     Chip,
@@ -31,11 +34,23 @@ import {
     Verified,
     Warning,
     Business,
+    Face,
+    PhonelinkLock,
+    Email,
+    SmsOutlined,
+    QrCode2,
+    Key,
+    Mic,
+    Nfc,
+    ArrowForward,
+    CalendarToday,
+    Shield,
 } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
 import { useDashboard } from '../hooks/useDashboard'
 import { useAuditLogs } from '@features/auditLogs'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { AuditLog } from '@domain/models/AuditLog'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
@@ -248,6 +263,327 @@ const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[]
         </List>
     )
 })
+
+/** Map auth method type to icon and label */
+const METHOD_INFO: Record<string, { icon: React.ReactNode; label: string }> = {
+    FACE: { icon: <Face sx={{ fontSize: 18 }} />, label: 'Face Recognition' },
+    FINGERPRINT: { icon: <Fingerprint sx={{ fontSize: 18 }} />, label: 'Fingerprint' },
+    VOICE: { icon: <Mic sx={{ fontSize: 18 }} />, label: 'Voice Recognition' },
+    TOTP: { icon: <PhonelinkLock sx={{ fontSize: 18 }} />, label: 'Authenticator (TOTP)' },
+    EMAIL_OTP: { icon: <Email sx={{ fontSize: 18 }} />, label: 'Email OTP' },
+    SMS_OTP: { icon: <SmsOutlined sx={{ fontSize: 18 }} />, label: 'SMS OTP' },
+    QR_CODE: { icon: <QrCode2 sx={{ fontSize: 18 }} />, label: 'QR Code' },
+    HARDWARE_KEY: { icon: <Key sx={{ fontSize: 18 }} />, label: 'Hardware Key' },
+    NFC_DOCUMENT: { icon: <Nfc sx={{ fontSize: 18 }} />, label: 'NFC Document' },
+}
+
+/**
+ * Personal dashboard for non-admin users
+ */
+function UserDashboardContent() {
+    const { user } = useAuth()
+    const { t } = useTranslation()
+    const navigate = useNavigate()
+    const userId = user?.id ?? ''
+    const { enrollments, loading: enrollmentsLoading } = useUserEnrollments(userId)
+    const { auditLogs, loading: logsLoading } = useAuditLogs({ userId })
+
+    // Filter login-related logs for "Recent Login Activity"
+    const [loginLogs, setLoginLogs] = useState<AuditLog[]>([])
+    useEffect(() => {
+        if (auditLogs.length > 0) {
+            const logins = auditLogs
+                .filter((log) => log.action === 'USER_LOGIN' || log.action === 'USER_LOGIN_FAILED')
+                .slice(0, 5)
+            setLoginLogs(logins)
+        }
+    }, [auditLogs])
+
+    const enrolledMethods = enrollments.filter((e) => e.isSuccessful())
+    const loading = enrollmentsLoading || logsLoading
+
+    return (
+        <motion.div initial="hidden" animate="visible" variants={containerVariants}>
+            <Box>
+                {/* Welcome Header */}
+                <motion.div variants={itemVariants}>
+                    <Box sx={{ mb: 4 }}>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 1 }}>
+                            <Avatar
+                                sx={{
+                                    width: 56,
+                                    height: 56,
+                                    bgcolor: 'primary.main',
+                                    fontSize: '1.5rem',
+                                    fontWeight: 700,
+                                }}
+                            >
+                                {user?.firstName?.[0]}{user?.lastName?.[0]}
+                            </Avatar>
+                            <Box>
+                                <Typography
+                                    variant="h4"
+                                    sx={{
+                                        fontWeight: 700,
+                                        background: 'linear-gradient(135deg, #1e293b 0%, #475569 100%)',
+                                        backgroundClip: 'text',
+                                        WebkitBackgroundClip: 'text',
+                                        WebkitTextFillColor: 'transparent',
+                                    }}
+                                >
+                                    {t('dashboard.welcome', { name: user?.firstName || 'User', defaultValue: `Welcome back, ${user?.firstName || 'User'}` })}
+                                </Typography>
+                                <Typography variant="body1" color="text.secondary">
+                                    {t('dashboard.personalSummary', 'Here is your account overview')}
+                                </Typography>
+                            </Box>
+                        </Box>
+                    </Box>
+                </motion.div>
+
+                {loading ? (
+                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
+                        <CircularProgress />
+                    </Box>
+                ) : (
+                    <Grid container spacing={3}>
+                        {/* Account Info Card */}
+                        <Grid item xs={12} md={6}>
+                            <motion.div variants={itemVariants}>
+                                <Card sx={{ height: '100%' }}>
+                                    <CardContent sx={{ p: 3 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                            <Person sx={{ color: 'primary.main' }} />
+                                            <Typography variant="h6" fontWeight={600}>
+                                                {t('dashboard.accountInfo', 'Account Information')}
+                                            </Typography>
+                                        </Box>
+                                        <List dense disablePadding>
+                                            <ListItem sx={{ px: 0 }}>
+                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                    <Email fontSize="small" color="action" />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={<Typography variant="body2" color="text.secondary">Email</Typography>}
+                                                    secondary={<Typography variant="body1">{user?.email}</Typography>}
+                                                />
+                                            </ListItem>
+                                            <ListItem sx={{ px: 0 }}>
+                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                    <Shield fontSize="small" color="action" />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={<Typography variant="body2" color="text.secondary">Role</Typography>}
+                                                    secondary={
+                                                        <Chip
+                                                            label={user?.role?.replace(/_/g, ' ')}
+                                                            size="small"
+                                                            color="primary"
+                                                            variant="outlined"
+                                                            sx={{ mt: 0.5 }}
+                                                        />
+                                                    }
+                                                />
+                                            </ListItem>
+                                            <ListItem sx={{ px: 0 }}>
+                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                    <Business fontSize="small" color="action" />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={<Typography variant="body2" color="text.secondary">Tenant</Typography>}
+                                                    secondary={<Typography variant="body1">{user?.tenantId || 'Default'}</Typography>}
+                                                />
+                                            </ListItem>
+                                            <ListItem sx={{ px: 0 }}>
+                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                    <CalendarToday fontSize="small" color="action" />
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={<Typography variant="body2" color="text.secondary">Member Since</Typography>}
+                                                    secondary={
+                                                        <Typography variant="body1">
+                                                            {user?.createdAt ? format(new Date(user.createdAt), 'MMMM dd, yyyy') : 'N/A'}
+                                                        </Typography>
+                                                    }
+                                                />
+                                            </ListItem>
+                                        </List>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </Grid>
+
+                        {/* Enrolled Methods Card */}
+                        <Grid item xs={12} md={6}>
+                            <motion.div variants={itemVariants}>
+                                <Card sx={{ height: '100%' }}>
+                                    <CardContent sx={{ p: 3 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                <Fingerprint sx={{ color: 'primary.main' }} />
+                                                <Typography variant="h6" fontWeight={600}>
+                                                    {t('dashboard.enrolledMethods', 'Enrolled Methods')}
+                                                </Typography>
+                                            </Box>
+                                            <Chip
+                                                label={`${enrolledMethods.length} active`}
+                                                size="small"
+                                                color={enrolledMethods.length > 0 ? 'success' : 'default'}
+                                            />
+                                        </Box>
+
+                                        {enrolledMethods.length === 0 ? (
+                                            <Box sx={{ textAlign: 'center', py: 3 }}>
+                                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                                    {t('dashboard.noEnrollments', 'No authentication methods enrolled yet.')}
+                                                </Typography>
+                                                <Button
+                                                    variant="outlined"
+                                                    size="small"
+                                                    onClick={() => navigate('/enrollment')}
+                                                    endIcon={<ArrowForward />}
+                                                >
+                                                    {t('dashboard.enrollNow', 'Enroll Now')}
+                                                </Button>
+                                            </Box>
+                                        ) : (
+                                            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+                                                {enrolledMethods.map((enrollment) => {
+                                                    const methodType = enrollment.authMethodType || ''
+                                                    const info = METHOD_INFO[methodType] || {
+                                                        icon: <Security sx={{ fontSize: 18 }} />,
+                                                        label: methodType.replace(/_/g, ' '),
+                                                    }
+                                                    return (
+                                                        <Box
+                                                            key={enrollment.id}
+                                                            sx={{
+                                                                display: 'flex',
+                                                                alignItems: 'center',
+                                                                gap: 1.5,
+                                                                p: 1.5,
+                                                                borderRadius: 2,
+                                                                bgcolor: 'rgba(16, 185, 129, 0.06)',
+                                                                border: '1px solid',
+                                                                borderColor: 'rgba(16, 185, 129, 0.2)',
+                                                            }}
+                                                        >
+                                                            <Box sx={{ color: 'success.main' }}>{info.icon}</Box>
+                                                            <Typography variant="body2" fontWeight={600} sx={{ flex: 1 }}>
+                                                                {info.label}
+                                                            </Typography>
+                                                            <CheckCircle sx={{ fontSize: 18, color: 'success.main' }} />
+                                                        </Box>
+                                                    )
+                                                })}
+                                            </Box>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </Grid>
+
+                        {/* Recent Login Activity */}
+                        <Grid item xs={12}>
+                            <motion.div variants={itemVariants}>
+                                <Card>
+                                    <CardContent sx={{ p: 3 }}>
+                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                                            <Login sx={{ color: 'primary.main' }} />
+                                            <Typography variant="h6" fontWeight={600}>
+                                                {t('dashboard.recentLogins', 'Recent Login Activity')}
+                                            </Typography>
+                                        </Box>
+
+                                        {loginLogs.length === 0 ? (
+                                            <Typography color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                                                {t('dashboard.noLoginHistory', 'No recent login activity')}
+                                            </Typography>
+                                        ) : (
+                                            <List dense disablePadding>
+                                                {loginLogs.map((log) => (
+                                                    <ListItem key={log.id} sx={{ px: 0, py: 0.75 }}>
+                                                        <ListItemIcon sx={{ minWidth: 36 }}>
+                                                            {log.action === 'USER_LOGIN'
+                                                                ? <Login fontSize="small" color="success" />
+                                                                : <Warning fontSize="small" color="error" />}
+                                                        </ListItemIcon>
+                                                        <ListItemText
+                                                            primary={
+                                                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                                    <Chip
+                                                                        label={log.action === 'USER_LOGIN' ? 'Successful Login' : 'Failed Login'}
+                                                                        size="small"
+                                                                        color={log.action === 'USER_LOGIN' ? 'success' : 'error'}
+                                                                        sx={{ fontSize: '0.7rem', height: 22 }}
+                                                                    />
+                                                                    {log.ipAddress && (
+                                                                        <Typography variant="caption" color="text.secondary">
+                                                                            from {log.ipAddress}
+                                                                        </Typography>
+                                                                    )}
+                                                                </Box>
+                                                            }
+                                                            secondary={
+                                                                <Typography variant="caption" color="text.secondary">
+                                                                    {format(new Date(log.createdAt), 'MMM dd, yyyy HH:mm:ss')}
+                                                                    {log.userAgent && ` -- ${log.userAgent.substring(0, 60)}${log.userAgent.length > 60 ? '...' : ''}`}
+                                                                </Typography>
+                                                            }
+                                                        />
+                                                    </ListItem>
+                                                ))}
+                                            </List>
+                                        )}
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </Grid>
+
+                        {/* Quick Actions */}
+                        <Grid item xs={12}>
+                            <motion.div variants={itemVariants}>
+                                <Card>
+                                    <CardContent sx={{ p: 3 }}>
+                                        <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
+                                            {t('dashboard.quickActions', 'Quick Actions')}
+                                        </Typography>
+                                        <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                            <Button
+                                                variant="outlined"
+                                                startIcon={<Fingerprint />}
+                                                onClick={() => navigate('/enrollment')}
+                                                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+                                            >
+                                                {t('dashboard.manageEnrollments', 'Manage Enrollments')}
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                startIcon={<Security />}
+                                                onClick={() => navigate('/auth-test')}
+                                                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+                                            >
+                                                {t('dashboard.biometricTools', 'Biometric Tools')}
+                                            </Button>
+                                            <Button
+                                                variant="outlined"
+                                                startIcon={<Settings />}
+                                                onClick={() => navigate('/settings')}
+                                                sx={{ borderRadius: '10px', textTransform: 'none', fontWeight: 600 }}
+                                            >
+                                                {t('dashboard.settingsAction', 'Settings')}
+                                            </Button>
+                                        </Box>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </Grid>
+                    </Grid>
+                )}
+            </Box>
+        </motion.div>
+    )
+}
 
 function AdminDashboardContent() {
     const { stats, loading, error } = useDashboard()
@@ -596,19 +932,9 @@ function AdminDashboardContent() {
 
 export default function DashboardPage() {
     const { user } = useAuth()
-    const { t } = useTranslation()
 
     if (!user?.isAdmin()) {
-        return (
-            <Box>
-                <Typography variant="h4" gutterBottom fontWeight={600}>
-                    {t('dashboard.title')}
-                </Typography>
-                <Alert severity="info" sx={{ mt: 2, borderRadius: 3 }}>
-                    {t('dashboard.adminOnly', 'Dashboard statistics are available to administrators only.')}
-                </Alert>
-            </Box>
-        )
+        return <UserDashboardContent />
     }
 
     return <AdminDashboardContent />
