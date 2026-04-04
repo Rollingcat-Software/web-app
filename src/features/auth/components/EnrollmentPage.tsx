@@ -37,6 +37,7 @@ import FaceEnrollmentFlow from './FaceEnrollmentFlow'
 import TotpEnrollment from './TotpEnrollment'
 import WebAuthnEnrollment from './WebAuthnEnrollment'
 import VoiceEnrollmentFlow from './VoiceEnrollmentFlow'
+import NfcEnrollment from './NfcEnrollment'
 import { getBiometricService } from '@core/services/BiometricService'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
@@ -265,6 +266,7 @@ export default function EnrollmentPage() {
     const [webauthnEnrollOpen, setWebauthnEnrollOpen] = useState(false)
     const [webauthnMode, setWebauthnMode] = useState<'hardware-key' | 'platform'>('hardware-key')
     const [voiceEnrollOpen, setVoiceEnrollOpen] = useState(false)
+    const [nfcEnrollOpen, setNfcEnrollOpen] = useState(false)
 
     const [accessToken, setAccessToken] = useState<string | null>(null)
     const [actionLoading, setActionLoading] = useState<string | null>(null)
@@ -355,6 +357,13 @@ export default function EnrollmentPage() {
                         setSnackbar({ open: true, message: err instanceof Error ? err.message : `Failed to enroll ${METHOD_LABELS[type] ?? type}`, severity: 'error' })
                     } finally {
                         setActionLoading(null)
+                    }
+                    break
+                case AuthMethodType.NFC_DOCUMENT:
+                    if ('NDEFReader' in window) {
+                        setNfcEnrollOpen(true)
+                    } else {
+                        setSnackbar({ open: true, message: 'NFC enrollment requires Chrome on Android. Your browser does not support Web NFC.', severity: 'warning' })
                     }
                     break
                 default:
@@ -619,6 +628,22 @@ export default function EnrollmentPage() {
                                                         <Button
                                                             variant="outlined"
                                                             size="small"
+                                                            color="primary"
+                                                            onClick={() =>
+                                                                handleEnroll(config.type)
+                                                            }
+                                                            disabled={isLoading}
+                                                            sx={{
+                                                                borderRadius: '8px',
+                                                                fontWeight: 600,
+                                                                textTransform: 'none',
+                                                            }}
+                                                        >
+                                                            Test
+                                                        </Button>
+                                                        <Button
+                                                            variant="outlined"
+                                                            size="small"
                                                             color="error"
                                                             onClick={() =>
                                                                 handleRevoke(config.type)
@@ -631,21 +656,6 @@ export default function EnrollmentPage() {
                                                             }}
                                                         >
                                                             Revoke
-                                                        </Button>
-                                                        <Button
-                                                            variant="outlined"
-                                                            size="small"
-                                                            onClick={() =>
-                                                                handleEnroll(config.type)
-                                                            }
-                                                            disabled={isLoading}
-                                                            sx={{
-                                                                borderRadius: '8px',
-                                                                fontWeight: 600,
-                                                                textTransform: 'none',
-                                                            }}
-                                                        >
-                                                            Re-enroll
                                                         </Button>
                                                     </>
                                                 )}
@@ -722,6 +732,22 @@ export default function EnrollmentPage() {
                         refetchEnrollments()
                         setSnackbar({ open: true, message: 'Voice Recognition enrolled successfully', severity: 'success' })
                     }
+                }}
+            />
+
+            {/* NFC Enrollment Dialog */}
+            <NfcEnrollment
+                open={nfcEnrollOpen}
+                userId={userId}
+                onClose={() => setNfcEnrollOpen(false)}
+                onSuccess={() => {
+                    createEnrollment({
+                        tenantId: user?.tenantId ?? 'system',
+                        methodType: AuthMethodType.NFC_DOCUMENT,
+                    }).catch(() => {})
+                    setNfcEnrollOpen(false)
+                    refetchEnrollments()
+                    setSnackbar({ open: true, message: 'NFC Document enrolled successfully', severity: 'success' })
                 }}
             />
 
