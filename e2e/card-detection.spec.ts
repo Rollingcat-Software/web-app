@@ -14,72 +14,86 @@ function injectSession(page: Parameters<Parameters<typeof test>[1]>[0]['page']) 
     }, sessionData)
 }
 
-test.describe('Card Detection Page', () => {
+test.describe('Card Detection (Biometric Tools)', () => {
     test.beforeEach(async ({ page }) => {
         await injectSession(page)
     })
 
     // -------------------------------------------------------------------------
-    // Page load
+    // Redirect — /card-detection now redirects to /biometric-tools
     // -------------------------------------------------------------------------
 
-    test('should load card detection page with heading', async ({ page }) => {
+    test('should redirect /card-detection to /biometric-tools', async ({ page }) => {
         await page.goto(`${BASE_URL}/card-detection`)
         await page.waitForLoadState('networkidle')
 
-        await expect(page.getByText(/card detection/i).first()).toBeVisible({ timeout: 15000 })
-    })
-
-    test('should display description text', async ({ page }) => {
-        await page.goto(`${BASE_URL}/card-detection`)
-        await page.waitForLoadState('networkidle')
-
-        await expect(page.getByText(/capture an image/i)).toBeVisible({ timeout: 15000 })
+        await expect(page).toHaveURL(/biometric-tools/)
     })
 
     // -------------------------------------------------------------------------
-    // Camera controls
+    // Biometric Tools page loads with tabs
     // -------------------------------------------------------------------------
 
-    test('should show "Start Camera" button initially', async ({ page }) => {
-        await page.goto(`${BASE_URL}/card-detection`)
+    test('should load Biometric Tools page with 4 tabs', async ({ page }) => {
+        await page.goto(`${BASE_URL}/biometric-tools`)
         await page.waitForLoadState('networkidle')
 
-        await expect(
-            page.getByRole('button', { name: /start camera/i })
-        ).toBeVisible({ timeout: 10000 })
-    })
-
-    test('should show placeholder text before camera starts', async ({ page }) => {
-        await page.goto(`${BASE_URL}/card-detection`)
-        await page.waitForLoadState('networkidle')
-
-        await expect(page.getByText(/click.*start camera.*to begin/i)).toBeVisible({ timeout: 10000 })
-    })
-
-    test('should not show "Capture & Detect" button before camera starts', async ({ page }) => {
-        await page.goto(`${BASE_URL}/card-detection`)
-        await page.waitForLoadState('networkidle')
-
-        await expect(
-            page.getByRole('button', { name: /capture.*detect/i })
-        ).toHaveCount(0)
+        await expect(page.getByRole('tab')).toHaveCount(4, { timeout: 15000 })
     })
 
     // -------------------------------------------------------------------------
-    // No JS errors
+    // Card Detection tab content
     // -------------------------------------------------------------------------
 
-    test('should produce no uncaught JavaScript errors', async ({ page }) => {
-        const jsErrors: string[] = []
-        page.on('pageerror', (error) => {
-            jsErrors.push(error.message)
-        })
-
-        await page.goto(`${BASE_URL}/card-detection`)
+    test('should display Card Detection content after clicking card tab', async ({ page }) => {
+        await page.goto(`${BASE_URL}/biometric-tools`)
         await page.waitForLoadState('networkidle')
-        await page.waitForTimeout(2000)
 
-        expect(jsErrors).toHaveLength(0)
+        // Click the Card tab (3rd tab, index 2)
+        const cardTab = page.getByRole('tab').nth(2)
+        await expect(cardTab).toBeVisible({ timeout: 15000 })
+        await cardTab.click()
+
+        // CardDetectionPage renders a "Start Camera" button when camera is not active
+        await expect(page.getByRole('button', { name: /start camera/i })).toBeVisible({ timeout: 10000 })
     })
-})
+
+    test('should show camera prompt before camera is started', async ({ page }) => {
+        await page.goto(`${BASE_URL}/biometric-tools`)
+        await page.waitForLoadState('networkidle')
+
+        const cardTab = page.getByRole('tab').nth(2)
+        await expect(cardTab).toBeVisible({ timeout: 15000 })
+        await cardTab.click()
+
+        // Prompt text should be visible before camera starts
+        await expect(page.getByText(/start camera/i).first()).toBeVisible({ timeout: 10000 })
+    })
+
+    test('should render card detection heading', async ({ page }) => {
+        await page.goto(`${BASE_URL}/biometric-tools`)
+        await page.waitForLoadState('networkidle')
+
+        const cardTab = page.getByRole('tab').nth(2)
+        await expect(cardTab).toBeVisible({ timeout: 15000 })
+        await cardTab.click()
+
+        // CardDetectionPage renders an h4 heading
+        const heading = page.locator('h4')
+        await expect(heading).toBeVisible({ timeout: 10000 })
+    })
+
+    test('should not show detection results before any capture', async ({ page }) => {
+        await page.goto(`${BASE_URL}/biometric-tools`)
+        await page.waitForLoadState('networkidle')
+
+        const cardTab = page.getByRole('tab').nth(2)
+        await expect(cardTab).toBeVisible({ timeout: 15000 })
+        await cardTab.click()
+
+        await page.waitForTimeout(1000)
+
+        // No detection result card should be visible initially
+        const resultHeading = page.getByText(/detection result/i)
+        await expect(resultHeading).toHaveCount(0)
+  

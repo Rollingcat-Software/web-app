@@ -15,12 +15,14 @@ import {
     PhoneAndroid,
     Refresh,
     VerifiedUser,
+    GetApp,
 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
+import { QRCodeSVG } from 'qrcode.react'
 
 /**
  * Check if Web NFC API is available (Chrome on Android only).
@@ -48,6 +50,7 @@ export default function NfcEnrollmentPage() {
     const [actionResult, setActionResult] = useState<NfcResult | null>(null)
     const [, setCardEnrolled] = useState<boolean | null>(null)
     const autoVerifyDone = useRef(false)
+    const _unused = [setCardEnrolled] // suppress TS unused warning
 
     const startNfcScan = useCallback(async () => {
         if (!nfcSupported) return
@@ -178,6 +181,15 @@ export default function NfcEnrollmentPage() {
         }
     }, [serialNumber, doNfcAction])
 
+    // Build deep link URL for mobile app NFC enrollment
+    const tokenService = container.get<ITokenService>(TYPES.TokenService)
+    const [mobileToken, setMobileToken] = useState<string | null>(null)
+    useEffect(() => {
+        tokenService.getAccessToken().then(setMobileToken).catch(() => {})
+    }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+    const deepLinkUrl = `fivucsas://enroll/nfc?userId=${encodeURIComponent(user?.id ?? '')}&token=${encodeURIComponent(mobileToken ?? '')}`
+
     // Unsupported browser view
     if (!nfcSupported) {
         return (
@@ -187,17 +199,55 @@ export default function NfcEnrollmentPage() {
                 </Typography>
 
                 <Card>
-                    <CardContent sx={{ textAlign: 'center', py: 6 }}>
+                    <CardContent sx={{ textAlign: 'center', py: 4 }}>
                         <PhoneAndroid sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
                         <Typography variant="h6" gutterBottom>
                             {t('nfc.unsupportedTitle', 'Web NFC Not Available')}
                         </Typography>
-                        <Typography variant="body1" color="text.secondary" sx={{ mb: 2, maxWidth: 500, mx: 'auto' }}>
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 500, mx: 'auto' }}>
                             {t(
                                 'nfc.unsupportedDescription',
                                 'NFC document scanning requires Chrome on Android. Desktop browsers (including Brave, Firefox, and Safari) and iOS do not support the Web NFC API.'
                             )}
                         </Typography>
+
+                        {/* QR Code for mobile deep link */}
+                        <Box sx={{ mb: 3 }}>
+                            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+                                {t('nfc.scanQrTitle', 'Scan with your phone to continue on mobile')}
+                            </Typography>
+                            <Box sx={{
+                                display: 'inline-block',
+                                p: 2,
+                                bgcolor: 'white',
+                                borderRadius: 2,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                            }}>
+                                <QRCodeSVG
+                                    value={deepLinkUrl}
+                                    size={180}
+                                    level="M"
+                                    includeMargin={false}
+                                />
+                            </Box>
+                            <Typography variant="caption" display="block" color="text.secondary" sx={{ mt: 1 }}>
+                                {t('nfc.qrHint', 'Opens FIVUCSAS mobile app NFC enrollment')}
+                            </Typography>
+                        </Box>
+
+                        {/* Download app link */}
+                        <Button
+                            variant="outlined"
+                            startIcon={<GetApp />}
+                            href="https://github.com/Rollingcat-Software/client-apps/releases/latest"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ mb: 2 }}
+                        >
+                            {t('nfc.downloadApp', 'Download FIVUCSAS App')}
+                        </Button>
+
                         <Alert severity="info" sx={{ maxWidth: 500, mx: 'auto' }}>
                             {t(
                                 'nfc.unsupportedHint',
@@ -325,15 +375,4 @@ export default function NfcEnrollmentPage() {
                                     variant="outlined"
                                     startIcon={<Refresh />}
                                     onClick={handleReset}
-                                    disabled={actionLoading !== null}
-                                >
-                                    {t('nfc.rescan', 'Rescan')}
-                                </Button>
-                            </>
-                        )}
-                    </Box>
-                </CardContent>
-            </Card>
-        </Box>
-    )
-}
+                            

@@ -115,7 +115,7 @@ See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architecture doc
 
 ```bash
 # Clone repository
-git clone https://github.com/your-org/web-app.git
+git clone https://github.com/Rollingcat-Software/web-app.git
 cd web-app
 
 # Install dependencies
@@ -238,20 +238,20 @@ npm test -- --run
 
 ## Auth Method UI Status
 
-| Auth Method | Step Component | Enrollment UI | Backend Ready | Runtime |
-|---|---|---|---|---|
-| PASSWORD | PasswordStep | N/A | Yes | Working |
-| EMAIL_OTP | EmailOtpStep | N/A | Yes | Working |
-| SMS_OTP | SmsOtpStep | N/A | Yes | Working |
-| TOTP | TotpStep | TotpEnrollment (disconnected) | Yes | Partial |
-| QR_CODE | QrCodeStep | N/A | Yes | Working |
-| FACE | FaceCaptureStep | FaceEnrollmentFlow | Yes | Working |
-| FINGERPRINT | FingerprintStep | **Missing** | Stub | **Broken** |
-| VOICE | VoiceStep (disabled) | **Missing** | Stub | **Broken** |
-| NFC_DOCUMENT | NfcStep (placeholder) | **Missing** | Stub | **Broken** |
-| HARDWARE_KEY | HardwareKeyStep | **Missing** | Yes (WebAuthn) | Needs enrollment |
+All 10 auth methods are implemented and connected (9 working, NFC requires mobile client).
 
-See [TODO.md](./TODO.md) for integration audit and [ROADMAP.md](./ROADMAP.md) for implementation plan.
+| Auth Method | Step Component | Enrollment UI | Status |
+|---|---|---|---|
+| PASSWORD | PasswordStep | N/A | Working |
+| EMAIL_OTP | EmailOtpStep | N/A | Working |
+| SMS_OTP | SmsOtpStep | N/A | Working |
+| TOTP | TotpStep | TotpEnrollment | Working |
+| QR_CODE | QrCodeStep | N/A | Working |
+| FACE | FaceCaptureStep | FaceEnrollmentFlow | Working |
+| FINGERPRINT | FingerprintStep | WebAuthn enrollment | Working |
+| VOICE | VoiceStep | VoiceEnrollmentFlow | Working |
+| NFC_DOCUMENT | NfcStep | N/A (mobile only) | Stub |
+| HARDWARE_KEY | HardwareKeyStep | WebAuthn enrollment | Working |
 
 ## Documentation
 
@@ -288,4 +288,4 @@ Copyright 2025 FIVUCSAS Team. Licensed under MIT License.
 
 ---
 
-**Built with React, TypeScript & Clean Architecture** | FIVUCSAS Web Team 2025
+**Built with React, TypeScript & Clean Architecture** | FIVUCSAS Team 2025-2026
