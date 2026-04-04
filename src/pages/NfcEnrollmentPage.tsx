@@ -287,17 +287,15 @@ export default function NfcEnrollmentPage() {
                                 >
                                     {t('nfc.enrollButton', 'Scan & Save Card')}
                                 </Button>
-                                {isAdmin && (
-                                    <Button
-                                        variant="contained"
-                                        color="primary"
-                                        startIcon={actionLoading === 'verify' ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <VerifiedUser />}
-                                        onClick={() => doNfcAction('verify')}
-                                        disabled={actionLoading !== null}
-                                    >
-                                        {t('nfc.verifyButton', 'Verify Card')}
-                                    </Button>
-                                )}
+                                <Button
+                                    variant="contained"
+                                    color="primary"
+                                    startIcon={actionLoading === 'verify' ? <CircularProgress size={16} sx={{ color: 'white' }} /> : <VerifiedUser />}
+                                    onClick={() => doNfcAction('verify')}
+                                    disabled={actionLoading !== null}
+                                >
+                                    {t('nfc.verifyButton', 'Whose Card?')}
+                                </Button>
                                 {isAdmin && (
                                     <Button
                                         variant="contained"
@@ -306,7 +304,7 @@ export default function NfcEnrollmentPage() {
                                         onClick={() => doNfcAction('search')}
                                         disabled={actionLoading !== null}
                                     >
-                                        {t('nfc.searchButton', "Whose Card?")}
+                                        {t('nfc.searchButton', 'Search All')}
                                     </Button>
                                 )}
                                 <Button

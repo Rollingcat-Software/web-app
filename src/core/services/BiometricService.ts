@@ -190,13 +190,14 @@ export class BiometricService {
             headers: { 'Content-Type': 'multipart/form-data' },
         })
 
-        const results = response.data.results ?? []
+        // Backend returns "matches" (not "results")
+        const matches = response.data.matches ?? response.data.results ?? []
         return {
-            found: results.length > 0,
-            userId: results[0]?.user_id ?? null,
-            confidence: results[0]?.confidence ?? 0,
-            distance: results[0]?.distance ?? 1,
-            results: results.map((r: { user_id: string; distance: number; confidence: number }) => ({
+            found: matches.length > 0 || response.data.found === true,
+            userId: response.data.best_match?.user_id ?? matches[0]?.user_id ?? null,
+            confidence: response.data.best_match?.confidence ?? matches[0]?.confidence ?? 0,
+            distance: response.data.best_match?.distance ?? matches[0]?.distance ?? 1,
+            results: matches.map((r: { user_id: string; distance: number; confidence: number }) => ({
                 userId: r.user_id,
                 distance: r.distance,
                 confidence: r.confidence,
