@@ -60,7 +60,7 @@
     "cardDetection": "Card Detection",
     "faceSearch": "Face Search",
     "voiceSearch": "Voice Search",
-    "nfcEnrollment": "NFC Enrollment",
+    "nfcEnrollment": "NFC Scanner",
     "biometricTools": "Biometric Tools",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
@@ -108,7 +108,7 @@
     "noEnrollments": "No authentication methods enrolled yet.",
     "enrollNow": "Enroll Now",
     "recentLogins": "Recent Login Activity",
-    "noLoginHistory": "No recent login activity",
+    "noLoginHistory": "Login history is available to administrators. Contact your admin for access.",
     "quickActions": "Quick Actions",
     "manageEnrollments": "Manage Enrollments",
     "biometricTools": "Biometric Tools",
@@ -271,7 +271,7 @@
     "systemChanges": "System Changes"
   },
   "nfc": {
-    "title": "NFC Enrollment",
+    "title": "NFC Scanner",
     "subtitle": "Scan an NFC card to enroll, verify, or search for its owner.",
     "unsupportedTitle": "Web NFC Not Available",
     "unsupportedDescription": "Web NFC is only supported on Chrome for Android. To enroll or manage NFC cards, please use the FIVUCSAS mobile app.",

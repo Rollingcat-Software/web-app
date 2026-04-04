@@ -60,7 +60,7 @@
     "cardDetection": "Kart Algılama",
     "faceSearch": "Yüz Arama",
     "voiceSearch": "Ses Arama",
-    "nfcEnrollment": "NFC Kayıt",
+    "nfcEnrollment": "NFC Tarayıcı",
     "biometricTools": "Biyometrik Araçlar",
     "auditLogs": "Denetim Kayıtları",
     "analytics": "Analitik",
@@ -271,7 +271,7 @@
     "systemChanges": "Sistem Değişiklikleri"
   },
   "nfc": {
-    "title": "NFC Kayıt",
+    "title": "NFC Tarayıcı",
     "subtitle": "Bir NFC kartı tarayarak kayıt yapın, doğrulayın veya sahibini bulun.",
     "unsupportedTitle": "Web NFC Kullanılamıyor",
     "unsupportedDescription": "Web NFC yalnızca Android üzerinde Chrome'da desteklenmektedir. NFC kartları kaydetmek veya yönetmek için FIVUCSAS mobil uygulamasını kullanın.",
