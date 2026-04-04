@@ -244,7 +244,15 @@
     "justNow": "Az önce",
     "minutesAgo": "{{n}} dk önce",
     "hoursAgo": "{{n}} saat önce",
-    "daysAgo": "{{n}} gün önce"
+    "daysAgo": "{{n}} gün önce",
+    "markAllRead": "Tümünü okundu işaretle",
+    "today": "Bugün",
+    "yesterday": "Dün",
+    "earlier": "Daha önce",
+    "loginAlerts": "Giriş Uyarıları",
+    "securityEvents": "Güvenlik Olayları",
+    "enrollmentChanges": "Kayıt Değişiklikleri",
+    "systemChanges": "Sistem Değişiklikleri"
   },
   "nfc": {
     "title": "NFC Kayıt",

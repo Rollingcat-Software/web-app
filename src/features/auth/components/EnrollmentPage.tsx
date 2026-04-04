@@ -7,9 +7,14 @@ import {
     CardContent,
     Chip,
     CircularProgress,
+    Dialog,
+    DialogActions,
+    DialogContent,
+    DialogTitle,
     Grid,
     IconButton,
     Snackbar,
+    TextField,
     Tooltip,
     Typography,
 } from '@mui/material'
@@ -42,6 +47,7 @@ import { getBiometricService } from '@core/services/BiometricService'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
+import type { ISettingsService } from '@domain/interfaces/ISettingsService'
 
 /**
  * Device capability detection results
@@ -274,6 +280,11 @@ export default function EnrollmentPage() {
     const [, setActionSuccess] = useState<string | null>(null)
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({ open: false, message: '', severity: 'info' })
 
+    // Phone number dialog for SMS OTP enrollment
+    const [phoneDialogOpen, setPhoneDialogOpen] = useState(false)
+    const [phoneInput, setPhoneInput] = useState('')
+    const [phoneSaving, setPhoneSaving] = useState(false)
+
     // Detect device capabilities on mount
     useEffect(() => {
         detectCapabilities().then((caps) => {
@@ -343,8 +354,26 @@ export default function EnrollmentPage() {
                 case AuthMethodType.VOICE:
                     setVoiceEnrollOpen(true)
                     break
-                case AuthMethodType.EMAIL_OTP:
                 case AuthMethodType.SMS_OTP:
+                    // SMS OTP requires a phone number — prompt if missing
+                    if (!user?.phoneNumber) {
+                        setPhoneDialogOpen(true)
+                        return
+                    }
+                    setActionLoading(type)
+                    try {
+                        await createEnrollment({
+                            tenantId: user?.tenantId ?? 'system',
+                            methodType: type,
+                        })
+                        setSnackbar({ open: true, message: `${METHOD_LABELS[type] ?? type} enrolled successfully`, severity: 'success' })
+                    } catch (err) {
+                        setSnackbar({ open: true, message: err instanceof Error ? err.message : `Failed to enroll ${METHOD_LABELS[type] ?? type}`, severity: 'error' })
+                    } finally {
+                        setActionLoading(null)
+                    }
+                    break
+                case AuthMethodType.EMAIL_OTP:
                 case AuthMethodType.QR_CODE:
                     setActionLoading(type)
                     try {
@@ -800,6 +829,78 @@ export default function EnrollmentPage() {
                     setSnackbar({ open: true, message: 'NFC Document enrolled successfully', severity: 'success' })
                 }}
             />
+
+            {/* Phone Number Dialog for SMS OTP */}
+            <Dialog
+                open={phoneDialogOpen}
+                onClose={() => setPhoneDialogOpen(false)}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>Phone Number Required</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        SMS OTP requires a phone number. Please enter your phone number to continue enrollment.
+                    </Typography>
+                    <TextField
+                        fullWidth
+                        label="Phone Number"
+                        type="tel"
+                        value={phoneInput}
+                        onChange={(e) => setPhoneInput(e.target.value)}
+                        placeholder="+905xxxxxxxxx"
+                        helperText="Include country code (e.g. +90 for Turkey)"
+                        disabled={phoneSaving}
+                        autoFocus
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={() => {
+                            setPhoneDialogOpen(false)
+                            setPhoneInput('')
+                        }}
+                        disabled={phoneSaving}
+                    >
+                        Cancel
+                    </Button>
+                    <Button
+                        variant="contained"
+                        disabled={phoneSaving || !phoneInput.trim() || phoneInput.trim().length < 10}
+                        startIcon={phoneSaving ? <CircularProgress size={16} /> : null}
+                        onClick={async () => {
+                            setPhoneSaving(true)
+                            try {
+                                // Save phone number to profile
+                                const settingsService = container.get<ISettingsService>(TYPES.SettingsService)
+                                await settingsService.updateProfile({
+                                    firstName: user?.firstName ?? '',
+                                    lastName: user?.lastName ?? '',
+                                    phoneNumber: phoneInput.trim(),
+                                })
+                                // Now create the SMS OTP enrollment
+                                await createEnrollment({
+                                    tenantId: user?.tenantId ?? 'system',
+                                    methodType: AuthMethodType.SMS_OTP,
+                                })
+                                setPhoneDialogOpen(false)
+                                setPhoneInput('')
+                                setSnackbar({ open: true, message: 'Phone number saved and SMS OTP enrolled successfully', severity: 'success' })
+                            } catch (err) {
+                                setSnackbar({
+                                    open: true,
+                                    message: err instanceof Error ? err.message : 'Failed to save phone number',
+                                    severity: 'error',
+                                })
+                            } finally {
+                                setPhoneSaving(false)
+                            }
+                        }}
+                    >
+                        {phoneSaving ? 'Saving...' : 'Save & Enroll'}
+                    </Button>
+                </DialogActions>
+            </Dialog>
 
             <Snackbar
                 open={snackbar.open}

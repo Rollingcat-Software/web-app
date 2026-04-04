@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import {
@@ -20,6 +20,7 @@ import {
     Visibility,
     VisibilityOff,
     ArrowForward,
+    PinOutlined,
 } from '@mui/icons-material'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
@@ -30,6 +31,7 @@ import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 
 const resetPasswordSchema = z.object({
+    code: z.string().min(6, 'Code must be 6 digits').max(6, 'Code must be 6 digits').regex(/^\d{6}$/, 'Code must be 6 digits'),
     newPassword: z.string().min(8, 'Password must be at least 8 characters'),
     confirmPassword: z.string().min(1, 'Please confirm your password'),
 }).refine((data) => data.newPassword === data.confirmPassword, {
@@ -113,28 +115,70 @@ export default function ResetPasswordPage() {
     const navigate = useNavigate()
     const { t } = useTranslation()
     const [searchParams] = useSearchParams()
-    const token = searchParams.get('token') || ''
+    const email = searchParams.get('email') || ''
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
     const [success, setSuccess] = useState(false)
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
 
+    // Code input refs for auto-focus between digits
+    const codeInputRefs = useRef<(HTMLInputElement | null)[]>([])
+    const [codeDigits, setCodeDigits] = useState<string[]>(['', '', '', '', '', ''])
+
     const {
         control,
         handleSubmit,
+        setValue,
         formState: { errors },
     } = useForm<ResetPasswordFormData>({
         resolver: zodResolver(resetPasswordSchema),
         defaultValues: {
+            code: '',
             newPassword: '',
             confirmPassword: '',
         },
     })
 
+    const handleCodeDigitChange = (index: number, value: string) => {
+        if (value.length > 1) {
+            // Handle paste: distribute digits across inputs
+            const digits = value.replace(/\D/g, '').slice(0, 6).split('')
+            const newCodeDigits = [...codeDigits]
+            digits.forEach((d, i) => {
+                if (index + i < 6) {
+                    newCodeDigits[index + i] = d
+                }
+            })
+            setCodeDigits(newCodeDigits)
+            setValue('code', newCodeDigits.join(''))
+            // Focus last filled or next empty
+            const nextIndex = Math.min(index + digits.length, 5)
+            codeInputRefs.current[nextIndex]?.focus()
+            return
+        }
+
+        const digit = value.replace(/\D/g, '')
+        const newCodeDigits = [...codeDigits]
+        newCodeDigits[index] = digit
+        setCodeDigits(newCodeDigits)
+        setValue('code', newCodeDigits.join(''))
+
+        // Auto-focus next input
+        if (digit && index < 5) {
+            codeInputRefs.current[index + 1]?.focus()
+        }
+    }
+
+    const handleCodeKeyDown = (index: number, e: React.KeyboardEvent) => {
+        if (e.key === 'Backspace' && !codeDigits[index] && index > 0) {
+            codeInputRefs.current[index - 1]?.focus()
+        }
+    }
+
     const onSubmit = async (data: ResetPasswordFormData) => {
-        if (!token) {
-            setError(t('auth.resetPasswordInvalidToken'))
+        if (!email) {
+            setError(t('auth.resetPasswordNoEmail', 'No email address provided. Please start the password reset flow again.'))
             return
         }
 
@@ -144,7 +188,8 @@ export default function ResetPasswordPage() {
         try {
             const httpClient = getService<IHttpClient>(TYPES.HttpClient)
             await httpClient.post('/auth/reset-password', {
-                token,
+                email,
+                code: data.code,
                 newPassword: data.newPassword,
             })
             setSuccess(true)
@@ -241,20 +286,34 @@ export default function ResetPasswordPage() {
                                     {t('auth.resetPasswordTitle')}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                    {t('auth.resetPasswordSubtitle')}
+                                    {email
+                                        ? t('auth.resetPasswordCodeSent', `A 6-digit code has been sent to ${email}`)
+                                        : t('auth.resetPasswordSubtitle')}
                                 </Typography>
                             </Box>
                         </motion.div>
 
-                        {!token && !success && (
+                        {!email && !success && (
                             <motion.div
                                 initial={{ opacity: 0, scale: 0.95 }}
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                <Alert severity="error" sx={{ mb: 3, borderRadius: '12px' }}>
-                                    {t('auth.resetPasswordInvalidToken')}
+                                <Alert severity="warning" sx={{ mb: 3, borderRadius: '12px' }}>
+                                    {t('auth.resetPasswordNoEmail', 'No email address provided. Please start the password reset flow again.')}
                                 </Alert>
+                                <Box sx={{ textAlign: 'center' }}>
+                                    <Button
+                                        variant="contained"
+                                        onClick={() => navigate('/forgot-password')}
+                                        sx={{
+                                            borderRadius: '12px',
+                                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                        }}
+                                    >
+                                        {t('auth.goToForgotPassword', 'Request Reset Code')}
+                                    </Button>
+                                </Box>
                             </motion.div>
                         )}
 
@@ -297,7 +356,7 @@ export default function ResetPasswordPage() {
                                     </Button>
                                 </motion.div>
                             </>
-                        ) : (
+                        ) : email ? (
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 {error && (
                                     <motion.div
@@ -310,6 +369,56 @@ export default function ResetPasswordPage() {
                                         </Alert>
                                     </motion.div>
                                 )}
+
+                                {/* 6-Digit Code Input */}
+                                <motion.div variants={itemVariants}>
+                                    <Typography variant="body2" fontWeight={600} sx={{ mb: 1.5, color: 'text.secondary' }}>
+                                        <PinOutlined sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
+                                        {t('auth.resetCodeLabel', 'Verification Code')}
+                                    </Typography>
+                                    <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mb: 3 }}>
+                                        {codeDigits.map((digit, index) => (
+                                            <TextField
+                                                key={index}
+                                                inputRef={(el) => { codeInputRefs.current[index] = el }}
+                                                value={digit}
+                                                onChange={(e) => handleCodeDigitChange(index, e.target.value)}
+                                                onKeyDown={(e) => handleCodeKeyDown(index, e)}
+                                                inputProps={{
+                                                    maxLength: 6,
+                                                    style: {
+                                                        textAlign: 'center',
+                                                        fontSize: '1.5rem',
+                                                        fontWeight: 700,
+                                                        padding: '12px 0',
+                                                    },
+                                                    inputMode: 'numeric',
+                                                }}
+                                                sx={{
+                                                    width: 52,
+                                                    '& .MuiOutlinedInput-root': {
+                                                        borderRadius: '12px',
+                                                        backgroundColor: '#f8fafc',
+                                                        '&:hover': { backgroundColor: '#f1f5f9' },
+                                                        '&.Mui-focused': { backgroundColor: '#fff' },
+                                                    },
+                                                }}
+                                                disabled={loading}
+                                            />
+                                        ))}
+                                    </Box>
+                                    {/* Hidden Controller to keep form state in sync */}
+                                    <Controller
+                                        name="code"
+                                        control={control}
+                                        render={() => <></>}
+                                    />
+                                    {errors.code && (
+                                        <Typography variant="caption" color="error" sx={{ display: 'block', textAlign: 'center', mb: 2 }}>
+                                            {errors.code.message}
+                                        </Typography>
+                                    )}
+                                </motion.div>
 
                                 {/* New Password */}
                                 <motion.div variants={itemVariants}>
@@ -325,8 +434,7 @@ export default function ResetPasswordPage() {
                                                 error={!!errors.newPassword}
                                                 helperText={errors.newPassword?.message}
                                                 margin="normal"
-                                                autoFocus
-                                                disabled={loading || !token}
+                                                disabled={loading}
                                                 InputProps={{
                                                     startAdornment: (
                                                         <InputAdornment position="start">
@@ -373,7 +481,7 @@ export default function ResetPasswordPage() {
                                                 error={!!errors.confirmPassword}
                                                 helperText={errors.confirmPassword?.message}
                                                 margin="normal"
-                                                disabled={loading || !token}
+                                                disabled={loading}
                                                 InputProps={{
                                                     startAdornment: (
                                                         <InputAdornment position="start">
@@ -412,7 +520,7 @@ export default function ResetPasswordPage() {
                                         fullWidth
                                         variant="contained"
                                         size="large"
-                                        disabled={loading || !token}
+                                        disabled={loading}
                                         endIcon={!loading && <ArrowForward />}
                                         sx={{
                                             mt: 3,
@@ -459,7 +567,7 @@ export default function ResetPasswordPage() {
                                     </Box>
                                 </motion.div>
                             </form>
-                        )}
+                        ) : null}
                     </CardContent>
                 </Card>
 

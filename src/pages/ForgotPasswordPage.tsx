@@ -108,7 +108,6 @@ export default function ForgotPasswordPage() {
     const { t } = useTranslation()
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
-    const [success, setSuccess] = useState(false)
 
     const {
         control,
@@ -130,10 +129,11 @@ export default function ForgotPasswordPage() {
             await httpClient.post('/auth/forgot-password', {
                 email: data.email,
             })
-            setSuccess(true)
+            // Navigate to reset page with the email pre-filled
+            navigate(`/reset-password?email=${encodeURIComponent(data.email)}`)
         } catch {
-            // Always show success to avoid email enumeration
-            setSuccess(true)
+            // Always navigate to avoid email enumeration
+            navigate(`/reset-password?email=${encodeURIComponent(data.email)}`)
         } finally {
             setLoading(false)
         }
@@ -224,41 +224,7 @@ export default function ForgotPasswordPage() {
                             </Box>
                         </motion.div>
 
-                        {success ? (
-                            <>
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.3 }}
-                                >
-                                    <Alert
-                                        severity="success"
-                                        sx={{ mb: 3, borderRadius: '12px' }}
-                                    >
-                                        {t('auth.forgotPasswordSuccess')}
-                                    </Alert>
-                                </motion.div>
-
-                                <motion.div variants={itemVariants}>
-                                    <Box sx={{ textAlign: 'center' }}>
-                                        <Link
-                                            component="button"
-                                            type="button"
-                                            onClick={() => navigate('/login')}
-                                            underline="hover"
-                                            sx={{
-                                                fontWeight: 600,
-                                                color: 'primary.main',
-                                                cursor: 'pointer',
-                                                '&:hover': { color: 'primary.dark' },
-                                            }}
-                                        >
-                                            {t('auth.backToLogin')}
-                                        </Link>
-                                    </Box>
-                                </motion.div>
-                            </>
-                        ) : (
+                        {(
                             <form onSubmit={handleSubmit(onSubmit)}>
                                 {error && (
                                     <motion.div

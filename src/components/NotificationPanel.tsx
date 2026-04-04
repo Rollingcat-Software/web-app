@@ -1,7 +1,9 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import {
     Badge,
     Box,
+    Button,
+    Chip,
     CircularProgress,
     Divider,
     IconButton,
@@ -15,6 +17,7 @@ import {
 } from '@mui/material'
 import {
     CheckCircle,
+    DoneAll,
     Error as ErrorIcon,
     Fingerprint,
     Login,
@@ -22,6 +25,10 @@ import {
     PersonAdd,
     Security,
     Settings,
+    VpnKey,
+    Logout,
+    LockReset,
+    AdminPanelSettings,
 } from '@mui/icons-material'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
@@ -30,26 +37,89 @@ import type { AuditLog } from '@domain/models/AuditLog'
 import { useTranslation } from 'react-i18next'
 
 const POLL_INTERVAL = 30_000 // 30 seconds
-const MAX_NOTIFICATIONS = 10
+const MAX_NOTIFICATIONS = 20
+const STORAGE_KEY_READ_IDS = 'fivucsas_notifications_read'
+const STORAGE_KEY_LAST_SEEN = 'fivucsas_last_notification'
+
+// --- Notification categories ---
+
+type NotificationCategory = 'login' | 'security' | 'enrollment' | 'system'
+
+function getNotificationCategory(action: string): NotificationCategory {
+    if (['USER_LOGIN', 'USER_LOGOUT', 'USER_LOGIN_FAILED', 'TOKEN_REFRESH'].includes(action)) {
+        return 'login'
+    }
+    if (['FAILED_LOGIN_ATTEMPT', 'PASSWORD_CHANGE', 'PASSWORD_RESET_REQUEST', 'PASSWORD_RESET', 'SECURITY_SETTINGS_UPDATED'].includes(action)) {
+        return 'security'
+    }
+    if (['BIOMETRIC_ENROLLED', 'BIOMETRIC_VERIFIED', 'BIOMETRIC_VERIFICATION_FAILED', 'BIOMETRIC_DELETED'].includes(action)) {
+        return 'enrollment'
+    }
+    return 'system'
+}
+
+function getCategoryLabel(category: NotificationCategory, t: (key: string) => string): string {
+    switch (category) {
+        case 'login': return t('notifications.loginAlerts')
+        case 'security': return t('notifications.securityEvents')
+        case 'enrollment': return t('notifications.enrollmentChanges')
+        case 'system': return t('notifications.systemChanges')
+    }
+}
+
+function getCategoryColor(category: NotificationCategory): string {
+    switch (category) {
+        case 'login': return '#3b82f6'
+        case 'security': return '#ef4444'
+        case 'enrollment': return '#8b5cf6'
+        case 'system': return '#64748b'
+    }
+}
+
+// --- Action icons ---
 
 function getActionIcon(action: string) {
     switch (action) {
         case 'USER_LOGIN':
             return <Login fontSize="small" color="info" />
+        case 'USER_LOGOUT':
+            return <Logout fontSize="small" color="action" />
         case 'USER_CREATED':
             return <PersonAdd fontSize="small" color="success" />
         case 'FAILED_LOGIN_ATTEMPT':
+        case 'USER_LOGIN_FAILED':
             return <ErrorIcon fontSize="small" color="error" />
-        case 'BIOMETRIC_VERIFICATION':
+        case 'BIOMETRIC_ENROLLED':
+        case 'BIOMETRIC_VERIFIED':
+        case 'BIOMETRIC_VERIFICATION_FAILED':
+        case 'BIOMETRIC_DELETED':
             return <Fingerprint fontSize="small" color="primary" />
         case 'PASSWORD_RESET':
+        case 'PASSWORD_RESET_REQUEST':
+        case 'PASSWORD_CHANGE':
+            return <LockReset fontSize="small" color="warning" />
+        case 'SECURITY_SETTINGS_UPDATED':
             return <Security fontSize="small" color="warning" />
         case 'SETTINGS_UPDATED':
+        case 'NOTIFICATION_SETTINGS_UPDATED':
+        case 'APPEARANCE_SETTINGS_UPDATED':
             return <Settings fontSize="small" color="action" />
+        case 'ROLE_CREATED':
+        case 'ROLE_UPDATED':
+        case 'ROLE_DELETED':
+        case 'USER_ROLE_ASSIGNED':
+        case 'USER_ROLE_REMOVED':
+        case 'PERMISSION_ADDED':
+        case 'PERMISSION_REMOVED':
+            return <AdminPanelSettings fontSize="small" color="action" />
+        case 'TOKEN_REFRESH':
+            return <VpnKey fontSize="small" color="action" />
         default:
             return <CheckCircle fontSize="small" color="action" />
     }
 }
+
+// --- Time formatting ---
 
 function formatTimeAgo(date: Date, t: (key: string) => string): string {
     const now = new Date()
@@ -64,14 +134,95 @@ function formatTimeAgo(date: Date, t: (key: string) => string): string {
     return t('notifications.daysAgo').replace('{{n}}', String(diffDays))
 }
 
+// --- Date grouping ---
+
+type DateGroup = 'today' | 'yesterday' | 'earlier'
+
+function getDateGroup(date: Date): DateGroup {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterday = new Date(today.getTime() - 86_400_000)
+
+    if (date >= today) return 'today'
+    if (date >= yesterday) return 'yesterday'
+    return 'earlier'
+}
+
+function getDateGroupLabel(group: DateGroup, t: (key: string) => string): string {
+    switch (group) {
+        case 'today': return t('notifications.today')
+        case 'yesterday': return t('notifications.yesterday')
+        case 'earlier': return t('notifications.earlier')
+    }
+}
+
+// --- Read state management (localStorage) ---
+
+function getReadIds(): Set<string> {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY_READ_IDS)
+        if (stored) {
+            const parsed = JSON.parse(stored) as string[]
+            return new Set(parsed)
+        }
+    } catch { /* ignore */ }
+    return new Set()
+}
+
+function saveReadIds(ids: Set<string>) {
+    // Keep only the most recent 100 IDs to avoid unbounded storage growth
+    const arr = Array.from(ids).slice(-100)
+    localStorage.setItem(STORAGE_KEY_READ_IDS, JSON.stringify(arr))
+}
+
+// --- Extended action descriptions ---
+
+function getActionDescription(action: string): string {
+    const descriptions: Record<string, string> = {
+        USER_LOGIN: 'User logged in',
+        USER_LOGOUT: 'User logged out',
+        USER_LOGIN_FAILED: 'Failed login attempt',
+        USER_CREATED: 'New user created',
+        USER_UPDATED: 'User profile updated',
+        USER_DELETED: 'User deleted',
+        USER_STATUS_CHANGED: 'User status changed',
+        USER_ROLE_ASSIGNED: 'Role assigned to user',
+        USER_ROLE_REMOVED: 'Role removed from user',
+        TOKEN_REFRESH: 'Token refreshed',
+        PASSWORD_CHANGE: 'Password changed',
+        PASSWORD_RESET_REQUEST: 'Password reset requested',
+        PASSWORD_RESET: 'Password reset completed',
+        TENANT_CREATED: 'Tenant created',
+        TENANT_UPDATED: 'Tenant updated',
+        TENANT_DELETED: 'Tenant deleted',
+        TENANT_STATUS_CHANGED: 'Tenant status changed',
+        ROLE_CREATED: 'Role created',
+        ROLE_UPDATED: 'Role updated',
+        ROLE_DELETED: 'Role deleted',
+        PERMISSION_ADDED: 'Permission added',
+        PERMISSION_REMOVED: 'Permission removed',
+        BIOMETRIC_ENROLLED: 'Biometric enrollment completed',
+        BIOMETRIC_VERIFIED: 'Biometric verification successful',
+        BIOMETRIC_VERIFICATION_FAILED: 'Biometric verification failed',
+        BIOMETRIC_DELETED: 'Biometric data deleted',
+        SETTINGS_UPDATED: 'Settings updated',
+        SECURITY_SETTINGS_UPDATED: 'Security settings updated',
+        NOTIFICATION_SETTINGS_UPDATED: 'Notification settings updated',
+        APPEARANCE_SETTINGS_UPDATED: 'Appearance settings updated',
+        FAILED_LOGIN_ATTEMPT: 'Failed login attempt',
+    }
+    return descriptions[action] || action.replace(/_/g, ' ').toLowerCase()
+}
+
 /**
- * IL5: NotificationPanel — Simulated notifications using audit log polling.
+ * NotificationPanel
  *
- * There are no dedicated notification endpoints in identity-core-api.
- * This component polls the audit log service (GET /audit-logs) and presents
- * recent entries as notifications. If a real notification backend is added
- * (e.g., WebSocket push or a /notifications endpoint), this component should
- * be updated to consume that instead of polling audit logs.
+ * Polls audit logs and presents them as a notification feed with:
+ * - Per-notification "mark as read" via localStorage
+ * - Date grouping (Today / Yesterday / Earlier)
+ * - Notification categories (Login / Security / Enrollment / System)
+ * - Relative timestamps
+ * - Unread count badge
  */
 export default function NotificationPanel() {
     const { t } = useTranslation()
@@ -80,8 +231,13 @@ export default function NotificationPanel() {
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
     const [notifications, setNotifications] = useState<AuditLog[]>([])
     const [loading, setLoading] = useState(false)
-    const [unreadCount, setUnreadCount] = useState(0)
-    const lastSeenRef = useRef<string | null>(null)
+    const [readIds, setReadIds] = useState<Set<string>>(() => getReadIds())
+    const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+    const unreadCount = useMemo(
+        () => notifications.filter((n) => !readIds.has(n.id)).length,
+        [notifications, readIds]
+    )
 
     const fetchNotifications = useCallback(async () => {
         try {
@@ -92,22 +248,6 @@ export default function NotificationPanel() {
                 MAX_NOTIFICATIONS
             )
             setNotifications(result.items)
-
-            // Count new items since last seen
-            if (lastSeenRef.current) {
-                const newCount = result.items.filter(
-                    (item) => item.id !== lastSeenRef.current && item.createdAt > new Date(localStorage.getItem('fivucsas_last_notification') || 0)
-                ).length
-                setUnreadCount(newCount)
-            } else {
-                // First load: mark all as read
-                const stored = localStorage.getItem('fivucsas_last_notification')
-                if (stored) {
-                    const lastTime = new Date(stored)
-                    const newCount = result.items.filter((item) => item.createdAt > lastTime).length
-                    setUnreadCount(newCount)
-                }
-            }
         } catch {
             // Silently fail - notifications are not critical
         } finally {
@@ -115,9 +255,8 @@ export default function NotificationPanel() {
         }
     }, [auditLogService])
 
-    // Initial fetch and polling — only for admin users (audit logs require admin permission)
+    // Initial fetch and polling - only for admin users
     useEffect(() => {
-        // Check if user has admin role before polling audit logs
         const storedUser = localStorage.getItem('fivucsas_user')
         let isAdmin = false
         try {
@@ -126,26 +265,65 @@ export default function NotificationPanel() {
                       (userData?.roles || []).some((r: string) => r === 'ADMIN' || r === 'SUPER_ADMIN')
         } catch { /* ignore */ }
 
-        if (!isAdmin) return // Skip polling for non-admin users
+        if (!isAdmin) return
 
         fetchNotifications()
-        const interval = setInterval(fetchNotifications, POLL_INTERVAL)
-        return () => clearInterval(interval)
+        pollRef.current = setInterval(fetchNotifications, POLL_INTERVAL)
+        return () => {
+            if (pollRef.current) clearInterval(pollRef.current)
+        }
     }, [fetchNotifications])
+
+    // --- Handlers ---
 
     const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
         setAnchorEl(event.currentTarget)
-        // Mark all as read
-        setUnreadCount(0)
-        if (notifications.length > 0) {
-            lastSeenRef.current = notifications[0].id
-            localStorage.setItem('fivucsas_last_notification', new Date().toISOString())
-        }
     }
 
     const handleClose = () => {
         setAnchorEl(null)
     }
+
+    const handleMarkAllRead = () => {
+        const newReadIds = new Set(readIds)
+        for (const n of notifications) {
+            newReadIds.add(n.id)
+        }
+        setReadIds(newReadIds)
+        saveReadIds(newReadIds)
+        localStorage.setItem(STORAGE_KEY_LAST_SEEN, new Date().toISOString())
+    }
+
+    const handleMarkRead = (id: string) => {
+        const newReadIds = new Set(readIds)
+        newReadIds.add(id)
+        setReadIds(newReadIds)
+        saveReadIds(newReadIds)
+    }
+
+    // --- Grouped notifications ---
+
+    const groupedNotifications = useMemo(() => {
+        const groups = new Map<DateGroup, AuditLog[]>()
+        for (const n of notifications) {
+            const group = getDateGroup(n.createdAt)
+            const arr = groups.get(group)
+            if (arr) {
+                arr.push(n)
+            } else {
+                groups.set(group, [n])
+            }
+        }
+        // Return in order: today, yesterday, earlier
+        const ordered: Array<{ group: DateGroup; items: AuditLog[] }> = []
+        for (const group of ['today', 'yesterday', 'earlier'] as DateGroup[]) {
+            const items = groups.get(group)
+            if (items && items.length > 0) {
+                ordered.push({ group, items })
+            }
+        }
+        return ordered
+    }, [notifications])
 
     const open = Boolean(anchorEl)
 
@@ -167,56 +345,142 @@ export default function NotificationPanel() {
                 transformOrigin={{ vertical: 'top', horizontal: 'right' }}
                 slotProps={{
                     paper: {
-                        sx: { width: 360, maxHeight: 480, overflow: 'hidden' },
+                        sx: { width: 400, maxHeight: 520, overflow: 'hidden', borderRadius: '16px' },
                     },
                 }}
             >
+                {/* Header */}
                 <Box sx={{ p: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <Typography variant="subtitle1" fontWeight={600}>
-                        {t('notifications.title')}
-                    </Typography>
-                    {loading && <CircularProgress size={16} />}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                        <Typography variant="subtitle1" fontWeight={700}>
+                            {t('notifications.title')}
+                        </Typography>
+                        {unreadCount > 0 && (
+                            <Chip
+                                label={unreadCount}
+                                size="small"
+                                color="error"
+                                sx={{ height: 20, fontSize: '0.7rem', fontWeight: 700 }}
+                            />
+                        )}
+                        {loading && <CircularProgress size={14} />}
+                    </Box>
+                    {unreadCount > 0 && (
+                        <Button
+                            size="small"
+                            startIcon={<DoneAll sx={{ fontSize: 16 }} />}
+                            onClick={handleMarkAllRead}
+                            sx={{
+                                fontSize: '0.75rem',
+                                textTransform: 'none',
+                                fontWeight: 600,
+                                color: 'primary.main',
+                            }}
+                        >
+                            {t('notifications.markAllRead')}
+                        </Button>
+                    )}
                 </Box>
                 <Divider />
 
                 {notifications.length === 0 ? (
-                    <Box sx={{ p: 3, textAlign: 'center' }}>
-                        <Notifications sx={{ fontSize: 40, color: 'text.disabled', mb: 1 }} />
+                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                        <Notifications sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
                         <Typography variant="body2" color="text.secondary">
                             {t('notifications.empty')}
                         </Typography>
                     </Box>
                 ) : (
-                    <List sx={{ p: 0, maxHeight: 400, overflow: 'auto' }}>
-                        {notifications.map((log) => (
-                            <ListItem
-                                key={log.id}
-                                sx={{
-                                    py: 1.5,
-                                    '&:hover': { bgcolor: 'action.hover' },
-                                    borderLeft: log.isFailed() ? '3px solid' : 'none',
-                                    borderColor: 'error.main',
-                                }}
-                            >
-                                <ListItemIcon sx={{ minWidth: 36 }}>
-                                    {getActionIcon(log.action)}
-                                </ListItemIcon>
-                                <ListItemText
-                                    primary={
-                                        <Typography variant="body2" fontWeight={500}>
-                                            {log.getActionDescription()}
-                                        </Typography>
-                                    }
-                                    secondary={
-                                        <Typography variant="caption" color="text.secondary">
-                                            {formatTimeAgo(log.createdAt, t)}
-                                            {log.ipAddress && ` \u00B7 ${log.ipAddress}`}
-                                        </Typography>
-                                    }
-                                />
-                            </ListItem>
+                    <Box sx={{ maxHeight: 420, overflow: 'auto' }}>
+                        {groupedNotifications.map(({ group, items }) => (
+                            <Box key={group}>
+                                {/* Date group header */}
+                                <Box
+                                    sx={{
+                                        px: 2,
+                                        py: 0.75,
+                                        bgcolor: 'action.hover',
+                                        position: 'sticky',
+                                        top: 0,
+                                        zIndex: 1,
+                                    }}
+                                >
+                                    <Typography
+                                        variant="caption"
+                                        fontWeight={700}
+                                        color="text.secondary"
+                                        sx={{ textTransform: 'uppercase', letterSpacing: 0.5 }}
+                                    >
+                                        {getDateGroupLabel(group, t)}
+                                    </Typography>
+                                </Box>
+
+                                <List sx={{ p: 0 }}>
+                                    {items.map((log) => {
+                                        const isRead = readIds.has(log.id)
+                                        const category = getNotificationCategory(log.action)
+                                        return (
+                                            <ListItem
+                                                key={log.id}
+                                                onClick={() => handleMarkRead(log.id)}
+                                                sx={{
+                                                    py: 1.5,
+                                                    px: 2,
+                                                    cursor: 'pointer',
+                                                    bgcolor: isRead ? 'transparent' : 'rgba(99, 102, 241, 0.04)',
+                                                    '&:hover': { bgcolor: 'action.hover' },
+                                                    borderLeft: log.isFailed()
+                                                        ? '3px solid'
+                                                        : isRead
+                                                            ? 'none'
+                                                            : '3px solid',
+                                                    borderColor: log.isFailed()
+                                                        ? 'error.main'
+                                                        : 'primary.main',
+                                                    transition: 'background-color 0.2s',
+                                                }}
+                                            >
+                                                <ListItemIcon sx={{ minWidth: 36 }}>
+                                                    {getActionIcon(log.action)}
+                                                </ListItemIcon>
+                                                <ListItemText
+                                                    primary={
+                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                                                            <Typography
+                                                                variant="body2"
+                                                                fontWeight={isRead ? 400 : 600}
+                                                                sx={{ flex: 1 }}
+                                                            >
+                                                                {getActionDescription(log.action)}
+                                                            </Typography>
+                                                            <Chip
+                                                                label={getCategoryLabel(category, t)}
+                                                                size="small"
+                                                                sx={{
+                                                                    height: 18,
+                                                                    fontSize: '0.6rem',
+                                                                    fontWeight: 600,
+                                                                    bgcolor: `${getCategoryColor(category)}15`,
+                                                                    color: getCategoryColor(category),
+                                                                    borderRadius: '4px',
+                                                                }}
+                                                            />
+                                                        </Box>
+                                                    }
+                                                    secondary={
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {formatTimeAgo(log.createdAt, t)}
+                                                            {log.ipAddress && ` \u00B7 ${log.ipAddress}`}
+                                                        </Typography>
+                                                    }
+                                                />
+                                            </ListItem>
+                                        )
+                                    })}
+                                </List>
+                            </Box>
                         ))}
-                    </List>
+                    </Box>
                 )}
             </Popover>
         </>
