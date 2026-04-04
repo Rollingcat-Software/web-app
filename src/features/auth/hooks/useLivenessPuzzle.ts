@@ -388,7 +388,7 @@ export function useLivenessPuzzle() {
                 }))
 
                 const actionResult = await waitForAction(step.action, step.durationMs, videoRef)
-                const confidence = actionResult.detected ? 1.0 : 0.3
+                const confidence = actionResult.detected ? 1.0 : 0.0
                 stepConfidences.push(confidence)
 
                 // Update step result
@@ -434,6 +434,7 @@ export function useLivenessPuzzle() {
             // 4. Send frames to server
             const formData = new FormData()
             formData.append('challengeId', challengeId)
+            formData.append('clientScore', clientScore.toString())
             for (let j = 0; j < capturedFrames.length && j < 3; j++) {
                 formData.append(`frame_${j}`, capturedFrames[j], `frame_${j}.jpg`)
             }
@@ -452,7 +453,7 @@ export function useLivenessPuzzle() {
             if (verifyRes.ok && verifyData) {
                 const serverScore = verifyData.score || verifyData.confidence || 0
                 const serverPassed = verifyData.passed || verifyData.alive || verifyData.liveness || false
-                const passed = clientScore >= 0.6 && serverPassed
+                const passed = clientScore >= 0.75 && serverPassed
 
                 setState(prev => ({
                     ...prev,

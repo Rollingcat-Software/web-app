@@ -99,8 +99,8 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                     const faceRatio = bb.width / vw
 
                     const centered =
-                        Math.abs(faceCenterX / vw - 0.5) < 0.15 &&
-                        Math.abs(faceCenterY / vh - 0.5) < 0.2
+                        Math.abs(faceCenterX / vw - 0.5) < 0.2 &&
+                        Math.abs(faceCenterY / vh - 0.5) < 0.25
 
                     const tooClose = faceRatio > 0.65
                     const tooFar = faceRatio < 0.15

@@ -44,7 +44,8 @@ export default function FingerprintEnrollment({
                 const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
                 if (!cancelled) setPlatformAvailable(available)
             } catch {
-                if (!cancelled) setPlatformAvailable(false)
+                // Brave throws here — assume available and let WebAuthn prompt the user
+                if (!cancelled) setPlatformAvailable(true)
             }
         }
 

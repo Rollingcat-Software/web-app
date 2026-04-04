@@ -136,7 +136,11 @@ export function useFaceChallenge() {
         const conditionMet = checkStageCondition(currentStage.stage, detection)
 
         const stageElapsed = Date.now() - stageStartRef.current
-        const timeoutReached = stageElapsed > STAGE_TIMEOUT_MS && detection.detected
+        // Soft timeout: auto-advance if face detected but condition not met
+        const softTimeout = stageElapsed > STAGE_TIMEOUT_MS && detection.detected
+        // Hard timeout: auto-advance even without detection (MediaPipe may have failed)
+        const hardTimeout = stageElapsed > STAGE_TIMEOUT_MS * 2
+        const timeoutReached = softTimeout || hardTimeout
 
         if (conditionMet || timeoutReached) {
             if (!holdStartRef.current) {
@@ -153,6 +157,19 @@ export function useFaceChallenge() {
                 let capturedImage: string | null = null
                 if (canvasRef.current) {
                     capturedImage = cropFace(canvasRef.current)
+                    // If cropFace returned null (no bounding box), capture full frame
+                    if (!capturedImage && canvasRef.current) {
+                        const video = document.querySelector('video')
+                        if (video && video.videoWidth > 0) {
+                            canvasRef.current.width = video.videoWidth
+                            canvasRef.current.height = video.videoHeight
+                            const ctx = canvasRef.current.getContext('2d')
+                            if (ctx) {
+                                ctx.drawImage(video, 0, 0)
+                                capturedImage = canvasRef.current.toDataURL('image/jpeg', 0.85)
+                            }
+                        }
+                    }
                 }
                 if (capturedImage) {
                     capturesRef.current = [...capturesRef.current, capturedImage]

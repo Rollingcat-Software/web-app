@@ -77,7 +77,7 @@ test.describe('Verification Session Detail', () => {
         }
 
         // Check if the row has monospace text (session ID)
-        const hasMonospaceId = await firstDataRow.locator('code, [style*="monospace"], .MuiTypography-root[style]')
+        const _hasMonospaceId = await firstDataRow.locator('code, [style*="monospace"], .MuiTypography-root[style]')
             .first().isVisible({ timeout: 3000 }).catch(() => false)
 
         await firstDataRow.click()

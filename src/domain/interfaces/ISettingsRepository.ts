@@ -7,6 +7,7 @@ export interface UserSettings {
     // Profile settings
     firstName: string
     lastName: string
+    phoneNumber: string
     // Notification settings
     emailNotifications: boolean
     loginAlerts: boolean
@@ -23,6 +24,7 @@ export interface UserSettings {
 export interface UpdateProfileData {
     firstName: string
     lastName: string
+    phoneNumber?: string
 }
 
 export interface UpdateNotificationSettings {

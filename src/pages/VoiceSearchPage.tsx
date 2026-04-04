@@ -93,6 +93,7 @@ export default function VoiceSearchPage() {
     const [voiceBase64, setVoiceBase64] = useState<string | null>(null)
     const [micError, setMicError] = useState<string | null>(null)
     const [waveformData, setWaveformData] = useState<number[]>([])
+    const maxAmplitudeRef = useRef(0)
     const [microphones, setMicrophones] = useState<MediaDeviceInfo[]>([])
     const [selectedMic, setSelectedMic] = useState<string>('')
 
@@ -151,6 +152,8 @@ export default function VoiceSearchPage() {
                 samples.push(Math.abs(v - 128) / 128)
             }
             setWaveformData(samples)
+            const maxAmp = Math.max(...samples)
+            if (maxAmp > maxAmplitudeRef.current) maxAmplitudeRef.current = maxAmp
             animFrameRef.current = requestAnimationFrame(draw)
         }
         animFrameRef.current = requestAnimationFrame(draw)
@@ -167,6 +170,7 @@ export default function VoiceSearchPage() {
             setRecordingTime(0)
             reset()
             chunksRef.current = []
+            maxAmplitudeRef.current = 0
 
             const constraints: MediaStreamConstraints = {
                 audio: selectedMic ? { deviceId: { exact: selectedMic } } : true,
@@ -193,6 +197,12 @@ export default function VoiceSearchPage() {
 
             mediaRecorder.onstop = async () => {
                 const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
+
+                if (maxAmplitudeRef.current < 0.05) {
+                    setMicError('No voice detected. Please speak clearly into the microphone and try again.')
+                    stream.getTracks().forEach(t => t.stop())
+                    return
+                }
 
                 try {
                     const wavBlob = await convertToWav16k(blob)

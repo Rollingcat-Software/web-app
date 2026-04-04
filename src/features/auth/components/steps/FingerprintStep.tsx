@@ -52,7 +52,13 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                 return
             }
 
-            const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+            let available = false
+            try {
+                available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
+            } catch {
+                // Brave throws here — proceed anyway and let WebAuthn prompt
+                available = true
+            }
             if (!available) {
                 setUnavailable(true)
                 setWaiting(false)

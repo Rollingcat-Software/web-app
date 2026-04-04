@@ -33,7 +33,8 @@ export class SettingsRepository implements ISettingsRepository {
             interface SettingsApiResponse {
                 firstName?: string
                 lastName?: string
-                profile?: { firstName?: string; lastName?: string }
+                phoneNumber?: string
+                profile?: { firstName?: string; lastName?: string; phoneNumber?: string }
                 notifications?: { email?: boolean; push?: boolean; securityAlerts?: boolean }
                 security?: { twoFactorEnabled?: boolean; sessionTimeout?: number }
                 appearance?: { theme?: string; density?: string }
@@ -47,6 +48,7 @@ export class SettingsRepository implements ISettingsRepository {
                 userId,
                 firstName: data?.profile?.firstName ?? data?.firstName ?? '',
                 lastName: data?.profile?.lastName ?? data?.lastName ?? '',
+                phoneNumber: data?.profile?.phoneNumber ?? data?.phoneNumber ?? '',
                 emailNotifications: data?.notifications?.email ?? true,
                 loginAlerts: data?.notifications?.push ?? true,
                 securityAlerts: data?.notifications?.securityAlerts ?? true,
@@ -179,6 +181,7 @@ export class SettingsRepository implements ISettingsRepository {
             userId,
             firstName: '',
             lastName: '',
+            phoneNumber: '',
             emailNotifications: true,
             loginAlerts: true,
             securityAlerts: true,

@@ -37,6 +37,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
     const [cardSerial, setCardSerial] = useState('')
     const [cardLabel, setCardLabel] = useState('')
     const [nfcSupported, setNfcSupported] = useState(true)
+    const [cardInfo, setCardInfo] = useState<{ enrolled: boolean; message: string; data?: Record<string, unknown> } | null>(null)
     const abortRef = useRef<AbortController | null>(null)
 
     useEffect(() => {
@@ -49,6 +50,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
             setError(null)
             setCardSerial('')
             setCardLabel('')
+            setCardInfo(null)
             setScanning(false)
             if (abortRef.current) {
                 abortRef.current.abort()
@@ -119,7 +121,17 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
         } catch (err) {
             const axiosErr = err as { response?: { status?: number; data?: { message?: string } } }
             if (axiosErr.response?.status === 409) {
-                setError('This card is already enrolled. Remove the existing enrollment first.')
+                // Card already enrolled — check whose it is
+                try {
+                    const verifyRes = await httpClient.post<Record<string, unknown>>('/nfc/verify', { cardSerial })
+                    setCardInfo({
+                        enrolled: true,
+                        message: 'This card is already enrolled.',
+                        data: verifyRes.data,
+                    })
+                } catch {
+                    setCardInfo({ enrolled: true, message: 'This card is already enrolled.' })
+                }
             } else {
                 setError(err instanceof Error ? err.message : 'Failed to register NFC card')
             }
@@ -284,9 +296,39 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                     </>
                                 )}
 
+                                {cardInfo && (
+                                    <Alert severity={cardInfo.enrolled ? 'info' : 'success'} sx={{ mt: 2 }}>
+                                        <Typography variant="body2" fontWeight={600}>
+                                            {cardInfo.message}
+                                        </Typography>
+                                        {cardInfo.data && (
+                                            <Box sx={{ mt: 1 }}>
+                                                {cardInfo.data.userName ? (
+                                                    <Typography variant="body2">
+                                                        Owner: {String(cardInfo.data.userName)}
+                                                    </Typography>
+                                                ) : null}
+                                                {cardInfo.data.email ? (
+                                                    <Typography variant="body2">
+                                                        Email: {String(cardInfo.data.email)}
+                                                    </Typography>
+                                                ) : null}
+                                                {cardInfo.data.cardType ? (
+                                                    <Typography variant="body2">
+                                                        Card Type: {String(cardInfo.data.cardType)}
+                                                    </Typography>
+                                                ) : null}
+                                            </Box>
+                                        )}
+                                    </Alert>
+                                )}
+
                                 <Alert severity="info" sx={{ mt: 2 }}>
                                     Make sure NFC is enabled in your phone settings. Hold the card flat against the
-                                    back of your phone near the NFC antenna (usually top-center).
+                                    back of your phone near the NFC antenna (usually top-center). Note: Turkish
+                                    National ID cards (TC Kimlik) and passports use encrypted NFC chips that cannot
+                                    be read by browsers — only student IDs, access cards, and other NDEF-compatible
+                                    NFC cards are supported.
                                 </Alert>
                             </Box>
                         )}

@@ -62,6 +62,7 @@ export default function SettingsPage() {
     // Profile settings — pre-populated from auth context so names show even before settings load
     const [firstName, setFirstName] = useState(user?.firstName || '')
     const [lastName, setLastName] = useState(user?.lastName || '')
+    const [phoneNumber, setPhoneNumber] = useState('')
 
     // Notification settings
     const [emailNotifications, setEmailNotifications] = useState(true)
@@ -138,6 +139,7 @@ export default function SettingsPage() {
         if (settings) {
             setFirstName(settings.firstName || user?.firstName || '')
             setLastName(settings.lastName || user?.lastName || '')
+            setPhoneNumber(settings.phoneNumber || '')
             setEmailNotifications(settings.emailNotifications)
             setLoginAlerts(settings.loginAlerts)
             setSecurityAlerts(settings.securityAlerts)
@@ -152,14 +154,14 @@ export default function SettingsPage() {
     const handleSaveProfile = useCallback(async () => {
         try {
             setSaving('profile')
-            await updateProfile({ firstName, lastName })
+            await updateProfile({ firstName, lastName, phoneNumber: phoneNumber || undefined })
             showSuccessMessage('profile')
         } catch {
             // Error handled by hook
         } finally {
             setSaving(null)
         }
-    }, [firstName, lastName, updateProfile, showSuccessMessage])
+    }, [firstName, lastName, phoneNumber, updateProfile, showSuccessMessage])
 
     const handleSaveNotifications = useCallback(async () => {
         try {
@@ -325,6 +327,18 @@ export default function SettingsPage() {
                                     value={lastName}
                                     onChange={(e) => setLastName(e.target.value)}
                                     disabled={saving === 'profile'}
+                                />
+                            </Grid>
+                            <Grid item xs={12} md={6}>
+                                <TextField
+                                    fullWidth
+                                    label="Phone Number / Telefon Numaras\u0131"
+                                    type="tel"
+                                    value={phoneNumber}
+                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    disabled={saving === 'profile'}
+                                    placeholder="+905xxxxxxxxx"
+                                    helperText="Required for SMS OTP verification"
                                 />
                             </Grid>
                             <Grid item xs={12}>

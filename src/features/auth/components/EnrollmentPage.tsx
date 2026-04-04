@@ -373,6 +373,48 @@ export default function EnrollmentPage() {
         [createEnrollment, user?.tenantId]
     )
 
+    // Handle test for already-enrolled methods
+    const handleTest = useCallback(
+        (type: AuthMethodType) => {
+            switch (type) {
+                case AuthMethodType.FACE:
+                    setFaceEnrollOpen(true)
+                    break
+                case AuthMethodType.FINGERPRINT:
+                    setWebauthnMode('platform')
+                    setWebauthnEnrollOpen(true)
+                    break
+                case AuthMethodType.HARDWARE_KEY:
+                    setWebauthnMode('hardware-key')
+                    setWebauthnEnrollOpen(true)
+                    break
+                case AuthMethodType.TOTP:
+                    setTotpEnrollOpen(true)
+                    break
+                case AuthMethodType.VOICE:
+                    setVoiceEnrollOpen(true)
+                    break
+                case AuthMethodType.NFC_DOCUMENT:
+                    if ('NDEFReader' in window) {
+                        setNfcEnrollOpen(true)
+                    } else {
+                        setSnackbar({ open: true, message: 'NFC requires Chrome on Android.', severity: 'warning' })
+                    }
+                    break
+                case AuthMethodType.EMAIL_OTP:
+                case AuthMethodType.SMS_OTP:
+                case AuthMethodType.QR_CODE:
+                    setSnackbar({
+                        open: true,
+                        message: `To test ${METHOD_LABELS[type] ?? type}, use it as your auth method during login.`,
+                        severity: 'info',
+                    })
+                    break
+            }
+        },
+        []
+    )
+
     // Handle face enrollment completion
     const handleFaceEnrollComplete = useCallback(
         async (images: string[]) => {
@@ -630,7 +672,7 @@ export default function EnrollmentPage() {
                                                             size="small"
                                                             color="primary"
                                                             onClick={() =>
-                                                                handleEnroll(config.type)
+                                                                handleTest(config.type)
                                                             }
                                                             disabled={isLoading}
                                                             sx={{
