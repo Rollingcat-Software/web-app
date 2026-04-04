@@ -70,7 +70,6 @@ const AuthFlowsPage = lazy(() => import('./features/authFlows/components/AuthFlo
 const DevicesPage = lazy(() => import('./pages/DevicesPage'))
 const AuthSessionsPage = lazy(() => import('./pages/AuthSessionsPage'))
 const AnalyticsPage = lazy(() => import('./pages/AnalyticsPage'))
-const UserEnrollmentPage = lazy(() => import('./features/userEnrollment/components/UserEnrollmentPage'))
 const GuestsPage = lazy(() => import('./pages/GuestsPage'))
 const BiometricEnrollmentPage = lazy(() => import('./features/auth/components/EnrollmentPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
@@ -183,7 +182,7 @@ function App() {
                     <Route path="devices" element={<ErrorBoundary><DevicesPage /></ErrorBoundary>} />
                     <Route path="auth-sessions" element={<ErrorBoundary><AuthSessionsPage /></ErrorBoundary>} />
                     <Route path="enrollments" element={<ErrorBoundary><EnrollmentsListPage /></ErrorBoundary>} />
-                    <Route path="user-enrollment" element={<ErrorBoundary><UserEnrollmentPage /></ErrorBoundary>} />
+                    <Route path="user-enrollment" element={<Navigate to="/enrollment" replace />} />
                     <Route path="enrollment" element={<ErrorBoundary><BiometricEnrollmentPage /></ErrorBoundary>} />
                     <Route path="biometric-tools" element={<ErrorBoundary><BiometricToolsPage /></ErrorBoundary>} />
                     <Route path="card-detection" element={<Navigate to="/biometric-tools" replace />} />

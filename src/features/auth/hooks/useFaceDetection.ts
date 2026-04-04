@@ -25,11 +25,15 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
     const detectorRef = useRef<FaceDetector | null>(null)
     const animFrameRef = useRef<number>(0)
     const [state, setState] = useState<FaceDetectionState>(INITIAL_STATE)
+    const [initialized, setInitialized] = useState(false)
+    const [initFailed, setInitFailed] = useState(false)
 
     useEffect(() => {
         if (!active) return
 
         let cancelled = false
+        setInitialized(false)
+        setInitFailed(false)
 
         async function init() {
             try {
@@ -52,8 +56,10 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                     return
                 }
                 detectorRef.current = detector
+                setInitialized(true)
             } catch (e) {
                 console.warn('[FaceDetection] MediaPipe init failed, falling back to full-frame capture', e)
+                setInitFailed(true)
             }
         }
 
@@ -190,5 +196,5 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
         [videoRef, state.boundingBox]
     )
 
-    return { ...state, cropFace }
+    return { ...state, cropFace, initialized, initFailed }
 }

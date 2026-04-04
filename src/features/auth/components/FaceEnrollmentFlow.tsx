@@ -10,7 +10,7 @@ import {
     LinearProgress,
     Chip,
 } from '@mui/material'
-import { Close, CheckCircle, Face, Replay } from '@mui/icons-material'
+import { Close, CheckCircle, Face, Replay, Warning } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useFaceDetection } from '../hooks/useFaceDetection'
 import { useFaceChallenge, ChallengeStage } from '../hooks/useFaceChallenge'
@@ -43,6 +43,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
     const [started, setStarted] = useState(false)
 
     const detection = useFaceDetection(videoRef, cameraActive)
+    const { initialized: detectorReady, initFailed: detectorFailed } = detection
     const { challengeState, updateChallenge, resetChallenge } = useFaceChallenge()
 
     const startCamera = useCallback(async () => {
@@ -336,6 +337,39 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                         >
                             Follow the instruction above. It will auto-advance if needed.
                         </Typography>
+                    )}
+
+                    {/* MediaPipe loading / failure feedback */}
+                    {started && !detectorReady && !detectorFailed && challengeState.stage !== 'complete' && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mt: 1 }}>
+                            <CircularProgress size={14} sx={{ color: 'rgba(255,255,255,0.5)' }} />
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
+                                Loading face detection...
+                            </Typography>
+                        </Box>
+                    )}
+
+                    {detectorFailed && challengeState.stage !== 'complete' && (
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                alignItems: 'flex-start',
+                                gap: 1,
+                                mt: 1.5,
+                                mx: 'auto',
+                                maxWidth: '90%',
+                                p: 1.5,
+                                borderRadius: '10px',
+                                bgcolor: 'rgba(250, 204, 21, 0.1)',
+                                border: '1px solid rgba(250, 204, 21, 0.25)',
+                            }}
+                        >
+                            <Warning sx={{ fontSize: 18, color: '#facc15', mt: 0.2 }} />
+                            <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', textAlign: 'left' }}>
+                                Face detection unavailable on this device. Timer-based capture will be used
+                                — hold steady and follow the instructions.
+                            </Typography>
+                        </Box>
                     )}
 
                     {cameraError && (

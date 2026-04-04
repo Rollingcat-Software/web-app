@@ -85,6 +85,15 @@ function formatBytes(bytes: number): string {
 
 const MAX_RECORDING_SECONDS = 10
 
+const VOICE_PASSPHRASES = [
+    'The quick brown fox jumps over the lazy dog near the riverbank',
+    'My voice is my passport, verify me please',
+    'Authentication requires clear and consistent speech patterns',
+    'Security systems protect our digital identity every day',
+    'Biometric verification ensures only authorized access',
+    'Every person has a unique voice that can be recognized',
+]
+
 type VoiceAction = 'enroll' | 'verify' | 'search'
 
 interface VoiceEnrollmentFlowProps {
@@ -131,6 +140,11 @@ export default function VoiceEnrollmentFlow({
 
     // Waveform amplitude for visualization
     const [waveformData, setWaveformData] = useState<number[]>([])
+
+    // Random passphrase for voice quality
+    const [passphrase, setPassphrase] = useState(() =>
+        VOICE_PASSPHRASES[Math.floor(Math.random() * VOICE_PASSPHRASES.length)]
+    )
 
     // Timer
     useEffect(() => {
@@ -360,7 +374,7 @@ export default function VoiceEnrollmentFlow({
         }
     }, [voiceBase64, token, apiBaseUrl, userId, onSuccess])
 
-    // Cleanup on close
+    // Cleanup on close / re-init on open
     useEffect(() => {
         if (!open) {
             if (mediaRecorderRef.current?.state === 'recording') {
@@ -374,6 +388,9 @@ export default function VoiceEnrollmentFlow({
             setConversionStats(null)
             setRecordingTime(0)
             setActionResult(null)
+        } else {
+            // Pick a new random passphrase each time the dialog opens
+            setPassphrase(VOICE_PASSPHRASES[Math.floor(Math.random() * VOICE_PASSPHRASES.length)])
         }
     }, [open])
 
@@ -466,6 +483,40 @@ export default function VoiceEnrollmentFlow({
                         </Box>
                     </motion.div>
                 </Box>
+
+                {/* Passphrase prompt */}
+                {!hasRecording && (
+                    <Box
+                        sx={{
+                            mx: 3,
+                            mb: 2,
+                            p: 2,
+                            borderRadius: '12px',
+                            bgcolor: 'rgba(255,255,255,0.06)',
+                            border: '1px solid rgba(255,255,255,0.12)',
+                            textAlign: 'center',
+                        }}
+                    >
+                        <Typography
+                            variant="caption"
+                            sx={{ color: 'rgba(255,255,255,0.5)', display: 'block', mb: 1 }}
+                        >
+                            Please read the following text aloud:
+                        </Typography>
+                        <Typography
+                            variant="body1"
+                            sx={{
+                                color: 'white',
+                                fontWeight: 600,
+                                fontStyle: 'italic',
+                                lineHeight: 1.6,
+                                px: 1,
+                            }}
+                        >
+                            &ldquo;{passphrase}&rdquo;
+                        </Typography>
+                    </Box>
+                )}
 
                 {/* Waveform / recording progress */}
                 {recording && (
