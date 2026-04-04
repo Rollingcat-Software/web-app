@@ -27,9 +27,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
     }
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-        if (import.meta.env.DEV) {
-            console.error('ErrorBoundary caught an error:', error, errorInfo)
-        }
+        console.error('ErrorBoundary caught an error:', error, errorInfo)
     }
 
     private handleReset = () => {
@@ -60,7 +58,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                             An unexpected error occurred. Please try again or contact support if the problem persists.
                         </Typography>
-                        {import.meta.env.DEV && this.state.error && (
+                        {this.state.error && (
                             <Typography
                                 variant="caption"
                                 component="pre"
@@ -72,17 +70,27 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                                     overflow: 'auto',
                                     textAlign: 'left',
                                     maxHeight: 200,
+                                    fontSize: '0.7rem',
                                 }}
                             >
                                 {this.state.error.message}
+                                {'\n'}
+                                {this.state.error.stack?.split('\n').slice(0, 5).join('\n')}
                             </Typography>
                         )}
-                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center' }}>
+                        <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
                             <Button variant="contained" onClick={this.handleReset}>
                                 Try Again
                             </Button>
                             <Button variant="outlined" onClick={() => window.location.assign('/')}>
                                 Go to Dashboard
+                            </Button>
+                            <Button variant="outlined" color="error" onClick={() => {
+                                sessionStorage.clear()
+                                localStorage.clear()
+                                window.location.assign('/login')
+                            }}>
+                                Logout & Clear
                             </Button>
                         </Box>
                     </Paper>
