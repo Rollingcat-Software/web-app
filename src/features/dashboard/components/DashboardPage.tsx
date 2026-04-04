@@ -256,7 +256,7 @@ const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[]
                         }
                         secondary={
                             <Typography variant="caption" color="text.secondary">
-                                {format(new Date(log.createdAt), 'MMM dd, HH:mm:ss')}
+                                {(() => { try { return format(new Date(log.createdAt), 'MMM dd, HH:mm:ss') } catch { return 'N/A' } })()}
                                 {log.ipAddress && ` from ${log.ipAddress}`}
                             </Typography>
                         }
@@ -415,7 +415,7 @@ function UserDashboardContent() {
                                                     primary={<Typography variant="body2" color="text.secondary">Member Since</Typography>}
                                                     secondary={
                                                         <Typography variant="body1">
-                                                            {user?.createdAt ? format(new Date(user.createdAt), 'MMMM dd, yyyy') : 'N/A'}
+                                                            {(() => { try { return user?.createdAt ? format(new Date(user.createdAt), 'MMMM dd, yyyy') : 'N/A' } catch { return 'N/A' } })()}
                                                         </Typography>
                                                     }
                                                 />
@@ -539,7 +539,7 @@ function UserDashboardContent() {
                                                             }
                                                             secondary={
                                                                 <Typography variant="caption" color="text.secondary">
-                                                                    {format(new Date(log.createdAt), 'MMM dd, yyyy HH:mm:ss')}
+                                                                    {(() => { try { return format(new Date(log.createdAt), 'MMM dd, yyyy HH:mm:ss') } catch { return 'N/A' } })()}
                                                                     {log.userAgent && ` -- ${log.userAgent.substring(0, 60)}${log.userAgent.length > 60 ? '...' : ''}`}
                                                                 </Typography>
                                                             }
