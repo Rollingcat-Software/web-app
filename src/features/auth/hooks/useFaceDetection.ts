@@ -1,5 +1,17 @@
+/**
+ * useFaceDetection — Face detection hook for auth capture flow.
+ *
+ * Strategy: BlazeFace (TF.js, ~1.2MB, on-device) is preferred.
+ * Falls back to MediaPipe (CDN, ~5MB WASM) if BlazeFace fails to load.
+ *
+ * @see CLIENT_SIDE_ML_PLAN.md Phase 4.2.1
+ */
+
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision'
+import { useBlazeFace } from '../../../lib/ml/useBlazeFace'
+
+export type DetectionBackend = 'blazeface' | 'mediapipe' | 'none'
 
 export interface FaceDetectionState {
     detected: boolean
@@ -22,17 +34,40 @@ const INITIAL_STATE: FaceDetectionState = {
 }
 
 export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | null>, active: boolean) {
-    const detectorRef = useRef<FaceDetector | null>(null)
+    // --- MediaPipe state (fallback) ---
+    const mpDetectorRef = useRef<FaceDetector | null>(null)
     const animFrameRef = useRef<number>(0)
     const [state, setState] = useState<FaceDetectionState>(INITIAL_STATE)
     const [initialized, setInitialized] = useState(false)
     const [initFailed, setInitFailed] = useState(false)
+    const [backend, setBackend] = useState<DetectionBackend>('none')
 
+    // --- BlazeFace (primary) ---
+    const blazeFace = useBlazeFace(active)
+
+    // Performance logging refs
+    const perfLogCountRef = useRef(0)
+    const mediapipeTimingsRef = useRef<number[]>([])
+
+    // When BlazeFace is ready, mark it as the active backend
     useEffect(() => {
-        if (!active) return
+        if (blazeFace.isReady && active) {
+            setBackend('blazeface')
+            setInitialized(true)
+            // eslint-disable-next-line no-console
+            console.info('[FaceDetection] Using BlazeFace backend (on-device TF.js)')
+        }
+    }, [blazeFace.isReady, active])
+
+    // Fall back to MediaPipe if BlazeFace fails
+    useEffect(() => {
+        if (!active || blazeFace.isLoading || blazeFace.isReady) return
+        if (!blazeFace.error) return // Still trying
+
+        // BlazeFace failed — initialize MediaPipe as fallback
+        console.warn('[FaceDetection] BlazeFace failed, falling back to MediaPipe:', blazeFace.error)
 
         let cancelled = false
-        setInitialized(false)
         setInitFailed(false)
 
         async function init() {
@@ -55,10 +90,13 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                     detector.close()
                     return
                 }
-                detectorRef.current = detector
+                mpDetectorRef.current = detector
+                setBackend('mediapipe')
                 setInitialized(true)
+                // eslint-disable-next-line no-console
+                console.info('[FaceDetection] Using MediaPipe backend (CDN fallback)')
             } catch (e) {
-                console.warn('[FaceDetection] MediaPipe init failed, falling back to full-frame capture', e)
+                console.warn('[FaceDetection] MediaPipe init also failed', e)
                 setInitFailed(true)
             }
         }
@@ -67,25 +105,96 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
 
         return () => {
             cancelled = true
-            if (detectorRef.current) {
-                detectorRef.current.close()
-                detectorRef.current = null
+            if (mpDetectorRef.current) {
+                mpDetectorRef.current.close()
+                mpDetectorRef.current = null
             }
         }
-    }, [active])
+    }, [active, blazeFace.isLoading, blazeFace.isReady, blazeFace.error])
 
-    const detect = useCallback(() => {
+    // --- BlazeFace detection loop ---
+    const detectWithBlazeFace = useCallback(async () => {
         const video = videoRef.current
-        const detector = detectorRef.current
-
-        if (!video || !detector || video.readyState < 2) {
-            animFrameRef.current = requestAnimationFrame(detect)
+        if (!video || video.readyState < 2) {
+            animFrameRef.current = requestAnimationFrame(detectWithBlazeFace)
             return
         }
 
         try {
+            const result = await blazeFace.detect(video)
+            if (!result || !result.detected || result.faces.length === 0) {
+                setState({
+                    ...INITIAL_STATE,
+                    hint: 'No face detected — look at the camera',
+                })
+            } else {
+                const face = result.faces[0]
+                const bb = face.boundingBox
+
+                const faceCenterX = (bb.x + bb.width / 2)
+                const faceCenterY = (bb.y + bb.height / 2)
+
+                const centered =
+                    Math.abs(faceCenterX - 0.5) < 0.2 &&
+                    Math.abs(faceCenterY - 0.5) < 0.25
+
+                const tooClose = bb.width > 0.65
+                const tooFar = bb.width < 0.15
+
+                let hint = 'Perfect — hold steady'
+                if (tooFar) hint = 'Move closer to the camera'
+                else if (tooClose) hint = 'Move further from the camera'
+                else if (!centered) hint = 'Center your face in the frame'
+
+                setState({
+                    detected: true,
+                    centered,
+                    tooClose,
+                    tooFar,
+                    hint,
+                    confidence: face.confidence,
+                    boundingBox: {
+                        x: bb.x,
+                        y: bb.y,
+                        width: bb.width,
+                        height: bb.height,
+                    },
+                })
+
+                // Performance logging: log every 60 frames (~2 seconds)
+                perfLogCountRef.current++
+                if (perfLogCountRef.current % 60 === 0) {
+                    // eslint-disable-next-line no-console
+                    console.debug(`[FaceDetection] BlazeFace avg: ${blazeFace.avgInferenceMs}ms | last: ${result.inferenceTimeMs.toFixed(1)}ms | faces: ${result.faces.length}`)
+                }
+            }
+        } catch {
+            // Detection frame error, continue loop
+        }
+
+        animFrameRef.current = requestAnimationFrame(detectWithBlazeFace)
+    }, [videoRef, blazeFace])
+
+    // --- MediaPipe detection loop (fallback) ---
+    const detectWithMediaPipe = useCallback(() => {
+        const video = videoRef.current
+        const detector = mpDetectorRef.current
+
+        if (!video || !detector || video.readyState < 2) {
+            animFrameRef.current = requestAnimationFrame(detectWithMediaPipe)
+            return
+        }
+
+        try {
+            const t0 = performance.now()
             const result = detector.detectForVideo(video, performance.now())
+            const inferenceMs = performance.now() - t0
             const detections = result.detections
+
+            // Track MediaPipe timings for comparison
+            const mpTimings = mediapipeTimingsRef.current
+            mpTimings.push(inferenceMs)
+            if (mpTimings.length > 30) mpTimings.shift()
 
             if (!detections || detections.length === 0) {
                 setState({
@@ -134,16 +243,31 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                     })
                 }
             }
+
+            // Performance logging
+            perfLogCountRef.current++
+            if (perfLogCountRef.current % 60 === 0) {
+                const avg = mpTimings.reduce((s, t) => s + t, 0) / mpTimings.length
+                // eslint-disable-next-line no-console
+                console.debug(`[FaceDetection] MediaPipe avg: ${avg.toFixed(1)}ms | last: ${inferenceMs.toFixed(1)}ms`)
+            }
         } catch {
             // Detection frame error, continue loop
         }
 
-        animFrameRef.current = requestAnimationFrame(detect)
+        animFrameRef.current = requestAnimationFrame(detectWithMediaPipe)
     }, [videoRef])
 
+    // --- Start the appropriate detection loop ---
     useEffect(() => {
-        if (active && detectorRef.current) {
-            animFrameRef.current = requestAnimationFrame(detect)
+        if (!active || !initialized) return
+
+        perfLogCountRef.current = 0
+
+        if (backend === 'blazeface') {
+            animFrameRef.current = requestAnimationFrame(detectWithBlazeFace)
+        } else if (backend === 'mediapipe' && mpDetectorRef.current) {
+            animFrameRef.current = requestAnimationFrame(detectWithMediaPipe)
         }
 
         return () => {
@@ -151,7 +275,17 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                 cancelAnimationFrame(animFrameRef.current)
             }
         }
-    }, [active, detect])
+    }, [active, initialized, backend, detectWithBlazeFace, detectWithMediaPipe])
+
+    // --- Cleanup on unmount ---
+    useEffect(() => {
+        return () => {
+            if (mpDetectorRef.current) {
+                mpDetectorRef.current.close()
+                mpDetectorRef.current = null
+            }
+        }
+    }, [])
 
     const cropFace = useCallback(
         (canvas: HTMLCanvasElement): string | null => {
@@ -196,5 +330,5 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
         [videoRef, state.boundingBox]
     )
 
-    return { ...state, cropFace, initialized, initFailed }
+    return { ...state, cropFace, initialized, initFailed, backend }
 }

@@ -53,6 +53,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         hint,
         boundingBox,
         cropFace,
+        backend,
     } = useFaceDetection(videoRef, cameraActive && !capturedImage)
 
     const { quality, updateQuality, resetQuality, getScoreColor, getQualityLabel } = useQualityAssessment()
@@ -404,6 +405,15 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                                 color={getScoreColor(quality.faceSizeScore)}
                                 variant="outlined"
                                 sx={{ fontSize: '0.7rem', height: 24 }}
+                            />
+                        )}
+                        {backend !== 'none' && (
+                            <Chip
+                                label={backend === 'blazeface' ? 'BlazeFace (on-device)' : 'MediaPipe (CDN)'}
+                                size="small"
+                                color={backend === 'blazeface' ? 'success' : 'default'}
+                                variant="outlined"
+                                sx={{ fontSize: '0.65rem', height: 24 }}
                             />
                         )}
                     </Box>
