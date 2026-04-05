@@ -98,8 +98,11 @@ export default function DashboardLayout() {
                 component="main"
                 sx={{
                     flexGrow: 1,
-                    p: 3,
-                    width: {md: `calc(100% - ${DRAWER_WIDTH}px)`},
+                    p: { xs: 1.5, sm: 3 },
+                    width: {xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)`},
+                    maxWidth: '100vw',
+                    overflowX: 'hidden',
+                    boxSizing: 'border-box',
                     mt: {xs: '56px', sm: '64px'},
                     backgroundColor: 'background.default',
                     minHeight: {xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)'},
