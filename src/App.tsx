@@ -3,6 +3,7 @@ import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from './features/auth/hooks/useAuth'
 import DashboardLayout from './components/layout/DashboardLayout'
+import PublicLayout from './components/layout/PublicLayout'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { CircularProgress, Box } from '@mui/material'
 
@@ -163,8 +164,10 @@ function App() {
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
-                <Route path="/widget-demo" element={<ErrorBoundary><WidgetDemoPage /></ErrorBoundary>} />
-                <Route path="/developer-portal" element={<ErrorBoundary><DeveloperPortalPage /></ErrorBoundary>} />
+                <Route element={<PublicLayout />}>
+                    <Route path="/widget-demo" element={<ErrorBoundary><WidgetDemoPage /></ErrorBoundary>} />
+                    <Route path="/developer-portal" element={<ErrorBoundary><DeveloperPortalPage /></ErrorBoundary>} />
+                </Route>
 
                 {/* Protected Routes */}
                 <Route

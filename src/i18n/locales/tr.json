@@ -485,6 +485,10 @@
     "copyClientId": "İstemci Kimliğini Kopyala",
     "copiedToClipboard": "Panoya kopyalandı!"
   },
+  "publicLayout": {
+    "backToDashboard": "Panele Dön",
+    "signIn": "Giriş Yap"
+  },
   "widgetDemo": {
     "title": "Kimlik Doğrulama Bileşeni",
     "badge": "Gömülebilir SDK",

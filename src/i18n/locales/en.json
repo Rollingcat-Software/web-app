@@ -485,6 +485,10 @@
     "copyClientId": "Copy Client ID",
     "copiedToClipboard": "Copied to clipboard!"
   },
+  "publicLayout": {
+    "backToDashboard": "Back to Dashboard",
+    "signIn": "Sign In"
+  },
   "widgetDemo": {
     "title": "Auth Widget",
     "badge": "Embeddable SDK",
