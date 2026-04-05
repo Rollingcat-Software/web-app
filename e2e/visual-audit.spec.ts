@@ -12,6 +12,8 @@ import { fileURLToPath } from 'url'
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
 
+const E2E_EMAIL = process.env.E2E_EMAIL || 'admin@fivucsas.local'
+const E2E_PASSWORD = process.env.E2E_PASSWORD || 'Test@123'
 const SESSION_FILE = path.join(__dirname, '.auth', 'session.json')
 const SCREENSHOT_DIR = path.join(__dirname, '..', 'test-results', 'visual-audit')
 
@@ -74,8 +76,8 @@ test.describe('Login Page Audit', () => {
     test('login page - successful login', async ({ page }) => {
         await page.goto('/login')
         await page.waitForLoadState('networkidle')
-        await page.locator('input[name="email"]').fill('admin@fivucsas.local')
-        await page.locator('input[name="password"]').fill('Test@123')
+        await page.locator('input[name="email"]').fill(E2E_EMAIL)
+        await page.locator('input[name="password"]').fill(E2E_PASSWORD)
         await page.getByRole('button', { name: /sign in|login|log in/i }).click()
         await page.waitForTimeout(3000)
         await screenshotPage(page, '01-login-success-redirect')

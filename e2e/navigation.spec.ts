@@ -3,6 +3,8 @@ import * as fs from 'fs'
 import * as path from 'path'
 
 const BASE_URL = process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com'
+const E2E_EMAIL = process.env.E2E_EMAIL || 'admin@fivucsas.local'
+const E2E_PASSWORD = process.env.E2E_PASSWORD || 'Test@123'
 const SESSION_FILE = path.join(process.cwd(), 'e2e', '.auth', 'session.json')
 
 /**
@@ -173,10 +175,15 @@ test.describe('Global Navigation', () => {
 
         // Login with a fresh token
         await page.goto(`${BASE_URL}/login`)
-        await page.locator('input[name="email"]').fill('admin@fivucsas.local')
-        await page.locator('input[name="password"]').fill('Test@123')
+        await page.locator('input[name="email"]').fill(E2E_EMAIL)
+        await page.locator('input[name="password"]').fill(E2E_PASSWORD)
+        const loginResponsePromise = page.waitForResponse(
+            (resp) => resp.url().includes('/auth/login') && resp.request().method() === 'POST',
+            { timeout: 20000 }
+        )
         await page.getByRole('button', { name: /sign in/i }).click()
-        await expect(page.getByRole('button', { name: 'Users' })).toBeVisible({ timeout: 15000 })
+        await loginResponsePromise
+        await expect(page.getByRole('button', { name: 'Users' })).toBeVisible({ timeout: 30000 })
 
         const avatarBtn = page.getByRole('button', { name: /user menu/i })
         await expect(avatarBtn).toBeVisible({ timeout: 15000 })

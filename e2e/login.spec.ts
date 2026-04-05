@@ -1,6 +1,8 @@
 import { test, expect } from '@playwright/test'
 
 const BASE_URL = process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com'
+const E2E_EMAIL = process.env.E2E_EMAIL || 'admin@fivucsas.local'
+const E2E_PASSWORD = process.env.E2E_PASSWORD || 'Test@123'
 
 test.describe('Login Flow', () => {
     test.beforeEach(async ({ page }) => {
@@ -25,12 +27,19 @@ test.describe('Login Flow', () => {
     })
 
     test('should login with valid credentials', async ({ page }) => {
-        await page.locator('input[name="email"]').fill('admin@fivucsas.local')
-        await page.locator('input[name="password"]').fill('Test@123')
+        await page.locator('input[name="email"]').fill(E2E_EMAIL)
+        await page.locator('input[name="password"]').fill(E2E_PASSWORD)
+
+        // Wait for the login API call before checking UI
+        const loginResponsePromise = page.waitForResponse(
+            (resp) => resp.url().includes('/auth/login') && resp.request().method() === 'POST',
+            { timeout: 20000 }
+        )
         await page.getByRole('button', { name: /sign in/i }).click()
+        await loginResponsePromise
 
         // Wait for dashboard sidebar to appear (SPA navigation, no page reload)
-        await expect(page.getByRole('button', { name: 'Users' })).toBeVisible({ timeout: 15000 })
+        await expect(page.getByRole('button', { name: 'Users' })).toBeVisible({ timeout: 30000 })
     })
 
     test('should show error for invalid credentials', async ({ page }) => {

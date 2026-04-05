@@ -166,7 +166,7 @@ test.describe('Login Page — Extended', () => {
     })
 
     test('shows password length error when password is too short', async ({ page }) => {
-        await page.locator('input[name="email"]').fill('admin@fivucsas.local')
+        await page.locator('input[name="email"]').fill(E2E_EMAIL)
         await page.locator('input[name="password"]').fill('short')
         await page.getByRole('button', { name: /sign in/i }).click()
 
