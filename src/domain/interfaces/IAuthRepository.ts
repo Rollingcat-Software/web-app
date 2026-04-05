@@ -10,6 +10,18 @@ export interface LoginCredentials {
 }
 
 /**
+ * Available MFA method descriptor returned by the backend
+ */
+export interface AvailableMfaMethod {
+    methodType: string
+    name: string
+    category: string
+    enrolled: boolean
+    preferred: boolean
+    requiresEnrollment: boolean
+}
+
+/**
  * Auth response from API
  */
 export interface AuthResponse {
@@ -20,6 +32,10 @@ export interface AuthResponse {
     twoFactorRequired?: boolean
     /** The auth method type for 2FA (e.g. "TOTP", "FACE", "EMAIL_OTP"). Null when twoFactorRequired is false. */
     twoFactorMethod?: string
+    /** Session token for multi-step MFA verification */
+    mfaSessionToken?: string
+    /** Available MFA methods when the user has multiple enrolled */
+    availableMethods?: AvailableMfaMethod[]
 }
 
 /**

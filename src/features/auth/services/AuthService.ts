@@ -84,6 +84,8 @@ export class AuthService implements IAuthService {
                 expiresAt,
                 twoFactorRequired: response.twoFactorRequired ?? false,
                 twoFactorMethod: response.twoFactorMethod ?? undefined,
+                mfaSessionToken: response.mfaSessionToken ?? undefined,
+                availableMethods: response.availableMethods ?? undefined,
             }
         } catch (error) {
             // Track failed attempts

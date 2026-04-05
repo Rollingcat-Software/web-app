@@ -5,6 +5,7 @@ import type { IAuthService } from '@domain/interfaces/IAuthService'
 import type { LoginCredentials } from '@domain/interfaces/IAuthRepository'
 import { User } from '@domain/models/User'
 import type { ErrorHandler } from '@core/errors'
+import type { AvailableMfaMethod } from '@domain/interfaces/IAuthRepository'
 
 interface AuthState {
     user: User | null
@@ -16,6 +17,8 @@ interface AuthState {
 interface LoginResult {
     twoFactorRequired: boolean
     twoFactorMethod?: string
+    mfaSessionToken?: string
+    availableMethods?: AvailableMfaMethod[]
 }
 
 interface AuthContextValue extends AuthState {
@@ -84,7 +87,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     isAuthenticated: true,
                 })
 
-                return { twoFactorRequired: result.twoFactorRequired ?? false, twoFactorMethod: result.twoFactorMethod }
+                return {
+                    twoFactorRequired: result.twoFactorRequired ?? false,
+                    twoFactorMethod: result.twoFactorMethod,
+                    mfaSessionToken: result.mfaSessionToken,
+                    availableMethods: result.availableMethods,
+                }
             } catch (error) {
                 setState((prev) => ({
                     ...prev,

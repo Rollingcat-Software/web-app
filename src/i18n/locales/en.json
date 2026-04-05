@@ -747,6 +747,14 @@
     "allBiometricDeleted": "All biometric data deleted successfully.",
     "deleteBiometricError": "Failed to delete biometric data."
   },
+  "mfa": {
+    "chooseMethod": "Choose Verification Method",
+    "chooseMethodSubtitle": "Select how you'd like to verify your identity",
+    "notEnrolled": "Not enrolled",
+    "enrolled": "Ready",
+    "preferred": "Preferred",
+    "setupInSettings": "Set up in Settings"
+  },
   "language": {
     "en": "English",
     "tr": "Turkish"

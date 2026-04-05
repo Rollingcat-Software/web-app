@@ -747,6 +747,14 @@
     "allBiometricDeleted": "Tum biyometrik veriler basariyla silindi.",
     "deleteBiometricError": "Biyometrik veriler silinemedi."
   },
+  "mfa": {
+    "chooseMethod": "Do\u011frulama Y\u00f6ntemi Se\u00e7in",
+    "chooseMethodSubtitle": "Kimli\u011finizi nas\u0131l do\u011frulamak istedi\u011finizi se\u00e7in",
+    "notEnrolled": "Kay\u0131tl\u0131 de\u011fil",
+    "enrolled": "Haz\u0131r",
+    "preferred": "Tercih edilen",
+    "setupInSettings": "Ayarlardan kur"
+  },
   "language": {
     "en": "\u0130ngilizce",
     "tr": "T\u00fcrk\u00e7e"

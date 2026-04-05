@@ -1,5 +1,5 @@
 import type { User } from '@domain/models/User'
-import type { LoginCredentials } from './IAuthRepository'
+import type { LoginCredentials, AvailableMfaMethod } from './IAuthRepository'
 
 /**
  * Auth result after successful login
@@ -10,6 +10,10 @@ export interface AuthResult {
     twoFactorRequired?: boolean
     /** The auth method type for 2FA (e.g. "TOTP", "FACE", "EMAIL_OTP"). Null when twoFactorRequired is false. */
     twoFactorMethod?: string
+    /** Session token for multi-step MFA verification */
+    mfaSessionToken?: string
+    /** Available MFA methods when the user has multiple enrolled */
+    availableMethods?: AvailableMfaMethod[]
 }
 
 /**

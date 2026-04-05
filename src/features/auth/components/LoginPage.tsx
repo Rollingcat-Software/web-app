@@ -34,7 +34,9 @@ import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import FaceVerificationFlow from './FaceVerificationFlow'
 import TwoFactorDispatcher from './TwoFactorDispatcher'
+import MethodPickerStep from './steps/MethodPickerStep'
 import { getBiometricService } from '@core/services/BiometricService'
+import type { AvailableMfaMethod } from '@domain/interfaces/IAuthRepository'
 
 /**
  * Login form validation schema
@@ -132,6 +134,10 @@ export default function LoginPage() {
     const [pageReady, setPageReady] = useState(false)
     const [showSecondaryAuth, setShowSecondaryAuth] = useState(false)
     const [twoFactorMethod, setTwoFactorMethod] = useState<string>('EMAIL_OTP')
+    const [availableMethods, setAvailableMethods] = useState<AvailableMfaMethod[]>([])
+    const [_selectedMethod, setSelectedMethod] = useState<string | null>(null)
+    const [_mfaSessionToken, setMfaSessionToken] = useState<string | null>(null)
+    const [showMethodPicker, setShowMethodPicker] = useState(false)
 
     // Mark page ready after initial render
     useEffect(() => {
@@ -262,6 +268,23 @@ export default function LoginPage() {
             })
             // After successful password login, check if backend requires 2FA
             if (result.twoFactorRequired) {
+                // Store MFA session token if provided
+                if (result.mfaSessionToken) {
+                    setMfaSessionToken(result.mfaSessionToken)
+                }
+
+                // Check if multiple enrolled methods are available
+                const methods = result.availableMethods ?? []
+                const enrolledMethods = methods.filter((m) => m.enrolled)
+
+                if (enrolledMethods.length > 1) {
+                    // Multiple enrolled methods: show the picker
+                    setAvailableMethods(methods)
+                    setShowMethodPicker(true)
+                    return
+                }
+
+                // Single method or no availableMethods: go directly to that method
                 setTwoFactorMethod(result.twoFactorMethod || 'EMAIL_OTP')
                 setShowSecondaryAuth(true)
                 return
@@ -274,6 +297,13 @@ export default function LoginPage() {
         }
     }
 
+    const handleMethodSelected = (methodType: string) => {
+        setSelectedMethod(methodType)
+        setTwoFactorMethod(methodType)
+        setShowMethodPicker(false)
+        setShowSecondaryAuth(true)
+    }
+
     const handleTwoFactorComplete = useCallback(() => {
         setShowSecondaryAuth(false)
         navigate('/')
@@ -281,8 +311,65 @@ export default function LoginPage() {
 
     const handleTwoFactorCancel = useCallback(async () => {
         setShowSecondaryAuth(false)
+        setShowMethodPicker(false)
+        setAvailableMethods([])
+        setSelectedMethod(null)
+        setMfaSessionToken(null)
         await logout()
     }, [logout])
+
+    // Show method picker when multiple MFA methods are available
+    if (showMethodPicker && user) {
+        return (
+            <Box
+                sx={{
+                    minHeight: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 15s ease infinite',
+                    '@keyframes gradientShift': {
+                        '0%': { backgroundPosition: '0% 50%' },
+                        '50%': { backgroundPosition: '100% 50%' },
+                        '100%': { backgroundPosition: '0% 50%' },
+                    },
+                }}
+            >
+                <Card
+                    sx={{
+                        maxWidth: 480,
+                        width: '100%',
+                        mx: 2,
+                        borderRadius: '24px',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        color: '#1a1a2e',
+                        '& .MuiTypography-root': { color: '#1a1a2e' },
+                        '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                    }}
+                >
+                    <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                        <MethodPickerStep
+                            availableMethods={availableMethods}
+                            onMethodSelected={handleMethodSelected}
+                        />
+                        <Box sx={{ textAlign: 'center', mt: 2 }}>
+                            <Button
+                                variant="text"
+                                onClick={handleTwoFactorCancel}
+                                sx={{ color: 'text.secondary' }}
+                            >
+                                Cancel
+                            </Button>
+                        </Box>
+                    </CardContent>
+                </Card>
+            </Box>
+        )
+    }
 
     // Show 2FA verification after successful password login
     if (showSecondaryAuth && user) {
