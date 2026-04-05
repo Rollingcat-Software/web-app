@@ -257,6 +257,16 @@ export default function RegisterPage() {
                 <Card
                     sx={{
                         background: 'rgba(255, 255, 255, 0.95)',
+                        color: '#1a1a2e',
+                        '& .MuiTypography-root': { color: '#1a1a2e' },
+                        '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                        '& .MuiSvgIcon-root': { color: 'rgba(0,0,0,0.54)' },
+                        '& .MuiIconButton-root .MuiSvgIcon-root': { color: 'rgba(0,0,0,0.54)' },
+                        '& .MuiInputBase-input': { color: '#1a1a2e' },
+                        '& .MuiInputLabel-root': { color: 'rgba(0,0,0,0.6)' },
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.23)' },
+                        '& .MuiLink-root': { color: '#6366f1' },
+                        '& .MuiFormHelperText-root': { color: 'rgba(0,0,0,0.6)' },
                         backdropFilter: 'blur(20px)',
                         borderRadius: '24px',
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',

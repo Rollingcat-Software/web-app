@@ -243,7 +243,7 @@ export class AuthSessionRepository {
             this.logger.info('Fetching active user sessions')
             const params = currentTokenId ? `?currentTokenId=${encodeURIComponent(currentTokenId)}` : ''
             const response = await this.httpClient.get<UserSessionResponse[]>(
-                `/sessions${params}`
+                `/auth/sessions/my${params}`
             )
             return response.data
         } catch (error) {
@@ -258,7 +258,7 @@ export class AuthSessionRepository {
     async revokeSession(sessionId: string): Promise<void> {
         try {
             this.logger.info(`Revoking session ${sessionId}`)
-            await this.httpClient.delete(`/sessions/${sessionId}`)
+            await this.httpClient.delete(`/auth/sessions/my/${sessionId}`)
             this.logger.info('Session revoked successfully', { sessionId })
         } catch (error) {
             this.logger.error(`Failed to revoke session ${sessionId}`, error)
@@ -273,7 +273,7 @@ export class AuthSessionRepository {
         try {
             this.logger.info('Revoking all other sessions')
             await this.httpClient.delete(
-                `/sessions/all?currentTokenId=${encodeURIComponent(currentTokenId)}`
+                `/auth/sessions/my/all?currentTokenId=${encodeURIComponent(currentTokenId)}`
             )
             this.logger.info('All other sessions revoked')
         } catch (error) {

@@ -12,11 +12,11 @@ export default function BiometricToolsPage() {
     const { t } = useTranslation()
 
     return (
-        <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden', px: { xs: 0, sm: 1 } }}>
-            <Typography variant="h5" fontWeight={700} sx={{ mb: 0.5, px: { xs: 2, sm: 0 } }}>
+        <Box sx={{ width: '100%', maxWidth: '100vw', overflowX: 'hidden', px: { xs: 0, sm: 1 }, boxSizing: 'border-box' }}>
+            <Typography variant="h5" fontWeight={700} sx={{ mb: 0.5, px: { xs: 2, sm: 0 }, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 {t('biometricTools.title')}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 1, px: { xs: 2, sm: 0 } }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 1, px: { xs: 2, sm: 0 }, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 {t('biometricTools.subtitle')}
             </Typography>
             <Tabs
@@ -31,7 +31,7 @@ export default function BiometricToolsPage() {
                 <Tab icon={<CreditCard sx={{ fontSize: 18 }} />} label={t('biometricTools.cardTab')} iconPosition="start" />
                 <Tab icon={<Contactless sx={{ fontSize: 18 }} />} label={t('biometricTools.nfcTab')} iconPosition="start" />
             </Tabs>
-            <Box sx={{ overflowX: 'hidden', maxWidth: '100%', '& > div': { maxWidth: '100%', overflowX: 'hidden' } }}>
+            <Box sx={{ overflowX: 'hidden', maxWidth: '100%', boxSizing: 'border-box', '& > div': { maxWidth: '100%', overflowX: 'hidden', boxSizing: 'border-box' } }}>
                 {tab === 0 && <FaceSearchPage />}
                 {tab === 1 && <VoiceSearchPage />}
                 {tab === 2 && <CardDetectionPage />}

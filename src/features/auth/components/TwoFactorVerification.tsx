@@ -149,6 +149,16 @@ export default function TwoFactorVerification({
                         background: 'rgba(255, 255, 255, 0.95)',
                         backdropFilter: 'blur(20px)',
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        color: '#1a1a2e',
+                        '& .MuiTypography-root': { color: '#1a1a2e' },
+                        '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                        '& .MuiTypography-colorTextDisabled': { color: 'rgba(0,0,0,0.38)' },
+                        '& .MuiSvgIcon-root': { color: 'rgba(0,0,0,0.54)' },
+                        '& .MuiButton-textPrimary': { color: '#6366f1' },
+                        '& .MuiButton-text:not(.MuiButton-textPrimary)': { color: 'rgba(0,0,0,0.6)' },
+                        '& .MuiInputBase-input': { color: '#1a1a2e' },
+                        '& .MuiInputLabel-root': { color: 'rgba(0,0,0,0.6)' },
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.23)' },
                     }}
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>

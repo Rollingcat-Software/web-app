@@ -256,11 +256,11 @@ export default function VoiceSearchPage() {
     const hasRecording = voiceBase64 !== null && !recording
 
     return (
-        <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
+        <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 }, overflowX: 'hidden', boxSizing: 'border-box' }}>
             <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', wordBreak: 'break-word' }}>
                 <RecordVoiceOver /> {t('voiceSearch.title')}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 {t('voiceSearch.subtitle')}
             </Typography>
 

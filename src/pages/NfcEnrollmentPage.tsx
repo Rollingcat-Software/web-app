@@ -192,18 +192,18 @@ export default function NfcEnrollmentPage() {
     // Unsupported browser view
     if (!nfcSupported) {
         return (
-            <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
-                <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', wordBreak: 'break-word' }}>
+            <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 }, overflowX: 'hidden', boxSizing: 'border-box' }}>
+                <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                     <Contactless /> {t('nfc.title', 'NFC Scanner')}
                 </Typography>
 
                 <Card>
                     <CardContent sx={{ textAlign: 'center', py: 4 }}>
                         <PhoneAndroid sx={{ fontSize: 64, color: 'text.secondary', mb: 2 }} />
-                        <Typography variant="h6" gutterBottom>
+                        <Typography variant="h6" gutterBottom sx={{ wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                             {t('nfc.unsupportedTitle', 'Web NFC Not Available')}
                         </Typography>
-                        <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: { xs: '100%', sm: 500 }, mx: 'auto' }}>
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: { xs: '100%', sm: 500 }, mx: 'auto', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                             {t(
                                 'nfc.unsupportedDescription',
                                 'NFC document scanning requires Chrome on Android. Desktop browsers (including Brave, Firefox, and Safari) and iOS do not support the Web NFC API.'
@@ -212,7 +212,7 @@ export default function NfcEnrollmentPage() {
 
                         {/* QR Code for mobile deep link */}
                         <Box sx={{ mb: 3 }}>
-                            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2 }}>
+                            <Typography variant="subtitle1" fontWeight={600} sx={{ mb: 2, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                                 {t('nfc.scanQrTitle', 'Scan with your phone to continue on mobile')}
                             </Typography>
                             <Box sx={{
@@ -242,7 +242,7 @@ export default function NfcEnrollmentPage() {
                             href="https://github.com/Rollingcat-Software/client-apps/releases/latest"
                             target="_blank"
                             rel="noopener noreferrer"
-                            sx={{ mb: 2 }}
+                            sx={{ mb: 2, whiteSpace: 'normal', textAlign: 'center' }}
                         >
                             {t('nfc.downloadApp', 'Download FIVUCSAS App')}
                         </Button>
@@ -260,11 +260,11 @@ export default function NfcEnrollmentPage() {
     }
 
     return (
-        <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
-            <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+        <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 }, overflowX: 'hidden', boxSizing: 'border-box' }}>
+            <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 <Contactless /> {t('nfc.title', 'NFC Scanner')}
             </Typography>
-            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3, wordBreak: 'break-word', overflowWrap: 'break-word' }}>
                 {isAdmin
                     ? t('nfc.subtitleAdmin', 'Scan an NFC card to enroll, verify, or search for its owner.')
                     : t('nfc.subtitle', 'Scan and save your NFC-enabled ID card for authentication.')}

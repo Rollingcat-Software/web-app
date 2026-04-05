@@ -333,6 +333,14 @@ export default function LoginPage() {
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         border: '1px solid rgba(255, 255, 255, 0.3)',
                         overflow: 'visible',
+                        color: '#1a1a2e',
+                        '& .MuiTypography-root:not([class*="gradient"])': { color: '#1a1a2e' },
+                        '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                        '& .MuiSvgIcon-root:not([class*="white"])': { color: 'rgba(0,0,0,0.54)' },
+                        '& .MuiIconButton-root .MuiSvgIcon-root': { color: 'rgba(0,0,0,0.54)' },
+                        '& .MuiLink-root': { color: '#6366f1' },
+                        '& .MuiFormHelperText-root': { color: 'rgba(0,0,0,0.6)' },
+                        '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.23)' },
                     }}
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 5 } }}>
