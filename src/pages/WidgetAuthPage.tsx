@@ -101,6 +101,7 @@ type WidgetStep = 'login' | '2fa' | 'success'
 const widgetLightTheme = createTheme({ palette: { mode: 'light' } })
 
 function WidgetAuthPageInner() {
+    const isInIframe = typeof window !== 'undefined' && window !== window.parent
     const [config] = useState(() => parseWidgetParams())
     const [showPassword, setShowPassword] = useState(false)
     const [loading, setLoading] = useState(false)
@@ -116,6 +117,22 @@ function WidgetAuthPageInner() {
     const [twoFactorMethod, setTwoFactorMethod] = useState<string>('EMAIL_OTP')
     const [stepLoading, setStepLoading] = useState(false)
     const [stepError, setStepError] = useState<string | undefined>(undefined)
+
+    // Send resize messages to parent when in iframe
+    useEffect(() => {
+        if (!isInIframe) return
+        const sendResize = () => {
+            const height = document.documentElement.scrollHeight
+            window.parent.postMessage({
+                type: 'fivucsas:resize',
+                payload: { height: Math.min(height, 700) }
+            }, '*')
+        }
+        sendResize()
+        const observer = new ResizeObserver(sendResize)
+        observer.observe(document.documentElement)
+        return () => observer.disconnect()
+    }, [isInIframe, step, loading, error])
 
     // Notify parent that the widget iframe is ready
     useEffect(() => {
@@ -548,7 +565,7 @@ function WidgetAuthPageInner() {
                         : 'Enter the verification code sent to your email'}
                 </Typography>
 
-                <Box sx={{ width: '100%', maxWidth: 360 }}>
+                <Box sx={{ width: '100%', maxWidth: 400 }}>
                     {error && (
                         <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>
                             {error}
@@ -701,7 +718,7 @@ function WidgetAuthPageInner() {
             <Box
                 component="form"
                 onSubmit={handleSubmit(onSubmit)}
-                sx={{ width: '100%', maxWidth: 360 }}
+                sx={{ width: '100%', maxWidth: 400 }}
             >
                 {error && (
                     <Alert severity="error" sx={{ mb: 2, borderRadius: '8px' }}>
@@ -856,9 +873,15 @@ function WidgetAuthPageInner() {
 
 // Wrap in light theme so widget always has dark text on light background
 export default function WidgetAuthPage() {
+    const isInIframe = typeof window !== 'undefined' && window !== window.parent
     return (
         <ThemeProvider theme={widgetLightTheme}>
-            <Box sx={{ bgcolor: 'background.default', minHeight: '100vh' }}>
+            <Box sx={{
+                bgcolor: 'background.default',
+                minHeight: isInIframe ? 'auto' : '100vh',
+                height: isInIframe ? '100%' : 'auto',
+                overflowY: 'auto',
+            }}>
                 <WidgetAuthPageInner />
             </Box>
         </ThemeProvider>

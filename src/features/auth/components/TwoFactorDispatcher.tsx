@@ -186,27 +186,18 @@ export default function TwoFactorDispatcher({
     return (
         <Box
             sx={{
-                minHeight: '100vh',
                 display: 'flex',
+                flexDirection: 'column',
                 alignItems: 'center',
-                justifyContent: 'center',
-                background:
-                    'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                backgroundSize: '400% 400%',
-                animation: 'gradientShift 15s ease infinite',
-                '@keyframes gradientShift': {
-                    '0%': { backgroundPosition: '0% 50%' },
-                    '50%': { backgroundPosition: '100% 50%' },
-                    '100%': { backgroundPosition: '0% 50%' },
-                },
-                p: 2,
+                flex: 1,
+                p: { xs: 2, sm: 3 },
             }}
         >
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.5, ease: easeOut }}
-                style={{ width: '100%', maxWidth: 480 }}
+                style={{ width: '100%', maxWidth: 400 }}
             >
                 <Card
                     sx={{
