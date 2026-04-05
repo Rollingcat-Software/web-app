@@ -13,8 +13,12 @@ interface AuthState {
     isAuthenticated: boolean
 }
 
+interface LoginResult {
+    twoFactorRequired: boolean
+}
+
 interface AuthContextValue extends AuthState {
-    login: (credentials: LoginCredentials) => Promise<void>
+    login: (credentials: LoginCredentials) => Promise<LoginResult>
     logout: () => Promise<void>
     refreshUser: () => Promise<void>
 }
@@ -66,7 +70,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }, [authService])
 
     const login = useCallback(
-        async (credentials: LoginCredentials) => {
+        async (credentials: LoginCredentials): Promise<LoginResult> => {
             setState((prev) => ({ ...prev, loading: true, error: null }))
 
             try {
@@ -78,6 +82,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     error: null,
                     isAuthenticated: true,
                 })
+
+                return { twoFactorRequired: result.twoFactorRequired ?? false }
             } catch (error) {
                 setState((prev) => ({
                     ...prev,

@@ -33,11 +33,8 @@ import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import FaceVerificationFlow from './FaceVerificationFlow'
-import SecondaryAuthFlow from './SecondaryAuthFlow'
+import TwoFactorVerification from './TwoFactorVerification'
 import { getBiometricService } from '@core/services/BiometricService'
-import { container } from '@core/di/container'
-import { TYPES } from '@core/di/types'
-import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 
 /**
  * Login form validation schema
@@ -128,7 +125,7 @@ const FloatingShape = ({ delay, size, left, top }: {
  */
 export default function LoginPage() {
     const navigate = useNavigate()
-    const { login, loading, error, user } = useAuth()
+    const { login, loading, error, user, logout } = useAuth()
     const [showPassword, setShowPassword] = useState(false)
     const [faceLoginOpen, setFaceLoginOpen] = useState(false)
     const [faceError, setFaceError] = useState<string | null>(null)
@@ -258,22 +255,15 @@ export default function LoginPage() {
 
     const onSubmit = async (data: LoginFormData) => {
         try {
-            await login({
+            const result = await login({
                 email: data.email,
                 password: data.password,
             })
-            // After successful password login, check for tenant auth flow
-            // Only show secondary auth if tenant has a multi-step flow
-            try {
-                const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
-                const flowRes = await httpClient.get<Array<{ stepCount?: number; steps?: unknown[] }>>('/auth-flows')
-                const flows = Array.isArray(flowRes.data) ? flowRes.data : []
-                const hasMultiStep = flows.some(f => (f.stepCount ?? f.steps?.length ?? 0) > 1)
-                if (hasMultiStep) {
-                    setShowSecondaryAuth(true)
-                    return
-                }
-            } catch { /* no auth flows accessible — skip 2FA */ }
+            // After successful password login, check if backend requires 2FA
+            if (result.twoFactorRequired) {
+                setShowSecondaryAuth(true)
+                return
+            }
             navigate('/')
         } catch (err) {
             if (import.meta.env.DEV) {
@@ -282,24 +272,22 @@ export default function LoginPage() {
         }
     }
 
-    const handleSecondaryAuthComplete = useCallback(() => {
+    const handleTwoFactorComplete = useCallback(() => {
         setShowSecondaryAuth(false)
         navigate('/')
     }, [navigate])
 
-    const handleSecondaryAuthSkip = useCallback(() => {
+    const handleTwoFactorCancel = useCallback(async () => {
         setShowSecondaryAuth(false)
-        navigate('/')
-    }, [navigate])
+        await logout()
+    }, [logout])
 
-    // Show secondary auth flow after successful password login
+    // Show 2FA verification after successful password login
     if (showSecondaryAuth && user) {
         return (
-            <SecondaryAuthFlow
-                userId={user.id}
-                tenantId={user.tenantId}
-                onComplete={handleSecondaryAuthComplete}
-                onSkip={handleSecondaryAuthSkip}
+            <TwoFactorVerification
+                onComplete={handleTwoFactorComplete}
+                onCancel={handleTwoFactorCancel}
             />
         )
     }

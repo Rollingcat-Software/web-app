@@ -612,6 +612,20 @@
     "securedBy": "FIVUCSAS tarafından korunmaktadır",
     "skipForNow": "Şimdilik geç"
   },
+  "twoFactor": {
+    "title": "İki Faktörlü Doğrulama",
+    "sending": "Doğrulama kodu gönderiliyor...",
+    "codeSent": "{{email}} adresine doğrulama kodu gönderildi",
+    "codeLabel": "Doğrulama Kodu",
+    "verify": "Doğrula",
+    "resendIn": "Kodu {{seconds}} saniye sonra tekrar gönder",
+    "resend": "Kodu Tekrar Gönder",
+    "securedBy": "FIVUCSAS tarafından korunmaktadır",
+    "cancel": "İptal et ve çıkış yap",
+    "sendFailed": "Doğrulama kodu gönderilemedi",
+    "invalidCode": "Geçersiz veya süresi dolmuş kod",
+    "verifyFailed": "Doğrulama başarısız"
+  },
   "terms": {
     "title": "Hizmet Koşulları",
     "lastUpdated": "Son güncelleme: Nisan 2026",

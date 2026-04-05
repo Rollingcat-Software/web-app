@@ -612,6 +612,20 @@
     "securedBy": "Secured by FIVUCSAS",
     "skipForNow": "Skip for now"
   },
+  "twoFactor": {
+    "title": "Two-Factor Authentication",
+    "sending": "Sending verification code...",
+    "codeSent": "A verification code has been sent to {{email}}",
+    "codeLabel": "Verification Code",
+    "verify": "Verify",
+    "resendIn": "Resend code in {{seconds}}s",
+    "resend": "Resend Code",
+    "securedBy": "Secured by FIVUCSAS",
+    "cancel": "Cancel and sign out",
+    "sendFailed": "Failed to send verification code",
+    "invalidCode": "Invalid or expired code",
+    "verifyFailed": "Verification failed"
+  },
   "terms": {
     "title": "Terms of Service",
     "lastUpdated": "Last updated: April 2026",

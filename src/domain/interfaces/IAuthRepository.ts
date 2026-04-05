@@ -17,6 +17,7 @@ export interface AuthResponse {
     refreshToken: string
     user: User
     expiresIn: number // seconds
+    twoFactorRequired?: boolean
 }
 
 /**

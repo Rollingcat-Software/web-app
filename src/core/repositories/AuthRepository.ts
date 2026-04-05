@@ -19,6 +19,7 @@ interface AuthApiResponse {
     refreshToken: string
     expiresIn?: number
     user: UserJSON
+    twoFactorRequired?: boolean
 }
 
 /**
@@ -53,6 +54,7 @@ export class AuthRepository implements IAuthRepository {
                 refreshToken: data.refreshToken,
                 expiresIn: data.expiresIn || 3600,
                 user: User.fromJSON(data.user),
+                twoFactorRequired: data.twoFactorRequired ?? false,
             }
 
             this.logger.info('Login successful', { userId: authResponse.user.id })

@@ -7,6 +7,7 @@ import type { LoginCredentials } from './IAuthRepository'
 export interface AuthResult {
     user: User
     expiresAt: Date
+    twoFactorRequired?: boolean
 }
 
 /**
