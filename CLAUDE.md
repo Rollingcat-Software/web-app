@@ -78,7 +78,10 @@ Enrollment UIs:
 - **VerificationSessionDetailPage** (`/verification/sessions/:id`) — step-by-step results with confidence scores
 - **VerificationRepository** — API client for verification pipeline CRUD
 - **useVerification hook** — verification flow state management
-- **Admin-only route guard** — ProtectedRoute pattern for admin pages (verification, developer portal)
+- **Admin-only route guard** — ProtectedRoute pattern for admin pages (verification)
+- **Widget-demo and developer-portal are now public routes** (AdminRoute removed, 2026-04-05)
+- **SessionsSection** added to Settings page for cross-device session awareness (W16, i18n EN+TR)
+- **Continuous Face Verification removed from Settings** (W24, duplicate enrollment feature removed)
 
 ### Verification pipeline (2026-03-28):
 - Verification flow builder extends auth flow builder pattern for document/biometric verification
@@ -128,7 +131,7 @@ Enrollment UIs:
 - OperationType 9 values verified matching backend enum exactly
 - All model mismatches from integration audit resolved
 
-### Production deployment (Hostinger, last deployed 2026-03-28):
+### Production deployment (Hostinger, last deployed 2026-04-05):
 - URL: https://ica-fivucsas.rollingcatsoftware.com
 - API: `VITE_API_BASE_URL=https://auth.rollingcatsoftware.com/api/v1` (in `.env.production`)
 - Deploy: `npm run build` → `rsync dist/ u349700627@46.202.158.52:~/domains/ica-fivucsas.rollingcatsoftware.com/public_html/` (SSH port 65002, password in .env.prod)
