@@ -37,8 +37,12 @@ export interface VerifyResult {
     success: boolean;
     sessionId: string;
     userId?: string;
+    email?: string;
+    displayName?: string;
     completedMethods: string[];
     authCode?: string;
+    accessToken?: string;
+    timestamp?: number;
 }
 
 // ─── Constants ─────────────────────────────────────────────────────
@@ -313,10 +317,14 @@ export class FivucsasAuth {
                         success: true,
                         sessionId: String(payload.sessionId ?? ''),
                         userId: payload.userId ? String(payload.userId) : undefined,
+                        email: payload.email ? String(payload.email) : undefined,
+                        displayName: payload.displayName ? String(payload.displayName) : undefined,
                         completedMethods: Array.isArray(payload.completedMethods)
                             ? payload.completedMethods.map(String)
                             : [],
                         authCode: payload.authCode ? String(payload.authCode) : undefined,
+                        accessToken: payload.accessToken ? String(payload.accessToken) : undefined,
+                        timestamp: typeof payload.timestamp === 'number' ? payload.timestamp : undefined,
                     };
                     this.activeReject = null;
                     this.cleanup();

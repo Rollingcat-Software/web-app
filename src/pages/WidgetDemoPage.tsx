@@ -413,7 +413,7 @@ export default function WidgetDemoPage() {
 
             const apiBaseUrl =
                 import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
-            const baseUrl = window.location.origin + '/verify'
+            const baseUrl = window.location.origin + '/widget-auth'
 
             const auth = new FivucsasAuth({
                 clientId: 'fivucsas-web-app',
@@ -640,8 +640,38 @@ export default function WidgetDemoPage() {
 
                 {demoResult && (
                     <Alert severity="success" sx={{ mt: 2, borderRadius: '8px' }}>
-                        <strong>{t('widgetDemo.verificationComplete')}</strong> {t('widgetDemo.session')}: {demoResult.sessionId}.
-                        {t('widgetDemo.methods')}: {demoResult.completedMethods.join(', ') || t('widgetDemo.none')}.
+                        <strong>{t('widgetDemo.verificationComplete')}</strong>
+                        <Box component="ul" sx={{ m: 0, mt: 1, pl: 2 }}>
+                            {demoResult.displayName && (
+                                <li>
+                                    <Typography variant="body2" component="span">
+                                        <strong>{t('widgetDemo.user', 'User')}:</strong> {demoResult.displayName}
+                                        {demoResult.email ? ` (${demoResult.email})` : ''}
+                                    </Typography>
+                                </li>
+                            )}
+                            <li>
+                                <Typography variant="body2" component="span">
+                                    <strong>{t('widgetDemo.session')}:</strong> {demoResult.sessionId}
+                                </Typography>
+                            </li>
+                            <li>
+                                <Typography variant="body2" component="span">
+                                    <strong>{t('widgetDemo.methods')}:</strong>{' '}
+                                    {demoResult.completedMethods.join(', ') || t('widgetDemo.none')}
+                                </Typography>
+                            </li>
+                            {demoResult.accessToken && (
+                                <li>
+                                    <Typography variant="body2" component="span">
+                                        <strong>{t('widgetDemo.token', 'Token')}:</strong>{' '}
+                                        <code style={{ fontSize: '0.75rem', wordBreak: 'break-all' }}>
+                                            {demoResult.accessToken.substring(0, 32)}...
+                                        </code>
+                                    </Typography>
+                                </li>
+                            )}
+                        </Box>
                     </Alert>
                 )}
 

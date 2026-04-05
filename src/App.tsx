@@ -20,6 +20,7 @@ const PAGE_TITLES: Record<string, string> = {
     '/enrollment': 'Biometric Enrollment — FIVUCSAS',
     '/biometric-tools': 'Biometric Tools — FIVUCSAS',
     '/widget-demo': 'Auth Widget — FIVUCSAS',
+    '/widget-auth': 'Widget Auth — FIVUCSAS',
     '/developer-portal': 'Developer Portal — FIVUCSAS',
     '/verification-flows': 'Verification Flows — FIVUCSAS',
     '/verification-dashboard': 'Verification Dashboard — FIVUCSAS',
@@ -85,6 +86,7 @@ const VerificationDashboardPage = lazy(() => import('./pages/VerificationDashboa
 const VerificationSessionDetailPage = lazy(() => import('./pages/VerificationSessionDetailPage'))
 const TermsPage = lazy(() => import('./pages/TermsPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
+const WidgetAuthPage = lazy(() => import('./pages/WidgetAuthPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -164,6 +166,7 @@ function App() {
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/widget-auth" element={<WidgetAuthPage />} />
                 <Route element={<PublicLayout />}>
                     <Route path="/widget-demo" element={<ErrorBoundary><WidgetDemoPage /></ErrorBoundary>} />
                     <Route path="/developer-portal" element={<ErrorBoundary><DeveloperPortalPage /></ErrorBoundary>} />
