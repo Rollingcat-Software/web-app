@@ -163,6 +163,8 @@ function App() {
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
                 <Route path="/terms" element={<TermsPage />} />
                 <Route path="/privacy" element={<PrivacyPage />} />
+                <Route path="/widget-demo" element={<ErrorBoundary><WidgetDemoPage /></ErrorBoundary>} />
+                <Route path="/developer-portal" element={<ErrorBoundary><DeveloperPortalPage /></ErrorBoundary>} />
 
                 {/* Protected Routes */}
                 <Route
@@ -195,8 +197,6 @@ function App() {
                     <Route path="face-search" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="voice-search" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="nfc-enrollment" element={<Navigate to="/biometric-tools" replace />} />
-                    <Route path="widget-demo" element={<AdminRoute><ErrorBoundary><WidgetDemoPage /></ErrorBoundary></AdminRoute>} />
-                    <Route path="developer-portal" element={<AdminRoute><ErrorBoundary><DeveloperPortalPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="verification-flows" element={<AdminRoute><ErrorBoundary><VerificationFlowBuilderPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="verification-dashboard" element={<AdminRoute><ErrorBoundary><VerificationDashboardPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="verification-sessions/:id" element={<AdminRoute><ErrorBoundary><VerificationSessionDetailPage /></ErrorBoundary></AdminRoute>} />

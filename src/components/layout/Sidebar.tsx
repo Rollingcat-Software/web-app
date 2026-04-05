@@ -24,11 +24,9 @@ import {
     PersonAdd,
     Security,
     Assessment,
-    Code,
     Settings,
     Shield,
     VerifiedUser,
-    Web,
 } from '@mui/icons-material'
 import {useTranslation} from 'react-i18next'
 import {useAuth} from '@features/auth/hooks/useAuth'
@@ -63,8 +61,6 @@ const menuItems: MenuItem[] = [
     {labelKey: 'nav.analytics', icon: <Analytics/>, path: '/analytics', adminOnly: true},
     {labelKey: 'nav.verificationFlows', icon: <VerifiedUser/>, path: '/verification-flows', adminOnly: true},
     {labelKey: 'nav.verificationDashboard', icon: <Assessment/>, path: '/verification-dashboard', adminOnly: true},
-    {labelKey: 'nav.widgetDemo', icon: <Web/>, path: '/widget-demo', adminOnly: true},
-    {labelKey: 'nav.developerPortal', icon: <Code/>, path: '/developer-portal', adminOnly: true},
     {labelKey: 'nav.settings', icon: <Settings/>, path: '/settings'},
 ]
 
