@@ -100,6 +100,7 @@ interface ActivityLog {
     action: string
     ipAddress?: string
     deviceInfo?: string
+    userAgent?: string
     createdAt?: string
     timestamp?: string
 }
@@ -109,6 +110,28 @@ function getDeviceIcon(deviceInfo: string) {
     if (lower.includes('android') || lower.includes('iphone')) return <PhoneAndroid fontSize="small" />
     if (lower.includes('ipad') || lower.includes('tablet')) return <Tablet fontSize="small" />
     return <Computer fontSize="small" />
+}
+
+/** Parse raw User-Agent into a short human-readable label */
+function parseDeviceLabel(raw: string): string {
+    if (!raw || raw === 'Unknown') return raw || '-'
+    const lower = raw.toLowerCase()
+    // Browser detection
+    let browser = ''
+    if (lower.includes('edg/')) browser = 'Edge'
+    else if (lower.includes('chrome') && !lower.includes('chromium')) browser = 'Chrome'
+    else if (lower.includes('firefox')) browser = 'Firefox'
+    else if (lower.includes('safari') && !lower.includes('chrome')) browser = 'Safari'
+    else browser = 'Browser'
+    // OS detection
+    let os = ''
+    if (lower.includes('android')) os = 'Android'
+    else if (lower.includes('iphone')) os = 'iPhone'
+    else if (lower.includes('ipad')) os = 'iPad'
+    else if (lower.includes('mac os')) os = 'macOS'
+    else if (lower.includes('windows')) os = 'Windows'
+    else if (lower.includes('linux')) os = 'Linux'
+    return os ? `${browser} / ${os}` : browser
 }
 
 function formatDate(dateStr: string | Date | undefined): string {
@@ -185,6 +208,7 @@ export default function MyProfilePage() {
             const mapped: ActivityLog[] = rawLogs.map((l) => ({
                 ...l,
                 createdAt: l.createdAt ?? l.timestamp ?? null,
+                deviceInfo: l.deviceInfo ?? l.userAgent ?? null,
             }))
             if (append) {
                 setActivityLogs((prev) => [...prev, ...mapped])
@@ -214,14 +238,8 @@ export default function MyProfilePage() {
         if (userId) fetchSessions()
     }, [userId])
 
-    // Resolve tenant name: prefer backend-provided tenantName, fallback to known map
-    const TENANT_NAME_MAP: Record<string, string> = {
-        '11111111-1111-1111-1111-111111111111': 'Marmara University',
-        '22222222-2222-2222-2222-222222222222': 'TechCorp Istanbul',
-        '33333333-3333-3333-3333-333333333333': 'Anatolia Medical Center',
-        '00000000-0000-0000-0000-000000000000': 'System',
-    }
-    const tenantName = user?.tenantName || TENANT_NAME_MAP[user?.tenantId || ''] || ''
+    // Tenant name comes from GET /auth/me → GetCurrentUserService (resolves via tenantRepository)
+    const tenantName = user?.tenantName || ''
 
     useEffect(() => {
         if (userId) fetchActivity(0)
@@ -371,7 +389,7 @@ export default function MyProfilePage() {
                                         <Typography variant="caption" color="text.secondary">{t('common.tenant')}</Typography>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                             <Business sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                            <Typography variant="body1">{tenantName || user?.tenantId || t('common.default')}</Typography>
+                                            <Typography variant="body1">{tenantName || t('common.default')}</Typography>
                                         </Box>
                                     </Grid>
                                     <Grid item xs={12} sm={6} md={4}>
@@ -645,9 +663,9 @@ export default function MyProfilePage() {
                                                         </TableCell>
                                                         <TableCell>
                                                             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                                                {log.deviceInfo ? getDeviceIcon(log.deviceInfo) : null}
+                                                                {log.deviceInfo ? getDeviceIcon(log.deviceInfo) : <Computer fontSize="small" />}
                                                                 <Typography variant="body2" noWrap sx={{ maxWidth: 200 }}>
-                                                                    {log.deviceInfo || '-'}
+                                                                    {log.deviceInfo ? parseDeviceLabel(log.deviceInfo) : '-'}
                                                                 </Typography>
                                                             </Box>
                                                         </TableCell>
