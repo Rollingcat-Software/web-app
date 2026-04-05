@@ -113,6 +113,7 @@ type MessageCallback = (msg: InboundMessage) => void
 
 /**
  * Register a listener for configuration messages from the parent window.
+ * Validates that inbound messages come from the expected parent origin.
  * Returns a cleanup function to remove the listener.
  */
 export function onParentMessage(callback: MessageCallback): () => void {
@@ -124,6 +125,17 @@ export function onParentMessage(callback: MessageCallback): () => void {
             typeof data.type === 'string' &&
             data.type.startsWith('fivucsas:')
         ) {
+            // Accept the first config message to learn the parent origin,
+            // then restrict subsequent messages to that origin only
+            if (data.type === 'fivucsas:config' && event.origin && event.origin !== 'null') {
+                if (parentOrigin === '*') {
+                    setParentOrigin(event.origin)
+                }
+            }
+            // Validate origin: once parentOrigin is set, reject messages from other origins
+            if (parentOrigin !== '*' && event.origin !== parentOrigin) {
+                return
+            }
             callback(data as InboundMessage)
         }
     }

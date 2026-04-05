@@ -68,9 +68,17 @@ function parseWidgetParams(): WidgetParams {
     }
 }
 
+/** Cached parent origin, set from URL referrer or config message */
+let cachedParentOrigin: string | null = null
+
 function sendToParent(msg: { type: string; payload: Record<string, unknown> }): void {
     if (window.parent !== window) {
-        window.parent.postMessage(msg, '*')
+        // Use cached origin if available; otherwise derive from document.referrer
+        // Never use '*' to prevent leaking tokens to malicious parents
+        const targetOrigin = cachedParentOrigin || (document.referrer ? new URL(document.referrer).origin : null)
+        if (targetOrigin) {
+            window.parent.postMessage(msg, targetOrigin)
+        }
     }
 }
 
@@ -90,7 +98,7 @@ export default function WidgetAuthPage() {
             payload: { version: '1.0.0', timestamp: Date.now() },
         })
 
-        // Listen for config messages from parent
+        // Listen for config messages from parent and cache the origin
         const handler = (event: MessageEvent) => {
             const data = event.data
             if (
@@ -98,6 +106,10 @@ export default function WidgetAuthPage() {
                 typeof data === 'object' &&
                 data.type === 'fivucsas:config'
             ) {
+                // Cache the verified parent origin for secure postMessage targeting
+                if (event.origin && event.origin !== 'null') {
+                    cachedParentOrigin = event.origin
+                }
                 // Could apply theme/locale overrides here
             }
         }
