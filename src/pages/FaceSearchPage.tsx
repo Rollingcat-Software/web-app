@@ -59,7 +59,7 @@ export default function FaceSearchPage() {
 
     return (
         <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
-            <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', wordBreak: 'break-word' }}>
                 <PersonSearch /> {t('faceSearch.title')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -204,8 +204,8 @@ export default function FaceSearchPage() {
                                     <ListItem key={idx} divider sx={{ px: 0 }}>
                                         <ListItemText
                                             primary={
-                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                                    <Typography variant="body1">
+                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
+                                                    <Typography variant="body1" sx={{ wordBreak: 'break-all' }}>
                                                         {t('common.userId')}: {match.userId}
                                                     </Typography>
                                                     {idx === 0 && (

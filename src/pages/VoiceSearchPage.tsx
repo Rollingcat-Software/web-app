@@ -257,7 +257,7 @@ export default function VoiceSearchPage() {
 
     return (
         <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
-            <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', wordBreak: 'break-word' }}>
                 <RecordVoiceOver /> {t('voiceSearch.title')}
             </Typography>
             <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
@@ -416,12 +416,12 @@ export default function VoiceSearchPage() {
                                     <ListItem key={idx} divider sx={{ px: 0 }}>
                                         <ListItemText
                                             primary={
-                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
-                                                    <Typography variant="body1" fontWeight={match.userName ? 600 : 400}>
+                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
+                                                    <Typography variant="body1" fontWeight={match.userName ? 600 : 400} sx={{ wordBreak: 'break-word', minWidth: 0 }}>
                                                         {match.userName || match.userId}
                                                     </Typography>
                                                     {match.userEmail && (
-                                                        <Typography variant="body2" color="text.secondary">
+                                                        <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all', minWidth: 0 }}>
                                                             ({match.userEmail})
                                                         </Typography>
                                                     )}

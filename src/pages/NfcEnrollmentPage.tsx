@@ -193,7 +193,7 @@ export default function NfcEnrollmentPage() {
     if (!nfcSupported) {
         return (
             <Box sx={{ maxWidth: { xs: '100%', sm: 800 }, mx: 'auto', py: { xs: 1, sm: 3 }, px: { xs: 1, sm: 0 } }}>
-                <Typography variant="h4" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                <Typography variant="h5" gutterBottom sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', wordBreak: 'break-word' }}>
                     <Contactless /> {t('nfc.title', 'NFC Scanner')}
                 </Typography>
 
@@ -203,7 +203,7 @@ export default function NfcEnrollmentPage() {
                         <Typography variant="h6" gutterBottom>
                             {t('nfc.unsupportedTitle', 'Web NFC Not Available')}
                         </Typography>
-                        <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: 500, mx: 'auto' }}>
+                        <Typography variant="body1" color="text.secondary" sx={{ mb: 3, maxWidth: { xs: '100%', sm: 500 }, mx: 'auto' }}>
                             {t(
                                 'nfc.unsupportedDescription',
                                 'NFC document scanning requires Chrome on Android. Desktop browsers (including Brave, Firefox, and Safari) and iOS do not support the Web NFC API.'
@@ -247,7 +247,7 @@ export default function NfcEnrollmentPage() {
                             {t('nfc.downloadApp', 'Download FIVUCSAS App')}
                         </Button>
 
-                        <Alert severity="info" sx={{ maxWidth: 500, mx: 'auto' }}>
+                        <Alert severity="info" sx={{ maxWidth: { xs: '100%', sm: 500 }, mx: 'auto' }}>
                             {t(
                                 'nfc.unsupportedHint',
                                 'Tip: Open this page in Chrome on your Android device with NFC enabled to scan and save your NFC card.'
@@ -313,7 +313,7 @@ export default function NfcEnrollmentPage() {
                                     label={`Serial: ${serialNumber}`}
                                     variant="outlined"
                                     color="success"
-                                    sx={{ mt: 1, fontFamily: 'monospace' }}
+                                    sx={{ mt: 1, fontFamily: 'monospace', maxWidth: '100%', '& .MuiChip-label': { overflow: 'hidden', textOverflow: 'ellipsis' } }}
                                 />
                             </>
                         ) : (

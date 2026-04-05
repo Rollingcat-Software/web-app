@@ -12,7 +12,7 @@ export default function BiometricToolsPage() {
     const { t } = useTranslation()
 
     return (
-        <Box sx={{ width: '100%', px: { xs: 0, sm: 1 } }}>
+        <Box sx={{ width: '100%', maxWidth: '100%', overflowX: 'hidden', px: { xs: 0, sm: 1 } }}>
             <Typography variant="h5" fontWeight={700} sx={{ mb: 0.5, px: { xs: 2, sm: 0 } }}>
                 {t('biometricTools.title')}
             </Typography>
@@ -31,7 +31,7 @@ export default function BiometricToolsPage() {
                 <Tab icon={<CreditCard sx={{ fontSize: 18 }} />} label={t('biometricTools.cardTab')} iconPosition="start" />
                 <Tab icon={<Contactless sx={{ fontSize: 18 }} />} label={t('biometricTools.nfcTab')} iconPosition="start" />
             </Tabs>
-            <Box sx={{ overflow: 'hidden', '& *': { maxWidth: '100% !important' }, '& > div > div': { px: '0 !important', py: '0 !important', mx: '0 !important' } }}>
+            <Box sx={{ overflowX: 'hidden', maxWidth: '100%', '& > div': { maxWidth: '100%', overflowX: 'hidden' } }}>
                 {tab === 0 && <FaceSearchPage />}
                 {tab === 1 && <VoiceSearchPage />}
                 {tab === 2 && <CardDetectionPage />}
