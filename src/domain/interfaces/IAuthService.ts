@@ -8,6 +8,8 @@ export interface AuthResult {
     user: User
     expiresAt: Date
     twoFactorRequired?: boolean
+    /** The auth method type for 2FA (e.g. "TOTP", "FACE", "EMAIL_OTP"). Null when twoFactorRequired is false. */
+    twoFactorMethod?: string
 }
 
 /**

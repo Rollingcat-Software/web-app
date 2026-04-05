@@ -29,29 +29,23 @@ import {
     PhonelinkLock,
     Save,
     Security,
-    Email,
-    DevicesOther,
-    AssignmentInd,
     Lock,
     LockOpen,
 } from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useSettings } from '@features/settings/hooks/useSettings'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
+import { container } from '@core/di/container'
 import type { AuthFlowRepository, AuthFlowResponse } from '@core/repositories/AuthFlowRepository'
 import TotpEnrollment from '@features/auth/components/TotpEnrollment'
 import WebAuthnEnrollment from '@features/auth/components/WebAuthnEnrollment'
-import OtpManagement from '@features/auth/components/OtpManagement'
-import StepUpDeviceRegistration from '@features/auth/components/StepUpDeviceRegistration'
 import SessionsSection from '@features/settings/components/SessionsSection'
 
 export default function SettingsPage() {
     const { user } = useAuth()
     const { t, i18n } = useTranslation()
-    const navigate = useNavigate()
     const {
         settings,
         loading,
@@ -83,31 +77,32 @@ export default function SettingsPage() {
     const [darkMode, setDarkMode] = useState(false)
     const [compactView, setCompactView] = useState(false)
 
-    // Fetch tenant auth flow to determine if 2FA is required
-    const authFlowRepo = useService<AuthFlowRepository>(TYPES.AuthFlowRepository)
+    // Fetch 2FA status from the user-accessible endpoint (no admin permission needed)
+    const httpClient = useService<import('@domain/interfaces/IHttpClient').IHttpClient>(TYPES.HttpClient)
     useEffect(() => {
-        if (!user?.tenantId) return
-        authFlowRepo.listFlows(user.tenantId, 'APP_LOGIN')
-            .then((flows: AuthFlowResponse[]) => {
-                const defaultActive = flows.find(f => f.isDefault && f.isActive)
-                setTenantRequires2FA(defaultActive ? defaultActive.stepCount > 1 : false)
+        httpClient.get<{ twoFactorRequired: boolean; flowName: string; stepCount: number }>('/auth/my/2fa-status')
+            .then((response) => {
+                setTenantRequires2FA(response.data.twoFactorRequired)
             })
             .catch(() => {
-                // Non-admin users may not have access to tenant auth flows; default to false
-                setTenantRequires2FA(false)
+                // Fallback: try admin endpoint for admin users
+                if (!user?.tenantId) return
+                const authFlowRepo = container.get<AuthFlowRepository>(TYPES.AuthFlowRepository)
+                authFlowRepo.listFlows(user.tenantId, 'APP_LOGIN')
+                    .then((flows: AuthFlowResponse[]) => {
+                        const defaultActive = flows.find(f => f.isDefault && f.isActive)
+                        setTenantRequires2FA(defaultActive ? defaultActive.stepCount > 1 : false)
+                    })
+                    .catch(() => {
+                        setTenantRequires2FA(false)
+                    })
             })
-    }, [user?.tenantId, authFlowRepo])
+    }, [httpClient, user?.tenantId])
 
     // TOTP enrollment dialog
     const [totpDialogOpen, setTotpDialogOpen] = useState(false)
     const [platformWebAuthnDialogOpen, setPlatformWebAuthnDialogOpen] = useState(false)
     const [hardwareKeyDialogOpen, setHardwareKeyDialogOpen] = useState(false)
-
-    // OTP management dialog
-    const [otpDialogOpen, setOtpDialogOpen] = useState(false)
-
-    // Step-Up device registration dialog
-    const [stepUpDialogOpen, setStepUpDialogOpen] = useState(false)
 
     // Password change dialog
     const [passwordDialogOpen, setPasswordDialogOpen] = useState(false)
@@ -442,81 +437,6 @@ export default function SettingsPage() {
                             >
                                 Register Hardware Security Key
                             </Button>
-                            <Typography variant="caption" color="text.secondary">
-                                WebAuthn gives you phishing-resistant authentication with platform biometrics
-                                or external FIDO2 keys.
-                            </Typography>
-                        </Box>
-
-                        <Divider sx={{ my: 2 }} />
-
-                        {/* Manage Enrollments */}
-                        <Box sx={{ mb: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                <AssignmentInd sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
-                                <Typography variant="subtitle2" fontWeight={600}>
-                                    {t('settings.manageEnrollments')}
-                                </Typography>
-                            </Box>
-                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                                {t('settings.manageEnrollmentsHelper')}
-                            </Typography>
-                            <Button
-                                variant="outlined"
-                                fullWidth
-                                startIcon={<AssignmentInd />}
-                                onClick={() => navigate('/enrollment')}
-                            >
-                                {t('settings.manageEnrollments')}
-                            </Button>
-                        </Box>
-
-                        <Divider sx={{ my: 2 }} />
-
-                        {/* OTP Verification */}
-                        <Box sx={{ mb: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                <Email sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
-                                <Typography variant="subtitle2" fontWeight={600}>
-                                    {t('settings.otpVerification')}
-                                </Typography>
-                            </Box>
-                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                                {t('settings.otpVerificationHelper')}
-                            </Typography>
-                            <Button
-                                variant="outlined"
-                                fullWidth
-                                startIcon={<Email />}
-                                onClick={() => setOtpDialogOpen(true)}
-                                disabled={!user?.id}
-                            >
-                                {t('settings.manageOtp')}
-                            </Button>
-                        </Box>
-
-                        <Divider sx={{ my: 2 }} />
-
-                        {/* Step-Up Device Registration */}
-                        <Box sx={{ mb: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                <DevicesOther sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
-                                <Typography variant="subtitle2" fontWeight={600}>
-                                    {t('settings.stepUpAuth')}
-                                </Typography>
-                            </Box>
-                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                                {t('settings.stepUpAuthHelper')}
-                            </Typography>
-                            <Button
-                                variant="outlined"
-                                fullWidth
-                                startIcon={<DevicesOther />}
-                                onClick={() => setStepUpDialogOpen(true)}
-                                disabled={!user?.id}
-                            >
-                                {t('settings.registerStepUpDevice')}
-                            </Button>
                         </Box>
 
                         <Divider sx={{ my: 2 }} />
@@ -801,24 +721,6 @@ export default function SettingsPage() {
                 onSuccess={() => {
                     setHardwareKeyDialogOpen(false)
                     showSuccessMessage('security')
-                }}
-            />
-
-            {/* OTP Management Dialog */}
-            <OtpManagement
-                open={otpDialogOpen}
-                userId={user?.id ?? ''}
-                onClose={() => setOtpDialogOpen(false)}
-            />
-
-            {/* Step-Up Device Registration Dialog */}
-            <StepUpDeviceRegistration
-                open={stepUpDialogOpen}
-                userId={user?.id ?? ''}
-                onClose={() => setStepUpDialogOpen(false)}
-                onSuccess={() => {
-                    setStepUpDialogOpen(false)
-                    showSuccessMessage('stepUp')
                 }}
             />
 

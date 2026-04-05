@@ -83,6 +83,7 @@ export class AuthService implements IAuthService {
                 user: response.user,
                 expiresAt,
                 twoFactorRequired: response.twoFactorRequired ?? false,
+                twoFactorMethod: response.twoFactorMethod ?? undefined,
             }
         } catch (error) {
             // Track failed attempts

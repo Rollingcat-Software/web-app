@@ -33,7 +33,7 @@ import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
 import { useAuth } from '../hooks/useAuth'
 import FaceVerificationFlow from './FaceVerificationFlow'
-import TwoFactorVerification from './TwoFactorVerification'
+import TwoFactorDispatcher from './TwoFactorDispatcher'
 import { getBiometricService } from '@core/services/BiometricService'
 
 /**
@@ -131,6 +131,7 @@ export default function LoginPage() {
     const [faceError, setFaceError] = useState<string | null>(null)
     const [pageReady, setPageReady] = useState(false)
     const [showSecondaryAuth, setShowSecondaryAuth] = useState(false)
+    const [twoFactorMethod, setTwoFactorMethod] = useState<string>('EMAIL_OTP')
 
     // Mark page ready after initial render
     useEffect(() => {
@@ -261,6 +262,7 @@ export default function LoginPage() {
             })
             // After successful password login, check if backend requires 2FA
             if (result.twoFactorRequired) {
+                setTwoFactorMethod(result.twoFactorMethod || 'EMAIL_OTP')
                 setShowSecondaryAuth(true)
                 return
             }
@@ -285,7 +287,8 @@ export default function LoginPage() {
     // Show 2FA verification after successful password login
     if (showSecondaryAuth && user) {
         return (
-            <TwoFactorVerification
+            <TwoFactorDispatcher
+                method={twoFactorMethod}
                 onComplete={handleTwoFactorComplete}
                 onCancel={handleTwoFactorCancel}
             />

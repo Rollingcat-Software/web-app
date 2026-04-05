@@ -44,7 +44,8 @@ export class User {
         public readonly lastVerifiedAt?: Date,
         public readonly verificationCount?: number,
         public readonly emailVerified: boolean = false,
-        public readonly phoneVerified: boolean = false
+        public readonly phoneVerified: boolean = false,
+        public readonly tenantName?: string
     ) {}
 
     /**
@@ -115,6 +116,7 @@ export class User {
             verificationCount: this.verificationCount,
             emailVerified: this.emailVerified,
             phoneVerified: this.phoneVerified,
+            tenantName: this.tenantName,
         }
     }
 
@@ -162,7 +164,8 @@ export class User {
             data.lastVerifiedAt ? new Date(data.lastVerifiedAt) : undefined,
             data.verificationCount ?? 0,
             data.emailVerified ?? false,
-            data.phoneVerified ?? false
+            data.phoneVerified ?? false,
+            data.tenantName
         )
     }
 }
@@ -193,4 +196,5 @@ export interface UserJSON {
     verificationCount?: number
     emailVerified?: boolean
     phoneVerified?: boolean
+    tenantName?: string
 }

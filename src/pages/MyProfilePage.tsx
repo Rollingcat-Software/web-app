@@ -67,7 +67,6 @@ import { format } from 'date-fns'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
-import type { ITenantRepository } from '@domain/interfaces/ITenantRepository'
 import type { Enrollment } from '@domain/models/Enrollment'
 
 /** Map auth method type to icon */
@@ -147,9 +146,6 @@ export default function MyProfilePage() {
     // Sessions count
     const [sessionsCount, setSessionsCount] = useState<number>(0)
 
-    // Tenant name
-    const [tenantName, setTenantName] = useState<string>('')
-
     // Expanded enrollments
     const [expandedEnrollment, setExpandedEnrollment] = useState<string | null>(null)
 
@@ -218,20 +214,14 @@ export default function MyProfilePage() {
         if (userId) fetchSessions()
     }, [userId])
 
-    // Fetch tenant name
-    useEffect(() => {
-        const fetchTenantName = async () => {
-            if (!user?.tenantId) return
-            try {
-                const tenantRepo = container.get<ITenantRepository>(TYPES.TenantRepository)
-                const tenant = await tenantRepo.findById(user.tenantId)
-                if (tenant) setTenantName(tenant.name)
-            } catch {
-                // Silently handle errors — fallback to tenantId
-            }
-        }
-        fetchTenantName()
-    }, [user?.tenantId])
+    // Resolve tenant name: prefer backend-provided tenantName, fallback to known map
+    const TENANT_NAME_MAP: Record<string, string> = {
+        '11111111-1111-1111-1111-111111111111': 'Marmara University',
+        '22222222-2222-2222-2222-222222222222': 'TechCorp Istanbul',
+        '33333333-3333-3333-3333-333333333333': 'Anatolia Medical Center',
+        '00000000-0000-0000-0000-000000000000': 'System',
+    }
+    const tenantName = user?.tenantName || TENANT_NAME_MAP[user?.tenantId || ''] || ''
 
     useEffect(() => {
         if (userId) fetchActivity(0)

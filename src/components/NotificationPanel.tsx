@@ -180,7 +180,11 @@ function saveReadIds(ids: Set<string>) {
 // --- Extended action descriptions ---
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-function getActionDescription(action: string, t: any): string {
+function getActionDescription(action: string, t: any, details?: Record<string, unknown>): string {
+    // Show OAuth client name for login events
+    if (action === 'USER_LOGIN' && details?.oauthClient) {
+        return `${t('notifications.actions.USER_LOGIN', { defaultValue: 'User logged in' })} via ${details.oauthClient}`
+    }
     const key = `notifications.actions.${action}`
     const translated = t(key, { defaultValue: '' })
     if (translated && translated !== key) return translated
@@ -437,7 +441,7 @@ export default function NotificationPanel() {
                                                                 fontWeight={isRead ? 400 : 600}
                                                                 sx={{ flex: 1 }}
                                                             >
-                                                                {getActionDescription(log.action, t)}
+                                                                {getActionDescription(log.action, t, log.details)}
                                                             </Typography>
                                                             <Chip
                                                                 label={getCategoryLabel(category, t)}

@@ -15,6 +15,7 @@ interface AuthState {
 
 interface LoginResult {
     twoFactorRequired: boolean
+    twoFactorMethod?: string
 }
 
 interface AuthContextValue extends AuthState {
@@ -83,7 +84,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     isAuthenticated: true,
                 })
 
-                return { twoFactorRequired: result.twoFactorRequired ?? false }
+                return { twoFactorRequired: result.twoFactorRequired ?? false, twoFactorMethod: result.twoFactorMethod }
             } catch (error) {
                 setState((prev) => ({
                     ...prev,
