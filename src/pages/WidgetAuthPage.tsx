@@ -294,32 +294,6 @@ function WidgetAuthPageInner() {
         }
     }, [config, pendingAuthData, pendingEmail, twoFactorCode, completeAuth])
 
-    // ─── Success state ──────────────────────────────────────────
-
-    if (success) {
-        return (
-            <Box
-                sx={{
-                    display: 'flex',
-                    flexDirection: 'column',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    minHeight: '100%',
-                    p: 4,
-                    textAlign: 'center',
-                }}
-            >
-                <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
-                <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
-                    Authentication Successful
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    Returning result to the application...
-                </Typography>
-            </Box>
-        )
-    }
-
     // ─── Generic 2FA verify helper for non-email methods ─────
     const verifyMethodStep = useCallback(
         async (methodType: string, data: Record<string, unknown>) => {
@@ -456,6 +430,32 @@ function WidgetAuthPageInner() {
                 return null
         }
     }, [twoFactorMethod, stepLoading, stepError, verifyMethodStep, config, pendingAuthData])
+
+    // ─── Success state ──────────────────────────────────────────
+
+    if (success) {
+        return (
+            <Box
+                sx={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    minHeight: '100%',
+                    p: 4,
+                    textAlign: 'center',
+                }}
+            >
+                <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
+                <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
+                    Authentication Successful
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                    Returning result to the application...
+                </Typography>
+            </Box>
+        )
+    }
 
     // ─── 2FA verification step ────────────────────────────────
 
