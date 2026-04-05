@@ -67,6 +67,7 @@ import { format } from 'date-fns'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { ITenantRepository } from '@domain/interfaces/ITenantRepository'
 import type { Enrollment } from '@domain/models/Enrollment'
 
 /** Map auth method type to icon */
@@ -146,6 +147,9 @@ export default function MyProfilePage() {
     // Sessions count
     const [sessionsCount, setSessionsCount] = useState<number>(0)
 
+    // Tenant name
+    const [tenantName, setTenantName] = useState<string>('')
+
     // Expanded enrollments
     const [expandedEnrollment, setExpandedEnrollment] = useState<string | null>(null)
 
@@ -213,6 +217,21 @@ export default function MyProfilePage() {
         }
         if (userId) fetchSessions()
     }, [userId])
+
+    // Fetch tenant name
+    useEffect(() => {
+        const fetchTenantName = async () => {
+            if (!user?.tenantId) return
+            try {
+                const tenantRepo = container.get<ITenantRepository>(TYPES.TenantRepository)
+                const tenant = await tenantRepo.findById(user.tenantId)
+                if (tenant) setTenantName(tenant.name)
+            } catch {
+                // Silently handle errors — fallback to tenantId
+            }
+        }
+        fetchTenantName()
+    }, [user?.tenantId])
 
     useEffect(() => {
         if (userId) fetchActivity(0)
@@ -362,7 +381,7 @@ export default function MyProfilePage() {
                                         <Typography variant="caption" color="text.secondary">{t('common.tenant')}</Typography>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                             <Business sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                            <Typography variant="body1">{user?.tenantId || t('common.default')}</Typography>
+                                            <Typography variant="body1">{tenantName || user?.tenantId || t('common.default')}</Typography>
                                         </Box>
                                     </Grid>
                                     <Grid item xs={12} sm={6} md={4}>
@@ -838,7 +857,7 @@ function EnrollmentCard({
                         <Typography variant="caption" color="text.secondary">{t('myProfile.lastUpdated')}</Typography>
                         <Typography variant="caption">{formatDate(enrollment.updatedAt)}</Typography>
                     </Box>
-                    {enrollment.qualityScore !== undefined && (
+                    {(methodType === 'FACE' || methodType === 'VOICE') && enrollment.qualityScore !== undefined && (
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                             <Typography variant="caption" color="text.secondary">{t('myProfile.qualityScore')}</Typography>
                             <Typography variant="caption">{Math.round(enrollment.qualityScore * 100)}%</Typography>

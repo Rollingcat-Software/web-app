@@ -2,6 +2,7 @@ import {useState} from 'react'
 import {Link as RouterLink, Outlet, useLocation} from 'react-router-dom'
 import {Box, Breadcrumbs, Link, Typography, useMediaQuery, useTheme} from '@mui/material'
 import {NavigateNext} from '@mui/icons-material'
+import {useTranslation} from 'react-i18next'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 
@@ -21,6 +22,7 @@ const BREADCRUMB_MAP: Record<string, string> = {
     guests: 'Guests',
     'voice-search': 'Voice Search',
     'nfc-enrollment': 'NFC Enrollment',
+    'my-profile': 'My Profile',
     analytics: 'Analytics',
     settings: 'Settings',
     create: 'Create',
@@ -72,6 +74,7 @@ export default function DashboardLayout() {
     const theme = useTheme()
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [mobileOpen, setMobileOpen] = useState(false)
+    const {t} = useTranslation()
 
     const handleDrawerToggle = () => {
         setMobileOpen(prev => !prev)
@@ -98,6 +101,8 @@ export default function DashboardLayout() {
                 component="main"
                 sx={{
                     flexGrow: 1,
+                    display: 'flex',
+                    flexDirection: 'column',
                     p: { xs: 1.5, sm: 3 },
                     width: {xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)`},
                     maxWidth: '100vw',
@@ -109,7 +114,30 @@ export default function DashboardLayout() {
                 }}
             >
                 <PageBreadcrumbs/>
-                <Outlet/>
+                <Box sx={{ flexGrow: 1 }}>
+                    <Outlet/>
+                </Box>
+                <Box
+                    component="footer"
+                    sx={{
+                        mt: 4,
+                        pt: 2,
+                        pb: 1,
+                        textAlign: 'center',
+                        borderTop: '1px solid',
+                        borderColor: 'divider',
+                    }}
+                >
+                    <Typography variant="caption" color="text.disabled" display="block">
+                        {t('footer.platform')}
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25 }}>
+                        {t('footer.copyright')}
+                    </Typography>
+                    <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25, opacity: 0.7 }}>
+                        {t('footer.version')}
+                    </Typography>
+                </Box>
             </Box>
         </Box>
     )

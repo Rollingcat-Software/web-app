@@ -149,8 +149,10 @@
     "changeAvatar": "Avatar Değiştir",
     "saveProfile": "Profili Kaydet",
     "security": "Güvenlik",
-    "twoFactor": "İki Faktörlü Doğrulamayı Etkinleştir",
-    "twoFactorHelper": "Hesabınıza ekstra güvenlik katmanı ekleyin",
+    "twoFactor": "İki Faktörlü Doğrulama",
+    "twoFactorHelper": "Kuruluşunuzun yöneticisi tarafından Auth Flows üzerinden yönetilir",
+    "twoFactorRequired": "Kuruluşunuz tarafından zorunlu",
+    "twoFactorNotRequired": "Kuruluşunuz tarafından zorunlu değil",
     "sessionTimeout": "Oturum Zaman Aşımı",
     "changePassword": "Şifre Değiştir",
     "saveSecurity": "Güvenliği Kaydet",
@@ -491,6 +493,11 @@
   "publicLayout": {
     "backToDashboard": "Panele Dön",
     "signIn": "Giriş Yap"
+  },
+  "footer": {
+    "platform": "FIVUCSAS Kimlik Platformu",
+    "copyright": "\u00a9 2026 Marmara \u00dcniversitesi \u2014 Bilgisayar M\u00fchendisli\u011fi B\u00f6l\u00fcm\u00fc",
+    "version": "v4.0.0"
   },
   "widgetDemo": {
     "title": "Kimlik Doğrulama Bileşeni",

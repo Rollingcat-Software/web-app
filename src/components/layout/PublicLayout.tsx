@@ -81,6 +81,27 @@ export default function PublicLayout() {
             >
                 <Outlet />
             </Container>
+
+            {/* Footer */}
+            <Box
+                component="footer"
+                sx={{
+                    py: 2,
+                    textAlign: 'center',
+                    borderTop: '1px solid',
+                    borderColor: 'divider',
+                }}
+            >
+                <Typography variant="caption" color="text.disabled" display="block">
+                    {t('footer.platform')}
+                </Typography>
+                <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25 }}>
+                    {t('footer.copyright')}
+                </Typography>
+                <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25, opacity: 0.7 }}>
+                    {t('footer.version')}
+                </Typography>
+            </Box>
         </Box>
     )
 }

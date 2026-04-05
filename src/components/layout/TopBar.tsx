@@ -47,6 +47,15 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
         if (path.startsWith('/audit-logs')) return t('nav.auditLogs')
         if (path.startsWith('/analytics')) return t('nav.analytics')
         if (path.startsWith('/settings')) return t('nav.settings')
+        if (path.startsWith('/my-profile')) return t('nav.myProfile')
+        if (path.startsWith('/enrollment')) return t('nav.userEnrollment')
+        if (path.startsWith('/auth-flows')) return t('nav.authFlows')
+        if (path.startsWith('/auth-sessions')) return t('nav.authSessions')
+        if (path.startsWith('/devices')) return t('nav.devices')
+        if (path.startsWith('/verification')) return t('nav.verificationFlows')
+        if (path.startsWith('/widget-demo')) return t('nav.widgetDemo')
+        if (path.startsWith('/developer-portal')) return t('nav.developerPortal')
+        if (path.startsWith('/biometric-tools')) return t('nav.biometricTools')
         return t('nav.dashboard')
     }
 

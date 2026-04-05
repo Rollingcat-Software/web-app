@@ -149,8 +149,10 @@
     "changeAvatar": "Change Avatar",
     "saveProfile": "Save Profile",
     "security": "Security",
-    "twoFactor": "Enable Two-Factor Authentication",
-    "twoFactorHelper": "Add an extra layer of security to your account",
+    "twoFactor": "Two-Factor Authentication",
+    "twoFactorHelper": "Managed by your organization's admin via Auth Flows",
+    "twoFactorRequired": "Required by your organization",
+    "twoFactorNotRequired": "Not required by your organization",
     "sessionTimeout": "Session Timeout",
     "changePassword": "Change Password",
     "saveSecurity": "Save Security",
@@ -491,6 +493,11 @@
   "publicLayout": {
     "backToDashboard": "Back to Dashboard",
     "signIn": "Sign In"
+  },
+  "footer": {
+    "platform": "FIVUCSAS Identity Platform",
+    "copyright": "\u00a9 2026 Marmara University \u2014 Computer Engineering Department",
+    "version": "v4.0.0"
   },
   "widgetDemo": {
     "title": "Auth Widget",
