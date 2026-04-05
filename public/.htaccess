@@ -7,6 +7,21 @@ RewriteCond %{REQUEST_FILENAME} !-f
 RewriteCond %{REQUEST_FILENAME} !-d
 RewriteRule . /index.html [L]
 
+# Cache Control
+<IfModule mod_headers.c>
+  # HTML - always revalidate
+  <FilesMatch "\.(html)$">
+    Header set Cache-Control "no-cache, no-store, must-revalidate"
+    Header set Pragma "no-cache"
+    Header set Expires "0"
+  </FilesMatch>
+
+  # JS/CSS with hash in filename - cache aggressively
+  <FilesMatch "\.(js|css)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
+</IfModule>
+
 # Security Headers
 <IfModule mod_headers.c>
     # Content Security Policy (frame-ancestors MUST be in HTTP header, not meta tag)

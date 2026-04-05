@@ -1,5 +1,13 @@
 import 'reflect-metadata'
 import './i18n'
+
+// Auto-reload when a cached index.html references stale chunk filenames after a new deploy
+window.addEventListener('unhandledrejection', (event) => {
+    if (event.reason?.message?.includes('dynamically imported module')) {
+        window.location.reload()
+    }
+})
+
 import React, {useMemo} from 'react'
 import ReactDOM from 'react-dom/client'
 import {Provider} from 'react-redux'
