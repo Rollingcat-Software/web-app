@@ -1,9 +1,10 @@
-import { Outlet, useNavigate } from 'react-router-dom'
+import { Link as RouterLink, Outlet, useNavigate } from 'react-router-dom'
 import {
     AppBar,
     Box,
     Button,
     Container,
+    Link,
     Toolbar,
     Typography,
 } from '@mui/material'
@@ -95,6 +96,14 @@ export default function PublicLayout() {
                 <Typography variant="caption" color="text.disabled" display="block">
                     {t('footer.platform')}
                 </Typography>
+                <Box sx={{ mt: 0.5, display: 'flex', justifyContent: 'center', gap: 2 }}>
+                    <Link component={RouterLink} to="/terms" variant="caption" color="text.disabled" underline="hover">
+                        {t('footer.terms')}
+                    </Link>
+                    <Link component={RouterLink} to="/privacy" variant="caption" color="text.disabled" underline="hover">
+                        {t('footer.privacy')}
+                    </Link>
+                </Box>
                 <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25 }}>
                     {t('footer.copyright')}
                 </Typography>

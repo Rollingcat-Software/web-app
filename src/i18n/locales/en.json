@@ -497,7 +497,9 @@
   "footer": {
     "platform": "FIVUCSAS Identity Platform",
     "copyright": "\u00a9 2026 Marmara University \u2014 Computer Engineering Department",
-    "version": "v4.0.0"
+    "version": "v4.0.0",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy"
   },
   "widgetDemo": {
     "title": "Auth Widget",

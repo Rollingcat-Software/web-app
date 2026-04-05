@@ -384,24 +384,25 @@ export default function SettingsPage() {
                         </Box>
 
                         <Box sx={{ mb: 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
                                 {tenantRequires2FA ? (
                                     <Lock sx={{ color: 'success.main', fontSize: 20 }} />
                                 ) : (
                                     <LockOpen sx={{ color: 'text.secondary', fontSize: 20 }} />
                                 )}
-                                <Typography variant="subtitle1" fontWeight={600}>
+                                <Typography variant="subtitle1" fontWeight={600} sx={{ mr: 'auto' }}>
                                     {t('settings.twoFactor')}
                                 </Typography>
-                                <Chip
-                                    label={tenantRequires2FA
-                                        ? t('settings.twoFactorRequired')
-                                        : t('settings.twoFactorNotRequired')}
-                                    color={tenantRequires2FA ? 'success' : 'default'}
-                                    size="small"
-                                    variant="outlined"
-                                />
                             </Box>
+                            <Chip
+                                label={tenantRequires2FA
+                                    ? t('settings.twoFactorRequired')
+                                    : t('settings.twoFactorNotRequired')}
+                                color={tenantRequires2FA ? 'success' : 'default'}
+                                size="small"
+                                variant="outlined"
+                                sx={{ ml: 4, mb: 1 }}
+                            />
                             <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
                                 {t('settings.twoFactorHelper')}
                             </Typography>

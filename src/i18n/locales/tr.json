@@ -497,7 +497,9 @@
   "footer": {
     "platform": "FIVUCSAS Kimlik Platformu",
     "copyright": "\u00a9 2026 Marmara \u00dcniversitesi \u2014 Bilgisayar M\u00fchendisli\u011fi B\u00f6l\u00fcm\u00fc",
-    "version": "v4.0.0"
+    "version": "v4.0.0",
+    "terms": "Kullan\u0131m Ko\u015fulllar\u0131",
+    "privacy": "Gizlilik Politikas\u0131"
   },
   "widgetDemo": {
     "title": "Kimlik Doğrulama Bileşeni",
