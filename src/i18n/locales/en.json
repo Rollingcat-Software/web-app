@@ -186,6 +186,23 @@
     "manageEnrollments": "Manage Enrollments",
     "manageEnrollmentsHelper": "Enroll and manage your biometric methods (face, voice, NFC, etc.) on the dedicated Enrollment page"
   },
+  "sessions": {
+    "title": "Active Sessions",
+    "subtitle": "Manage your active sessions across devices. You can log out from any device remotely.",
+    "currentSession": "This device",
+    "unknownDevice": "Unknown Device",
+    "ipAddress": "IP Address",
+    "signedIn": "Signed in",
+    "revokeSession": "Log out this session",
+    "revokeAllOther": "Log out all other devices",
+    "revokeAllTitle": "Log out all other devices?",
+    "revokeAllConfirm": "This will end {{count}} other session(s). Those devices will need to sign in again.",
+    "noSessions": "No active sessions found.",
+    "justNow": "Just now",
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} hr ago",
+    "daysAgo": "{{count}} day(s) ago"
+  },
   "otp": {
     "title": "OTP Management",
     "description": "Send and verify one-time passwords to confirm your email or phone number.",

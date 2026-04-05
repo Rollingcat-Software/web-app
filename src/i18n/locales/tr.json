@@ -186,6 +186,23 @@
     "manageEnrollments": "Kayıtları Yönet",
     "manageEnrollmentsHelper": "Biyometrik yöntemlerinizi (yüz, ses, NFC vb.) Kayıt sayfasında kaydedin ve yönetin"
   },
+  "sessions": {
+    "title": "Aktif Oturumlar",
+    "subtitle": "Cihazlarinizdaki aktif oturumlari yonetin. Herhangi bir cihazdan uzaktan cikis yapabilirsiniz.",
+    "currentSession": "Bu cihaz",
+    "unknownDevice": "Bilinmeyen Cihaz",
+    "ipAddress": "IP Adresi",
+    "signedIn": "Giris",
+    "revokeSession": "Bu oturumu kapat",
+    "revokeAllOther": "Diger tum cihazlardan cikis yap",
+    "revokeAllTitle": "Diger tum cihazlardan cikis yapilsin mi?",
+    "revokeAllConfirm": "Bu islem {{count}} diger oturumu sonlandiracak. Bu cihazlarin tekrar giris yapmasi gerekecek.",
+    "noSessions": "Aktif oturum bulunamadi.",
+    "justNow": "Az once",
+    "minutesAgo": "{{count}} dk once",
+    "hoursAgo": "{{count}} saat once",
+    "daysAgo": "{{count}} gun once"
+  },
   "otp": {
     "title": "OTP Yönetimi",
     "description": "E-posta veya telefon numaranızı doğrulamak için tek kullanımlık şifre gönderin ve doğrulayın.",

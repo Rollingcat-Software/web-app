@@ -54,6 +54,19 @@ export interface QrTokenResponse {
 }
 
 /**
+ * User session (refresh token) response — for cross-device session awareness
+ */
+export interface UserSessionResponse {
+    sessionId: string
+    ipAddress: string
+    userAgent: string
+    deviceInfo: string
+    createdAt: string
+    expiryDate: string
+    isCurrent: boolean
+}
+
+/**
  * Auth Session Repository
  * Handles auth session runtime API calls
  */
@@ -216,6 +229,55 @@ export class AuthSessionRepository {
             await this.httpClient.delete<void>(`/qr/${token}`)
         } catch (error) {
             this.logger.error('Failed to invalidate QR token', error)
+            throw error
+        }
+    }
+
+    // --- User session management (cross-device awareness) ---
+
+    /**
+     * Get all active sessions for the authenticated user
+     */
+    async getActiveSessions(currentTokenId?: string): Promise<UserSessionResponse[]> {
+        try {
+            this.logger.info('Fetching active user sessions')
+            const params = currentTokenId ? `?currentTokenId=${encodeURIComponent(currentTokenId)}` : ''
+            const response = await this.httpClient.get<UserSessionResponse[]>(
+                `/sessions${params}`
+            )
+            return response.data
+        } catch (error) {
+            this.logger.error('Failed to fetch active sessions', error)
+            throw error
+        }
+    }
+
+    /**
+     * Revoke a specific session (log out that device)
+     */
+    async revokeSession(sessionId: string): Promise<void> {
+        try {
+            this.logger.info(`Revoking session ${sessionId}`)
+            await this.httpClient.delete(`/sessions/${sessionId}`)
+            this.logger.info('Session revoked successfully', { sessionId })
+        } catch (error) {
+            this.logger.error(`Failed to revoke session ${sessionId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Revoke all other sessions (log out from all other devices)
+     */
+    async revokeAllOtherSessions(currentTokenId: string): Promise<void> {
+        try {
+            this.logger.info('Revoking all other sessions')
+            await this.httpClient.delete(
+                `/sessions/all?currentTokenId=${encodeURIComponent(currentTokenId)}`
+            )
+            this.logger.info('All other sessions revoked')
+        } catch (error) {
+            this.logger.error('Failed to revoke all other sessions', error)
             throw error
         }
     }

@@ -40,8 +40,7 @@ import TotpEnrollment from '@features/auth/components/TotpEnrollment'
 import WebAuthnEnrollment from '@features/auth/components/WebAuthnEnrollment'
 import OtpManagement from '@features/auth/components/OtpManagement'
 import StepUpDeviceRegistration from '@features/auth/components/StepUpDeviceRegistration'
-import { useContinuousVerification } from '@hooks/useContinuousVerification'
-import { Videocam } from '@mui/icons-material'
+import SessionsSection from '@features/settings/components/SessionsSection'
 
 export default function SettingsPage() {
     const { user } = useAuth()
@@ -95,17 +94,6 @@ export default function SettingsPage() {
     const [newPassword, setNewPassword] = useState('')
     const [confirmPassword, setConfirmPassword] = useState('')
     const [passwordErrors, setPasswordErrors] = useState<string[]>([])
-
-    // Continuous verification
-    const {
-        status: cvStatus,
-        enabled: cvEnabled,
-        setEnabled: setCvEnabled,
-        failureCount: cvFailureCount,
-        showWarning: cvShowWarning,
-        videoRef: cvVideoRef,
-        lastConfidence: cvLastConfidence,
-    } = useContinuousVerification()
 
     // Save states
     const [saving, setSaving] = useState<string | null>(null)
@@ -507,79 +495,6 @@ export default function SettingsPage() {
 
                         <Divider sx={{ my: 2 }} />
 
-                        {/* Continuous Face Verification */}
-                        <Box sx={{ mb: 2 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
-                                <Videocam sx={{ mr: 1, color: 'primary.main', fontSize: 20 }} />
-                                <Typography variant="subtitle2" fontWeight={600}>
-                                    Continuous Verification
-                                </Typography>
-                                <Box
-                                    sx={{
-                                        ml: 1,
-                                        width: 10,
-                                        height: 10,
-                                        borderRadius: '50%',
-                                        bgcolor:
-                                            cvStatus === 'verified' ? 'success.main' :
-                                            cvStatus === 'checking' ? 'warning.main' :
-                                            cvStatus === 'failed' ? 'error.main' :
-                                            'grey.400',
-                                        transition: 'background-color 0.3s',
-                                    }}
-                                />
-                            </Box>
-                            <Typography variant="caption" color="text.secondary" display="block" sx={{ mb: 1 }}>
-                                Periodically verify your face in the background to maintain session trust.
-                            </Typography>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={cvEnabled}
-                                        onChange={(e) => setCvEnabled(e.target.checked)}
-                                    />
-                                }
-                                label="Enable Continuous Verification"
-                            />
-                            {cvEnabled && (
-                                <Box sx={{ mt: 1 }}>
-                                    <Box
-                                        sx={{
-                                            position: 'relative',
-                                            width: 120,
-                                            height: 90,
-                                            borderRadius: 1,
-                                            overflow: 'hidden',
-                                            border: '2px solid',
-                                            borderColor:
-                                                cvStatus === 'verified' ? 'success.main' :
-                                                cvStatus === 'failed' ? 'error.main' :
-                                                'grey.300',
-                                            mb: 1,
-                                        }}
-                                    >
-                                        <video
-                                            ref={cvVideoRef as React.RefObject<HTMLVideoElement>}
-                                            autoPlay
-                                            playsInline
-                                            muted
-                                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-                                        />
-                                    </Box>
-                                    <Typography variant="caption" color="text.secondary">
-                                        Status: {cvStatus} | Confidence: {(cvLastConfidence * 100).toFixed(0)}% | Failures: {cvFailureCount}
-                                    </Typography>
-                                </Box>
-                            )}
-                            {cvShowWarning && (
-                                <Alert severity="warning" sx={{ mt: 1 }}>
-                                    Face verification failing repeatedly. You may be logged out soon.
-                                </Alert>
-                            )}
-                        </Box>
-
-                        <Divider sx={{ my: 2 }} />
-
                         <TextField
                             fullWidth
                             select
@@ -691,6 +606,11 @@ export default function SettingsPage() {
                             </Button>
                         </Box>
                     </Paper>
+                </Grid>
+
+                {/* Active Sessions */}
+                <Grid item xs={12}>
+                    <SessionsSection />
                 </Grid>
 
                 {/* Appearance Settings */}
