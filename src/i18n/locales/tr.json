@@ -483,7 +483,9 @@
     "copied": "Kopyalandı!",
     "copy": "Kopyala",
     "copyClientId": "İstemci Kimliğini Kopyala",
-    "copiedToClipboard": "Panoya kopyalandı!"
+    "copiedToClipboard": "Panoya kopyalandı!",
+    "signInToManage": "Uygulamalarınızı yönetmek için giriş yapın",
+    "signInToManageDesc": "OAuth 2.0 istemci kimlik bilgileri oluşturun, kayıtlı uygulamaları görüntüleyin ve yönlendirme URI'lerini yapılandırın. Entegrasyonun nasıl çalıştığını öğrenmek için aşağıdaki Hızlı Başlangıç Kılavuzuna göz atın."
   },
   "publicLayout": {
     "backToDashboard": "Panele Dön",

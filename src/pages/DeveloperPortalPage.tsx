@@ -32,6 +32,7 @@ import {
     VisibilityOff,
     Code,
     CheckCircle,
+    Login,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
@@ -40,6 +41,8 @@ import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@features/auth/hooks/useAuth'
+import { useNavigate } from 'react-router-dom'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -85,6 +88,8 @@ export default function DeveloperPortalPage() {
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
     const logger = useService<ILogger>(TYPES.Logger)
     const { t } = useTranslation()
+    const { isAuthenticated } = useAuth()
+    const navigate = useNavigate()
 
     // --- App state (from backend) ---
     const [apps, setApps] = useState<OAuth2App[]>([])
@@ -133,8 +138,10 @@ export default function DeveloperPortalPage() {
     }, [httpClient, logger, t])
 
     useEffect(() => {
-        loadApps()
-    }, [loadApps])
+        if (isAuthenticated) {
+            loadApps()
+        }
+    }, [loadApps, isAuthenticated])
 
     // --- Copy to clipboard ---
     const handleCopy = useCallback(async (text: string, label: string) => {
@@ -207,7 +214,8 @@ export default function DeveloperPortalPage() {
     }
 
     // --- Quick Start code snippets ---
-    const scriptSnippet = `<script src="https://cdn.fivucsas.com/auth-widget.js"></script>
+    const scriptSnippet = `<!-- Auth widget SDK (replace with your build or CDN URL) -->
+<script src="https://auth.rollingcatsoftware.com/sdk/auth-widget.js"></script>
 <script>
   FivucsasAuth.init({
     clientId: 'YOUR_CLIENT_ID',
@@ -262,14 +270,16 @@ if (code) {
                                 {t('developerPortal.subtitle')}
                             </Typography>
                         </Box>
-                        <Button
-                            variant="contained"
-                            startIcon={<Add />}
-                            onClick={() => setRegisterOpen(true)}
-                            sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
-                        >
-                            {t('developerPortal.registerApp')}
-                        </Button>
+                        {isAuthenticated && (
+                            <Button
+                                variant="contained"
+                                startIcon={<Add />}
+                                onClick={() => setRegisterOpen(true)}
+                                sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+                            >
+                                {t('developerPortal.registerApp')}
+                            </Button>
+                        )}
                     </Box>
                 </motion.div>
 
@@ -285,15 +295,46 @@ if (code) {
                     </Alert>
                 )}
 
-                {/* --- Loading spinner --- */}
-                {loading && (
+                {/* --- Sign-in CTA for unauthenticated users --- */}
+                {!isAuthenticated && (
+                    <Paper
+                        sx={{
+                            textAlign: 'center',
+                            py: 5,
+                            px: 3,
+                            border: '1px solid',
+                            borderColor: 'divider',
+                            borderRadius: 2,
+                            mb: 2,
+                        }}
+                        elevation={0}
+                    >
+                        <Login sx={{ fontSize: 48, color: 'primary.main', mb: 1.5 }} />
+                        <Typography variant="h6" gutterBottom>
+                            {t('developerPortal.signInToManage')}
+                        </Typography>
+                        <Typography variant="body2" color="text.secondary" sx={{ mb: 3, maxWidth: 480, mx: 'auto' }}>
+                            {t('developerPortal.signInToManageDesc')}
+                        </Typography>
+                        <Button
+                            variant="contained"
+                            startIcon={<Login />}
+                            onClick={() => navigate('/login')}
+                        >
+                            {t('publicLayout.signIn')}
+                        </Button>
+                    </Paper>
+                )}
+
+                {/* --- Loading spinner (authenticated only) --- */}
+                {isAuthenticated && loading && (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
                         <CircularProgress />
                     </Box>
                 )}
 
-                {/* --- Registered Apps Table --- */}
-                {!loading && apps.length === 0 ? (
+                {/* --- Registered Apps Table (authenticated only) --- */}
+                {isAuthenticated && !loading && apps.length === 0 ? (
                     <Paper
                         sx={{
                             textAlign: 'center',
@@ -319,7 +360,7 @@ if (code) {
                             {t('developerPortal.registerApp')}
                         </Button>
                     </Paper>
-                ) : !loading && (
+                ) : isAuthenticated && !loading && (
                     <TableContainer
                         component={Paper}
                         elevation={0}

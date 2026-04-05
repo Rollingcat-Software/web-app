@@ -483,7 +483,9 @@
     "copied": "Copied!",
     "copy": "Copy",
     "copyClientId": "Copy Client ID",
-    "copiedToClipboard": "Copied to clipboard!"
+    "copiedToClipboard": "Copied to clipboard!",
+    "signInToManage": "Sign in to manage your applications",
+    "signInToManageDesc": "Create and manage OAuth 2.0 client credentials, view registered apps, and configure redirect URIs. Browse the Quick Start Guide below to learn how integration works."
   },
   "publicLayout": {
     "backToDashboard": "Back to Dashboard",
