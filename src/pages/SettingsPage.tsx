@@ -4,6 +4,7 @@ import {
     Avatar,
     Box,
     Button,
+    Chip,
     CircularProgress,
     Dialog,
     DialogActions,
@@ -31,11 +32,16 @@ import {
     Email,
     DevicesOther,
     AssignmentInd,
+    Lock,
+    LockOpen,
 } from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useSettings } from '@features/settings/hooks/useSettings'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
+import { useService } from '@app/providers'
+import { TYPES } from '@core/di/types'
+import type { AuthFlowRepository, AuthFlowResponse } from '@core/repositories/AuthFlowRepository'
 import TotpEnrollment from '@features/auth/components/TotpEnrollment'
 import WebAuthnEnrollment from '@features/auth/components/WebAuthnEnrollment'
 import OtpManagement from '@features/auth/components/OtpManagement'
@@ -70,12 +76,27 @@ export default function SettingsPage() {
     const [securityAlerts, setSecurityAlerts] = useState(true)
 
     // Security settings
-    const [twoFactorAuth, setTwoFactorAuth] = useState(false)
+    const [tenantRequires2FA, setTenantRequires2FA] = useState(false)
     const [sessionTimeout, setSessionTimeout] = useState('30')
 
     // Appearance settings
     const [darkMode, setDarkMode] = useState(false)
     const [compactView, setCompactView] = useState(false)
+
+    // Fetch tenant auth flow to determine if 2FA is required
+    const authFlowRepo = useService<AuthFlowRepository>(TYPES.AuthFlowRepository)
+    useEffect(() => {
+        if (!user?.tenantId) return
+        authFlowRepo.listFlows(user.tenantId, 'APP_LOGIN')
+            .then((flows: AuthFlowResponse[]) => {
+                const defaultActive = flows.find(f => f.isDefault && f.isActive)
+                setTenantRequires2FA(defaultActive ? defaultActive.stepCount > 1 : false)
+            })
+            .catch(() => {
+                // Non-admin users may not have access to tenant auth flows; default to false
+                setTenantRequires2FA(false)
+            })
+    }, [user?.tenantId, authFlowRepo])
 
     // TOTP enrollment dialog
     const [totpDialogOpen, setTotpDialogOpen] = useState(false)
@@ -127,7 +148,6 @@ export default function SettingsPage() {
             setLoginAlerts(settings.loginAlerts)
             setSecurityAlerts(settings.securityAlerts)
             setWeeklyReports(settings.weeklyReports)
-            setTwoFactorAuth(settings.twoFactorEnabled)
             setSessionTimeout(String(settings.sessionTimeoutMinutes))
             setDarkMode(settings.darkMode)
             setCompactView(settings.compactView)
@@ -165,7 +185,7 @@ export default function SettingsPage() {
 
     const handleSaveSecurity = useCallback(async () => {
         const timeout = parseInt(sessionTimeout, 10)
-        if (twoFactorAuth !== settings?.twoFactorEnabled || timeout !== settings?.sessionTimeoutMinutes) {
+        if (timeout !== settings?.sessionTimeoutMinutes) {
             const confirmed = window.confirm(t('settings.securityWarning'))
             if (!confirmed) return
         }
@@ -173,7 +193,7 @@ export default function SettingsPage() {
         try {
             setSaving('security')
             await updateSecurity({
-                twoFactorEnabled: twoFactorAuth,
+                twoFactorEnabled: tenantRequires2FA,
                 sessionTimeoutMinutes: timeout,
             })
             showSuccessMessage('security')
@@ -182,7 +202,7 @@ export default function SettingsPage() {
         } finally {
             setSaving(null)
         }
-    }, [twoFactorAuth, sessionTimeout, settings, updateSecurity, showSuccessMessage])
+    }, [tenantRequires2FA, sessionTimeout, settings, updateSecurity, showSuccessMessage, t])
 
     const handleSaveAppearance = useCallback(async () => {
         try {
@@ -369,33 +389,39 @@ export default function SettingsPage() {
                         </Box>
 
                         <Box sx={{ mb: 3 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={twoFactorAuth}
-                                        onChange={(e) => setTwoFactorAuth(e.target.checked)}
-                                        disabled={saving === 'security'}
-                                    />
-                                }
-                                label={t('settings.twoFactor')}
-                            />
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+                                {tenantRequires2FA ? (
+                                    <Lock sx={{ color: 'success.main', fontSize: 20 }} />
+                                ) : (
+                                    <LockOpen sx={{ color: 'text.secondary', fontSize: 20 }} />
+                                )}
+                                <Typography variant="subtitle1" fontWeight={600}>
+                                    {t('settings.twoFactor')}
+                                </Typography>
+                                <Chip
+                                    label={tenantRequires2FA
+                                        ? t('settings.twoFactorRequired')
+                                        : t('settings.twoFactorNotRequired')}
+                                    color={tenantRequires2FA ? 'success' : 'default'}
+                                    size="small"
+                                    variant="outlined"
+                                />
+                            </Box>
                             <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
                                 {t('settings.twoFactorHelper')}
                             </Typography>
                         </Box>
 
-                        {!twoFactorAuth && (
-                            <Button
-                                variant="outlined"
-                                fullWidth
-                                startIcon={<PhonelinkLock />}
-                                onClick={() => setTotpDialogOpen(true)}
-                                disabled={!user?.id}
-                                sx={{ mb: 2 }}
-                            >
-                                {t('settings.setupTotp')}
-                            </Button>
-                        )}
+                        <Button
+                            variant="outlined"
+                            fullWidth
+                            startIcon={<PhonelinkLock />}
+                            onClick={() => setTotpDialogOpen(true)}
+                            disabled={!user?.id}
+                            sx={{ mb: 2 }}
+                        >
+                            {t('settings.setupTotp')}
+                        </Button>
 
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, mb: 2 }}>
                             <Button
@@ -752,7 +778,7 @@ export default function SettingsPage() {
                 onClose={() => setTotpDialogOpen(false)}
                 onSuccess={() => {
                     setTotpDialogOpen(false)
-                    setTwoFactorAuth(true)
+                    showSuccessMessage('security')
                 }}
             />
 
@@ -763,7 +789,6 @@ export default function SettingsPage() {
                 onClose={() => setPlatformWebAuthnDialogOpen(false)}
                 onSuccess={() => {
                     setPlatformWebAuthnDialogOpen(false)
-                    setTwoFactorAuth(true)
                     showSuccessMessage('security')
                 }}
             />
@@ -775,7 +800,6 @@ export default function SettingsPage() {
                 onClose={() => setHardwareKeyDialogOpen(false)}
                 onSuccess={() => {
                     setHardwareKeyDialogOpen(false)
-                    setTwoFactorAuth(true)
                     showSuccessMessage('security')
                 }}
             />
