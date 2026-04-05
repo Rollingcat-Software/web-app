@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { renderHook, waitFor, act } from '@testing-library/react'
+import { renderHook, act } from '@testing-library/react'
 import React from 'react'
 import { useVerification } from '../useVerification'
 import { DependencyProvider } from '@app/providers/DependencyProvider'

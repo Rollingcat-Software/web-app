@@ -20,7 +20,7 @@ describe('useUserEnrollment', () => {
         handle: ReturnType<typeof vi.fn>
     }
 
-    const mockStatusNotStarted: UserEnrollmentStatusResponse = {
+    const _mockStatusNotStarted: UserEnrollmentStatusResponse = {
         status: UserEnrollmentStatus.NOT_STARTED,
     }
 
