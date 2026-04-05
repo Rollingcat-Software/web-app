@@ -22,6 +22,7 @@ import {
     LockClock,
     People,
     PersonAdd,
+    PersonOutline,
     Security,
     Assessment,
     Settings,
@@ -61,6 +62,7 @@ const menuItems: MenuItem[] = [
     {labelKey: 'nav.analytics', icon: <Analytics/>, path: '/analytics', adminOnly: true},
     {labelKey: 'nav.verificationFlows', icon: <VerifiedUser/>, path: '/verification-flows', adminOnly: true},
     {labelKey: 'nav.verificationDashboard', icon: <Assessment/>, path: '/verification-dashboard', adminOnly: true},
+    {labelKey: 'nav.myProfile', icon: <PersonOutline/>, path: '/my-profile'},
     {labelKey: 'nav.settings', icon: <Settings/>, path: '/settings'},
 ]
 

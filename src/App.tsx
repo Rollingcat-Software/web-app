@@ -29,6 +29,7 @@ const PAGE_TITLES: Record<string, string> = {
     '/analytics': 'Analytics — FIVUCSAS',
     '/guests': 'Guests — FIVUCSAS',
     '/settings': 'Settings — FIVUCSAS',
+    '/my-profile': 'My Profile — FIVUCSAS',
     '/login': 'Sign In — FIVUCSAS',
     '/register': 'Create Account — FIVUCSAS',
     '/forgot-password': 'Forgot Password — FIVUCSAS',
@@ -87,6 +88,7 @@ const VerificationSessionDetailPage = lazy(() => import('./pages/VerificationSes
 const TermsPage = lazy(() => import('./pages/TermsPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const WidgetAuthPage = lazy(() => import('./pages/WidgetAuthPage'))
+const MyProfilePage = lazy(() => import('./pages/MyProfilePage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -209,6 +211,7 @@ function App() {
                     <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
                     <Route path="guests" element={<ErrorBoundary><GuestsPage /></ErrorBoundary>} />
                     <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
+                    <Route path="my-profile" element={<ErrorBoundary><MyProfilePage /></ErrorBoundary>} />
                     <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
                 </Route>
 
