@@ -106,7 +106,7 @@ export default function WebAuthnEnrollment({
     const [webAuthnSupported, setWebAuthnSupported] = useState(true)
 
     const isPlatform = mode === 'platform'
-    const title = isPlatform ? 'Register Fingerprint / Biometric' : 'Register Hardware Security Key'
+    const title = isPlatform ? 'Register Fingerprint' : 'Register Hardware Security Key'
     const icon = isPlatform ? <Fingerprint sx={{ fontSize: 28, color: 'white' }} /> : <Key sx={{ fontSize: 28, color: 'white' }} />
 
     // Check WebAuthn support on mount

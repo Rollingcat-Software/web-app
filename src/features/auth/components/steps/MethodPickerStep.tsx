@@ -13,8 +13,8 @@ const METHOD_DESCRIPTIONS: Record<string, string> = {
     TOTP: 'Enter code from authenticator app',
     FACE: 'Verify with your camera',
     VOICE: 'Verify with your voice',
-    FINGERPRINT: 'Use device biometric',
-    HARDWARE_KEY: 'Use security key',
+    FINGERPRINT: 'Use fingerprint sensor',
+    HARDWARE_KEY: 'Use security key or external fingerprint',
     QR_CODE: 'Scan QR code',
     NFC_DOCUMENT: 'Tap NFC document',
 }

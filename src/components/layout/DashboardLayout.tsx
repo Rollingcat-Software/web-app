@@ -25,6 +25,12 @@ const BREADCRUMB_MAP: Record<string, string> = {
     'my-profile': 'My Profile',
     analytics: 'Analytics',
     settings: 'Settings',
+    'biometric-tools': 'Biometric Tools',
+    'verification-flows': 'Verification Flows',
+    'verification-dashboard': 'Verification Dashboard',
+    'verification-sessions': 'Verification Sessions',
+    'widget-demo': 'Widget Demo',
+    'developer-portal': 'Developer Portal',
     create: 'Create',
     edit: 'Edit',
 }

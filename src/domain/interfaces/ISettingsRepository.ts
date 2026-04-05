@@ -35,7 +35,7 @@ export interface UpdateNotificationSettings {
 }
 
 export interface UpdateSecuritySettings {
-    twoFactorEnabled: boolean
+    twoFactorEnabled?: boolean
     sessionTimeoutMinutes: number
 }
 

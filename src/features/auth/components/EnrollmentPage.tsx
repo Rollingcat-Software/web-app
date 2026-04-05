@@ -87,8 +87,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.FINGERPRINT,
-        label: 'Fingerprint / Biometric',
-        description: 'Use your device biometric (Touch ID, Windows Hello)',
+        label: 'Fingerprint',
+        description: 'Use your device fingerprint sensor for authentication',
         icon: <Fingerprint sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: 'webauthnPlatform',
         alwaysAvailable: false,
@@ -147,8 +147,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.HARDWARE_KEY,
-        label: 'Hardware Security Key',
-        description: 'Register a FIDO2/WebAuthn hardware key',
+        label: 'Hardware Security Key / External Fingerprint',
+        description: 'Register a FIDO2 security key or USB fingerprint scanner',
         icon: <Key sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: 'webauthn',
         alwaysAvailable: false,
@@ -169,13 +169,13 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
 
 const METHOD_LABELS: Record<string, string> = {
     FACE: 'Face Recognition',
-    FINGERPRINT: 'Fingerprint / Biometric',
+    FINGERPRINT: 'Fingerprint',
     VOICE: 'Voice Recognition',
     TOTP: 'Authenticator App (TOTP)',
     EMAIL_OTP: 'Email OTP',
     SMS_OTP: 'SMS OTP',
     QR_CODE: 'QR Code',
-    HARDWARE_KEY: 'Hardware Security Key',
+    HARDWARE_KEY: 'Hardware Security Key / External Fingerprint',
     NFC_DOCUMENT: 'NFC Document',
 }
 
@@ -789,7 +789,7 @@ export default function EnrollmentPage() {
                     setSnackbar({
                         open: true,
                         message: webauthnMode === 'platform'
-                            ? 'Fingerprint / Biometric enrolled successfully'
+                            ? 'Fingerprint enrolled successfully'
                             : 'Hardware Security Key enrolled successfully',
                         severity: 'success',
                     })

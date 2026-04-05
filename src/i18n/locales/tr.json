@@ -187,7 +187,16 @@
     "registerStepUpDevice": "Artırılmış Doğrulama Cihazı Kaydet",
     "comingSoon": "Yakında",
     "manageEnrollments": "Kayıtları Yönet",
-    "manageEnrollmentsHelper": "Biyometrik yöntemlerinizi (yüz, ses, NFC vb.) Kayıt sayfasında kaydedin ve yönetin"
+    "manageEnrollmentsHelper": "Biyometrik yöntemlerinizi (yüz, ses, NFC vb.) Kayıt sayfasında kaydedin ve yönetin",
+    "phoneNumber": "Telefon Numarası",
+    "phoneHelper": "SMS OTP doğrulaması için gerekli",
+    "registerPasskey": "Cihaz Biyometriği Kaydet (Passkey)",
+    "registerHardwareKey": "Donanım Güvenlik Anahtarı Kaydet",
+    "sessionTimeout15": "15 dakika",
+    "sessionTimeout30": "30 dakika",
+    "sessionTimeout60": "1 saat",
+    "sessionTimeout120": "2 saat",
+    "sessionTimeout480": "8 saat"
   },
   "sessions": {
     "title": "Aktif Oturumlar",

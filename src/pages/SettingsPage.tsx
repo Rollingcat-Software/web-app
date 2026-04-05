@@ -16,7 +16,6 @@ import {
     Paper,
     Switch,
     TextField,
-    Tooltip,
     Typography,
 } from '@mui/material'
 import {
@@ -188,7 +187,6 @@ export default function SettingsPage() {
         try {
             setSaving('security')
             await updateSecurity({
-                twoFactorEnabled: tenantRequires2FA,
                 sessionTimeoutMinutes: timeout,
             })
             showSuccessMessage('security')
@@ -197,7 +195,7 @@ export default function SettingsPage() {
         } finally {
             setSaving(null)
         }
-    }, [tenantRequires2FA, sessionTimeout, settings, updateSecurity, showSuccessMessage, t])
+    }, [sessionTimeout, settings, updateSecurity, showSuccessMessage, t])
 
     const handleSaveAppearance = useCallback(async () => {
         try {
@@ -299,13 +297,6 @@ export default function SettingsPage() {
                                 {firstName?.[0]}
                                 {lastName?.[0]}
                             </Avatar>
-                            <Tooltip title={t('settings.comingSoon')} arrow>
-                                <span>
-                                    <Button variant="outlined" size="small" disabled>
-                                        {t('settings.changeAvatar')}
-                                    </Button>
-                                </span>
-                            </Tooltip>
                         </Box>
 
                         <Grid container spacing={2}>
@@ -330,13 +321,13 @@ export default function SettingsPage() {
                             <Grid item xs={12} md={6}>
                                 <TextField
                                     fullWidth
-                                    label="Phone Number / Telefon Numaras\u0131"
+                                    label={t('settings.phoneNumber')}
                                     type="tel"
                                     value={phoneNumber}
                                     onChange={(e) => setPhoneNumber(e.target.value)}
                                     disabled={saving === 'profile'}
                                     placeholder="+905xxxxxxxxx"
-                                    helperText="Required for SMS OTP verification"
+                                    helperText={t('settings.phoneHelper')}
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -427,7 +418,7 @@ export default function SettingsPage() {
                                 onClick={() => setPlatformWebAuthnDialogOpen(true)}
                                 disabled={!user?.id}
                             >
-                                Register Device Biometric (Passkey)
+                                {t('settings.registerPasskey')}
                             </Button>
                             <Button
                                 variant="outlined"
@@ -436,7 +427,7 @@ export default function SettingsPage() {
                                 onClick={() => setHardwareKeyDialogOpen(true)}
                                 disabled={!user?.id}
                             >
-                                Register Hardware Security Key
+                                {t('settings.registerHardwareKey')}
                             </Button>
                         </Box>
 
@@ -452,11 +443,11 @@ export default function SettingsPage() {
                             sx={{ mb: 2 }}
                             disabled={saving === 'security'}
                         >
-                            <option value="15">15 minutes</option>
-                            <option value="30">30 minutes</option>
-                            <option value="60">1 hour</option>
-                            <option value="120">2 hours</option>
-                            <option value="480">8 hours</option>
+                            <option value="15">{t('settings.sessionTimeout15')}</option>
+                            <option value="30">{t('settings.sessionTimeout30')}</option>
+                            <option value="60">{t('settings.sessionTimeout60')}</option>
+                            <option value="120">{t('settings.sessionTimeout120')}</option>
+                            <option value="480">{t('settings.sessionTimeout480')}</option>
                         </TextField>
 
                         <Divider sx={{ my: 2 }} />
@@ -527,17 +518,6 @@ export default function SettingsPage() {
                                 label={t('settings.securityAlerts')}
                             />
 
-                            <Tooltip title={t('settings.comingSoon')} arrow>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={false}
-                                            disabled
-                                        />
-                                    }
-                                    label={`${t('settings.weeklyReports')} (${t('settings.comingSoon')})`}
-                                />
-                            </Tooltip>
                         </Box>
 
                         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>

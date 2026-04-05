@@ -20,6 +20,19 @@ interface AuthApiResponse {
     expiresIn?: number
     user: UserJSON
     twoFactorRequired?: boolean
+    twoFactorMethod?: string
+    mfaRequired?: boolean
+    mfaSessionToken?: string
+    totalSteps?: number
+    currentStep?: number
+    availableMethods?: Array<{
+        methodType: string
+        name: string
+        category: string
+        enrolled: boolean
+        preferred: boolean
+        requiresEnrollment: boolean
+    }>
 }
 
 /**
@@ -54,7 +67,10 @@ export class AuthRepository implements IAuthRepository {
                 refreshToken: data.refreshToken,
                 expiresIn: data.expiresIn || 3600,
                 user: User.fromJSON(data.user),
-                twoFactorRequired: data.twoFactorRequired ?? false,
+                twoFactorRequired: data.twoFactorRequired ?? data.mfaRequired ?? false,
+                twoFactorMethod: data.twoFactorMethod,
+                mfaSessionToken: data.mfaSessionToken,
+                availableMethods: data.availableMethods,
             }
 
             this.logger.info('Login successful', { userId: authResponse.user.id })

@@ -187,7 +187,16 @@
     "registerStepUpDevice": "Register Step-Up Device",
     "comingSoon": "Coming soon",
     "manageEnrollments": "Manage Enrollments",
-    "manageEnrollmentsHelper": "Enroll and manage your biometric methods (face, voice, NFC, etc.) on the dedicated Enrollment page"
+    "manageEnrollmentsHelper": "Enroll and manage your biometric methods (face, voice, NFC, etc.) on the dedicated Enrollment page",
+    "phoneNumber": "Phone Number",
+    "phoneHelper": "Required for SMS OTP verification",
+    "registerPasskey": "Register Device Biometric (Passkey)",
+    "registerHardwareKey": "Register Hardware Security Key",
+    "sessionTimeout15": "15 minutes",
+    "sessionTimeout30": "30 minutes",
+    "sessionTimeout60": "1 hour",
+    "sessionTimeout120": "2 hours",
+    "sessionTimeout480": "8 hours"
   },
   "sessions": {
     "title": "Active Sessions",
