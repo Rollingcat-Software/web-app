@@ -775,7 +775,10 @@
     },
     "emailOtp": {
       "title": "E-posta Doğrulama",
-      "subtitle": "E-postanıza gönderilen kodu girin"
+      "subtitle": "E-postanıza gönderilen kodu girin",
+      "sentTo": "Kod {{email}} adresine gönderildi",
+      "resend": "Kodu Tekrar Gönder",
+      "resendCountdown": "Tekrar Gönder ({{seconds}}s)"
     },
     "smsOtp": {
       "title": "SMS Doğrulama",

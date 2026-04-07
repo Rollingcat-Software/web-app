@@ -72,7 +72,9 @@ export default function MethodPickerStep({
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {availableMethods.map((method) => {
+                {[...availableMethods]
+                .sort((a, b) => (a.enrolled === b.enrolled ? 0 : a.enrolled ? -1 : 1))
+                .map((method) => {
                     const iconKey = method.methodType.toLowerCase()
                     const icon = METHOD_ICONS[iconKey]
                     const i18nKey = METHOD_I18N_KEYS[method.methodType]

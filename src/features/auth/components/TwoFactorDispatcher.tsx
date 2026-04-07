@@ -12,7 +12,7 @@ import { TYPES } from '@core/di/types'
 import type { IAuthRepository, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { useTranslation } from 'react-i18next'
-import TwoFactorVerification from './TwoFactorVerification'
+// TwoFactorVerification is replaced by EmailOtpMfaStep for the N-step flow
 import TotpStep from './steps/TotpStep'
 import SmsOtpStep from './steps/SmsOtpStep'
 import FaceCaptureStep from './steps/FaceCaptureStep'
@@ -21,6 +21,7 @@ import FingerprintStep from './steps/FingerprintStep'
 import QrCodeStep from './steps/QrCodeStep'
 import HardwareKeyStep from './steps/HardwareKeyStep'
 import NfcStep from './steps/NfcStep'
+import EmailOtpMfaStep from './steps/EmailOtpMfaStep'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -44,7 +45,7 @@ export default function TwoFactorDispatcher({
     mfaSessionToken,
     onAuthenticated,
     onBackToMethodSelection,
-    onCancel,
+    onCancel: _onCancel,
 }: TwoFactorDispatcherProps) {
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -53,23 +54,58 @@ export default function TwoFactorDispatcher({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | undefined>(undefined)
 
-    // EMAIL_OTP via legacy flow (uses Bearer token for send/verify)
+    // EMAIL_OTP: use the new session-token-based OTP flow
     if (!method || method === 'EMAIL_OTP') {
+        // Auto-send OTP on mount, then show code input
         return (
-            <TwoFactorVerification
-                onComplete={() => {
-                    // For legacy EMAIL_OTP, call mfa/step to advance the session
-                    // This ensures proper N-step flow advancement
-                    authRepository.verifyMfaStep(mfaSessionToken, 'EMAIL_OTP', {})
-                        .then(res => {
-                            if (res.status === 'AUTHENTICATED') {
-                                onAuthenticated(res)
-                            }
-                        })
-                        .catch(() => onCancel())
+            <Box
+                sx={{
+                    minHeight: '100vh',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 15s ease infinite',
+                    '@keyframes gradientShift': {
+                        '0%': { backgroundPosition: '0% 50%' },
+                        '50%': { backgroundPosition: '100% 50%' },
+                        '100%': { backgroundPosition: '0% 50%' },
+                    },
+                    p: { xs: 2, sm: 3 },
                 }}
-                onCancel={onBackToMethodSelection}
-            />
+            >
+                <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.5, ease: easeOut }}
+                    style={{ width: '100%', maxWidth: 400 }}
+                >
+                    <Card
+                        sx={{
+                            borderRadius: '24px',
+                            background: 'rgba(255, 255, 255, 0.95)',
+                            backdropFilter: 'blur(20px)',
+                            boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                            color: '#1a1a2e',
+                            '& .MuiTypography-root': { color: '#1a1a2e' },
+                            '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                            '& .MuiInputBase-input': { color: '#1a1a2e' },
+                            '& .MuiInputLabel-root': { color: 'rgba(0,0,0,0.6)' },
+                            '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.23)' },
+                        }}
+                    >
+                        <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                            <EmailOtpMfaStep
+                                mfaSessionToken={mfaSessionToken}
+                                onAuthenticated={onAuthenticated}
+                                onBack={onBackToMethodSelection}
+                            />
+                        </CardContent>
+                    </Card>
+                </motion.div>
+            </Box>
         )
     }
 
@@ -195,9 +231,10 @@ export default function TwoFactorDispatcher({
 
             default:
                 return (
-                    <TwoFactorVerification
-                        onComplete={() => onAuthenticated({ status: 'AUTHENTICATED' })}
-                        onCancel={onCancel}
+                    <EmailOtpMfaStep
+                        mfaSessionToken={mfaSessionToken}
+                        onAuthenticated={onAuthenticated}
+                        onBack={onBackToMethodSelection}
                     />
                 )
         }

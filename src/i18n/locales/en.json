@@ -775,7 +775,10 @@
     },
     "emailOtp": {
       "title": "Email Verification",
-      "subtitle": "Enter the code sent to your email"
+      "subtitle": "Enter the code sent to your email",
+      "sentTo": "Code sent to {{email}}",
+      "resend": "Resend Code",
+      "resendCountdown": "Resend Code ({{seconds}}s)"
     },
     "smsOtp": {
       "title": "SMS Verification",
