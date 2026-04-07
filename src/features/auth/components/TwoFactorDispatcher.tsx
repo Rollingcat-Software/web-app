@@ -190,10 +190,11 @@ export default function TwoFactorDispatcher({
             case 'QR_CODE':
                 return (
                     <QrCodeStep
+                        userId="mfa-session"
                         onGenerateToken={async () => {
                             const res = await httpClient.post<{ token: string; expiresInSeconds: number }>(
-                                '/auth/2fa/qr-generate',
-                                {}
+                                '/auth/mfa/qr-generate',
+                                { sessionToken: mfaSessionToken }
                             )
                             return res.data
                         }}
