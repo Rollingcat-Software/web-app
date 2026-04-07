@@ -4,19 +4,19 @@ import { useTranslation } from 'react-i18next'
 import { METHOD_ICONS } from '../StepProgress'
 
 /**
- * Short descriptions for each MFA method type
+ * i18n keys for each MFA method type descriptions
  */
-const METHOD_DESCRIPTIONS: Record<string, string> = {
-    PASSWORD: 'Enter your password',
-    EMAIL_OTP: 'Code sent to your email',
-    SMS_OTP: 'Code sent via SMS',
-    TOTP: 'Enter code from authenticator app',
-    FACE: 'Verify with your camera',
-    VOICE: 'Verify with your voice',
-    FINGERPRINT: 'Use fingerprint sensor',
-    HARDWARE_KEY: 'Use security key or external fingerprint',
-    QR_CODE: 'Scan QR code',
-    NFC_DOCUMENT: 'Tap NFC document',
+const METHOD_I18N_KEYS: Record<string, string> = {
+    PASSWORD: 'mfa.password.subtitle',
+    EMAIL_OTP: 'mfa.emailOtp.subtitle',
+    SMS_OTP: 'mfa.smsOtp.subtitle',
+    TOTP: 'mfa.totp.subtitle',
+    FACE: 'mfa.face.subtitle',
+    VOICE: 'mfa.voice.subtitle',
+    FINGERPRINT: 'mfa.fingerprint.subtitle',
+    HARDWARE_KEY: 'mfa.hardwareKey.subtitle',
+    QR_CODE: 'mfa.qrCode.subtitle',
+    NFC_DOCUMENT: 'mfa.nfc.subtitle',
 }
 
 interface AvailableMethod {
@@ -75,7 +75,8 @@ export default function MethodPickerStep({
                 {availableMethods.map((method) => {
                     const iconKey = method.methodType.toLowerCase()
                     const icon = METHOD_ICONS[iconKey]
-                    const description = METHOD_DESCRIPTIONS[method.methodType] ?? method.name
+                    const i18nKey = METHOD_I18N_KEYS[method.methodType]
+                    const description = i18nKey ? t(i18nKey) : method.name
                     const disabled = !method.enrolled
 
                     return (

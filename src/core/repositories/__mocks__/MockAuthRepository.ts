@@ -1,5 +1,5 @@
 import { injectable } from 'inversify'
-import type { AuthResponse, IAuthRepository, LoginCredentials } from '@domain/interfaces/IAuthRepository'
+import type { AuthResponse, IAuthRepository, LoginCredentials, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import { User, UserRole, UserStatus } from '@domain/models/User'
 
 @injectable()
@@ -49,6 +49,10 @@ export class MockAuthRepository implements IAuthRepository {
 
     async getCurrentUser(): Promise<User> {
         return this.currentUser ?? this.createDefaultUser()
+    }
+
+    async verifyMfaStep(_sessionToken: string, _method: string, _data: Record<string, unknown>): Promise<MfaStepResponse> {
+        return { status: 'AUTHENTICATED', accessToken: 'mock-token', refreshToken: 'mock-refresh' }
     }
 
     private createDefaultUser(): User {

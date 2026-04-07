@@ -7,6 +7,7 @@ import type {
     IAuthRepository,
     LoginCredentials,
     AuthResponse,
+    MfaStepResponse,
 } from '@domain/interfaces/IAuthRepository'
 import { User, type UserJSON } from '@domain/models/User'
 
@@ -123,6 +124,24 @@ export class AuthRepository implements IAuthRepository {
             return authResponse
         } catch (error) {
             this.logger.error('Token refresh failed', error)
+            throw error
+        }
+    }
+
+    /**
+     * Verify an MFA step (public endpoint — no JWT required, uses session token)
+     */
+    async verifyMfaStep(sessionToken: string, method: string, data: Record<string, unknown>): Promise<MfaStepResponse> {
+        try {
+            this.logger.info('Verifying MFA step', { method })
+            const response = await this.httpClient.post<MfaStepResponse>('/auth/mfa/step', {
+                sessionToken,
+                method,
+                data,
+            })
+            return response.data
+        } catch (error) {
+            this.logger.error('MFA step verification failed', error)
             throw error
         }
     }

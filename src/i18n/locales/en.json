@@ -762,7 +762,49 @@
     "notEnrolled": "Not enrolled",
     "enrolled": "Ready",
     "preferred": "Preferred",
-    "setupInSettings": "Set up in Settings"
+    "setupInSettings": "Set up in Settings",
+    "backToMethodSelection": "Back to method selection",
+    "cancel": "Cancel",
+    "verify": "Verify",
+    "verificationFailed": "Verification failed",
+    "totp": {
+      "title": "Authenticator App",
+      "subtitle": "Enter the 6-digit code from your authenticator app",
+      "codeLabel": "Authentication Code",
+      "hint": "Open your authenticator app (Google Authenticator, Authy, etc.) and enter the current code. The code auto-submits when 6 digits are entered."
+    },
+    "emailOtp": {
+      "title": "Email Verification",
+      "subtitle": "Enter the code sent to your email"
+    },
+    "smsOtp": {
+      "title": "SMS Verification",
+      "subtitle": "Enter the code sent to your phone"
+    },
+    "face": {
+      "title": "Face Verification",
+      "subtitle": "Verify with your camera"
+    },
+    "voice": {
+      "title": "Voice Verification",
+      "subtitle": "Verify with your voice"
+    },
+    "fingerprint": {
+      "title": "Fingerprint",
+      "subtitle": "Use fingerprint sensor"
+    },
+    "hardwareKey": {
+      "title": "Security Key",
+      "subtitle": "Use security key or external fingerprint"
+    },
+    "qrCode": {
+      "title": "QR Code",
+      "subtitle": "Scan QR code"
+    },
+    "nfc": {
+      "title": "NFC Document",
+      "subtitle": "Tap NFC document"
+    }
   },
   "language": {
     "en": "English",

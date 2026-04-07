@@ -24,9 +24,25 @@ export interface AvailableMfaMethod {
 /**
  * Auth response from API
  */
+/** Response from MFA step verification */
+export interface MfaStepResponse {
+    status: 'STEP_COMPLETED' | 'AUTHENTICATED' | 'FAILED' | 'ERROR'
+    message?: string
+    // Present when status = STEP_COMPLETED
+    mfaSessionToken?: string
+    currentStep?: number
+    totalSteps?: number
+    availableMethods?: AvailableMfaMethod[]
+    // Present when status = AUTHENTICATED
+    accessToken?: string
+    refreshToken?: string
+    expiresIn?: number
+    user?: Record<string, unknown>
+}
+
 export interface AuthResponse {
-    accessToken: string
-    refreshToken: string
+    accessToken: string | null
+    refreshToken: string | null
     user: User
     expiresIn: number // seconds
     twoFactorRequired?: boolean
@@ -62,4 +78,9 @@ export interface IAuthRepository {
      * Get current authenticated user
      */
     getCurrentUser(): Promise<User>
+
+    /**
+     * Verify an MFA step (public endpoint, no JWT required)
+     */
+    verifyMfaStep(sessionToken: string, method: string, data: Record<string, unknown>): Promise<MfaStepResponse>
 }

@@ -36,7 +36,10 @@ import FaceVerificationFlow from './FaceVerificationFlow'
 import TwoFactorDispatcher from './TwoFactorDispatcher'
 import MethodPickerStep from './steps/MethodPickerStep'
 import { getBiometricService } from '@core/services/BiometricService'
-import type { AvailableMfaMethod } from '@domain/interfaces/IAuthRepository'
+import type { AvailableMfaMethod, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
+import { useService } from '@app/providers'
+import { TYPES } from '@core/di/types'
 
 /**
  * Login form validation schema
@@ -127,7 +130,8 @@ const FloatingShape = ({ delay, size, left, top }: {
  */
 export default function LoginPage() {
     const navigate = useNavigate()
-    const { login, loading, error, user, logout } = useAuth()
+    const { login, loading, error, user, logout, refreshUser } = useAuth()
+    const tokenService = useService<ITokenService>(TYPES.TokenService)
     const [showPassword, setShowPassword] = useState(false)
     const [faceLoginOpen, setFaceLoginOpen] = useState(false)
     const [faceError, setFaceError] = useState<string | null>(null)
@@ -304,10 +308,30 @@ export default function LoginPage() {
         setShowSecondaryAuth(true)
     }
 
-    const handleTwoFactorComplete = useCallback(() => {
+    const handleMfaResult = useCallback(async (response: MfaStepResponse) => {
+        if (response.status === 'AUTHENTICATED' && response.accessToken) {
+            // ALL steps complete — store tokens and navigate to dashboard
+            await tokenService.storeTokens({
+                accessToken: response.accessToken,
+                refreshToken: response.refreshToken!,
+            })
+            setShowSecondaryAuth(false)
+            setShowMethodPicker(false)
+            await refreshUser()
+            navigate('/')
+        } else if (response.status === 'STEP_COMPLETED') {
+            // More steps remain — update available methods and show picker
+            setAvailableMethods(response.availableMethods ?? [])
+            setMfaSessionToken(response.mfaSessionToken ?? _mfaSessionToken)
+            setShowSecondaryAuth(false)
+            setShowMethodPicker(true)
+        }
+    }, [tokenService, refreshUser, navigate, _mfaSessionToken])
+
+    const handleBackToMethodSelection = useCallback(() => {
         setShowSecondaryAuth(false)
-        navigate('/')
-    }, [navigate])
+        setShowMethodPicker(true)
+    }, [])
 
     const handleTwoFactorCancel = useCallback(async () => {
         setShowSecondaryAuth(false)
@@ -349,6 +373,12 @@ export default function LoginPage() {
                         color: '#1a1a2e',
                         '& .MuiTypography-root': { color: '#1a1a2e' },
                         '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                        '& .MuiCard-root': {
+                            backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                            borderColor: 'rgba(0, 0, 0, 0.12)',
+                        },
+                        '& .MuiChip-root': { color: '#1a1a2e' },
+                        '& .MuiChip-colorSuccess': { color: '#fff' },
                     }}
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
@@ -360,7 +390,7 @@ export default function LoginPage() {
                             <Button
                                 variant="text"
                                 onClick={handleTwoFactorCancel}
-                                sx={{ color: 'text.secondary' }}
+                                sx={{ color: 'rgba(0,0,0,0.6)' }}
                             >
                                 Cancel
                             </Button>
@@ -376,7 +406,9 @@ export default function LoginPage() {
         return (
             <TwoFactorDispatcher
                 method={twoFactorMethod}
-                onComplete={handleTwoFactorComplete}
+                mfaSessionToken={_mfaSessionToken ?? ''}
+                onAuthenticated={handleMfaResult}
+                onBackToMethodSelection={handleBackToMethodSelection}
                 onCancel={handleTwoFactorCancel}
             />
         )
@@ -514,7 +546,7 @@ export default function LoginPage() {
                                             borderRadius: '12px',
                                         }}
                                     >
-                                        {faceError || 'Invalid credentials. Please try again.'}
+                                        {faceError || error?.message || 'Invalid credentials. Please try again.'}
                                     </Alert>
                                 </motion.div>
                             )}

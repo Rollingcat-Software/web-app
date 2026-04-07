@@ -80,15 +80,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             try {
                 const result = await authService.login(credentials)
 
+                const mfaRequired = result.twoFactorRequired ?? false
+
                 setState({
                     user: result.user,
                     loading: false,
                     error: null,
-                    isAuthenticated: true,
+                    // Don't mark as authenticated until MFA is complete
+                    isAuthenticated: !mfaRequired,
                 })
 
                 return {
-                    twoFactorRequired: result.twoFactorRequired ?? false,
+                    twoFactorRequired: mfaRequired,
                     twoFactorMethod: result.twoFactorMethod,
                     mfaSessionToken: result.mfaSessionToken,
                     availableMethods: result.availableMethods,
@@ -100,7 +103,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     error: error instanceof Error ? error : new Error(String(error)),
                 }))
 
-                errorHandler.handle(error)
+                // Don't call errorHandler.handle() here — the LoginPage
+                // already displays errors via the `error` state. Calling
+                // errorHandler would show a duplicate snackbar notification.
                 throw error
             }
         },

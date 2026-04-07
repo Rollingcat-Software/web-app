@@ -9,6 +9,7 @@ import {
 } from '@mui/material'
 import { PhonelinkLock, ArrowForward } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -28,14 +29,24 @@ interface TotpStepProps {
 }
 
 export default function TotpStep({ onSubmit, loading, error }: TotpStepProps) {
+    const { t } = useTranslation()
     const [code, setCode] = useState('')
+    const [submitted, setSubmitted] = useState(false)
 
-    // Auto-submit when 6 digits are entered
+    // Auto-submit when 6 digits are entered (only once per code entry)
     useEffect(() => {
-        if (code.length === 6 && !loading) {
+        if (code.length === 6 && !loading && !submitted) {
+            setSubmitted(true)
             onSubmit(code)
         }
-    }, [code, loading, onSubmit])
+    }, [code, loading, onSubmit, submitted])
+
+    // Reset submitted flag when code changes (user types a new code)
+    useEffect(() => {
+        if (code.length < 6) {
+            setSubmitted(false)
+        }
+    }, [code])
 
     const handleCodeChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
         const value = e.target.value.replace(/\D/g, '').slice(0, 6)
@@ -82,10 +93,10 @@ export default function TotpStep({ onSubmit, loading, error }: TotpStepProps) {
                     <PhonelinkLock sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    Authenticator App
+                    {t('mfa.totp.title')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Enter the 6-digit code from your authenticator app
+                    {t('mfa.totp.subtitle')}
                 </Typography>
             </Box>
 
@@ -105,7 +116,7 @@ export default function TotpStep({ onSubmit, loading, error }: TotpStepProps) {
                 <motion.div variants={itemVariants}>
                     <TextField
                         fullWidth
-                        label="Authentication Code"
+                        label={t('mfa.totp.codeLabel')}
                         value={code}
                         onChange={handleCodeChange}
                         placeholder="000000"
@@ -166,7 +177,7 @@ export default function TotpStep({ onSubmit, loading, error }: TotpStepProps) {
                             transition: 'all 0.3s ease',
                         }}
                     >
-                        Verify
+                        {t('mfa.verify')}
                     </Button>
                 </motion.div>
 
@@ -182,8 +193,7 @@ export default function TotpStep({ onSubmit, loading, error }: TotpStepProps) {
                         }}
                     >
                         <Typography variant="caption" color="text.secondary" display="block">
-                            Open your authenticator app (Google Authenticator, Authy, etc.)
-                            and enter the current code. The code auto-submits when 6 digits are entered.
+                            {t('mfa.totp.hint')}
                         </Typography>
                     </Box>
                 </motion.div>

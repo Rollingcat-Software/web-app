@@ -137,13 +137,24 @@ export class EnrollmentRepository implements IEnrollmentRepository {
         try {
             this.logger.debug(`Fetching enrollments for user ${userId}`)
 
-            const response = await this.httpClient.get<EnrollmentJSON[]>(
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const response = await this.httpClient.get<any>(
                 `/users/${userId}/enrollments`
             )
 
-            const enrollments = (response.data || []).map((data: EnrollmentJSON) =>
-                Enrollment.fromJSON(data)
-            )
+            // Handle both array and paginated ({ content: [...] }) responses
+            let enrollments: Enrollment[]
+            if (Array.isArray(response.data)) {
+                enrollments = response.data.map((data: EnrollmentJSON) =>
+                    Enrollment.fromJSON(data)
+                )
+            } else if (response.data?.content && Array.isArray(response.data.content)) {
+                enrollments = response.data.content.map((data: EnrollmentJSON) =>
+                    Enrollment.fromJSON(data)
+                )
+            } else {
+                enrollments = []
+            }
 
             this.logger.debug(`Found ${enrollments.length} enrollments for user ${userId}`)
             return enrollments

@@ -61,14 +61,20 @@ export class AuthService implements IAuthService {
             // Authenticate with repository
             const response = await this.authRepository.login(credentials)
 
-            // Store tokens securely
-            await this.tokenService.storeTokens({
-                accessToken: response.accessToken,
-                refreshToken: response.refreshToken,
-            })
+            const mfaPending = response.twoFactorRequired && !response.accessToken
+
+            // Only store tokens if MFA is NOT pending (JWT issued)
+            if (!mfaPending && response.accessToken) {
+                await this.tokenService.storeTokens({
+                    accessToken: response.accessToken,
+                    refreshToken: response.refreshToken!,
+                })
+            }
 
             // Calculate expiration time
-            const expiresAt = new Date(Date.now() + response.expiresIn * 1000)
+            const expiresAt = mfaPending
+                ? new Date(Date.now() + 600000)  // 10 min MFA session TTL
+                : new Date(Date.now() + response.expiresIn * 1000)
 
             // Reset attempts on success
             this.loginAttempts = 0
@@ -141,8 +147,8 @@ export class AuthService implements IAuthService {
 
             // Store new tokens
             await this.tokenService.storeTokens({
-                accessToken: response.accessToken,
-                refreshToken: response.refreshToken,
+                accessToken: response.accessToken!,
+                refreshToken: response.refreshToken!,
             })
 
             this.logger.info('Token refreshed successfully')

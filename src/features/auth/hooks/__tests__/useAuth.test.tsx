@@ -194,7 +194,7 @@ describe('useAuth', () => {
     })
 
     describe('login failure', () => {
-        it('should handle login failure and call error handler', async () => {
+        it('should handle login failure without calling error handler (LoginPage shows error)', async () => {
             mockAuthService.getCurrentUser = vi.fn().mockResolvedValue(null)
             const error = new Error('Invalid credentials')
             mockAuthService.login = vi.fn().mockRejectedValue(error)
@@ -223,7 +223,9 @@ describe('useAuth', () => {
             expect(result.current.user).toBeNull()
             expect(result.current.loading).toBe(false)
             expect(result.current.isAuthenticated).toBe(false)
-            expect(mockErrorHandler.handle).toHaveBeenCalledWith(error)
+            // errorHandler.handle should NOT be called for login failures
+            // to avoid duplicate error messages (LoginPage displays via error state)
+            expect(mockErrorHandler.handle).not.toHaveBeenCalled()
         })
     })
 

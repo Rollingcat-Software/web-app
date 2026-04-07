@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import { useState, useCallback } from 'react'
 import {
     Box,
+    Button,
     Card,
     CardContent,
 } from '@mui/material'
+import { ArrowBack } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
+import type { IAuthRepository, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { useTranslation } from 'react-i18next'
 import TwoFactorVerification from './TwoFactorVerification'
 import TotpStep from './steps/TotpStep'
 import SmsOtpStep from './steps/SmsOtpStep'
@@ -22,66 +26,83 @@ const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
 interface TwoFactorDispatcherProps {
     method: string
-    onComplete: () => void
+    mfaSessionToken: string
+    onAuthenticated: (response: MfaStepResponse) => void
+    onBackToMethodSelection: () => void
     onCancel: () => void
 }
 
 /**
  * TwoFactorDispatcher
  *
- * Routes the 2FA step to the correct step component based on the method
- * returned by the backend (twoFactorMethod field).
- *
- * For EMAIL_OTP: delegates to the existing TwoFactorVerification component.
- * For all other methods: wraps the step component with verification logic.
+ * Routes the MFA step to the correct step component.
+ * Uses POST /auth/mfa/step (public, no JWT) with session token.
+ * Handles N-step flows: on STEP_COMPLETED shows next step, on AUTHENTICATED returns tokens.
  */
 export default function TwoFactorDispatcher({
     method,
-    onComplete,
+    mfaSessionToken,
+    onAuthenticated,
+    onBackToMethodSelection,
     onCancel,
 }: TwoFactorDispatcherProps) {
+    const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
+    const { t } = useTranslation()
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | undefined>(undefined)
 
-    // EMAIL_OTP: delegate to existing full-page component
+    // EMAIL_OTP via legacy flow (uses Bearer token for send/verify)
     if (!method || method === 'EMAIL_OTP') {
         return (
             <TwoFactorVerification
-                onComplete={onComplete}
-                onCancel={onCancel}
+                onComplete={() => {
+                    // For legacy EMAIL_OTP, call mfa/step to advance the session
+                    // This ensures proper N-step flow advancement
+                    authRepository.verifyMfaStep(mfaSessionToken, 'EMAIL_OTP', {})
+                        .then(res => {
+                            if (res.status === 'AUTHENTICATED') {
+                                onAuthenticated(res)
+                            }
+                        })
+                        .catch(() => onCancel())
+                }}
+                onCancel={onBackToMethodSelection}
             />
         )
     }
 
-    // Generic 2FA verify helper: sends the step data to /auth/2fa/verify-method
-    const verify2FA = async (methodType: string, data: Record<string, unknown>) => {
+    // Verify MFA step using the new public endpoint (no JWT needed)
+    const verifyStep = useCallback(async (methodType: string, data: Record<string, unknown>) => {
         setLoading(true)
         setError(undefined)
         try {
-            const res = await httpClient.post<{ success: boolean; message: string }>(
-                '/auth/2fa/verify-method',
-                { method: methodType, data }
-            )
-            if (res.data.success) {
-                onComplete()
+            const res = await authRepository.verifyMfaStep(mfaSessionToken, methodType, data)
+
+            if (res.status === 'AUTHENTICATED') {
+                onAuthenticated(res)
+            } else if (res.status === 'STEP_COMPLETED') {
+                // More steps — parent will handle showing next step
+                onAuthenticated(res)
             } else {
-                setError(res.data.message || 'Verification failed')
+                setError(res.message || t('mfa.verificationFailed'))
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Verification failed')
+            setError(err instanceof Error ? err.message : t('mfa.verificationFailed'))
         } finally {
             setLoading(false)
         }
-    }
+    }, [authRepository, mfaSessionToken, onAuthenticated, t])
+
+    const totpSubmit = useCallback((code: string) => verifyStep('TOTP', { code }), [verifyStep])
 
     const renderStep = () => {
         switch (method) {
             case 'TOTP':
                 return (
                     <TotpStep
-                        onSubmit={(code) => verify2FA('TOTP', { code })}
+                        onSubmit={totpSubmit}
                         loading={loading}
                         error={error}
                     />
@@ -90,7 +111,7 @@ export default function TwoFactorDispatcher({
             case 'SMS_OTP':
                 return (
                     <SmsOtpStep
-                        onSubmit={(code) => verify2FA('SMS_OTP', { code })}
+                        onSubmit={(code) => verifyStep('SMS_OTP', { code })}
                         onSendOtp={async () => {
                             try {
                                 await httpClient.post('/auth/2fa/send-sms', {})
@@ -106,7 +127,7 @@ export default function TwoFactorDispatcher({
             case 'FACE':
                 return (
                     <FaceCaptureStep
-                        onSubmit={(image) => verify2FA('FACE', { image })}
+                        onSubmit={(image) => verifyStep('FACE', { image })}
                         loading={loading}
                         error={error}
                     />
@@ -115,7 +136,7 @@ export default function TwoFactorDispatcher({
             case 'VOICE':
                 return (
                     <VoiceStep
-                        onSubmit={(voiceData) => verify2FA('VOICE', { voiceData })}
+                        onSubmit={(voiceData) => verifyStep('VOICE', { voiceData })}
                         loading={loading}
                         error={error}
                     />
@@ -124,7 +145,7 @@ export default function TwoFactorDispatcher({
             case 'FINGERPRINT':
                 return (
                     <FingerprintStep
-                        onSubmit={(data) => verify2FA('FINGERPRINT', { assertion: data })}
+                        onSubmit={(data) => verifyStep('FINGERPRINT', { assertion: data })}
                         loading={loading}
                         error={error}
                     />
@@ -140,7 +161,7 @@ export default function TwoFactorDispatcher({
                             )
                             return res.data
                         }}
-                        onSubmit={(token) => verify2FA('QR_CODE', { token })}
+                        onSubmit={(token) => verifyStep('QR_CODE', { token })}
                         loading={loading}
                         error={error}
                     />
@@ -158,7 +179,7 @@ export default function TwoFactorDispatcher({
                             }>('/auth/2fa/hardware-challenge', {})
                             return res.data
                         }}
-                        onSubmit={(data) => verify2FA('HARDWARE_KEY', data)}
+                        onSubmit={(data) => verifyStep('HARDWARE_KEY', data)}
                         loading={loading}
                         error={error}
                     />
@@ -173,10 +194,9 @@ export default function TwoFactorDispatcher({
                 )
 
             default:
-                // Fallback to email OTP for unknown methods
                 return (
                     <TwoFactorVerification
-                        onComplete={onComplete}
+                        onComplete={() => onAuthenticated({ status: 'AUTHENTICATED' })}
                         onCancel={onCancel}
                     />
                 )
@@ -186,10 +206,19 @@ export default function TwoFactorDispatcher({
     return (
         <Box
             sx={{
+                minHeight: '100vh',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                flex: 1,
+                justifyContent: 'center',
+                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
+                backgroundSize: '400% 400%',
+                animation: 'gradientShift 15s ease infinite',
+                '@keyframes gradientShift': {
+                    '0%': { backgroundPosition: '0% 50%' },
+                    '50%': { backgroundPosition: '100% 50%' },
+                    '100%': { backgroundPosition: '0% 50%' },
+                },
                 p: { xs: 2, sm: 3 },
             }}
         >
@@ -216,6 +245,16 @@ export default function TwoFactorDispatcher({
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                         {renderStep()}
+                        <Box sx={{ textAlign: 'center', mt: 2 }}>
+                            <Button
+                                variant="text"
+                                startIcon={<ArrowBack />}
+                                onClick={onBackToMethodSelection}
+                                sx={{ color: 'rgba(0,0,0,0.6)' }}
+                            >
+                                {t('mfa.backToMethodSelection')}
+                            </Button>
+                        </Box>
                     </CardContent>
                 </Card>
             </motion.div>
