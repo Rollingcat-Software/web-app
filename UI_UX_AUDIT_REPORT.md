@@ -2,7 +2,7 @@
 
 > Date: 2026-03-16
 > Auditor: Claude Code (Playwright-assisted live audit)
-> URL: https://ica-fivucsas.rollingcatsoftware.com
+> URL: https://app.fivucsas.com
 > Overall Score: **6.2 / 10**
 
 ---

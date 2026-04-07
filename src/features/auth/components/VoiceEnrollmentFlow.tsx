@@ -314,7 +314,7 @@ export default function VoiceEnrollmentFlow({
             let url: string
             let body: object
 
-            // apiBaseUrl already includes /api/v1 (e.g. https://auth.rollingcatsoftware.com/api/v1)
+            // apiBaseUrl already includes /api/v1 (e.g. https://api.fivucsas.com/api/v1)
             switch (action) {
                 case 'enroll':
                     url = `${apiBaseUrl}/biometric/voice/enroll/${userId}`

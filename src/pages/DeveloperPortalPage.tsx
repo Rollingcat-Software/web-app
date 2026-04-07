@@ -215,7 +215,7 @@ export default function DeveloperPortalPage() {
 
     // --- Quick Start code snippets ---
     const scriptSnippet = `<!-- Auth widget SDK (replace with your build or CDN URL) -->
-<script src="https://auth.rollingcatsoftware.com/sdk/auth-widget.js"></script>
+<script src="https://api.fivucsas.com/sdk/auth-widget.js"></script>
 <script>
   FivucsasAuth.init({
     clientId: 'YOUR_CLIENT_ID',
@@ -229,7 +229,7 @@ const params = new URLSearchParams(window.location.search);
 const code = params.get('code');
 
 if (code) {
-  const response = await fetch('https://auth.rollingcatsoftware.com/api/v1/oauth2/token', {
+  const response = await fetch('https://api.fivucsas.com/api/v1/oauth2/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({

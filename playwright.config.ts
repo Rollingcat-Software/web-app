@@ -12,7 +12,7 @@ export default defineConfig({
         timeout: 20000,
     },
     use: {
-        baseURL: process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com',
+        baseURL: process.env.E2E_BASE_URL || 'https://app.fivucsas.com',
         trace: 'on-first-retry',
         screenshot: 'only-on-failure',
         actionTimeout: 20000,

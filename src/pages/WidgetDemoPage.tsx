@@ -115,7 +115,7 @@ const SCRIPT_TAG_EXAMPLE = `<!DOCTYPE html>
     flow="login"
     locale="en"
     base-url="https://verify.fivucsas.com"
-    api-base-url="https://auth.rollingcatsoftware.com/api/v1"
+    api-base-url="https://api.fivucsas.com/api/v1"
   ></fivucsas-verify>
 
   <!-- 3. Listen for events -->
@@ -147,7 +147,7 @@ const PROGRAMMATIC_EXAMPLE = `import { FivucsasAuth } from '@fivucsas/auth-js';
 const auth = new FivucsasAuth({
   clientId: 'your-client-id',
   baseUrl: 'https://verify.fivucsas.com',
-  apiBaseUrl: 'https://auth.rollingcatsoftware.com/api/v1',
+  apiBaseUrl: 'https://api.fivucsas.com/api/v1',
   locale: 'en',
   theme: { primaryColor: '#6366f1', mode: 'light' },
 });
@@ -412,7 +412,7 @@ export default function WidgetDemoPage() {
             setDemoStatus('verifying')
 
             const apiBaseUrl =
-                import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
+                import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
             const baseUrl = window.location.origin + '/widget-auth'
 
             const auth = new FivucsasAuth({

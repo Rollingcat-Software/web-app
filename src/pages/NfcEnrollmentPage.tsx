@@ -89,7 +89,7 @@ export default function NfcEnrollmentPage() {
         setActionLoading(action)
         setActionResult(null)
 
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
 
         try {
             let url: string

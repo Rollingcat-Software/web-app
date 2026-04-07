@@ -44,7 +44,7 @@ export function useCardDetection(): UseCardDetectionReturn {
         abortRef.current = new AbortController()
 
         try {
-            const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
+            const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
             const formData = new FormData()
             formData.append('file', imageBlob, 'capture.jpg')
 

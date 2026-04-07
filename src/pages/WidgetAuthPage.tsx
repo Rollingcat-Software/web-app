@@ -74,7 +74,7 @@ function parseWidgetParams(): WidgetParams {
         apiBaseUrl:
             params.get('api_base_url') ||
             import.meta.env.VITE_API_BASE_URL ||
-            'https://auth.rollingcatsoftware.com/api/v1',
+            'https://api.fivucsas.com/api/v1',
         theme: params.get('theme') || 'light',
     }
 }

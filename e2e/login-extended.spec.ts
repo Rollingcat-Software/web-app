@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const BASE_URL = process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com'
+const BASE_URL = process.env.E2E_BASE_URL || 'https://app.fivucsas.com'
 
 /**
  * Extended login tests — no pre-authentication required.
@@ -117,7 +117,7 @@ test.describe('Login Page — Extended', () => {
         page,
     }) => {
         // The demo box is conditionally rendered with: {import.meta.env.DEV && ...}
-        // In the production build served at ica-fivucsas.rollingcatsoftware.com
+        // In the production build served at app.fivucsas.com
         // DEV is always false, so this block must be absent.
         await expect(page.getByText(/demo credentials/i)).not.toBeVisible({ timeout: 5000 })
     })

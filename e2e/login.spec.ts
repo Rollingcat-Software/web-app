@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const BASE_URL = process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com'
+const BASE_URL = process.env.E2E_BASE_URL || 'https://app.fivucsas.com'
 const E2E_EMAIL = process.env.E2E_EMAIL || 'admin@fivucsas.local'
 const E2E_PASSWORD = process.env.E2E_PASSWORD || 'Test@123'
 

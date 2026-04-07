@@ -800,7 +800,7 @@ export default function EnrollmentPage() {
             <VoiceEnrollmentFlow
                 open={voiceEnrollOpen}
                 userId={userId}
-                apiBaseUrl={import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'}
+                apiBaseUrl={import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'}
                 token={accessToken}
                 onClose={() => setVoiceEnrollOpen(false)}
                 onSuccess={(action) => {

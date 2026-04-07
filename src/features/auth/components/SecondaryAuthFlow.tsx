@@ -175,7 +175,7 @@ export default function SecondaryAuthFlow({
     useEffect(() => {
         if (!authSession || !containerRef.current || widgetActive) return
 
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
+        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
         const baseUrl = window.location.origin + '/verify'
 
         let auth: FivucsasAuth

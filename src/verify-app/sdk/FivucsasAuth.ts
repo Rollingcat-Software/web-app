@@ -48,7 +48,7 @@ export interface VerifyResult {
 // ─── Constants ─────────────────────────────────────────────────────
 
 const DEFAULT_BASE_URL = 'https://verify.fivucsas.com';
-const DEFAULT_API_BASE_URL = 'https://auth.rollingcatsoftware.com/api/v1';
+const DEFAULT_API_BASE_URL = 'https://api.fivucsas.com/api/v1';
 const IFRAME_ID = 'fivucsas-verify-iframe';
 
 // ─── CSS (injected once) ───────────────────────────────────────────

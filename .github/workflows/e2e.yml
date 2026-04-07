@@ -39,7 +39,7 @@ jobs:
       - name: Run Playwright E2E tests
         run: npx playwright test
         env:
-          E2E_BASE_URL: https://ica-fivucsas.rollingcatsoftware.com
+          E2E_BASE_URL: https://app.fivucsas.com
         continue-on-error: true
 
       - name: Upload test results

@@ -42,7 +42,7 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
         setError(null)
 
         try {
-            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://auth.rollingcatsoftware.com/api/v1'
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
             const token = localStorage.getItem('fivucsas_token')
 
             const res = await fetch(`${apiBaseUrl}/biometric/voice/search`, {

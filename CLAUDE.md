@@ -132,15 +132,15 @@ Enrollment UIs:
 - All model mismatches from integration audit resolved
 
 ### Production deployment (Hostinger, last deployed 2026-04-05):
-- URL: https://ica-fivucsas.rollingcatsoftware.com
-- API: `VITE_API_BASE_URL=https://auth.rollingcatsoftware.com/api/v1` (in `.env.production`)
-- Deploy: `npm run build` → `rsync dist/ u349700627@46.202.158.52:~/domains/ica-fivucsas.rollingcatsoftware.com/public_html/` (SSH port 65002, password in .env.prod)
+- URL: https://app.fivucsas.com
+- API: `VITE_API_BASE_URL=https://api.fivucsas.com/api/v1` (in `.env.production`)
+- Deploy: `npm run build` → `rsync dist/ u349700627@46.202.158.52:~/domains/app.fivucsas.com/public_html/` (SSH port 65002, password in .env.prod)
 - SPA routing: `public/.htaccess` with RewriteEngine
 - CSP: defined in **both** `vite.config.ts` (meta tag injected into index.html at build time) AND `public/.htaccess` (HTTP header). Both must be kept in sync. The meta tag takes precedence in browsers.
-- ⚠️ `connect-src` must include `https://auth.rollingcatsoftware.com` — NOT `api-fivucsas` (that domain doesn't exist)
+- ⚠️ `connect-src` must include `https://api.fivucsas.com` — NOT `api-fivucsas` (that domain doesn't exist)
 
 ### Critical fixes applied (2026-03-16):
-- **CSP domain** in `vite.config.ts` and `public/.htaccess` changed from `api-fivucsas.rollingcatsoftware.com` to `auth.rollingcatsoftware.com`
+- **CSP domain** in `vite.config.ts` and `public/.htaccess` changed from `api.fivucsas.com` to `api.fivucsas.com`
 - Added `api.qrserver.com` to connect-src for TOTP QR code generation
 - Added `camera=(self)` to Permissions-Policy so face capture works
 - Added `blob:` to `media-src` and `worker-src`

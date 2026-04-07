@@ -34,7 +34,7 @@ jobs:
         with:
           switches: -avz --delete --exclude auth-test
           path: dist/
-          remote_path: ~/domains/ica-fivucsas.rollingcatsoftware.com/public_html/
+          remote_path: ~/domains/app.fivucsas.com/public_html/
           remote_host: 46.202.158.52
           remote_port: 65002
           remote_user: u349700627

@@ -2,7 +2,7 @@ import { test, expect } from '@playwright/test'
 import * as fs from 'fs'
 import * as path from 'path'
 
-const BASE_URL = process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com'
+const BASE_URL = process.env.E2E_BASE_URL || 'https://app.fivucsas.com'
 const SESSION_FILE = path.join(process.cwd(), 'e2e', '.auth', 'session.json')
 
 function injectSession(page: Parameters<Parameters<typeof test>[1]>[0]['page']) {

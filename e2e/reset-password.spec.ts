@@ -1,6 +1,6 @@
 import { test, expect } from '@playwright/test'
 
-const BASE_URL = process.env.E2E_BASE_URL || 'https://ica-fivucsas.rollingcatsoftware.com'
+const BASE_URL = process.env.E2E_BASE_URL || 'https://app.fivucsas.com'
 
 test.describe('Reset Password Flow', () => {
     // -------------------------------------------------------------------------
