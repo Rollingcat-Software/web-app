@@ -8,6 +8,7 @@ import {
 } from '@mui/material'
 import { Fingerprint, ArrowForward } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -37,6 +38,7 @@ interface FingerprintStepProps {
 }
 
 export default function FingerprintStep({ challenge, onSubmit, loading, error }: FingerprintStepProps) {
+    const { t } = useTranslation()
     const [waiting, setWaiting] = useState(false)
     const [unavailable, setUnavailable] = useState(false)
 
@@ -133,10 +135,10 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                     <Fingerprint sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    Fingerprint Verification
+                    {t('mfa.fingerprint.title')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Use your fingerprint sensor to verify your identity
+                    {t('mfa.fingerprint.description')}
                 </Typography>
             </Box>
 
@@ -154,8 +156,7 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
 
             {unavailable && (
                 <Alert severity="warning" sx={{ mb: 2, borderRadius: '12px' }}>
-                    Fingerprint authentication is not available on this device.
-                    Please use a device with a biometric sensor or try a different authentication method.
+                    {t('mfa.fingerprint.unavailable')}
                 </Alert>
             )}
 
@@ -222,8 +223,8 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                     sx={{ textAlign: 'center', mb: 3 }}
                 >
                     {isProcessing
-                        ? 'Place your finger on the sensor...'
-                        : 'Click the button below to start fingerprint verification'}
+                        ? t('mfa.fingerprint.placeFinger')
+                        : t('mfa.fingerprint.clickToStart')}
                 </Typography>
             </motion.div>
 
@@ -251,7 +252,7 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                     {isProcessing ? (
                         <CircularProgress size={24} sx={{ color: 'white' }} />
                     ) : (
-                        'Scan Fingerprint'
+                        t('mfa.fingerprint.scanButton')
                     )}
                 </Button>
             </motion.div>

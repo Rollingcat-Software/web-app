@@ -782,27 +782,81 @@
     },
     "smsOtp": {
       "title": "SMS Verification",
-      "subtitle": "Enter the code sent to your phone"
+      "subtitle": "Enter the code sent to your phone",
+      "enterCode": "Enter the 6-digit code sent to your phone",
+      "willSend": "We'll send a verification code to your registered phone number",
+      "sendCode": "Send SMS Code",
+      "codeLabel": "SMS Code",
+      "verifyCode": "Verify Code",
+      "resend": "Resend Code",
+      "resendCountdown": "Resend Code ({{seconds}}s)"
     },
     "face": {
       "title": "Face Verification",
-      "subtitle": "Verify with your camera"
+      "subtitle": "Verify with your camera",
+      "description": "Position your face within the frame and capture a photo",
+      "cameraError": "Unable to access camera. Please allow camera permission and try again.",
+      "cameraOff": "Camera off",
+      "quality": "{{label}} {{score}}%",
+      "blur": "Blur {{score}}%",
+      "light": "Light {{score}}%",
+      "size": "Size {{score}}%",
+      "startCamera": "Start Camera",
+      "capturePhoto": "Capture Photo",
+      "retake": "Retake",
+      "submit": "Submit"
     },
     "voice": {
       "title": "Voice Verification",
-      "subtitle": "Verify with your voice"
+      "subtitle": "Verify with your voice",
+      "description": "Record your voice for identity verification",
+      "micError": "Unable to access microphone. Please allow microphone permission and try again.",
+      "recordingTime": "{{current}}s / {{max}}s",
+      "recordingCaptured": "Voice recording captured ({{seconds}}s). Ready to submit.",
+      "startRecording": "Start Recording",
+      "stopRecording": "Stop Recording",
+      "reRecord": "Re-record",
+      "submit": "Submit"
     },
     "fingerprint": {
-      "title": "Fingerprint",
-      "subtitle": "Use fingerprint sensor"
+      "title": "Fingerprint Verification",
+      "subtitle": "Use fingerprint sensor",
+      "description": "Use your fingerprint sensor to verify your identity",
+      "unavailable": "Biometric authentication is not available on this device. Please use a device with a fingerprint sensor or biometric capability.",
+      "placeFinger": "Place your finger on the sensor...",
+      "clickToStart": "Click the button below to start fingerprint scan",
+      "scanButton": "Scan Fingerprint"
     },
     "hardwareKey": {
-      "title": "Security Key",
-      "subtitle": "Use security key or external fingerprint"
+      "title": "Security Key Authentication",
+      "subtitle": "Use security key or external fingerprint",
+      "description": "Insert your security key and tap when prompted",
+      "webauthnNotSupported": "WebAuthn is not supported by your browser. Please use a modern browser.",
+      "cancelledOrTimeout": "Authentication was cancelled or timed out. Please try again.",
+      "authFailed": "Authentication failed. Please try again.",
+      "touchKey": "Touch your security key now...",
+      "ensureInserted": "Make sure your security key is inserted and ready",
+      "authenticateButton": "Authenticate with Security Key"
     },
     "qrCode": {
-      "title": "QR Code",
-      "subtitle": "Scan QR code"
+      "title": "QR Code Authentication",
+      "subtitle": "Scan QR code",
+      "description": "Scan the QR code with your authenticator app",
+      "autoUnavailable": "Automatic QR code generation is not available. Please enter the token manually.",
+      "manualFallback": "You can enter the token manually below.",
+      "generating": "Generating QR code...",
+      "tokenExpired": "Token expired",
+      "generatingNew": "Generating new code...",
+      "placeholder": "QR Code will appear here",
+      "expired": "Expired",
+      "expiresIn": "Expires in {{time}}",
+      "autoRefresh": "Auto-refresh",
+      "generateNew": "Generate New QR Code",
+      "tokenAutoFilled": "Token has been auto-filled from the QR code",
+      "enterManually": "Or enter the authentication token manually",
+      "tokenLabel": "Authentication Token",
+      "tokenPlaceholder": "Enter token...",
+      "verify": "Verify"
     },
     "nfc": {
       "title": "NFC Document Scan",

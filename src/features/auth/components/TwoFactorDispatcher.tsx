@@ -224,6 +224,7 @@ export default function TwoFactorDispatcher({
             case 'NFC_DOCUMENT':
                 return (
                     <NfcStep
+                        onSubmit={(data) => verifyStep('NFC_DOCUMENT', { serialNumber: data })}
                         loading={loading}
                         error={error}
                     />

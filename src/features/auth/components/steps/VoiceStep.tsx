@@ -15,6 +15,7 @@ import {
     ArrowForward,
 } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -36,6 +37,7 @@ interface VoiceStepProps {
 }
 
 export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) {
+    const { t } = useTranslation()
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const chunksRef = useRef<Blob[]>([])
 
@@ -93,7 +95,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
             setRecording(true)
         } catch (_err) {
             setMicError(
-                'Unable to access microphone. Please ensure microphone permissions are granted.'
+                t('mfa.voice.micError')
             )
         }
     }, [])
@@ -154,10 +156,10 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                     <RecordVoiceOver sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    Voice Verification
+                    {t('mfa.voice.title')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Record your voice to verify your identity
+                    {t('mfa.voice.description')}
                 </Typography>
             </Box>
 
@@ -282,7 +284,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                             color="text.secondary"
                             sx={{ display: 'block', textAlign: 'center', mt: 1 }}
                         >
-                            {recordingTime}s / {MAX_RECORDING_SECONDS}s
+                            {t('mfa.voice.recordingTime', { current: recordingTime, max: MAX_RECORDING_SECONDS })}
                         </Typography>
                     </Box>
                 </motion.div>
@@ -295,7 +297,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                     transition={{ duration: 0.3 }}
                 >
                     <Alert severity="success" sx={{ mb: 2, borderRadius: '12px' }}>
-                        Voice recording captured ({recordingTime}s)
+                        {t('mfa.voice.recordingCaptured', { seconds: recordingTime })}
                     </Alert>
                 </motion.div>
             )}
@@ -323,7 +325,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                             transition: 'all 0.3s ease',
                         }}
                     >
-                        Start Recording
+                        {t('mfa.voice.startRecording')}
                     </Button>
                 )}
 
@@ -342,7 +344,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                             fontWeight: 600,
                         }}
                     >
-                        Stop Recording
+                        {t('mfa.voice.stopRecording')}
                     </Button>
                 )}
 
@@ -361,7 +363,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                                 fontWeight: 600,
                             }}
                         >
-                            Re-record
+                            {t('mfa.voice.reRecord')}
                         </Button>
                         <Button
                             variant="contained"
@@ -385,7 +387,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                             {loading ? (
                                 <CircularProgress size={24} sx={{ color: 'white' }} />
                             ) : (
-                                'Submit'
+                                t('mfa.voice.submit')
                             )}
                         </Button>
                     </Box>

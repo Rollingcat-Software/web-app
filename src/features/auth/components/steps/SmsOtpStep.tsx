@@ -9,6 +9,7 @@ import {
 } from '@mui/material'
 import { Sms, ArrowForward, Refresh } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -31,6 +32,7 @@ interface SmsOtpStepProps {
 }
 
 export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsOtpStepProps) {
+    const { t } = useTranslation()
     const [code, setCode] = useState('')
     const [countdown, setCountdown] = useState(0)
     const [otpSent, setOtpSent] = useState(false)
@@ -96,12 +98,12 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                     <Sms sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    SMS Verification
+                    {t('mfa.smsOtp.title')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                     {otpSent
-                        ? 'Enter the 6-digit code sent to your phone'
-                        : 'We will send a verification code via SMS'}
+                        ? t('mfa.smsOtp.enterCode')
+                        : t('mfa.smsOtp.willSend')}
                 </Typography>
             </Box>
 
@@ -143,7 +145,7 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                         {loading ? (
                             <CircularProgress size={24} sx={{ color: 'white' }} />
                         ) : (
-                            'Send SMS Code'
+                            t('mfa.smsOtp.sendCode')
                         )}
                     </Button>
                 </motion.div>
@@ -152,7 +154,7 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                     <motion.div variants={itemVariants}>
                         <TextField
                             fullWidth
-                            label="SMS Code"
+                            label={t('mfa.smsOtp.codeLabel')}
                             value={code}
                             onChange={handleCodeChange}
                             placeholder="000000"
@@ -205,7 +207,7 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                             {loading ? (
                                 <CircularProgress size={24} sx={{ color: 'white' }} />
                             ) : (
-                                'Verify Code'
+                                t('mfa.smsOtp.verifyCode')
                             )}
                         </Button>
                     </motion.div>
@@ -224,8 +226,8 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                                 }}
                             >
                                 {countdown > 0
-                                    ? `Resend Code (${countdown}s)`
-                                    : 'Resend Code'}
+                                    ? t('mfa.smsOtp.resendCountdown', { seconds: countdown })
+                                    : t('mfa.smsOtp.resend')}
                             </Button>
                         </Box>
                     </motion.div>

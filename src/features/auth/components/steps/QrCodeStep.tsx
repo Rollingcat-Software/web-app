@@ -10,6 +10,7 @@ import {
 } from '@mui/material'
 import { QrCode2, ArrowForward, Refresh } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { QRCodeSVG } from 'qrcode.react'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -40,6 +41,7 @@ export default function QrCodeStep({
     loading,
     error,
 }: QrCodeStepProps) {
+    const { t } = useTranslation()
     const [token, setToken] = useState('')
     const [generatedToken, setGeneratedToken] = useState('')
     const [expiresInSeconds, setExpiresInSeconds] = useState<number | null>(null)
@@ -56,7 +58,7 @@ export default function QrCodeStep({
     const handleGenerateToken = useCallback(async () => {
         if (!userId) {
             setGenerationError(
-                'Automatic QR token generation is unavailable for this session. You can still enter a token manually.'
+                t('mfa.qrCode.autoUnavailable')
             )
             return
         }
@@ -84,7 +86,7 @@ export default function QrCodeStep({
         } catch (err) {
             const message =
                 err instanceof Error ? err.message : 'Unable to generate QR token automatically.'
-            setGenerationError(`${message} You can continue with manual token entry.`)
+            setGenerationError(`${message} ${t('mfa.qrCode.manualFallback')}`)
         } finally {
             setIsGenerating(false)
         }
@@ -184,10 +186,10 @@ export default function QrCodeStep({
                     <QrCode2 sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    QR Code Authentication
+                    {t('mfa.qrCode.title')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Scan the QR code with your mobile app to authenticate
+                    {t('mfa.qrCode.description')}
                 </Typography>
             </Box>
 
@@ -246,7 +248,7 @@ export default function QrCodeStep({
                             <>
                                 <CircularProgress size={40} />
                                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                                    Generating QR code...
+                                    {t('mfa.qrCode.generating')}
                                 </Typography>
                             </>
                         ) : generatedToken && !isExpired ? (
@@ -266,17 +268,17 @@ export default function QrCodeStep({
                                     color="error.main"
                                     sx={{ mt: 1, fontWeight: 600 }}
                                 >
-                                    Token expired
+                                    {t('mfa.qrCode.tokenExpired')}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary">
-                                    Generating a new one...
+                                    {t('mfa.qrCode.generatingNew')}
                                 </Typography>
                             </>
                         ) : (
                             <>
                                 <QrCode2 sx={{ fontSize: 64, color: 'text.secondary', opacity: 0.4 }} />
                                 <Typography variant="caption" color="text.secondary" sx={{ mt: 1 }}>
-                                    QR Code will appear here
+                                    {t('mfa.qrCode.placeholder')}
                                 </Typography>
                             </>
                         )}
@@ -315,10 +317,10 @@ export default function QrCodeStep({
                                 color={remainingSeconds <= 30 ? 'error.main' : 'text.secondary'}
                                 fontWeight={remainingSeconds <= 30 ? 600 : 400}
                             >
-                                {isExpired ? 'Expired' : `Expires in ${formatTime(remainingSeconds)}`}
+                                {isExpired ? t('mfa.qrCode.expired') : t('mfa.qrCode.expiresIn', { time: formatTime(remainingSeconds) })}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">
-                                Auto-refreshes on expiry
+                                {t('mfa.qrCode.autoRefresh')}
                             </Typography>
                         </Box>
                         <LinearProgress
@@ -350,7 +352,7 @@ export default function QrCodeStep({
                         }}
                         disabled={loading || isGenerating}
                     >
-                        Generate New QR Code
+                        {t('mfa.qrCode.generateNew')}
                     </Button>
                 </Box>
             </motion.div>
@@ -363,15 +365,15 @@ export default function QrCodeStep({
                         sx={{ textAlign: 'center', mb: 2 }}
                     >
                         {generatedToken
-                            ? 'Token auto-filled. You can edit it or paste a token from your mobile app:'
-                            : 'Enter the token from your mobile app manually:'}
+                            ? t('mfa.qrCode.tokenAutoFilled')
+                            : t('mfa.qrCode.enterManually')}
                     </Typography>
                     <TextField
                         fullWidth
-                        label="Authentication Token"
+                        label={t('mfa.qrCode.tokenLabel')}
                         value={token}
                         onChange={(e) => setToken(e.target.value)}
-                        placeholder="Enter token from mobile app"
+                        placeholder={t('mfa.qrCode.tokenPlaceholder')}
                         disabled={loading || isGenerating}
                         sx={{
                             '& .MuiOutlinedInput-root': {
@@ -409,7 +411,7 @@ export default function QrCodeStep({
                         {loading ? (
                             <CircularProgress size={24} sx={{ color: 'white' }} />
                         ) : (
-                            'Verify'
+                            t('mfa.qrCode.verify')
                         )}
                     </Button>
                 </motion.div>

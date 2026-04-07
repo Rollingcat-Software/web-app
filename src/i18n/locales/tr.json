@@ -782,27 +782,81 @@
     },
     "smsOtp": {
       "title": "SMS Doğrulama",
-      "subtitle": "Telefonunuza gönderilen kodu girin"
+      "subtitle": "Telefonunuza gönderilen kodu girin",
+      "enterCode": "Telefonunuza gönderilen 6 haneli kodu girin",
+      "willSend": "Kayıtlı telefon numaranıza doğrulama kodu göndereceğiz",
+      "sendCode": "SMS Kodu Gönder",
+      "codeLabel": "SMS Kodu",
+      "verifyCode": "Kodu Doğrula",
+      "resend": "Kodu Tekrar Gönder",
+      "resendCountdown": "Tekrar Gönder ({{seconds}}s)"
     },
     "face": {
       "title": "Yüz Doğrulama",
-      "subtitle": "Kameranızla doğrulayın"
+      "subtitle": "Kameranızla doğrulayın",
+      "description": "Yüzünüzü çerçeve içine yerleştirin ve fotoğraf çekin",
+      "cameraError": "Kameraya erişilemiyor. Lütfen kamera iznini verin ve tekrar deneyin.",
+      "cameraOff": "Kamera kapalı",
+      "quality": "{{label}} %{{score}}",
+      "blur": "Bulanıklık %{{score}}",
+      "light": "Işık %{{score}}",
+      "size": "Boyut %{{score}}",
+      "startCamera": "Kamerayı Başlat",
+      "capturePhoto": "Fotoğraf Çek",
+      "retake": "Tekrar Çek",
+      "submit": "Gönder"
     },
     "voice": {
       "title": "Ses Doğrulama",
-      "subtitle": "Sesinizle doğrulayın"
+      "subtitle": "Sesinizle doğrulayın",
+      "description": "Kimlik doğrulama için sesinizi kaydedin",
+      "micError": "Mikrofona erişilemiyor. Lütfen mikrofon iznini verin ve tekrar deneyin.",
+      "recordingTime": "{{current}}s / {{max}}s",
+      "recordingCaptured": "Ses kaydı alındı ({{seconds}}s). Gönderilmeye hazır.",
+      "startRecording": "Kaydı Başlat",
+      "stopRecording": "Kaydı Durdur",
+      "reRecord": "Tekrar Kaydet",
+      "submit": "Gönder"
     },
     "fingerprint": {
-      "title": "Parmak İzi",
-      "subtitle": "Parmak izi sensörünü kullanın"
+      "title": "Parmak İzi Doğrulama",
+      "subtitle": "Parmak izi sensörünü kullanın",
+      "description": "Kimliğinizi doğrulamak için parmak izi sensörünü kullanın",
+      "unavailable": "Bu cihazda biyometrik doğrulama mevcut değil. Lütfen parmak izi sensörü veya biyometrik özelliği olan bir cihaz kullanın.",
+      "placeFinger": "Parmağınızı sensöre yerleştirin...",
+      "clickToStart": "Parmak izi taramasını başlatmak için aşağıdaki düğmeye tıklayın",
+      "scanButton": "Parmak İzi Tara"
     },
     "hardwareKey": {
-      "title": "Güvenlik Anahtarı",
-      "subtitle": "Güvenlik anahtarı veya harici parmak izi kullanın"
+      "title": "Güvenlik Anahtarı Doğrulama",
+      "subtitle": "Güvenlik anahtarı veya harici parmak izi kullanın",
+      "description": "Güvenlik anahtarınızı takın ve istendiğinde dokunun",
+      "webauthnNotSupported": "WebAuthn tarayıcınız tarafından desteklenmiyor. Lütfen modern bir tarayıcı kullanın.",
+      "cancelledOrTimeout": "Doğrulama iptal edildi veya zaman aşımına uğradı. Lütfen tekrar deneyin.",
+      "authFailed": "Doğrulama başarısız. Lütfen tekrar deneyin.",
+      "touchKey": "Şimdi güvenlik anahtarınıza dokunun...",
+      "ensureInserted": "Güvenlik anahtarınızın takılı ve hazır olduğundan emin olun",
+      "authenticateButton": "Güvenlik Anahtarı ile Doğrula"
     },
     "qrCode": {
-      "title": "QR Kod",
-      "subtitle": "QR kodu tarayın"
+      "title": "QR Kod Doğrulama",
+      "subtitle": "QR kodu tarayın",
+      "description": "Kimlik doğrulama uygulamanızla QR kodu tarayın",
+      "autoUnavailable": "Otomatik QR kod oluşturma mevcut değil. Lütfen jetonu manuel olarak girin.",
+      "manualFallback": "Jetonu aşağıdan manuel olarak girebilirsiniz.",
+      "generating": "QR kodu oluşturuluyor...",
+      "tokenExpired": "Jeton süresi doldu",
+      "generatingNew": "Yeni kod oluşturuluyor...",
+      "placeholder": "QR Kod burada görünecek",
+      "expired": "Süresi doldu",
+      "expiresIn": "{{time}} içinde sona erer",
+      "autoRefresh": "Otomatik yenileme",
+      "generateNew": "Yeni QR Kod Oluştur",
+      "tokenAutoFilled": "Jeton QR koddan otomatik dolduruldu",
+      "enterManually": "Veya doğrulama jetonunu manuel olarak girin",
+      "tokenLabel": "Doğrulama Jetonu",
+      "tokenPlaceholder": "Jeton girin...",
+      "verify": "Doğrula"
     },
     "nfc": {
       "title": "NFC Belge Tarama",

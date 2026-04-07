@@ -18,6 +18,7 @@ import {
     BlurOn,
 } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useFaceDetection } from '../../hooks/useFaceDetection'
 import { useQualityAssessment } from '../../hooks/useQualityAssessment'
 
@@ -39,6 +40,7 @@ interface FaceCaptureStepProps {
 }
 
 export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptureStepProps) {
+    const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const streamRef = useRef<MediaStream | null>(null)
@@ -93,7 +95,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             setCameraActive(true)
         } catch (_err) {
             setCameraError(
-                'Unable to access camera. Please ensure camera permissions are granted.'
+                t('mfa.face.cameraError')
             )
         }
     }, [])
@@ -202,10 +204,10 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     <Face sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    Face Verification
+                    {t('mfa.face.title')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Position your face in the frame and capture a photo
+                    {t('mfa.face.description')}
                 </Typography>
             </Box>
 
@@ -328,7 +330,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                             }}
                         >
                             <VideocamOff sx={{ fontSize: 48, mb: 1 }} />
-                            <Typography variant="body2" sx={{ color: 'inherit' }}>Camera off</Typography>
+                            <Typography variant="body2" sx={{ color: 'inherit' }}>{t('mfa.face.cameraOff')}</Typography>
                         </Box>
                     )}
                 </Box>
@@ -375,7 +377,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     >
                         <Chip
                             icon={<Visibility sx={{ fontSize: 14 }} />}
-                            label={`Quality: ${getQualityLabel(quality.overall)} (${quality.overall})`}
+                            label={t('mfa.face.quality', { label: getQualityLabel(quality.overall), score: quality.overall })}
                             size="small"
                             color={getScoreColor(quality.overall)}
                             variant="outlined"
@@ -383,7 +385,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         />
                         <Chip
                             icon={<BlurOn sx={{ fontSize: 14 }} />}
-                            label={`Blur: ${quality.blur}`}
+                            label={t('mfa.face.blur', { score: quality.blur })}
                             size="small"
                             color={getScoreColor(quality.blur)}
                             variant="outlined"
@@ -391,7 +393,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         />
                         <Chip
                             icon={<WbSunny sx={{ fontSize: 14 }} />}
-                            label={`Light: ${quality.lighting}`}
+                            label={t('mfa.face.light', { score: quality.lighting })}
                             size="small"
                             color={getScoreColor(quality.lighting)}
                             variant="outlined"
@@ -400,7 +402,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         {quality.faceSizeScore > 0 && (
                             <Chip
                                 icon={<Face sx={{ fontSize: 14 }} />}
-                                label={`Size: ${quality.faceSizeScore}`}
+                                label={t('mfa.face.size', { score: quality.faceSizeScore })}
                                 size="small"
                                 color={getScoreColor(quality.faceSizeScore)}
                                 variant="outlined"
@@ -443,7 +445,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                             transition: 'all 0.3s ease',
                         }}
                     >
-                        Start Camera
+                        {t('mfa.face.startCamera')}
                     </Button>
                 )}
 
@@ -474,7 +476,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                             transition: 'all 0.3s ease',
                         }}
                     >
-                        Capture Photo
+                        {t('mfa.face.capturePhoto')}
                     </Button>
                 )}
 
@@ -493,7 +495,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                                 fontWeight: 600,
                             }}
                         >
-                            Retake
+                            {t('mfa.face.retake')}
                         </Button>
                         <Button
                             variant="contained"
@@ -517,7 +519,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                             {loading ? (
                                 <CircularProgress size={24} sx={{ color: 'white' }} />
                             ) : (
-                                'Submit'
+                                t('mfa.face.submit')
                             )}
                         </Button>
                     </Box>

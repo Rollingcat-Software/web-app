@@ -8,6 +8,7 @@ import {
 } from '@mui/material'
 import { Key, ArrowForward, UsbOutlined } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -57,6 +58,7 @@ export default function HardwareKeyStep({
     loading,
     error,
 }: HardwareKeyStepProps) {
+    const { t } = useTranslation()
     const [waiting, setWaiting] = useState(false)
     const [keyError, setKeyError] = useState<string | null>(null)
 
@@ -66,7 +68,7 @@ export default function HardwareKeyStep({
 
         try {
             if (!window.PublicKeyCredential) {
-                setKeyError('WebAuthn is not supported in this browser.')
+                setKeyError(t('mfa.hardwareKey.webauthnNotSupported'))
                 setWaiting(false)
                 return
             }
@@ -116,9 +118,9 @@ export default function HardwareKeyStep({
             }
         } catch (err) {
             if (err instanceof DOMException && err.name === 'NotAllowedError') {
-                setKeyError('Authentication was cancelled or timed out. Please try again.')
+                setKeyError(t('mfa.hardwareKey.cancelledOrTimeout'))
             } else {
-                setKeyError('Failed to authenticate with hardware key. Please try again.')
+                setKeyError(t('mfa.hardwareKey.authFailed'))
             }
         } finally {
             setWaiting(false)
@@ -157,10 +159,10 @@ export default function HardwareKeyStep({
                     <Key sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    Hardware Security Key
+                    {t('mfa.hardwareKey.title')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Insert your security key and press the button when ready
+                    {t('mfa.hardwareKey.description')}
                 </Typography>
             </Box>
 
@@ -238,8 +240,8 @@ export default function HardwareKeyStep({
                     sx={{ textAlign: 'center', mb: 3 }}
                 >
                     {isProcessing
-                        ? 'Touch your security key to authenticate...'
-                        : 'Make sure your FIDO2/WebAuthn security key is inserted'}
+                        ? t('mfa.hardwareKey.touchKey')
+                        : t('mfa.hardwareKey.ensureInserted')}
                 </Typography>
             </motion.div>
 
@@ -267,7 +269,7 @@ export default function HardwareKeyStep({
                     {isProcessing ? (
                         <CircularProgress size={24} sx={{ color: 'white' }} />
                     ) : (
-                        'Authenticate with Security Key'
+                        t('mfa.hardwareKey.authenticateButton')
                     )}
                 </Button>
             </motion.div>
