@@ -1,4 +1,5 @@
 import { useEffect, useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -129,6 +130,7 @@ const FloatingShape = ({ delay, size, left, top }: {
  * Beautiful animated login with glassmorphism design
  */
 export default function LoginPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const { login, loading, error, user, logout, refreshUser } = useAuth()
     const tokenService = useService<ITokenService>(TYPES.TokenService)
@@ -176,11 +178,11 @@ export default function LoginPage() {
                 body: JSON.stringify({ email: forgotEmail }),
             })
             if (!response.ok) {
-                throw new Error('Failed to send reset email')
+                throw new Error(t('auth.failedToSendReset'))
             }
             setForgotSuccess(true)
         } catch (err) {
-            setForgotError(err instanceof Error ? err.message : 'Failed to send reset email')
+            setForgotError(err instanceof Error ? err.message : t('auth.failedToSendReset'))
         } finally {
             setForgotLoading(false)
         }
@@ -188,7 +190,7 @@ export default function LoginPage() {
 
     const handleResetPassword = async () => {
         if (resetNewPassword !== resetConfirmPassword) {
-            setResetError('Passwords do not match')
+            setResetError(t('auth.passwordsDoNotMatch'))
             return
         }
         setResetLoading(true)
@@ -201,11 +203,11 @@ export default function LoginPage() {
                 body: JSON.stringify({ email: forgotEmail, code: resetCode, newPassword: resetNewPassword }),
             })
             if (!response.ok) {
-                throw new Error('Failed to reset password')
+                throw new Error(t('auth.failedToResetPassword'))
             }
             setResetSuccess(true)
         } catch (err) {
-            setResetError(err instanceof Error ? err.message : 'Failed to reset password')
+            setResetError(err instanceof Error ? err.message : t('auth.failedToResetPassword'))
         } finally {
             setResetLoading(false)
         }
@@ -243,10 +245,10 @@ export default function LoginPage() {
                 navigate('/')
                 return true
             }
-            setFaceError('No matching face found. Please try again or use password login.')
+            setFaceError(t('auth.noMatchingFace'))
             return false
         } catch (err) {
-            const message = err instanceof Error ? err.message : 'Face verification failed'
+            const message = err instanceof Error ? err.message : t('auth.faceVerificationFailed')
             setFaceError(message)
             return false
         }
@@ -392,7 +394,7 @@ export default function LoginPage() {
                                 onClick={handleTwoFactorCancel}
                                 sx={{ color: 'rgba(0,0,0,0.6)' }}
                             >
-                                Cancel
+                                {t('common.cancel')}
                             </Button>
                         </Box>
                     </CardContent>
@@ -521,16 +523,16 @@ export default function LoginPage() {
                                         mb: 1,
                                     }}
                                 >
-                                    Welcome Back
+                                    {t('auth.welcomeBack')}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                    Sign in to FIVUCSAS Identity Platform
+                                    {t('auth.signInSubtitle')}
                                 </Typography>
                             </Box>
                         </motion.div>
 
                         {/* Login Form */}
-                        <form onSubmit={handleSubmit(onSubmit)} aria-label="Login form">
+                        <form onSubmit={handleSubmit(onSubmit)} aria-label={t('auth.loginFormLabel')}>
                             {/* Error Alert */}
                             {(error || faceError) && (
                                 <motion.div
@@ -546,7 +548,7 @@ export default function LoginPage() {
                                             borderRadius: '12px',
                                         }}
                                     >
-                                        {faceError || error?.message || 'Invalid credentials. Please try again.'}
+                                        {faceError || error?.message || t('auth.invalidCredentials')}
                                     </Alert>
                                 </motion.div>
                             )}
@@ -560,7 +562,7 @@ export default function LoginPage() {
                                         <TextField
                                             {...field}
                                             fullWidth
-                                            label="Email Address"
+                                            label={t('auth.emailLabel')}
                                             type="email"
                                             error={!!errors.email}
                                             helperText={errors.email?.message}
@@ -617,7 +619,7 @@ export default function LoginPage() {
                                         <TextField
                                             {...field}
                                             fullWidth
-                                            label="Password"
+                                            label={t('auth.passwordLabel')}
                                             type={showPassword ? 'text' : 'password'}
                                             error={!!errors.password}
                                             helperText={errors.password?.message}
@@ -638,7 +640,7 @@ export default function LoginPage() {
                                                             onClick={() => setShowPassword(!showPassword)}
                                                             edge="end"
                                                             disabled={loading}
-                                                            aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                                            aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                                                             sx={{
                                                                 color: 'action.active',
                                                                 '&:hover': {
@@ -703,7 +705,7 @@ export default function LoginPage() {
                                             },
                                         }}
                                     >
-                                        Forgot Password?
+                                        {t('auth.forgotPasswordQuestion')}
                                     </Link>
                                 </Box>
                             </motion.div>
@@ -740,7 +742,7 @@ export default function LoginPage() {
                                     {loading ? (
                                         <CircularProgress size={24} sx={{ color: 'white' }} />
                                     ) : (
-                                        'Sign In'
+                                        t('auth.signIn')
                                     )}
                                 </Button>
                             </motion.div>
@@ -763,8 +765,7 @@ export default function LoginPage() {
                             >
                                 <VerifiedUser sx={{ fontSize: 20, color: 'primary.main', flexShrink: 0 }} />
                                 <Typography variant="caption" color="text.secondary" sx={{ lineHeight: 1.5 }}>
-                                    After signing in, you may be asked for additional verification
-                                    (face, fingerprint, TOTP, etc.) depending on your tenant's security policy.
+                                    {t('auth.mfaInfo')}
                                 </Typography>
                             </Box>
                         </motion.div>
@@ -773,7 +774,7 @@ export default function LoginPage() {
                         <motion.div variants={itemVariants}>
                             <Box sx={{ textAlign: 'center', mt: 2 }}>
                                 <Typography variant="body2" color="text.secondary">
-                                    Don't have an account?{' '}
+                                    {t('auth.noAccountQuestion')}{' '}
                                     <Link
                                         href="/register"
                                         onClick={(e: React.MouseEvent) => {
@@ -790,7 +791,7 @@ export default function LoginPage() {
                                             },
                                         }}
                                     >
-                                        Register
+                                        {t('auth.register')}
                                     </Link>
                                 </Typography>
                             </Box>
@@ -821,7 +822,7 @@ export default function LoginPage() {
                                     fontWeight="bold"
                                     sx={{ mb: 0.5 }}
                                 >
-                                    Demo Credentials
+                                    {t('auth.demoCredentials')}
                                 </Typography>
                                 <Typography variant="caption" color="text.secondary" display="block">
                                     admin@fivucsas.local / Test@123
@@ -850,7 +851,7 @@ export default function LoginPage() {
                             variant="caption"
                             sx={{ color: 'rgba(255, 255, 255, 0.7)' }}
                         >
-                            Secured by FIVUCSAS
+                            {t('secondaryAuth.securedBy')}
                         </Typography>
                     </Box>
                 </motion.div>
@@ -865,7 +866,7 @@ export default function LoginPage() {
 
             {/* Forgot Password Dialog */}
             <Dialog open={forgotPasswordOpen} onClose={handleCloseForgotPassword} maxWidth="sm" fullWidth>
-                <DialogTitle>Forgot Password</DialogTitle>
+                <DialogTitle>{t('auth.forgotPasswordTitle')}</DialogTitle>
                 <DialogContent>
                     {forgotError && (
                         <Alert severity="error" role="alert" sx={{ mb: 2 }}>{forgotError}</Alert>
@@ -873,20 +874,20 @@ export default function LoginPage() {
                     {forgotSuccess ? (
                         <>
                             <Alert severity="success" sx={{ mb: 2 }}>
-                                A password reset code has been sent to your email.
+                                {t('auth.resetCodeSentSuccess')}
                             </Alert>
                             <Button variant="contained" fullWidth onClick={handleOpenResetDialog}>
-                                Enter Reset Code
+                                {t('auth.enterResetCode')}
                             </Button>
                         </>
                     ) : (
                         <>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Enter your email address and we will send you a password reset code.
+                                {t('auth.enterEmailForReset')}
                             </Typography>
                             <TextField
                                 fullWidth
-                                label="Email Address"
+                                label={t('auth.emailLabel')}
                                 type="email"
                                 value={forgotEmail}
                                 onChange={(e) => setForgotEmail(e.target.value)}
@@ -897,14 +898,14 @@ export default function LoginPage() {
                     )}
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleCloseForgotPassword} disabled={forgotLoading}>Cancel</Button>
+                    <Button onClick={handleCloseForgotPassword} disabled={forgotLoading}>{t('common.cancel')}</Button>
                     {!forgotSuccess && (
                         <Button
                             variant="contained"
                             onClick={handleForgotPassword}
                             disabled={forgotLoading || !forgotEmail}
                         >
-                            {forgotLoading ? <CircularProgress size={20} /> : 'Send Reset Code'}
+                            {forgotLoading ? <CircularProgress size={20} /> : t('auth.sendResetCode')}
                         </Button>
                     )}
                 </DialogActions>
@@ -912,23 +913,23 @@ export default function LoginPage() {
 
             {/* Reset Password Dialog */}
             <Dialog open={resetPasswordOpen} onClose={handleCloseResetPassword} maxWidth="sm" fullWidth>
-                <DialogTitle>Reset Password</DialogTitle>
+                <DialogTitle>{t('auth.resetPasswordTitle')}</DialogTitle>
                 <DialogContent>
                     {resetError && (
                         <Alert severity="error" role="alert" sx={{ mb: 2 }}>{resetError}</Alert>
                     )}
                     {resetSuccess ? (
                         <Alert severity="success">
-                            Your password has been reset successfully. You can now sign in with your new password.
+                            {t('auth.resetPasswordSuccess')}
                         </Alert>
                     ) : (
                         <>
                             <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                Enter the reset code sent to {forgotEmail} and your new password.
+                                {t('auth.enterResetCodeAndPassword', { email: forgotEmail })}
                             </Typography>
                             <TextField
                                 fullWidth
-                                label="Reset Code"
+                                label={t('auth.resetCodeInputLabel')}
                                 value={resetCode}
                                 onChange={(e) => setResetCode(e.target.value)}
                                 margin="normal"
@@ -937,7 +938,7 @@ export default function LoginPage() {
                             />
                             <TextField
                                 fullWidth
-                                label="New Password"
+                                label={t('auth.newPasswordLabel')}
                                 type="password"
                                 value={resetNewPassword}
                                 onChange={(e) => setResetNewPassword(e.target.value)}
@@ -946,7 +947,7 @@ export default function LoginPage() {
                             />
                             <TextField
                                 fullWidth
-                                label="Confirm New Password"
+                                label={t('auth.confirmNewPasswordLabel')}
                                 type="password"
                                 value={resetConfirmPassword}
                                 onChange={(e) => setResetConfirmPassword(e.target.value)}
@@ -958,7 +959,7 @@ export default function LoginPage() {
                 </DialogContent>
                 <DialogActions>
                     <Button onClick={handleCloseResetPassword} disabled={resetLoading}>
-                        {resetSuccess ? 'Close' : 'Cancel'}
+                        {resetSuccess ? t('auth.close') : t('common.cancel')}
                     </Button>
                     {!resetSuccess && (
                         <Button
@@ -966,7 +967,7 @@ export default function LoginPage() {
                             onClick={handleResetPassword}
                             disabled={resetLoading || !resetCode || !resetNewPassword || !resetConfirmPassword}
                         >
-                            {resetLoading ? <CircularProgress size={20} /> : 'Reset Password'}
+                            {resetLoading ? <CircularProgress size={20} /> : t('auth.resetPasswordButton')}
                         </Button>
                     )}
                 </DialogActions>

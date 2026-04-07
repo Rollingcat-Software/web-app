@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
     Alert,
     Box,
@@ -46,6 +47,7 @@ interface PasswordStepProps {
 }
 
 export default function PasswordStep({ onSubmit, loading, error }: PasswordStepProps) {
+    const { t } = useTranslation()
     const [showPassword, setShowPassword] = useState(false)
 
     const {
@@ -94,10 +96,10 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
                     <LockOutlined sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    Enter Your Credentials
+                    {t('auth.enterCredentials')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Sign in with your email and password
+                    {t('auth.signInWithEmail')}
                 </Typography>
             </Box>
 
@@ -122,7 +124,7 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
                             <TextField
                                 {...field}
                                 fullWidth
-                                label="Email Address"
+                                label={t('auth.emailLabel')}
                                 type="email"
                                 error={!!errors.email}
                                 helperText={errors.email?.message}
@@ -157,7 +159,7 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
                             <TextField
                                 {...field}
                                 fullWidth
-                                label="Password"
+                                label={t('auth.passwordLabel')}
                                 type={showPassword ? 'text' : 'password'}
                                 error={!!errors.password}
                                 helperText={errors.password?.message}
@@ -175,7 +177,7 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
                                                 onClick={() => setShowPassword(!showPassword)}
                                                 edge="end"
                                                 disabled={loading}
-                                                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                                                aria-label={showPassword ? t('auth.hidePassword') : t('auth.showPassword')}
                                                 sx={{
                                                     '&:hover': {
                                                         backgroundColor: 'rgba(99, 102, 241, 0.08)',
@@ -228,7 +230,7 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
                         {loading ? (
                             <CircularProgress size={24} sx={{ color: 'white' }} />
                         ) : (
-                            'Continue'
+                            t('auth.continue')
                         )}
                     </Button>
                 </motion.div>

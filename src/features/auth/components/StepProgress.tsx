@@ -17,6 +17,8 @@ import {
     SkipNext,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
+import type { TFunction } from 'i18next'
 
 /**
  * Custom connector line between steps
@@ -52,7 +54,26 @@ const METHOD_ICONS: Record<string, React.ReactNode> = {
 }
 
 /**
- * Map method type strings to human-readable labels
+ * Method label keys for i18n lookup
+ */
+const METHOD_LABEL_KEYS: string[] = [
+    'password', 'email_otp', 'sms_otp', 'totp', 'qr_code',
+    'face', 'fingerprint', 'voice', 'nfc_document', 'hardware_key',
+]
+
+/**
+ * Get translated method labels using i18n
+ */
+function getMethodLabels(t: TFunction): Record<string, string> {
+    const labels: Record<string, string> = {}
+    for (const key of METHOD_LABEL_KEYS) {
+        labels[key] = t(`auth.methodLabels.${key}`)
+    }
+    return labels
+}
+
+/**
+ * Static fallback for external consumers that don't have access to t()
  */
 const METHOD_LABELS: Record<string, string> = {
     password: 'Password',
@@ -149,6 +170,9 @@ function StepProgressIcon(props: StepIconProps & { stepData?: StepProgressStep }
 }
 
 export default function StepProgress({ steps, activeStep }: StepProgressProps) {
+    const { t } = useTranslation()
+    const translatedLabels = getMethodLabels(t)
+
     return (
         <motion.div
             initial={{ opacity: 0, y: -10 }}
@@ -188,7 +212,7 @@ export default function StepProgress({ steps, activeStep }: StepProgressProps) {
                                 sx={{ display: { xs: 'none', sm: 'block' } }}
                             >
                                 {step.methodType
-                                    ? METHOD_LABELS[step.methodType] || step.label
+                                    ? translatedLabels[step.methodType] || step.label
                                     : step.label}
                             </Typography>
                         </StepLabel>
@@ -199,5 +223,5 @@ export default function StepProgress({ steps, activeStep }: StepProgressProps) {
     )
 }
 
-export { METHOD_ICONS, METHOD_LABELS }
+export { METHOD_ICONS, METHOD_LABELS, getMethodLabels }
 export type { StepProgressStep, StepProgressProps, StepStatus }

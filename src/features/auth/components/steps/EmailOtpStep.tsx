@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
     Alert,
     Box,
@@ -31,6 +32,7 @@ interface EmailOtpStepProps {
 }
 
 export default function EmailOtpStep({ onSubmit, onSendOtp, loading, error }: EmailOtpStepProps) {
+    const { t } = useTranslation()
     const [code, setCode] = useState('')
     const [countdown, setCountdown] = useState(0)
     const [otpSent, setOtpSent] = useState(false)
@@ -96,12 +98,12 @@ export default function EmailOtpStep({ onSubmit, onSendOtp, loading, error }: Em
                     <Email sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    Email Verification
+                    {t('auth.emailVerification')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
                     {otpSent
-                        ? 'Enter the 6-digit code sent to your email'
-                        : 'We will send a verification code to your email'}
+                        ? t('auth.enterOtpCode')
+                        : t('auth.willSendOtp')}
                 </Typography>
             </Box>
 
@@ -143,7 +145,7 @@ export default function EmailOtpStep({ onSubmit, onSendOtp, loading, error }: Em
                         {loading ? (
                             <CircularProgress size={24} sx={{ color: 'white' }} />
                         ) : (
-                            'Send Verification Code'
+                            t('auth.sendVerificationCode')
                         )}
                     </Button>
                 </motion.div>
@@ -152,7 +154,7 @@ export default function EmailOtpStep({ onSubmit, onSendOtp, loading, error }: Em
                     <motion.div variants={itemVariants}>
                         <TextField
                             fullWidth
-                            label="Verification Code"
+                            label={t('auth.verificationCodeLabel')}
                             value={code}
                             onChange={handleCodeChange}
                             placeholder="000000"
@@ -204,7 +206,7 @@ export default function EmailOtpStep({ onSubmit, onSendOtp, loading, error }: Em
                             {loading ? (
                                 <CircularProgress size={24} sx={{ color: 'white' }} />
                             ) : (
-                                'Verify Code'
+                                t('auth.verifyCode')
                             )}
                         </Button>
                     </motion.div>
@@ -223,8 +225,8 @@ export default function EmailOtpStep({ onSubmit, onSendOtp, loading, error }: Em
                                 }}
                             >
                                 {countdown > 0
-                                    ? `Resend Code (${countdown}s)`
-                                    : 'Resend Code'}
+                                    ? t('auth.resendCodeCountdown', { countdown })
+                                    : t('auth.resendCode')}
                             </Button>
                         </Box>
                     </motion.div>
