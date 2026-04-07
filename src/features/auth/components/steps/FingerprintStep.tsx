@@ -78,8 +78,9 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                     challenge: challengeBytes,
                     rpId: window.location.hostname,
                     userVerification: 'required',
+                    authenticatorAttachment: 'platform',
                     timeout: 60000,
-                },
+                } as PublicKeyCredentialRequestOptions,
             })
 
             if (credential && 'response' in credential) {

@@ -802,8 +802,15 @@
       "subtitle": "Scan QR code"
     },
     "nfc": {
-      "title": "NFC Document",
-      "subtitle": "Tap NFC document"
+      "title": "NFC Document Scan",
+      "subtitle": "Verify your identity using an NFC-enabled ID document",
+      "scanButton": "Scan NFC Document",
+      "scanning": "Hold your document near the device...",
+      "scanSuccess": "NFC document read successfully!",
+      "readError": "Failed to read NFC document. Try holding it closer.",
+      "scanFailed": "NFC scan failed. Please try again.",
+      "notSupported": "NFC is only supported in Chrome on Android. Please use Chrome on your Android device.",
+      "hint": "Hold your NFC-enabled document (passport, national ID, or residence permit) flat against the back of your phone. Keep it steady for a few seconds."
     }
   },
   "language": {

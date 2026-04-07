@@ -324,11 +324,11 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexDirection: 'column',
-                                color: 'rgba(255, 255, 255, 0.5)',
+                                color: 'rgba(0, 0, 0, 0.4)',
                             }}
                         >
                             <VideocamOff sx={{ fontSize: 48, mb: 1 }} />
-                            <Typography variant="body2">Camera off</Typography>
+                            <Typography variant="body2" sx={{ color: 'inherit' }}>Camera off</Typography>
                         </Box>
                     )}
                 </Box>

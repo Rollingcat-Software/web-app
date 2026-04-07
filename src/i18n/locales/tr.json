@@ -802,8 +802,15 @@
       "subtitle": "QR kodu tarayın"
     },
     "nfc": {
-      "title": "NFC Belge",
-      "subtitle": "NFC belgesine dokunun"
+      "title": "NFC Belge Tarama",
+      "subtitle": "NFC özellikli kimlik belgenizle doğrulayın",
+      "scanButton": "NFC Belge Tara",
+      "scanning": "Belgenizi cihaza yakın tutun...",
+      "scanSuccess": "NFC belge başarıyla okundu!",
+      "readError": "NFC belge okunamadı. Daha yakın tutmayı deneyin.",
+      "scanFailed": "NFC tarama başarısız. Tekrar deneyin.",
+      "notSupported": "NFC yalnızca Android Chrome'da desteklenir. Lütfen Android cihazınızda Chrome kullanın.",
+      "hint": "NFC özellikli belgenizi (pasaport, nüfus cüzdanı veya ikamet izni) telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun."
     }
   },
   "language": {

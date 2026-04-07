@@ -1,10 +1,14 @@
+import { useState, useCallback } from 'react'
 import {
     Alert,
     Box,
+    Button,
+    CircularProgress,
     Typography,
 } from '@mui/material'
-import { Nfc } from '@mui/icons-material'
+import { Nfc, Contactless } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -18,11 +22,57 @@ const itemVariants: Variants = {
 }
 
 interface NfcStepProps {
+    onSubmit?: (data: string) => void
     loading: boolean
     error?: string
 }
 
-export default function NfcStep({ error }: NfcStepProps) {
+export default function NfcStep({ onSubmit, loading, error }: NfcStepProps) {
+    const { t } = useTranslation()
+    const [scanning, setScanning] = useState(false)
+    const [scanResult, setScanResult] = useState<string | null>(null)
+    const [scanError, setScanError] = useState<string | null>(null)
+
+    const isNfcSupported = typeof window !== 'undefined' && 'NDEFReader' in window
+
+    const handleScan = useCallback(async () => {
+        if (!isNfcSupported) {
+            setScanError(t('mfa.nfc.notSupported'))
+            return
+        }
+
+        setScanning(true)
+        setScanError(null)
+        setScanResult(null)
+
+        try {
+            // @ts-expect-error NDEFReader is not in TypeScript types yet
+            const ndef = new window.NDEFReader()
+            await ndef.scan()
+
+            ndef.addEventListener('reading', ({ serialNumber }: { serialNumber: string }) => {
+                setScanResult(serialNumber)
+                setScanning(false)
+                if (onSubmit) {
+                    onSubmit(serialNumber)
+                }
+            })
+
+            ndef.addEventListener('readingerror', () => {
+                setScanError(t('mfa.nfc.readError'))
+                setScanning(false)
+            })
+
+            // Auto-timeout after 30 seconds
+            setTimeout(() => {
+                setScanning(false)
+            }, 30000)
+        } catch (err) {
+            setScanError(err instanceof Error ? err.message : t('mfa.nfc.scanFailed'))
+            setScanning(false)
+        }
+    }, [isNfcSupported, onSubmit, t])
+
     return (
         <motion.div
             initial="hidden"
@@ -53,64 +103,97 @@ export default function NfcStep({ error }: NfcStepProps) {
                     <Nfc sx={{ fontSize: 28, color: 'white' }} />
                 </Box>
                 <Typography variant="h6" fontWeight={600}>
-                    NFC Document Scan
+                    {t('mfa.nfc.title')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Verify your identity using an NFC-enabled ID document
+                    {t('mfa.nfc.subtitle')}
                 </Typography>
             </Box>
 
-            {error && (
+            {(error || scanError) && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3 }}
                 >
                     <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {error}
+                        {error || scanError}
                     </Alert>
                 </motion.div>
             )}
 
-            {/* NFC Icon with pulse */}
-            <motion.div variants={itemVariants}>
-                <Box
-                    sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        my: 4,
-                    }}
+            {scanResult && (
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
                 >
+                    <Alert severity="success" sx={{ mb: 2, borderRadius: '12px' }}>
+                        {t('mfa.nfc.scanSuccess')}
+                    </Alert>
+                </motion.div>
+            )}
+
+            {/* NFC Icon with pulse animation when scanning */}
+            <motion.div variants={itemVariants}>
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 3 }}>
                     <Box
                         sx={{
                             width: 100,
                             height: 100,
                             borderRadius: '50%',
-                            background: 'rgba(245, 158, 11, 0.06)',
+                            background: scanning
+                                ? 'rgba(245, 158, 11, 0.15)'
+                                : 'rgba(245, 158, 11, 0.06)',
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
                             border: '2px solid',
-                            borderColor: 'divider',
+                            borderColor: scanning ? 'warning.main' : 'divider',
+                            animation: scanning ? 'pulse 1.5s ease-in-out infinite' : 'none',
+                            '@keyframes pulse': {
+                                '0%': { boxShadow: '0 0 0 0 rgba(245, 158, 11, 0.4)' },
+                                '70%': { boxShadow: '0 0 0 20px rgba(245, 158, 11, 0)' },
+                                '100%': { boxShadow: '0 0 0 0 rgba(245, 158, 11, 0)' },
+                            },
                         }}
                     >
-                        <Nfc
-                            sx={{
-                                fontSize: 56,
-                                color: 'text.disabled',
-                                opacity: 0.5,
-                            }}
-                        />
+                        {scanning ? (
+                            <CircularProgress size={48} sx={{ color: 'warning.main' }} />
+                        ) : (
+                            <Contactless sx={{ fontSize: 48, color: scanning ? 'warning.main' : 'text.disabled' }} />
+                        )}
                     </Box>
                 </Box>
             </motion.div>
 
             <motion.div variants={itemVariants}>
-                <Alert severity="warning" sx={{ borderRadius: '12px' }}>
-                    NFC document scanning requires Chrome on Android. Please open this
-                    page in Chrome on your Android device to complete this authentication
-                    step.
-                </Alert>
+                {isNfcSupported ? (
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        onClick={handleScan}
+                        disabled={loading || scanning}
+                        startIcon={!scanning && <Nfc />}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            fontSize: '1rem',
+                            fontWeight: 600,
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            boxShadow: '0 10px 40px rgba(245, 158, 11, 0.4)',
+                            '&:hover': {
+                                background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                            },
+                        }}
+                    >
+                        {scanning ? t('mfa.nfc.scanning') : t('mfa.nfc.scanButton')}
+                    </Button>
+                ) : (
+                    <Alert severity="warning" sx={{ borderRadius: '12px' }}>
+                        {t('mfa.nfc.notSupported')}
+                    </Alert>
+                )}
             </motion.div>
 
             <motion.div variants={itemVariants}>
@@ -125,10 +208,7 @@ export default function NfcStep({ error }: NfcStepProps) {
                     }}
                 >
                     <Typography variant="caption" color="text.secondary" display="block">
-                        Web NFC is only supported in Chrome for Android. Desktop browsers
-                        (including Brave, Firefox, and Safari) and iOS do not support this
-                        API. Supported documents: National ID cards, passports, and
-                        residence permits with NFC chips.
+                        {t('mfa.nfc.hint')}
                     </Typography>
                 </Box>
             </motion.div>
