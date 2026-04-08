@@ -917,6 +917,25 @@
       "hint": "NFC özellikli belgenizi (pasaport, nüfus cüzdanı veya ikamet izni) telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun."
     }
   },
+  "widget": {
+    "verifyIdentity": "Kimli\u011finizi Do\u011frulay\u0131n",
+    "cancel": "\u0130ptal",
+    "authComplete": "Kimlik Do\u011frulama Tamamland\u0131",
+    "allStepsCompleted": "T\u00fcm do\u011frulama ad\u0131mlar\u0131 ba\u015far\u0131yla tamamland\u0131.",
+    "noStepsRemaining": "Kalan kimlik do\u011frulama ad\u0131m\u0131 yok.",
+    "unknownMethod": "Bilinmeyen kimlik do\u011frulama y\u00f6ntemi: {{method}}",
+    "skipStep": "Bu ad\u0131m\u0131 atla",
+    "stepOfTotal": "Ad\u0131m {{current}} / {{total}}",
+    "verificationFailed": "Do\u011frulama ba\u015far\u0131s\u0131z. L\u00fctfen tekrar deneyin.",
+    "unexpectedError": "Beklenmeyen bir hata olu\u015ftu.",
+    "skipFailed": "Ad\u0131m atlanamad\u0131.",
+    "verificationError": "Do\u011frulama Hatas\u0131",
+    "loginTitle": "Giri\u015f Yap",
+    "loginSubtitle": "Devam etmek i\u00e7in kimlik bilgilerinizi girin.",
+    "mfaRequired": "Ek do\u011frulama gereklidir.",
+    "loginFailed": "Giri\u015f ba\u015far\u0131s\u0131z. L\u00fctfen bilgilerinizi kontrol edin.",
+    "missingParams": "Gerekli parametreler eksik (session_id veya client_id)."
+  },
   "language": {
     "en": "\u0130ngilizce",
     "tr": "T\u00fcrk\u00e7e"

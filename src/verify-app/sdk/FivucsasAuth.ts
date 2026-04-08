@@ -42,6 +42,7 @@ export interface VerifyResult {
     completedMethods: string[];
     authCode?: string;
     accessToken?: string;
+    refreshToken?: string;
     timestamp?: number;
 }
 
@@ -261,7 +262,13 @@ export class FivucsasAuth {
 
         if (options.flow) url.searchParams.set('flow', options.flow);
         if (options.userId) url.searchParams.set('user_id', options.userId);
-        if (options.sessionId) url.searchParams.set('session_id', options.sessionId);
+        if (options.sessionId) {
+            url.searchParams.set('session_id', options.sessionId);
+            url.searchParams.set('mode', 'session');
+        } else {
+            // No sessionId: open in login mode
+            url.searchParams.set('mode', 'login');
+        }
         if (options.methods?.length) url.searchParams.set('methods', options.methods.join(','));
         if (this.config.locale) url.searchParams.set('locale', this.config.locale);
         if (this.config.apiBaseUrl) url.searchParams.set('api_base_url', this.config.apiBaseUrl);
@@ -324,6 +331,7 @@ export class FivucsasAuth {
                             : [],
                         authCode: payload.authCode ? String(payload.authCode) : undefined,
                         accessToken: payload.accessToken ? String(payload.accessToken) : undefined,
+                        refreshToken: payload.refreshToken ? String(payload.refreshToken) : undefined,
                         timestamp: typeof payload.timestamp === 'number' ? payload.timestamp : undefined,
                     };
                     this.activeReject = null;

@@ -77,8 +77,9 @@ export function sendStepChange(
 
 export function sendComplete(result: {
     accessToken: string
+    refreshToken?: string
     userId: string
-    sessionId: string
+    sessionId?: string
 }): void {
     sendToParent({
         type: 'fivucsas:complete',

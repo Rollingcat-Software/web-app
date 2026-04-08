@@ -9,6 +9,7 @@ import {
 } from '@mui/material'
 import { Close, SkipNext } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers/DependencyProvider'
 import { TYPES } from '@core/di/types'
 import { AuthSessionRepository, type StepResultResponse } from '@core/repositories/AuthSessionRepository'
@@ -72,6 +73,7 @@ export default function MultiStepAuthFlow({
     onCancel,
 }: MultiStepAuthFlowProps) {
     const authSessionRepo = useService<AuthSessionRepository>(TYPES.AuthSessionRepository)
+    const { t } = useTranslation()
 
     const [steps, setSteps] = useState<AuthFlowStep[]>(initialSteps)
     const [loading, setLoading] = useState(false)
@@ -167,19 +169,19 @@ export default function MultiStepAuthFlow({
                 )
 
                 if (result.status === 'FAILED') {
-                    setError(result.message || 'Verification failed. Please try again.')
+                    setError(result.message || t('widget.verificationFailed'))
                 } else {
                     processStepResult(result)
                 }
             } catch (err) {
                 const message =
-                    err instanceof Error ? err.message : 'An unexpected error occurred'
+                    err instanceof Error ? err.message : t('widget.unexpectedError')
                 setError(message)
             } finally {
                 setLoading(false)
             }
         },
-        [currentStep, authSessionRepo, sessionId, processStepResult]
+        [currentStep, authSessionRepo, sessionId, processStepResult, t]
     )
 
     /**
@@ -196,12 +198,12 @@ export default function MultiStepAuthFlow({
             processStepResult(result)
         } catch (err) {
             const message =
-                err instanceof Error ? err.message : 'Failed to skip step'
+                err instanceof Error ? err.message : t('widget.skipFailed')
             setError(message)
         } finally {
             setLoading(false)
         }
-    }, [currentStep, authSessionRepo, sessionId, processStepResult])
+    }, [currentStep, authSessionRepo, sessionId, processStepResult, t])
 
     const handleGenerateQrToken = useCallback(
         async (userId: string) => authSessionRepo.generateQrToken(userId),
@@ -275,10 +277,10 @@ export default function MultiStepAuthFlow({
                             </motion.div>
                         </Box>
                         <Typography variant="h5" fontWeight={700} sx={{ mb: 1 }}>
-                            Authentication Complete
+                            {t('widget.authComplete')}
                         </Typography>
                         <Typography variant="body2" color="text.secondary">
-                            All verification steps have been successfully completed
+                            {t('widget.allStepsCompleted')}
                         </Typography>
                     </Box>
                 </motion.div>
@@ -288,7 +290,7 @@ export default function MultiStepAuthFlow({
         if (!currentStep) {
             return (
                 <Alert severity="info" sx={{ borderRadius: '12px' }}>
-                    No authentication steps remaining.
+                    {t('widget.noStepsRemaining')}
                 </Alert>
             )
         }
@@ -414,7 +416,7 @@ export default function MultiStepAuthFlow({
             default:
                 return (
                     <Alert severity="warning" sx={{ borderRadius: '12px' }}>
-                        Unknown authentication method: {methodType}
+                        {t('widget.unknownMethod', { method: methodType })}
                     </Alert>
                 )
         }
@@ -457,7 +459,7 @@ export default function MultiStepAuthFlow({
                                 WebkitTextFillColor: 'transparent',
                             }}
                         >
-                            Verify Your Identity
+                            {t('widget.verifyIdentity')}
                         </Typography>
                         <Button
                             variant="text"
@@ -467,7 +469,7 @@ export default function MultiStepAuthFlow({
                             startIcon={<Close />}
                             sx={{ color: 'text.secondary', minWidth: 'auto' }}
                         >
-                            Cancel
+                            {t('widget.cancel')}
                         </Button>
                     </Box>
 
@@ -510,7 +512,7 @@ export default function MultiStepAuthFlow({
                                         },
                                     }}
                                 >
-                                    Skip this step
+                                    {t('widget.skipStep')}
                                 </Button>
                             </Box>
                         </motion.div>
@@ -527,7 +529,7 @@ export default function MultiStepAuthFlow({
                                 mt: 3,
                             }}
                         >
-                            Step {activeStepIndex + 1} of {steps.length}
+                            {t('widget.stepOfTotal', { current: activeStepIndex + 1, total: steps.length })}
                         </Typography>
                     )}
                 </CardContent>

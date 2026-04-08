@@ -2,20 +2,28 @@
  * VerifyApp — Embeddable auth verification widget
  *
  * This is the root component for the standalone verify-app.
- * It wraps MultiStepAuthFlow with minimal providers (Theme, DI, i18n)
- * and communicates auth events to the parent via postMessage.
+ * It supports TWO modes:
  *
- * No sidebar, no header, no admin dashboard — just the auth flow.
+ * **Session mode** (session_id present): Wraps MultiStepAuthFlow with a
+ * pre-created auth session on the backend.
+ *
+ * **Login mode** (client_id present, no session_id): Shows a login form
+ * followed by N-step MFA flow using the new /auth/login + /auth/mfa/step
+ * endpoints.
+ *
+ * Communicates auth events to the parent via postMessage.
  *
  * @see docs/EMBEDDABLE_AUTH_WIDGET_ARCHITECTURE.md
  */
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { CssBaseline, ThemeProvider, Box, CircularProgress, Alert, Typography } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 import { createAppTheme } from '../theme'
 import { DependencyProvider } from '@app/providers/DependencyProvider'
 import { createVerifyContainer } from './verifyContainer'
 import MultiStepAuthFlow from '@features/auth/components/MultiStepAuthFlow'
+import LoginMfaFlow from './LoginMfaFlow'
 import { AuthSessionRepository, type AuthSessionResponse } from '@core/repositories/AuthSessionRepository'
 import { TYPES } from '@core/di/types'
 import {
@@ -31,6 +39,8 @@ import { useResizeObserver } from './useResizeObserver'
 
 // ─── URL Parameter Parsing ───────────────────────────────────────
 
+type WidgetMode = 'session' | 'login'
+
 interface VerifyParams {
     clientId: string
     sessionId: string
@@ -39,13 +49,26 @@ interface VerifyParams {
     locale: 'en' | 'tr'
     userId: string
     apiBaseUrl: string
+    mode: WidgetMode
 }
 
 function parseUrlParams(): VerifyParams {
     const params = new URLSearchParams(window.location.search)
+    const sessionId = params.get('session_id') || ''
+    const clientId = params.get('client_id') || ''
+    const explicitMode = params.get('mode') as WidgetMode | null
+
+    // Auto-detect mode: session_id present => session mode, otherwise login mode
+    let mode: WidgetMode
+    if (explicitMode === 'login' || explicitMode === 'session') {
+        mode = explicitMode
+    } else {
+        mode = sessionId ? 'session' : 'login'
+    }
+
     return {
-        clientId: params.get('client_id') || '',
-        sessionId: params.get('session_id') || '',
+        clientId,
+        sessionId,
         flow: params.get('flow') || '',
         theme: (params.get('theme') as 'light' | 'dark') || 'light',
         locale: (params.get('locale') as 'en' | 'tr') || 'en',
@@ -54,6 +77,7 @@ function parseUrlParams(): VerifyParams {
             params.get('api_base_url') ||
             import.meta.env.VITE_API_BASE_URL ||
             'https://api.fivucsas.com/api/v1',
+        mode,
     }
 }
 
@@ -63,8 +87,9 @@ export default function VerifyApp() {
     const [config] = useState(() => parseUrlParams())
     const [themeMode, setThemeMode] = useState<'light' | 'dark'>(config.theme)
     const [session, setSession] = useState<AuthSessionResponse | null>(null)
-    const [loading, setLoading] = useState(true)
+    const [loading, setLoading] = useState(config.mode === 'session')
     const [error, setError] = useState<string | null>(null)
+    const { t } = useTranslation()
 
     // Create the minimal DI container
     const container = useMemo(
@@ -105,12 +130,23 @@ export default function VerifyApp() {
     // Observe body resize for iframe auto-sizing
     useResizeObserver()
 
-    // Fetch the auth session on mount
+    // Fetch the auth session on mount (session mode only)
     useEffect(() => {
+        if (config.mode !== 'session') {
+            // Login mode — validate that client_id is present
+            if (!config.clientId) {
+                setError(t('widget.missingParams'))
+                sendError(t('widget.missingParams'), 'MISSING_PARAMS')
+            } else {
+                sendReady()
+            }
+            return
+        }
+
         if (!config.sessionId) {
-            setError('Missing session_id parameter')
+            setError(t('widget.missingParams'))
             setLoading(false)
-            sendError('Missing session_id parameter', 'MISSING_SESSION_ID')
+            sendError(t('widget.missingParams'), 'MISSING_SESSION_ID')
             return
         }
 
@@ -127,7 +163,7 @@ export default function VerifyApp() {
                 setLoading(false)
                 sendError(message, 'SESSION_LOAD_FAILED')
             })
-    }, [config.sessionId, container])
+    }, [config.sessionId, config.mode, config.clientId, container, t])
 
     // Track step changes via a MutationObserver on the step counter text
     // Instead, we use a ref-based approach via the MultiStepAuthFlow step data
@@ -138,8 +174,8 @@ export default function VerifyApp() {
         []
     )
 
-    // Handle auth completion
-    const handleComplete = useCallback(
+    // Handle auth completion (session mode)
+    const handleSessionComplete = useCallback(
         (result: { accessToken: string; userId: string }) => {
             sendComplete({
                 accessToken: result.accessToken,
@@ -150,10 +186,22 @@ export default function VerifyApp() {
         [config.sessionId]
     )
 
+    // Handle auth completion (login mode)
+    const handleLoginComplete = useCallback(
+        (result: { accessToken: string; refreshToken?: string; userId: string }) => {
+            sendComplete({
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+                userId: result.userId,
+            })
+        },
+        []
+    )
+
     // Handle cancel
     const handleCancel = useCallback(() => {
-        sendCancel(config.sessionId)
-    }, [config.sessionId])
+        sendCancel(config.sessionId || config.clientId)
+    }, [config.sessionId, config.clientId])
 
     // ─── Render ──────────────────────────────────────────────────
 
@@ -182,7 +230,7 @@ export default function VerifyApp() {
                 <Box sx={{ p: 3, maxWidth: 520, mx: 'auto' }}>
                     <Alert severity="error" sx={{ borderRadius: '12px' }}>
                         <Typography variant="subtitle2" fontWeight={600}>
-                            Verification Error
+                            {t('widget.verificationError')}
                         </Typography>
                         <Typography variant="body2">{error}</Typography>
                     </Alert>
@@ -190,6 +238,35 @@ export default function VerifyApp() {
             </ThemeProvider>
         )
     }
+
+    // ─── Login Mode ─────────────────────────────────────────────
+    if (config.mode === 'login') {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <DependencyProvider container={container}>
+                    <Box
+                        sx={{
+                            minHeight: '100vh',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            p: { xs: 1, sm: 2 },
+                            background: 'transparent',
+                        }}
+                    >
+                        <LoginMfaFlow
+                            clientId={config.clientId}
+                            onComplete={handleLoginComplete}
+                            onCancel={handleCancel}
+                        />
+                    </Box>
+                </DependencyProvider>
+            </ThemeProvider>
+        )
+    }
+
+    // ─── Session Mode ───────────────────────────────────────────
 
     if (!session) {
         return null
@@ -234,7 +311,7 @@ export default function VerifyApp() {
                     <MultiStepAuthFlow
                         sessionId={config.sessionId}
                         steps={flowSteps}
-                        onComplete={handleComplete}
+                        onComplete={handleSessionComplete}
                         onCancel={handleCancel}
                     />
                 </Box>

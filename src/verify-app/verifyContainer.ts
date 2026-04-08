@@ -21,6 +21,8 @@ import { AxiosClient } from '@core/api/AxiosClient'
 import { TokenService } from '@core/services/TokenService'
 import { SecureStorageService } from '@core/services/SecureStorageService'
 import { AuthSessionRepository } from '@core/repositories/AuthSessionRepository'
+import { AuthRepository } from '@core/repositories/AuthRepository'
+import type { IAuthRepository } from '@domain/interfaces/IAuthRepository'
 
 /**
  * Create a minimal container for the verify widget.
@@ -48,6 +50,7 @@ export function createVerifyContainer(apiBaseUrl: string): Container {
     container.bind<IHttpClient>(TYPES.HttpClient).to(AxiosClient).inSingletonScope()
     container.bind<ITokenService>(TYPES.TokenService).to(TokenService).inSingletonScope()
     container.bind<AuthSessionRepository>(TYPES.AuthSessionRepository).to(AuthSessionRepository).inSingletonScope()
+    container.bind<IAuthRepository>(TYPES.AuthRepository).to(AuthRepository).inSingletonScope()
 
     return container
 }

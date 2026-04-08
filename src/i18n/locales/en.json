@@ -917,6 +917,25 @@
       "hint": "Hold your NFC-enabled document (passport, national ID, or residence permit) flat against the back of your phone. Keep it steady for a few seconds."
     }
   },
+  "widget": {
+    "verifyIdentity": "Verify Your Identity",
+    "cancel": "Cancel",
+    "authComplete": "Authentication Complete",
+    "allStepsCompleted": "All verification steps have been successfully completed.",
+    "noStepsRemaining": "No authentication steps remaining.",
+    "unknownMethod": "Unknown authentication method: {{method}}",
+    "skipStep": "Skip this step",
+    "stepOfTotal": "Step {{current}} of {{total}}",
+    "verificationFailed": "Verification failed. Please try again.",
+    "unexpectedError": "An unexpected error occurred.",
+    "skipFailed": "Failed to skip step.",
+    "verificationError": "Verification Error",
+    "loginTitle": "Sign In",
+    "loginSubtitle": "Enter your credentials to continue.",
+    "mfaRequired": "Additional verification is required.",
+    "loginFailed": "Login failed. Please check your credentials.",
+    "missingParams": "Missing required parameters (session_id or client_id)."
+  },
   "language": {
     "en": "English",
     "tr": "Turkish"
