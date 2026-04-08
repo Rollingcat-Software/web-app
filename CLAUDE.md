@@ -73,6 +73,15 @@ Enrollment UIs:
 - **verify-app/** — standalone extracted auth widget components (`src/features/auth/components/verify-app/`)
 - **sdk/** — @fivucsas/auth-js SDK module (`src/features/auth/components/sdk/`)
 - **react/** — @fivucsas/auth-react components (`src/features/auth/components/react/`)
+
+### Auth Widget / Verify App (2026-04-08):
+- **LoginMfaFlow.tsx** — embedded login + N-step MFA flow component for widget mode
+- **VerifyApp.tsx** — supports two modes: `session` (existing enrollment verification) and `login` (new login+MFA flow)
+- **MultiStepAuthFlow.tsx** — all hardcoded English strings replaced with i18n (EN+TR)
+- **SDK IIFE fix** — `new FivucsasAuth(...)` now works correctly in browser script tag
+- **Deployed** to https://verify.fivucsas.com (Docker + nginx + Traefik)
+- **SDK URL**: `https://verify.fivucsas.com/fivucsas-auth.js`
+- BYS Demo updated to use official SDK from verify.fivucsas.com
 - **VerificationFlowBuilderPage** (`/verification/flows`) — verification pipeline builder with template selector
 - **VerificationDashboardPage** (`/verification/dashboard`) — completion rates, avg time, failure reasons
 - **VerificationSessionDetailPage** (`/verification/sessions/:id`) — step-by-step results with confidence scores
