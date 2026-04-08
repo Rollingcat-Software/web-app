@@ -188,11 +188,12 @@ export default function VerifyApp() {
 
     // Handle auth completion (login mode)
     const handleLoginComplete = useCallback(
-        (result: { accessToken: string; refreshToken?: string; userId: string }) => {
+        (result: { accessToken: string; refreshToken?: string; userId: string; email?: string }) => {
             sendComplete({
                 accessToken: result.accessToken,
                 refreshToken: result.refreshToken,
                 userId: result.userId,
+                email: result.email,
             })
         },
         []
@@ -251,7 +252,9 @@ export default function VerifyApp() {
                             display: 'flex',
                             alignItems: 'center',
                             justifyContent: 'center',
-                            p: { xs: 1, sm: 2 },
+                            overflowY: 'auto',
+                            py: { xs: 2, sm: 4 },
+                            px: { xs: 1, sm: 2 },
                             background: 'transparent',
                         }}
                     >
@@ -304,7 +307,9 @@ export default function VerifyApp() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        p: { xs: 1, sm: 2 },
+                        overflowY: 'auto',
+                        py: { xs: 2, sm: 4 },
+                        px: { xs: 1, sm: 2 },
                         background: 'transparent',
                     }}
                 >

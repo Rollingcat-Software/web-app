@@ -80,6 +80,7 @@ export function sendComplete(result: {
     refreshToken?: string
     userId: string
     sessionId?: string
+    email?: string
 }): void {
     sendToParent({
         type: 'fivucsas:complete',

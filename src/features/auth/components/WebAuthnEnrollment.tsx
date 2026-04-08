@@ -21,9 +21,12 @@ import {
     Typography,
 } from '@mui/material'
 import { Key, CheckCircle, Delete, UsbOutlined, Fingerprint } from '@mui/icons-material'
+import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { WEBAUTHN, AUTH_API } from '../constants'
+import { base64urlToBytes, bytesToBase64url, mapWebAuthnError } from '../webauthn-utils'
 
 interface WebAuthnEnrollmentProps {
     open: boolean
@@ -52,42 +55,7 @@ interface RegistrationOptions {
     excludeCredentials: string[]
 }
 
-const steps = ['Register Key', 'Verify', 'Complete']
-
-// ---- base64url utilities (no padding, URL-safe alphabet) ----
-
-/**
- * Decode a base64url string (no padding) into a Uint8Array.
- */
-function base64urlToBytes(base64url: string): Uint8Array {
-    // Convert base64url to standard base64
-    let base64 = base64url.replace(/-/g, '+').replace(/_/g, '/')
-    // Add padding if needed
-    while (base64.length % 4 !== 0) {
-        base64 += '='
-    }
-    const binary = atob(base64)
-    const bytes = new Uint8Array(binary.length)
-    for (let i = 0; i < binary.length; i++) {
-        bytes[i] = binary.charCodeAt(i)
-    }
-    return bytes
-}
-
-/**
- * Encode an ArrayBuffer to a base64url string (no padding).
- */
-function bytesToBase64url(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer)
-    let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i])
-    }
-    return btoa(binary)
-        .replace(/\+/g, '-')
-        .replace(/\//g, '_')
-        .replace(/=+$/, '')
-}
+// base64url utilities imported from webauthn-utils
 
 export default function WebAuthnEnrollment({
     open,
@@ -96,6 +64,7 @@ export default function WebAuthnEnrollment({
     userId,
     mode = 'hardware-key',
 }: WebAuthnEnrollmentProps) {
+    const { t } = useTranslation()
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
     const [activeStep, setActiveStep] = useState(0)
     const [loading, setLoading] = useState(false)
@@ -105,8 +74,8 @@ export default function WebAuthnEnrollment({
     const [loadingCredentials, setLoadingCredentials] = useState(false)
     const [webAuthnSupported, setWebAuthnSupported] = useState(true)
 
-    const isPlatform = mode === 'platform'
-    const title = isPlatform ? 'Register Fingerprint' : 'Register Hardware Security Key'
+    const isPlatform = mode === WEBAUTHN.ATTACHMENT_PLATFORM
+    const title = isPlatform ? t('webauthn.enrollment.registerFingerprint') : t('webauthn.enrollment.registerHardwareKey')
     const icon = isPlatform ? <Fingerprint sx={{ fontSize: 28, color: 'white' }} /> : <Key sx={{ fontSize: 28, color: 'white' }} />
 
     // Check WebAuthn support on mount
@@ -120,7 +89,7 @@ export default function WebAuthnEnrollment({
         if (!userId) return
         setLoadingCredentials(true)
         try {
-            const response = await httpClient.get<WebAuthnCredential[]>(`/webauthn/credentials/${userId}`)
+            const response = await httpClient.get<WebAuthnCredential[]>(AUTH_API.WEBAUTHN_CREDENTIALS(userId))
             setCredentials(response.data)
         } catch {
             // Silently fail - credentials list is optional
@@ -146,7 +115,7 @@ export default function WebAuthnEnrollment({
 
         try {
             if (!window.PublicKeyCredential) {
-                setError('WebAuthn is not supported in this browser. Please use a modern browser like Chrome, Firefox, Safari, or Edge.')
+                setError(t('webauthn.errors.notSupported'))
                 setLoading(false)
                 return
             }
@@ -155,7 +124,7 @@ export default function WebAuthnEnrollment({
                 try {
                     const available = await PublicKeyCredential.isUserVerifyingPlatformAuthenticatorAvailable()
                     if (!available) {
-                        setError('No platform authenticator (fingerprint/biometric) available on this device.')
+                        setError(t('webauthn.enrollment.noPlatformAuthenticator'))
                         setLoading(false)
                         return
                     }
@@ -166,7 +135,7 @@ export default function WebAuthnEnrollment({
 
             // Step 1: Get registration options from backend
             const optionsResponse = await httpClient.post<RegistrationOptions>(
-                `/webauthn/register/options/${userId}`,
+                AUTH_API.WEBAUTHN_REGISTER_OPTIONS(userId),
                 {},
             )
 
@@ -195,22 +164,22 @@ export default function WebAuthnEnrollment({
                         displayName: options.userName,
                     },
                     pubKeyCredParams: [
-                        { type: 'public-key', alg: -7 },   // ES256
-                        { type: 'public-key', alg: -257 },  // RS256
+                        { type: WEBAUTHN.CREDENTIAL_TYPE, alg: WEBAUTHN.ALG_ES256 },
+                        { type: WEBAUTHN.CREDENTIAL_TYPE, alg: WEBAUTHN.ALG_RS256 },
                     ],
                     authenticatorSelection: {
-                        authenticatorAttachment: isPlatform ? 'platform' : 'cross-platform',
+                        authenticatorAttachment: isPlatform ? WEBAUTHN.ATTACHMENT_PLATFORM : WEBAUTHN.ATTACHMENT_CROSS_PLATFORM,
                         requireResidentKey: false,
-                        userVerification: 'preferred',
+                        userVerification: WEBAUTHN.UV_PREFERRED,
                     },
                     excludeCredentials,
-                    attestation: 'direct',
-                    timeout: 60000,
+                    attestation: WEBAUTHN.ATTESTATION_DIRECT,
+                    timeout: WEBAUTHN.TIMEOUT_MS,
                 },
             })) as PublicKeyCredential | null
 
             if (!credential) {
-                setError('Failed to create credential. Please try again.')
+                setError(t('webauthn.enrollment.failedToCreate'))
                 setLoading(false)
                 return
             }
@@ -224,7 +193,7 @@ export default function WebAuthnEnrollment({
             const publicKeyBytes = attestationResponse.getPublicKey?.()
 
             // Determine actual transports from the authenticator response
-            let transports = isPlatform ? 'internal' : 'usb'
+            let transports: string = isPlatform ? WEBAUTHN.TRANSPORT_INTERNAL : WEBAUTHN.TRANSPORT_USB
             if (typeof attestationResponse.getTransports === 'function') {
                 const reportedTransports = attestationResponse.getTransports()
                 if (reportedTransports.length > 0) {
@@ -241,14 +210,14 @@ export default function WebAuthnEnrollment({
                     ? bytesToBase64url(publicKeyBytes)
                     : bytesToBase64url(attestationResponse.attestationObject),
                 clientDataJSON: bytesToBase64url(attestationResponse.clientDataJSON),
-                attestationFormat: 'packed',
+                attestationFormat: WEBAUTHN.FORMAT_PACKED,
                 transports,
-                deviceName: deviceName || (isPlatform ? 'Platform Authenticator' : 'Security Key'),
+                deviceName: deviceName || t(isPlatform ? WEBAUTHN.DEVICE_NAME_PLATFORM : WEBAUTHN.DEVICE_NAME_KEY),
             }
 
             // Step 5: Send to backend for verification
             const verifyResponse = await httpClient.post<{ success: boolean; message: string }>(
-                '/webauthn/register/verify',
+                AUTH_API.WEBAUTHN_REGISTER_VERIFY,
                 registrationData,
             )
 
@@ -263,26 +232,8 @@ export default function WebAuthnEnrollment({
                 setActiveStep(0)
             }
         } catch (err) {
-            if (err instanceof DOMException) {
-                switch (err.name) {
-                    case 'NotAllowedError':
-                        setError('Registration was cancelled or timed out. Please try again.')
-                        break
-                    case 'InvalidStateError':
-                        setError('This authenticator is already registered. Remove it first, then re-register.')
-                        break
-                    case 'SecurityError':
-                        setError('Security error: The domain does not match the server configuration. Contact support.')
-                        break
-                    case 'AbortError':
-                        setError('The operation was aborted. Please try again.')
-                        break
-                    default:
-                        setError(`Authenticator error: ${err.message || 'Your device may not support this authentication method. Try using Fingerprint enrollment instead.'}`)
-                }
-            } else {
-                setError(err instanceof Error ? err.message : 'Failed to register credential. Check your connection and try again.')
-            }
+            const mapped = mapWebAuthnError(err, t)
+            setError(mapped || t('webauthn.enrollment.failedToRegister'))
             setActiveStep(0)
         } finally {
             setLoading(false)
@@ -291,10 +242,10 @@ export default function WebAuthnEnrollment({
 
     const handleDeleteCredential = useCallback(async (id: string) => {
         try {
-            await httpClient.delete(`/webauthn/credentials/by-id/${id}`)
+            await httpClient.delete(AUTH_API.WEBAUTHN_CREDENTIAL_BY_ID(id))
             await loadCredentials()
         } catch {
-            setError('Failed to delete credential. Please try again.')
+            setError(t('webauthn.enrollment.failedToDelete'))
         }
     }, [httpClient, loadCredentials])
 
@@ -328,14 +279,12 @@ export default function WebAuthnEnrollment({
             <DialogContent>
                 {!webAuthnSupported ? (
                     <Alert severity="warning" sx={{ mt: 1 }}>
-                        WebAuthn is not supported in this browser. Please use a modern browser
-                        such as Chrome, Firefox, Safari, or Edge to register a security key
-                        or biometric authenticator.
+                        {t('webauthn.errors.notSupported')}
                     </Alert>
                 ) : (
                     <>
                         <Stepper activeStep={activeStep} sx={{ mb: 3, mt: 1 }}>
-                            {steps.map((label) => (
+                            {[t('webauthn.enrollment.steps.register'), t('webauthn.enrollment.steps.verify'), t('webauthn.enrollment.steps.complete')].map((label) => (
                                 <Step key={label}>
                                     <StepLabel>{label}</StepLabel>
                                 </Step>
@@ -374,29 +323,29 @@ export default function WebAuthnEnrollment({
                                     </Box>
                                     <Typography variant="body1" sx={{ mb: 1 }}>
                                         {isPlatform
-                                            ? 'Register your device biometric (fingerprint, face, or PIN) for passwordless authentication.'
-                                            : 'Register a FIDO2/WebAuthn hardware security key for strong two-factor authentication.'}
+                                            ? t('webauthn.enrollment.platformDescription')
+                                            : t('webauthn.enrollment.hardwareKeyDescription')}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                         {isPlatform
-                                            ? 'Uses your device\'s built-in authenticator (Touch ID, Windows Hello, etc.)'
-                                            : 'Insert your security key (YubiKey, Titan, etc.) and click Register.'}
+                                            ? t('webauthn.enrollment.platformHint')
+                                            : t('webauthn.enrollment.hardwareKeyHint')}
                                     </Typography>
                                 </Box>
 
                                 <TextField
                                     fullWidth
-                                    label="Device Name (optional)"
+                                    label={t('webauthn.enrollment.deviceNameLabel')}
                                     value={deviceName}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceName(e.target.value)}
-                                    placeholder={isPlatform ? 'e.g., My Phone, MacBook Touch ID' : 'e.g., YubiKey 5, Titan Key'}
+                                    placeholder={isPlatform ? t('webauthn.enrollment.deviceNamePlaceholderPlatform') : t('webauthn.enrollment.deviceNamePlaceholderKey')}
                                     InputLabelProps={{ shrink: true }}
                                     sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                 />
 
                                 {!isPlatform && (
                                     <Alert severity="info" sx={{ mb: 3 }}>
-                                        This requires a FIDO2/WebAuthn compatible security key such as YubiKey, Google Titan, or SoloKey. Regular USB drives will not work. If you don't have a hardware key, use Fingerprint enrollment instead — it uses your device's built-in biometric (Touch ID, Windows Hello, Android fingerprint).
+                                        {t('webauthn.enrollment.hardwareKeyInfo')}
                                     </Alert>
                                 )}
 
@@ -421,7 +370,7 @@ export default function WebAuthnEnrollment({
                                         },
                                     }}
                                 >
-                                    {loading ? 'Waiting for authenticator...' : 'Register Authenticator'}
+                                    {loading ? t('webauthn.enrollment.waitingForAuthenticator') : t('webauthn.enrollment.registerButton')}
                                 </Button>
                             </Box>
                         )}
@@ -430,10 +379,10 @@ export default function WebAuthnEnrollment({
                             <Box sx={{ textAlign: 'center', py: 3 }}>
                                 <CircularProgress size={48} sx={{ mb: 2 }} />
                                 <Typography variant="h6" fontWeight={600}>
-                                    Verifying Registration...
+                                    {t('webauthn.enrollment.verifying')}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                    Please wait while we verify your credential with the server.
+                                    {t('webauthn.enrollment.verifyingHint')}
                                 </Typography>
                             </Box>
                         )}
@@ -442,18 +391,19 @@ export default function WebAuthnEnrollment({
                             <Box sx={{ textAlign: 'center', py: 3 }}>
                                 <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
                                 <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
-                                    Registration Complete!
+                                    {t('webauthn.enrollment.complete')}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                                     {isPlatform
-                                        ? 'Your device biometric has been registered. You can now use it for authentication.'
-                                        : 'Your security key has been registered. You can now use it for authentication.'}
+                                        ? t('webauthn.enrollment.completePlatformHint')
+                                        : t('webauthn.enrollment.completeHardwareKeyHint')}
                                 </Typography>
                                 <Alert severity="success" variant="outlined" sx={{ textAlign: 'left' }}>
                                     <Typography variant="body2">
-                                        <strong>How to verify it works:</strong> Next time you log in, choose{' '}
-                                        {isPlatform ? 'Fingerprint' : 'Hardware Key'} as your auth method. Your browser
-                                        will prompt you to use your {isPlatform ? 'biometric (Touch ID, Windows Hello, etc.)' : 'security key'}.
+                                        {t('webauthn.enrollment.howToVerify', {
+                                            method: isPlatform ? t('mfa.fingerprint.title') : t('mfa.hardwareKey.title'),
+                                            device: isPlatform ? 'Touch ID, Windows Hello' : t('webauthn.defaultDeviceKey'),
+                                        })}
                                     </Typography>
                                 </Alert>
                             </Box>
@@ -462,14 +412,14 @@ export default function WebAuthnEnrollment({
                         {/* Existing credentials list — filtered by transport type */}
                         {(() => {
                             const filtered = credentials.filter((c) => {
-                                const t = (c.transports || '').toLowerCase()
-                                if (isPlatform) return t.includes('internal') || t.includes('hybrid') || t === ''
-                                return t.includes('usb') || t.includes('ble') || t.includes('nfc')
+                                const tr = (c.transports || '').toLowerCase()
+                                if (isPlatform) return tr.includes(WEBAUTHN.TRANSPORT_INTERNAL) || tr.includes(WEBAUTHN.TRANSPORT_HYBRID) || tr === ''
+                                return tr.includes(WEBAUTHN.TRANSPORT_USB) || tr.includes(WEBAUTHN.TRANSPORT_BLE) || tr.includes(WEBAUTHN.TRANSPORT_NFC)
                             })
                             return filtered.length > 0 && activeStep === 0 ? (
                             <Box sx={{ mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
                                 <Typography variant="subtitle2" color="text.secondary" sx={{ mb: 1 }}>
-                                    Registered Credentials ({filtered.length})
+                                    {t('webauthn.enrollment.registeredCredentials', { count: filtered.length })}
                                 </Typography>
                                 <List dense>
                                     {filtered.map((cred) => (
@@ -502,10 +452,10 @@ export default function WebAuthnEnrollment({
             </DialogContent>
             <DialogActions>
                 {activeStep < 2 && (
-                    <Button onClick={handleClose}>Cancel</Button>
+                    <Button onClick={handleClose}>{t('webauthn.enrollment.cancel')}</Button>
                 )}
                 {activeStep === 2 && (
-                    <Button onClick={handleClose}>Done</Button>
+                    <Button onClick={handleClose}>{t('webauthn.enrollment.done')}</Button>
                 )}
             </DialogActions>
         </Dialog>

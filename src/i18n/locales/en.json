@@ -340,6 +340,11 @@
       "voice": "Voice",
       "nfc_document": "NFC",
       "hardware_key": "Security Key"
+    },
+    "validation": {
+      "emailRequired": "Email is required",
+      "invalidEmail": "Invalid email address",
+      "passwordMinLength": "Password must be at least 8 characters"
     }
   },
   "users": {
@@ -915,7 +920,53 @@
       "scanFailed": "NFC scan failed. Please try again.",
       "notSupported": "NFC is only supported in Chrome on Android. Please use Chrome on your Android device.",
       "hint": "Hold your NFC-enabled document (passport, national ID, or residence permit) flat against the back of your phone. Keep it steady for a few seconds."
-    }
+    },
+    "sendOtpFailed": "Failed to send verification code"
+  },
+  "webauthn": {
+    "errors": {
+      "notSupported": "WebAuthn is not supported in this browser. Please use a modern browser like Chrome, Firefox, Safari, or Edge.",
+      "notAllowed": "Authentication was cancelled or timed out. Please try again.",
+      "invalidState": "This authenticator is already registered. Remove it first, then re-register.",
+      "security": "Security error: the domain does not match the server configuration. Contact support.",
+      "aborted": "The operation was aborted. Please try again.",
+      "generic": "Authenticator error: {{detail}}",
+      "unknown": "An unknown error occurred during authentication."
+    },
+    "enrollment": {
+      "registerFingerprint": "Register Fingerprint",
+      "registerHardwareKey": "Register Hardware Security Key",
+      "steps": {
+        "register": "Register Key",
+        "verify": "Verify",
+        "complete": "Complete"
+      },
+      "platformDescription": "Register your device biometric (fingerprint, face, or PIN) for passwordless authentication.",
+      "hardwareKeyDescription": "Register a FIDO2/WebAuthn hardware security key for strong two-factor authentication.",
+      "platformHint": "Uses your device's built-in authenticator (Touch ID, Windows Hello, etc.)",
+      "hardwareKeyHint": "Insert your security key (YubiKey, Titan, etc.) and click Register.",
+      "deviceNameLabel": "Device Name (optional)",
+      "deviceNamePlaceholderPlatform": "e.g., My Phone, MacBook Touch ID",
+      "deviceNamePlaceholderKey": "e.g., YubiKey 5, Titan Key",
+      "hardwareKeyInfo": "This requires a FIDO2/WebAuthn compatible security key such as YubiKey, Google Titan, or SoloKey. Regular USB drives will not work.",
+      "waitingForAuthenticator": "Waiting for authenticator...",
+      "registerButton": "Register Authenticator",
+      "verifying": "Verifying Registration...",
+      "verifyingHint": "Please wait while we verify your credential with the server.",
+      "complete": "Registration Complete!",
+      "completePlatformHint": "Your device biometric has been registered. You can now use it for authentication.",
+      "completeHardwareKeyHint": "Your security key has been registered. You can now use it for authentication.",
+      "howToVerify": "Next time you log in, choose {{method}} as your auth method. Your browser will prompt you to use your {{device}}.",
+      "registeredCredentials": "Registered Credentials ({{count}})",
+      "noPlatformAuthenticator": "No platform authenticator (fingerprint/biometric) available on this device.",
+      "failedToCreate": "Failed to create credential. Please try again.",
+      "failedToDelete": "Failed to delete credential. Please try again.",
+      "failedToRegister": "Failed to register credential. Check your connection and try again.",
+      "cancel": "Cancel",
+      "done": "Done"
+    },
+    "defaultDevicePlatform": "Platform Authenticator",
+    "defaultDeviceKey": "Security Key"
   },
   "widget": {
     "verifyIdentity": "Verify Your Identity",

@@ -26,7 +26,7 @@ export interface AvailableMfaMethod {
  */
 /** Response from MFA step verification */
 export interface MfaStepResponse {
-    status: 'STEP_COMPLETED' | 'AUTHENTICATED' | 'FAILED' | 'ERROR'
+    status: 'STEP_COMPLETED' | 'AUTHENTICATED' | 'FAILED' | 'ERROR' | 'CHALLENGE'
     message?: string
     // Present when status = STEP_COMPLETED
     mfaSessionToken?: string
@@ -38,6 +38,8 @@ export interface MfaStepResponse {
     refreshToken?: string
     expiresIn?: number
     user?: Record<string, unknown>
+    // Present when status = CHALLENGE (WebAuthn challenge data)
+    data?: Record<string, string>
 }
 
 export interface AuthResponse {

@@ -33,12 +33,7 @@ const itemVariants: Variants = {
     },
 }
 
-const passwordSchema = z.object({
-    email: z.string().min(1, 'Email is required').email('Invalid email address'),
-    password: z.string().min(8, 'Password must be at least 8 characters'),
-})
-
-type PasswordFormData = z.infer<typeof passwordSchema>
+type PasswordFormData = { email: string; password: string }
 
 interface PasswordStepProps {
     onSubmit: (data: { email: string; password: string }) => void
@@ -50,12 +45,17 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
     const { t } = useTranslation()
     const [showPassword, setShowPassword] = useState(false)
 
+    const schema = z.object({
+        email: z.string().min(1, t('auth.validation.emailRequired')).email(t('auth.validation.invalidEmail')),
+        password: z.string().min(8, t('auth.validation.passwordMinLength')),
+    })
+
     const {
         control,
         handleSubmit,
         formState: { errors },
     } = useForm<PasswordFormData>({
-        resolver: zodResolver(passwordSchema),
+        resolver: zodResolver(schema),
         defaultValues: {
             email: '',
             password: '',

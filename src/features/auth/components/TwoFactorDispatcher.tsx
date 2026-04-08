@@ -12,7 +12,8 @@ import { TYPES } from '@core/di/types'
 import type { IAuthRepository, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { useTranslation } from 'react-i18next'
-// TwoFactorVerification is replaced by EmailOtpMfaStep for the N-step flow
+import { AuthMethodType, MfaStepStatus, MfaStepAction, AUTH_API, EASE_OUT } from '../constants'
+import type { ChallengeResponse } from '../webauthn-utils'
 import TotpStep from './steps/TotpStep'
 import SmsOtpStep from './steps/SmsOtpStep'
 import FaceCaptureStep from './steps/FaceCaptureStep'
@@ -22,8 +23,6 @@ import QrCodeStep from './steps/QrCodeStep'
 import HardwareKeyStep from './steps/HardwareKeyStep'
 import NfcStep from './steps/NfcStep'
 import EmailOtpMfaStep from './steps/EmailOtpMfaStep'
-
-const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
 interface TwoFactorDispatcherProps {
     method: string
@@ -55,7 +54,7 @@ export default function TwoFactorDispatcher({
     const [error, setError] = useState<string | undefined>(undefined)
 
     // EMAIL_OTP: use the new session-token-based OTP flow
-    if (!method || method === 'EMAIL_OTP') {
+    if (!method || method === AuthMethodType.EMAIL_OTP) {
         // Auto-send OTP on mount, then show code input
         return (
             <Box
@@ -79,7 +78,7 @@ export default function TwoFactorDispatcher({
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.5, ease: easeOut }}
+                    transition={{ duration: 0.5, ease: EASE_OUT }}
                     style={{ width: '100%', maxWidth: 400 }}
                 >
                     <Card
@@ -110,16 +109,31 @@ export default function TwoFactorDispatcher({
     }
 
     // Verify MFA step using the new public endpoint (no JWT needed)
+    // ─── WebAuthn Challenge Helper ────────────────────────────────
+
+    const requestWebAuthnChallenge = useCallback(async (method: AuthMethodType): Promise<ChallengeResponse | null> => {
+        const res = await authRepository.verifyMfaStep(
+            mfaSessionToken, method, { action: MfaStepAction.CHALLENGE }
+        )
+        if (res.data && typeof res.data.challenge === 'string') {
+            return {
+                challenge: res.data.challenge,
+                rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
+                timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
+            }
+        }
+        return null
+    }, [authRepository, mfaSessionToken])
+
     const verifyStep = useCallback(async (methodType: string, data: Record<string, unknown>) => {
         setLoading(true)
         setError(undefined)
         try {
             const res = await authRepository.verifyMfaStep(mfaSessionToken, methodType, data)
 
-            if (res.status === 'AUTHENTICATED') {
+            if (res.status === MfaStepStatus.AUTHENTICATED) {
                 onAuthenticated(res)
-            } else if (res.status === 'STEP_COMPLETED') {
-                // More steps — parent will handle showing next step
+            } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
                 onAuthenticated(res)
             } else {
                 setError(res.message || t('mfa.verificationFailed'))
@@ -131,28 +145,29 @@ export default function TwoFactorDispatcher({
         }
     }, [authRepository, mfaSessionToken, onAuthenticated, t])
 
-    const totpSubmit = useCallback((code: string) => verifyStep('TOTP', { code }), [verifyStep])
-
     const renderStep = () => {
         switch (method) {
-            case 'TOTP':
+            case AuthMethodType.TOTP:
                 return (
                     <TotpStep
-                        onSubmit={totpSubmit}
+                        onSubmit={(code) => verifyStep(AuthMethodType.TOTP, { code })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'SMS_OTP':
+            case AuthMethodType.SMS_OTP:
                 return (
                     <SmsOtpStep
-                        onSubmit={(code) => verifyStep('SMS_OTP', { code })}
+                        onSubmit={(code) => verifyStep(AuthMethodType.SMS_OTP, { code })}
                         onSendOtp={async () => {
                             try {
-                                await httpClient.post('/auth/2fa/send-sms', {})
+                                await httpClient.post(AUTH_API.MFA_SEND_OTP, {
+                                    sessionToken: mfaSessionToken,
+                                    method: AuthMethodType.SMS_OTP,
+                                })
                             } catch (err) {
-                                setError(err instanceof Error ? err.message : 'Failed to send SMS')
+                                setError(err instanceof Error ? err.message : t('mfa.sendOtpFailed'))
                             }
                         }}
                         loading={loading}
@@ -160,72 +175,65 @@ export default function TwoFactorDispatcher({
                     />
                 )
 
-            case 'FACE':
+            case AuthMethodType.FACE:
                 return (
                     <FaceCaptureStep
-                        onSubmit={(image) => verifyStep('FACE', { image })}
+                        onSubmit={(image) => verifyStep(AuthMethodType.FACE, { image })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'VOICE':
+            case AuthMethodType.VOICE:
                 return (
                     <VoiceStep
-                        onSubmit={(voiceData) => verifyStep('VOICE', { voiceData })}
+                        onSubmit={(voiceData) => verifyStep(AuthMethodType.VOICE, { voiceData })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'FINGERPRINT':
+            case AuthMethodType.FINGERPRINT:
                 return (
                     <FingerprintStep
-                        onSubmit={(data) => verifyStep('FINGERPRINT', { assertion: data })}
+                        onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.FINGERPRINT)}
+                        onSubmit={(data) => verifyStep(AuthMethodType.FINGERPRINT, { assertion: data })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'QR_CODE':
+            case AuthMethodType.QR_CODE:
                 return (
                     <QrCodeStep
                         userId="mfa-session"
                         onGenerateToken={async () => {
                             const res = await httpClient.post<{ token: string; expiresInSeconds: number }>(
-                                '/auth/mfa/qr-generate',
+                                AUTH_API.MFA_QR_GENERATE,
                                 { sessionToken: mfaSessionToken }
                             )
                             return res.data
                         }}
-                        onSubmit={(token) => verifyStep('QR_CODE', { token })}
+                        onSubmit={(token) => verifyStep(AuthMethodType.QR_CODE, { token })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'HARDWARE_KEY':
+            case AuthMethodType.HARDWARE_KEY:
                 return (
                     <HardwareKeyStep
-                        onRequestChallenge={async () => {
-                            const res = await httpClient.post<{
-                                challenge: string
-                                rpId: string
-                                allowCredentials: Array<{ id: string; type: string }>
-                                timeout: string
-                            }>('/auth/2fa/hardware-challenge', {})
-                            return res.data
-                        }}
-                        onSubmit={(data) => verifyStep('HARDWARE_KEY', data)}
+                        onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.HARDWARE_KEY)}
+                        onSubmit={(data) => verifyStep(AuthMethodType.HARDWARE_KEY, data)}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'NFC_DOCUMENT':
+            case AuthMethodType.NFC_DOCUMENT:
                 return (
                     <NfcStep
-                        onSubmit={(data) => verifyStep('NFC_DOCUMENT', { nfcData: data })}
+                        onSubmit={(data) => verifyStep(AuthMethodType.NFC_DOCUMENT, { nfcData: data })}
                         loading={loading}
                         error={error}
                     />
@@ -264,8 +272,8 @@ export default function TwoFactorDispatcher({
             <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, ease: easeOut }}
-                style={{ width: '100%', maxWidth: 400 }}
+                transition={{ duration: 0.5, ease: EASE_OUT }}
+                style={{ width: '100%', maxWidth: 480 }}
             >
                 <Card
                     sx={{

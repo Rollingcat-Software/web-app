@@ -74,6 +74,29 @@ Enrollment UIs:
 - **sdk/** — @fivucsas/auth-js SDK module (`src/features/auth/components/sdk/`)
 - **react/** — @fivucsas/auth-react components (`src/features/auth/components/react/`)
 
+### Code Quality Refactoring (2026-04-08):
+- **`src/features/auth/constants.ts`** — Centralized enums: `AuthMethodType`, `MfaStepStatus`, `MfaStepAction`, `StepStatus`, `WebAuthnErrorName`, `WEBAUTHN` constants, `AUTH_API` endpoints, `EASE_OUT` animation curve
+- **`src/features/auth/webauthn-utils.ts`** — Shared WebAuthn utilities: `resolveChallenge()`, `mapWebAuthnError()`, `arrayBufferToBase64()`, `base64urlToBytes()`, `bytesToBase64url()`, `ChallengeResponse` type
+- **FingerprintStep + HardwareKeyStep**: Refactored to use shared `resolveChallenge()`, `WEBAUTHN.*` constants, `EASE_OUT`/`ANIMATION` timing
+- **TwoFactorDispatcher + LoginMfaFlow**: `AuthMethodType.*` enum in switch cases, `MfaStepStatus.*` for status checks, `AUTH_API.*` for endpoints, extracted `requestWebAuthnChallenge` helper (eliminates code duplication)
+- **WebAuthnEnrollment**: 30+ hardcoded English strings → `t()` i18n (EN+TR), `WEBAUTHN.*` constants for algorithms/timeouts/transports, `AUTH_API.*` for endpoints, `mapWebAuthnError()` for consistent error handling
+- **MethodPickerStep**: `hideNonEnrolled` prop, `flexShrink: 0` on cards/avatars/chips, `maxHeight: 60vh` scroll container
+- **PasswordStep**: Zod validation messages use `t()` i18n
+- **StepProgress**: Step labels visible on mobile (smaller font, truncated instead of hidden)
+- **i18n**: Added `webauthn.*` (32 keys), `auth.validation.*` (3 keys), `mfa.sendOtpFailed` — all in EN+TR
+
+### Widget UX Fixes (2026-04-08):
+- **Scroll fix**: `overflowY: auto` + `py` padding on method picker parents, `maxHeight: 60vh` on method list
+- **Non-enrolled methods hidden in widget** via `hideNonEnrolled` prop
+- **Back to login button** in widget method picker phase
+- **TwoFactorDispatcher** card widened 400→480px
+- **SecondaryAuthFlow** verify container overflow `hidden`→`auto`
+- **WebAuthn rpId fix**: FingerprintStep + HardwareKeyStep now get `rpId` from server challenge (`fivucsas.com`) instead of `window.location.hostname` — credentials work cross-subdomain
+- **Backend WebAuthn MFA verification**: `/auth/mfa/step` FINGERPRINT/HARDWARE_KEY now does full cryptographic verification (was stub: `assertion != null`)
+- **Backend challenge generation**: `action: "challenge"` in MFA step returns `{ status: "CHALLENGE", data: { challenge, rpId, timeout } }`
+- **Widget sends email** in completion payload (was N/A in BYS demo callback)
+- **BYS demo callback**: Redirect timer 3s→10s
+
 ### Auth Widget / Verify App (2026-04-08):
 - **LoginMfaFlow.tsx** — embedded login + N-step MFA flow component for widget mode
 - **VerifyApp.tsx** — supports two modes: `session` (existing enrollment verification) and `login` (new login+MFA flow)

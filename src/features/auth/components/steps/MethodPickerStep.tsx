@@ -32,6 +32,8 @@ interface MethodPickerStepProps {
     availableMethods: AvailableMethod[]
     onMethodSelected: (methodType: string) => void
     loading?: boolean
+    /** When true, non-enrolled methods are hidden instead of shown as disabled (useful in widget/login mode) */
+    hideNonEnrolled?: boolean
 }
 
 /**
@@ -44,6 +46,7 @@ export default function MethodPickerStep({
     availableMethods,
     onMethodSelected,
     loading = false,
+    hideNonEnrolled = false,
 }: MethodPickerStepProps) {
     const { t } = useTranslation()
 
@@ -71,8 +74,9 @@ export default function MethodPickerStep({
                 {t('mfa.chooseMethodSubtitle')}
             </Typography>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: '60vh', overflowY: 'auto', pr: 0.5 }}>
                 {[...availableMethods]
+                .filter((m) => !hideNonEnrolled || m.enrolled)
                 .sort((a, b) => (a.enrolled === b.enrolled ? 0 : a.enrolled ? -1 : 1))
                 .map((method) => {
                     const iconKey = method.methodType.toLowerCase()
@@ -89,6 +93,7 @@ export default function MethodPickerStep({
                                 borderRadius: '12px',
                                 opacity: disabled ? 0.5 : 1,
                                 transition: 'all 0.2s ease',
+                                flexShrink: 0,
                                 border: method.preferred ? '2px solid' : '1px solid',
                                 borderColor: method.preferred
                                     ? 'primary.main'
@@ -116,6 +121,7 @@ export default function MethodPickerStep({
                                                 : 'primary.main',
                                             width: 44,
                                             height: 44,
+                                            flexShrink: 0,
                                         }}
                                     >
                                         <Box sx={{ color: 'white', display: 'flex' }}>
@@ -159,7 +165,7 @@ export default function MethodPickerStep({
                                         size="small"
                                         color={method.enrolled ? 'success' : 'default'}
                                         variant={method.enrolled ? 'filled' : 'outlined'}
-                                        sx={{ borderRadius: '8px', fontWeight: 500 }}
+                                        sx={{ borderRadius: '8px', fontWeight: 500, flexShrink: 0 }}
                                     />
                                 </Box>
 

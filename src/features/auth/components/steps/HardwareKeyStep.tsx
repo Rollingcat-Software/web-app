@@ -9,22 +9,16 @@ import {
 import { Key, ArrowForward, UsbOutlined } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-
-const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
+import { WEBAUTHN, EASE_OUT, ANIMATION } from '../../constants'
+import { type ChallengeResponse, arrayBufferToBase64, resolveChallenge, mapWebAuthnError } from '../../webauthn-utils'
 
 const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
         opacity: 1,
         y: 0,
-        transition: { duration: 0.4, ease: easeOut },
+        transition: { duration: ANIMATION.ITEM_ENTER, ease: EASE_OUT },
     },
-}
-
-interface ChallengeResponse {
-    challenge: string
-    rpId?: string
-    timeout?: string
 }
 
 interface HardwareKeyStepProps {
@@ -39,15 +33,6 @@ interface HardwareKeyStepProps {
     }) => void
     loading: boolean
     error?: string
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer)
-    let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i])
-    }
-    return btoa(binary)
 }
 
 export default function HardwareKeyStep({
@@ -68,41 +53,21 @@ export default function HardwareKeyStep({
 
         try {
             if (!window.PublicKeyCredential) {
-                setKeyError(t('mfa.hardwareKey.webauthnNotSupported'))
+                setKeyError(t('webauthn.errors.notSupported'))
                 setWaiting(false)
                 return
             }
 
-            // Determine challenge and rpId: prefer prop, then server, then random fallback
-            let challenge = challengeProp
-            let rpId = rpIdProp
-
-            if (!challenge && onRequestChallenge) {
-                try {
-                    const serverChallenge = await onRequestChallenge()
-                    if (serverChallenge?.challenge) {
-                        challenge = serverChallenge.challenge
-                        rpId = serverChallenge.rpId ?? rpId
-                    }
-                } catch {
-                    // Server challenge request failed; fall back to local random challenge
-                }
-            }
-
-            const challengeBytes = challenge
-                ? Uint8Array.from(atob(challenge), (c) => c.charCodeAt(0))
-                : (() => {
-                      const arr = new Uint8Array(32)
-                      crypto.getRandomValues(arr)
-                      return arr
-                  })()
+            const { challengeBytes, rpId } = await resolveChallenge(
+                onRequestChallenge, challengeProp, rpIdProp
+            )
 
             const credential = await navigator.credentials.get({
                 publicKey: {
-                    challenge: challengeBytes,
+                    challenge: challengeBytes.buffer as ArrayBuffer,
                     rpId: rpId || window.location.hostname,
-                    timeout: 60000,
-                    userVerification: 'preferred',
+                    timeout: WEBAUTHN.TIMEOUT_MS,
+                    userVerification: WEBAUTHN.UV_PREFERRED,
                 },
             })
 
@@ -117,15 +82,12 @@ export default function HardwareKeyStep({
                 })
             }
         } catch (err) {
-            if (err instanceof DOMException && err.name === 'NotAllowedError') {
-                setKeyError(t('mfa.hardwareKey.cancelledOrTimeout'))
-            } else {
-                setKeyError(t('mfa.hardwareKey.authFailed'))
-            }
+            const mapped = mapWebAuthnError(err, t)
+            if (mapped) setKeyError(mapped)
         } finally {
             setWaiting(false)
         }
-    }, [challengeProp, rpIdProp, onRequestChallenge, onSubmit])
+    }, [challengeProp, rpIdProp, onRequestChallenge, onSubmit, t])
 
     const isProcessing = loading || waiting
 
@@ -137,7 +99,7 @@ export default function HardwareKeyStep({
                 hidden: { opacity: 0 },
                 visible: {
                     opacity: 1,
-                    transition: { staggerChildren: 0.1 },
+                    transition: { staggerChildren: ANIMATION.STAGGER_CHILDREN },
                 },
             }}
         >
@@ -170,7 +132,7 @@ export default function HardwareKeyStep({
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: ANIMATION.STEP_TRANSITION }}
                 >
                     <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
                         {error || keyError}
@@ -178,29 +140,15 @@ export default function HardwareKeyStep({
                 </motion.div>
             )}
 
-            {/* Security Key Animation */}
             <motion.div variants={itemVariants}>
-                <Box
-                    sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        my: 4,
-                    }}
-                >
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
                     <motion.div
                         animate={
                             isProcessing
-                                ? {
-                                      rotateY: [0, 15, -15, 0],
-                                      scale: [1, 1.05, 1],
-                                  }
+                                ? { rotateY: [0, 15, -15, 0], scale: [1, 1.05, 1] }
                                 : {}
                         }
-                        transition={{
-                            duration: 2,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                        }}
+                        transition={{ duration: 2, repeat: Infinity, ease: 'easeInOut' }}
                     >
                         <Box
                             sx={{
@@ -234,14 +182,8 @@ export default function HardwareKeyStep({
             </motion.div>
 
             <motion.div variants={itemVariants}>
-                <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ textAlign: 'center', mb: 3 }}
-                >
-                    {isProcessing
-                        ? t('mfa.hardwareKey.touchKey')
-                        : t('mfa.hardwareKey.ensureInserted')}
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 3 }}>
+                    {isProcessing ? t('mfa.hardwareKey.touchKey') : t('mfa.hardwareKey.ensureInserted')}
                 </Typography>
             </motion.div>
 

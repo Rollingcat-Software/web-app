@@ -16,13 +16,15 @@ import {
     CardContent,
     Typography,
 } from '@mui/material'
-import { Close } from '@mui/icons-material'
+import { Close, ArrowBack } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers/DependencyProvider'
 import { TYPES } from '@core/di/types'
 import type { IAuthRepository, AvailableMfaMethod, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { AuthMethodType, MfaStepStatus, MfaStepAction, AUTH_API, EASE_OUT } from '@features/auth/constants'
+import type { ChallengeResponse } from '@features/auth/webauthn-utils'
 import PasswordStep from '@features/auth/components/steps/PasswordStep'
 import MethodPickerStep from '@features/auth/components/steps/MethodPickerStep'
 import TotpStep from '@features/auth/components/steps/TotpStep'
@@ -35,13 +37,11 @@ import QrCodeStep from '@features/auth/components/steps/QrCodeStep'
 import HardwareKeyStep from '@features/auth/components/steps/HardwareKeyStep'
 import NfcStep from '@features/auth/components/steps/NfcStep'
 
-const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
-
 type FlowPhase = 'password' | 'method-picker' | 'mfa-step' | 'complete'
 
 interface LoginMfaFlowProps {
     clientId: string
-    onComplete: (result: { accessToken: string; refreshToken?: string; userId: string }) => void
+    onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string }) => void
     onCancel: () => void
 }
 
@@ -92,6 +92,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                     accessToken: result.accessToken ?? '',
                     refreshToken: result.refreshToken ?? undefined,
                     userId: result.user?.id ?? '',
+                    email: result.user?.email ?? undefined,
                 })
             }
         } catch (err) {
@@ -114,6 +115,14 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         setPhase('method-picker')
     }, [])
 
+    const handleBackToPassword = useCallback(() => {
+        setError(undefined)
+        setMfaSessionToken('')
+        setAvailableMethods([])
+        setSelectedMethod('')
+        setPhase('password')
+    }, [])
+
     // ─── MFA Step Verification ──────────────────────────────────
 
     const verifyStep = useCallback(async (method: string, data: Record<string, unknown>) => {
@@ -131,14 +140,15 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
     }, [authRepository, mfaSessionToken, t]) // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleMfaResult = useCallback((res: MfaStepResponse) => {
-        if (res.status === 'AUTHENTICATED' && res.accessToken) {
+        if (res.status === MfaStepStatus.AUTHENTICATED && res.accessToken) {
             // All steps complete
             onComplete({
                 accessToken: res.accessToken,
                 refreshToken: res.refreshToken,
                 userId: res.user?.id ? String(res.user.id) : '',
+                email: res.user?.email ? String(res.user.email) : undefined,
             })
-        } else if (res.status === 'STEP_COMPLETED') {
+        } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
             // More steps remain
             if (res.mfaSessionToken) setMfaSessionToken(res.mfaSessionToken)
             if (res.currentStep) setCurrentStep(res.currentStep)
@@ -161,13 +171,28 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         }
     }, [onComplete, availableMethods, t])
 
+    // ─── WebAuthn Challenge Helper ────────────────────────────────
+
+    const requestWebAuthnChallenge = useCallback(async (method: AuthMethodType): Promise<ChallengeResponse | null> => {
+        const res = await authRepository.verifyMfaStep(
+            mfaSessionToken, method, { action: MfaStepAction.CHALLENGE }
+        )
+        if (res.data && typeof res.data.challenge === 'string') {
+            return {
+                challenge: res.data.challenge,
+                rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
+                timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
+            }
+        }
+        return null
+    }, [authRepository, mfaSessionToken])
+
     // ─── Render Step Component ──────────────────────────────────
 
     const renderMfaStep = () => {
         const method = selectedMethod
 
-        // EmailOtpMfaStep is special — it uses the session token internally
-        if (!method || method === 'EMAIL_OTP') {
+        if (!method || method === AuthMethodType.EMAIL_OTP) {
             return (
                 <EmailOtpMfaStep
                     mfaSessionToken={mfaSessionToken}
@@ -178,24 +203,24 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         }
 
         switch (method) {
-            case 'TOTP':
+            case AuthMethodType.TOTP:
                 return (
                     <TotpStep
-                        onSubmit={(code) => verifyStep('TOTP', { code })}
+                        onSubmit={(code) => verifyStep(AuthMethodType.TOTP, { code })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'SMS_OTP':
+            case AuthMethodType.SMS_OTP:
                 return (
                     <SmsOtpStep
-                        onSubmit={(code) => verifyStep('SMS_OTP', { code })}
+                        onSubmit={(code) => verifyStep(AuthMethodType.SMS_OTP, { code })}
                         onSendOtp={async () => {
                             try {
-                                await httpClient.post('/auth/mfa/send-otp', {
+                                await httpClient.post(AUTH_API.MFA_SEND_OTP, {
                                     sessionToken: mfaSessionToken,
-                                    method: 'SMS_OTP',
+                                    method: AuthMethodType.SMS_OTP,
                                 })
                             } catch {
                                 // fire-and-forget
@@ -206,72 +231,65 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                     />
                 )
 
-            case 'FACE':
+            case AuthMethodType.FACE:
                 return (
                     <FaceCaptureStep
-                        onSubmit={(image) => verifyStep('FACE', { image })}
+                        onSubmit={(image) => verifyStep(AuthMethodType.FACE, { image })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'VOICE':
+            case AuthMethodType.VOICE:
                 return (
                     <VoiceStep
-                        onSubmit={(voiceData) => verifyStep('VOICE', { voiceData })}
+                        onSubmit={(voiceData) => verifyStep(AuthMethodType.VOICE, { voiceData })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'FINGERPRINT':
+            case AuthMethodType.FINGERPRINT:
                 return (
                     <FingerprintStep
-                        onSubmit={(data) => verifyStep('FINGERPRINT', { assertion: data })}
+                        onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.FINGERPRINT)}
+                        onSubmit={(data) => verifyStep(AuthMethodType.FINGERPRINT, { assertion: data })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'QR_CODE':
+            case AuthMethodType.QR_CODE:
                 return (
                     <QrCodeStep
                         userId="mfa-session"
                         onGenerateToken={async () => {
                             const res = await httpClient.post<{ token: string; expiresInSeconds: number }>(
-                                '/auth/mfa/qr-generate',
+                                AUTH_API.MFA_QR_GENERATE,
                                 { sessionToken: mfaSessionToken }
                             )
                             return res.data
                         }}
-                        onSubmit={(token) => verifyStep('QR_CODE', { token })}
+                        onSubmit={(token) => verifyStep(AuthMethodType.QR_CODE, { token })}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'HARDWARE_KEY':
+            case AuthMethodType.HARDWARE_KEY:
                 return (
                     <HardwareKeyStep
-                        onRequestChallenge={async () => {
-                            const res = await httpClient.post<{
-                                challenge: string
-                                rpId: string
-                                allowCredentials: Array<{ id: string; type: string }>
-                                timeout: string
-                            }>('/auth/2fa/hardware-challenge', {})
-                            return res.data
-                        }}
-                        onSubmit={(data) => verifyStep('HARDWARE_KEY', data)}
+                        onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.HARDWARE_KEY)}
+                        onSubmit={(data) => verifyStep(AuthMethodType.HARDWARE_KEY, data)}
                         loading={loading}
                         error={error}
                     />
                 )
 
-            case 'NFC_DOCUMENT':
+            case AuthMethodType.NFC_DOCUMENT:
                 return (
                     <NfcStep
-                        onSubmit={(data) => verifyStep('NFC_DOCUMENT', { nfcData: data })}
+                        onSubmit={(data) => verifyStep(AuthMethodType.NFC_DOCUMENT, { nfcData: data })}
                         loading={loading}
                         error={error}
                     />
@@ -292,11 +310,12 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: easeOut }}
+            transition={{ duration: 0.5, ease: EASE_OUT }}
         >
             <Card
                 sx={{
                     maxWidth: 520,
+                    width: '100%',
                     mx: 'auto',
                     borderRadius: '24px',
                     boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
@@ -346,7 +365,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                             initial={{ opacity: 0, x: 30 }}
                             animate={{ opacity: 1, x: 0 }}
                             exit={{ opacity: 0, x: -30 }}
-                            transition={{ duration: 0.3, ease: easeOut }}
+                            transition={{ duration: 0.3, ease: EASE_OUT }}
                         >
                             {phase === 'password' && (
                                 <PasswordStep
@@ -357,10 +376,24 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                             )}
 
                             {phase === 'method-picker' && (
-                                <MethodPickerStep
-                                    availableMethods={availableMethods}
-                                    onMethodSelected={handleMethodSelected}
-                                />
+                                <Box>
+                                    <MethodPickerStep
+                                        availableMethods={availableMethods}
+                                        onMethodSelected={handleMethodSelected}
+                                        hideNonEnrolled
+                                    />
+                                    <Box sx={{ textAlign: 'center', mt: 2 }}>
+                                        <Button
+                                            variant="text"
+                                            size="small"
+                                            startIcon={<ArrowBack />}
+                                            onClick={handleBackToPassword}
+                                            sx={{ color: 'text.secondary' }}
+                                        >
+                                            {t('auth.backToLogin')}
+                                        </Button>
+                                    </Box>
+                                </Box>
                             )}
 
                             {phase === 'mfa-step' && (

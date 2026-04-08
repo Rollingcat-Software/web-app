@@ -340,6 +340,11 @@
       "voice": "Ses",
       "nfc_document": "NFC",
       "hardware_key": "Güvenlik Anahtarı"
+    },
+    "validation": {
+      "emailRequired": "E-posta gerekli",
+      "invalidEmail": "Geçersiz e-posta adresi",
+      "passwordMinLength": "Şifre en az 8 karakter olmalıdır"
     }
   },
   "users": {
@@ -915,7 +920,53 @@
       "scanFailed": "NFC tarama başarısız. Tekrar deneyin.",
       "notSupported": "NFC yalnızca Android Chrome'da desteklenir. Lütfen Android cihazınızda Chrome kullanın.",
       "hint": "NFC özellikli belgenizi (pasaport, nüfus cüzdanı veya ikamet izni) telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun."
-    }
+    },
+    "sendOtpFailed": "Doğrulama kodu gönderilemedi"
+  },
+  "webauthn": {
+    "errors": {
+      "notSupported": "WebAuthn bu tarayıcıda desteklenmiyor. Lütfen Chrome, Firefox, Safari veya Edge gibi modern bir tarayıcı kullanın.",
+      "notAllowed": "Kimlik doğrulama iptal edildi veya zaman aşımına uğradı. Tekrar deneyin.",
+      "invalidState": "Bu kimlik doğrulayıcı zaten kayıtlı. Önce kaldırın, sonra tekrar kaydedin.",
+      "security": "Güvenlik hatası: alan adı sunucu yapılandırmasıyla eşleşmiyor. Destek ile iletişime geçin.",
+      "aborted": "İşlem iptal edildi. Tekrar deneyin.",
+      "generic": "Kimlik doğrulayıcı hatası: {{detail}}",
+      "unknown": "Kimlik doğrulama sırasında bilinmeyen bir hata oluştu."
+    },
+    "enrollment": {
+      "registerFingerprint": "Parmak İzi Kaydet",
+      "registerHardwareKey": "Donanım Güvenlik Anahtarı Kaydet",
+      "steps": {
+        "register": "Anahtar Kaydet",
+        "verify": "Doğrula",
+        "complete": "Tamamla"
+      },
+      "platformDescription": "Şifresiz kimlik doğrulama için cihazınızın biyometrik özelliğini (parmak izi, yüz veya PIN) kaydedin.",
+      "hardwareKeyDescription": "Güçlü iki faktörlü kimlik doğrulama için bir FIDO2/WebAuthn donanım güvenlik anahtarı kaydedin.",
+      "platformHint": "Cihazınızın yerleşik kimlik doğrulayıcısını kullanır (Touch ID, Windows Hello, vb.)",
+      "hardwareKeyHint": "Güvenlik anahtarınızı takın (YubiKey, Titan, vb.) ve Kaydet'e tıklayın.",
+      "deviceNameLabel": "Cihaz Adı (isteğe bağlı)",
+      "deviceNamePlaceholderPlatform": "örn. Telefonum, MacBook Touch ID",
+      "deviceNamePlaceholderKey": "örn. YubiKey 5, Titan Key",
+      "hardwareKeyInfo": "Bu, YubiKey, Google Titan veya SoloKey gibi FIDO2/WebAuthn uyumlu bir güvenlik anahtarı gerektirir. Normal USB sürücüler çalışmaz.",
+      "waitingForAuthenticator": "Kimlik doğrulayıcı bekleniyor...",
+      "registerButton": "Kimlik Doğrulayıcı Kaydet",
+      "verifying": "Kayıt Doğrulanıyor...",
+      "verifyingHint": "Kimlik bilginiz sunucuyla doğrulanırken lütfen bekleyin.",
+      "complete": "Kayıt Tamamlandı!",
+      "completePlatformHint": "Cihaz biyometriğiniz kaydedildi. Artık kimlik doğrulama için kullanabilirsiniz.",
+      "completeHardwareKeyHint": "Güvenlik anahtarınız kaydedildi. Artık kimlik doğrulama için kullanabilirsiniz.",
+      "howToVerify": "Bir sonraki girişinizde kimlik doğrulama yöntemi olarak {{method}} seçin. Tarayıcınız {{device}} kullanmanızı isteyecektir.",
+      "registeredCredentials": "Kayıtlı Kimlik Bilgileri ({{count}})",
+      "noPlatformAuthenticator": "Bu cihazda platform kimlik doğrulayıcı (parmak izi/biyometrik) bulunmuyor.",
+      "failedToCreate": "Kimlik bilgisi oluşturulamadı. Tekrar deneyin.",
+      "failedToDelete": "Kimlik bilgisi silinemedi. Tekrar deneyin.",
+      "failedToRegister": "Kimlik bilgisi kaydedilemedi. Bağlantınızı kontrol edip tekrar deneyin.",
+      "cancel": "İptal",
+      "done": "Tamam"
+    },
+    "defaultDevicePlatform": "Platform Kimlik Doğrulayıcı",
+    "defaultDeviceKey": "Güvenlik Anahtarı"
   },
   "widget": {
     "verifyIdentity": "Kimli\u011finizi Do\u011frulay\u0131n",

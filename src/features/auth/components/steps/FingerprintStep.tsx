@@ -9,35 +9,35 @@ import {
 import { Fingerprint, ArrowForward } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-
-const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
+import { WEBAUTHN, EASE_OUT, ANIMATION } from '../../constants'
+import { type ChallengeResponse, arrayBufferToBase64, resolveChallenge } from '../../webauthn-utils'
 
 const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
     visible: {
         opacity: 1,
         y: 0,
-        transition: { duration: 0.4, ease: easeOut },
+        transition: { duration: ANIMATION.ITEM_ENTER, ease: EASE_OUT },
     },
-}
-
-function arrayBufferToBase64(buffer: ArrayBuffer): string {
-    const bytes = new Uint8Array(buffer)
-    let binary = ''
-    for (let i = 0; i < bytes.byteLength; i++) {
-        binary += String.fromCharCode(bytes[i])
-    }
-    return btoa(binary)
 }
 
 interface FingerprintStepProps {
     challenge?: string
+    rpId?: string
+    onRequestChallenge?: () => Promise<ChallengeResponse | null>
     onSubmit: (data: string) => void
     loading: boolean
     error?: string
 }
 
-export default function FingerprintStep({ challenge, onSubmit, loading, error }: FingerprintStepProps) {
+export default function FingerprintStep({
+    challenge: challengeProp,
+    rpId: rpIdProp,
+    onRequestChallenge,
+    onSubmit,
+    loading,
+    error,
+}: FingerprintStepProps) {
     const { t } = useTranslation()
     const [waiting, setWaiting] = useState(false)
     const [unavailable, setUnavailable] = useState(false)
@@ -46,7 +46,6 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
         setWaiting(true)
         setUnavailable(false)
 
-        // Attempt to use WebAuthn platform authenticator (fingerprint/biometric)
         try {
             if (!window.PublicKeyCredential) {
                 setUnavailable(true)
@@ -67,21 +66,17 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                 return
             }
 
-            const challengeBytes = challenge
-                ? Uint8Array.from(atob(challenge), (c) => c.charCodeAt(0))
-                : (() => {
-                      const arr = new Uint8Array(32)
-                      crypto.getRandomValues(arr)
-                      return arr
-                  })()
+            const { challengeBytes, rpId } = await resolveChallenge(
+                onRequestChallenge, challengeProp, rpIdProp
+            )
 
             const credential = await navigator.credentials.get({
                 publicKey: {
-                    challenge: challengeBytes,
-                    rpId: window.location.hostname,
-                    userVerification: 'required',
-                    authenticatorAttachment: 'platform',
-                    timeout: 60000,
+                    challenge: challengeBytes.buffer as ArrayBuffer,
+                    rpId: rpId || window.location.hostname,
+                    userVerification: WEBAUTHN.UV_REQUIRED,
+                    authenticatorAttachment: WEBAUTHN.ATTACHMENT_PLATFORM,
+                    timeout: WEBAUTHN.TIMEOUT_MS,
                 } as PublicKeyCredentialRequestOptions,
             })
 
@@ -95,13 +90,11 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                     signature: arrayBufferToBase64(assertionResponse.signature),
                 })))
             }
-        } catch (err) {
-            if (err instanceof DOMException && err.name === 'NotAllowedError') {
-                // User cancelled or timed out
-            }
+        } catch {
+            // User cancelled or timed out — no action needed
             setWaiting(false)
         }
-    }, [challenge, onSubmit])
+    }, [challengeProp, rpIdProp, onRequestChallenge, onSubmit])
 
     const isProcessing = loading || waiting
 
@@ -113,7 +106,7 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                 hidden: { opacity: 0 },
                 visible: {
                     opacity: 1,
-                    transition: { staggerChildren: 0.1 },
+                    transition: { staggerChildren: ANIMATION.STAGGER_CHILDREN },
                 },
             }}
         >
@@ -146,7 +139,7 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
+                    transition={{ duration: ANIMATION.STEP_TRANSITION }}
                 >
                     <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
                         {error}
@@ -160,29 +153,15 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                 </Alert>
             )}
 
-            {/* Fingerprint Icon Animation */}
             <motion.div variants={itemVariants}>
-                <Box
-                    sx={{
-                        display: 'flex',
-                        justifyContent: 'center',
-                        my: 4,
-                    }}
-                >
+                <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
                     <motion.div
                         animate={
                             isProcessing
-                                ? {
-                                      scale: [1, 1.15, 1],
-                                      opacity: [0.6, 1, 0.6],
-                                  }
+                                ? { scale: [1, 1.15, 1], opacity: [0.6, 1, 0.6] }
                                 : {}
                         }
-                        transition={{
-                            duration: 1.5,
-                            repeat: Infinity,
-                            ease: 'easeInOut',
-                        }}
+                        transition={{ duration: 1.5, repeat: Infinity, ease: 'easeInOut' }}
                     >
                         <Box
                             sx={{
@@ -203,13 +182,7 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
                             {isProcessing ? (
                                 <CircularProgress size={48} />
                             ) : (
-                                <Fingerprint
-                                    sx={{
-                                        fontSize: 64,
-                                        color: 'primary.main',
-                                        opacity: 0.7,
-                                    }}
-                                />
+                                <Fingerprint sx={{ fontSize: 64, color: 'primary.main', opacity: 0.7 }} />
                             )}
                         </Box>
                     </motion.div>
@@ -217,14 +190,8 @@ export default function FingerprintStep({ challenge, onSubmit, loading, error }:
             </motion.div>
 
             <motion.div variants={itemVariants}>
-                <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ textAlign: 'center', mb: 3 }}
-                >
-                    {isProcessing
-                        ? t('mfa.fingerprint.placeFinger')
-                        : t('mfa.fingerprint.clickToStart')}
+                <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center', mb: 3 }}>
+                    {isProcessing ? t('mfa.fingerprint.placeFinger') : t('mfa.fingerprint.clickToStart')}
                 </Typography>
             </motion.div>
 

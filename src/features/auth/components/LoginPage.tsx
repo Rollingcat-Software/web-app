@@ -353,6 +353,8 @@ export default function LoginPage() {
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
+                    overflowY: 'auto',
+                    py: 4,
                     background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
                     backgroundSize: '400% 400%',
                     animation: 'gradientShift 15s ease infinite',

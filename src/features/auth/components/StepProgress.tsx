@@ -209,7 +209,14 @@ export default function StepProgress({ steps, activeStep }: StepProgressProps) {
                                               ? 'primary.main'
                                               : 'text.secondary'
                                 }
-                                sx={{ display: { xs: 'none', sm: 'block' } }}
+                                sx={{
+                                    display: 'block',
+                                    fontSize: { xs: '0.6rem', sm: '0.75rem' },
+                                    overflow: 'hidden',
+                                    textOverflow: 'ellipsis',
+                                    whiteSpace: 'nowrap',
+                                    maxWidth: { xs: 60, sm: 'none' },
+                                }}
                             >
                                 {step.methodType
                                     ? translatedLabels[step.methodType] || step.label

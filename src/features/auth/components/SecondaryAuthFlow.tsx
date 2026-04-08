@@ -378,7 +378,7 @@ export default function SecondaryAuthFlow({
                             sx={{
                                 minHeight: 300,
                                 borderRadius: '12px',
-                                overflow: 'hidden',
+                                overflow: 'auto',
                                 border: '1px solid',
                                 borderColor: 'divider',
                             }}
