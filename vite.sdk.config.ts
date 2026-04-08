@@ -19,6 +19,10 @@ export default defineConfig({
             output: {
                 // Ensure the IIFE exposes FivucsasAuth at the top level
                 extend: true,
+                // Unwrap: make `new FivucsasAuth(...)` work without nesting
+                // IIFE creates window.FivucsasAuth = { FivucsasAuth: class }
+                // This footer promotes the class to the top level
+                footer: 'if(typeof FivucsasAuth==="object"&&FivucsasAuth.FivucsasAuth){var _FA=FivucsasAuth.FivucsasAuth;Object.assign(_FA,FivucsasAuth);FivucsasAuth=_FA;}',
             },
         },
     },
