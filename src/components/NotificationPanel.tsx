@@ -37,6 +37,7 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { IAuditLogService } from '@domain/interfaces/IAuditLogService'
 import type { AuditLog } from '@domain/models/AuditLog'
 import { useTranslation } from 'react-i18next'
+import { useAuth } from '@features/auth/hooks/useAuth'
 
 const POLL_INTERVAL = 30_000 // 30 seconds
 const MAX_NOTIFICATIONS = 20
@@ -203,6 +204,7 @@ function getActionDescription(action: string, t: any, details?: Record<string, u
  */
 export default function NotificationPanel() {
     const { t } = useTranslation()
+    const { user } = useAuth()
     const auditLogService = useService<IAuditLogService>(TYPES.AuditLogService)
 
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
@@ -219,22 +221,17 @@ export default function NotificationPanel() {
     const fetchNotifications = useCallback(async () => {
         try {
             setLoading(true)
-            // Try admin endpoint first, fall back to user endpoint
-            try {
-                const result = await auditLogService.getAuditLogs(
-                    undefined,
-                    0,
-                    MAX_NOTIFICATIONS
-                )
+            const isAdmin = user?.isAdmin() ?? false
+            if (isAdmin) {
+                const result = await auditLogService.getAuditLogs(undefined, 0, MAX_NOTIFICATIONS)
                 setNotifications(result.items)
-            } catch {
-                // Admin endpoint failed (403) — try user's own activity
+            } else {
+                // Non-admin: use own activity endpoint (no 403)
                 const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
                 const response = await httpClient.get<{ content?: Array<Record<string, unknown>> }>('/my/activity', {
                     params: { page: 0, size: MAX_NOTIFICATIONS }
                 })
                 const items = response.data.content ?? []
-                // Map to AuditLog-like objects
                 setNotifications(items.map((item: Record<string, unknown>) => ({
                     id: String(item.id ?? ''),
                     action: String(item.action ?? ''),
@@ -252,7 +249,7 @@ export default function NotificationPanel() {
         } finally {
             setLoading(false)
         }
-    }, [auditLogService])
+    }, [auditLogService, user])
 
     // Initial fetch and polling - works for all authenticated users
     useEffect(() => {
