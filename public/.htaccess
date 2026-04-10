@@ -26,7 +26,7 @@ RewriteRule . /index.html [L]
 <IfModule mod_headers.c>
     # Content Security Policy (frame-ancestors MUST be in HTTP header, not meta tag)
     # frame-ancestors allows embedding from BYS demo and other *.fivucsas.com subdomains
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
 
     # X-Frame-Options removed: CSP frame-ancestors supersedes it and supports wildcard subdomains
     # X-Frame-Options only supports DENY/SAMEORIGIN (no multi-origin), so frame-ancestors is the standard

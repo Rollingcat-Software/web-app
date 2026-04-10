@@ -23,6 +23,7 @@ import {
     VerifiedUser,
 } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 
 // ── WAV Conversion Helpers ──────────────────────────────────────
 
@@ -122,6 +123,7 @@ export default function VoiceEnrollmentFlow({
     onClose,
     onSuccess,
 }: VoiceEnrollmentFlowProps) {
+    const { t } = useTranslation()
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
     const chunksRef = useRef<Blob[]>([])
     const streamRef = useRef<MediaStream | null>(null)
@@ -227,7 +229,7 @@ export default function VoiceEnrollmentFlow({
                 const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
 
                 if (maxAmplitudeRef.current < 0.05) {
-                    setMicError('No voice detected. Please speak clearly into the microphone and try again.')
+                    setMicError(t('mfa.voice.noVoiceDetected'))
                     stream.getTracks().forEach(t => t.stop())
                     return
                 }

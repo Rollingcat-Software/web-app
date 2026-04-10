@@ -82,6 +82,14 @@ export class AuditLogRepository implements IAuditLogRepository {
                 totalPages: Math.ceil(total / pageSize),
             }
         } catch (error) {
+            const axiosError = error as { response?: { status?: number } }
+            if (axiosError.response?.status === 403) {
+                // Non-admin users: return empty result gracefully
+                this.logger.debug('Audit logs access denied (403) — returning empty result for non-admin user')
+                const pageSize = params?.pageSize || 20
+                const page = params?.page || 0
+                return { items: [], total: 0, page, pageSize, totalPages: 0 }
+            }
             this.logger.error('Failed to fetch audit logs', error)
             throw error
         }

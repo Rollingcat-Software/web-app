@@ -34,6 +34,8 @@ interface MethodPickerStepProps {
     loading?: boolean
     /** When true, non-enrolled methods are hidden instead of shown as disabled (useful in widget/login mode) */
     hideNonEnrolled?: boolean
+    /** Method types to exclude from the list (e.g. already-used methods in multi-step MFA) */
+    excludeMethods?: string[]
 }
 
 /**
@@ -47,6 +49,7 @@ export default function MethodPickerStep({
     onMethodSelected,
     loading = false,
     hideNonEnrolled = false,
+    excludeMethods = [],
 }: MethodPickerStepProps) {
     const { t } = useTranslation()
 
@@ -77,6 +80,7 @@ export default function MethodPickerStep({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: '60vh', overflowY: 'auto', pr: 0.5 }}>
                 {[...availableMethods]
                 .filter((m) => !hideNonEnrolled || m.enrolled)
+                .filter((m) => !excludeMethods.includes(m.methodType))
                 .sort((a, b) => (a.enrolled === b.enrolled ? 0 : a.enrolled ? -1 : 1))
                 .map((method) => {
                     const iconKey = method.methodType.toLowerCase()

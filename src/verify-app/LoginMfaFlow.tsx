@@ -58,6 +58,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
     const [selectedMethod, setSelectedMethod] = useState<string>('')
     const [currentStep, setCurrentStep] = useState(1)
     const [totalSteps, setTotalSteps] = useState(1)
+    const [usedMethods, setUsedMethods] = useState<string[]>([])
 
     // ─── Password Submit ────────────────────────────────────────
 
@@ -120,6 +121,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         setMfaSessionToken('')
         setAvailableMethods([])
         setSelectedMethod('')
+        setUsedMethods([])
         setPhase('password')
     }, [])
 
@@ -149,7 +151,8 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 email: res.user?.email ? String(res.user.email) : undefined,
             })
         } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
-            // More steps remain
+            // More steps remain — track the method just used to exclude it from step 2
+            setUsedMethods((prev) => selectedMethod && !prev.includes(selectedMethod) ? [...prev, selectedMethod] : prev)
             if (res.mfaSessionToken) setMfaSessionToken(res.mfaSessionToken)
             if (res.currentStep) setCurrentStep(res.currentStep)
             if (res.totalSteps) setTotalSteps(res.totalSteps)
@@ -157,7 +160,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
             const methods = res.availableMethods ?? availableMethods
             setAvailableMethods(methods)
 
-            const enrolled = methods.filter((m) => m.enrolled)
+            const enrolled = methods.filter((m) => m.enrolled && m.methodType !== selectedMethod)
             if (enrolled.length > 1) {
                 setPhase('method-picker')
             } else if (enrolled.length === 1) {
@@ -381,6 +384,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                                         availableMethods={availableMethods}
                                         onMethodSelected={handleMethodSelected}
                                         hideNonEnrolled
+                                        excludeMethods={usedMethods}
                                     />
                                     <Box sx={{ textAlign: 'center', mt: 2 }}>
                                         <Button

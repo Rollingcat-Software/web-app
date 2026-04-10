@@ -48,6 +48,7 @@ import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { ISettingsService } from '@domain/interfaces/ISettingsService'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 
 /**
  * Device capability detection results
@@ -783,6 +784,10 @@ export default function EnrollmentPage() {
                     createEnrollment({
                         tenantId: user?.tenantId ?? 'system',
                         methodType,
+                    }).then(() => {
+                        // Mark enrollment as complete (ENROLLED status)
+                        const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                        httpClient.put(`/users/${userId}/enrollments/${methodType}/complete`, {}).catch(() => {})
                     }).catch(() => {})
                     setWebauthnEnrollOpen(false)
                     refetchEnrollments()

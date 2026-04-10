@@ -143,7 +143,10 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         canvas.height = Math.round(h * scale)
 
         const ctx = canvas.getContext('2d')
-        if (!ctx) return
+        if (!ctx) {
+            setCameraError(t('mfa.face.cameraError'))
+            return
+        }
 
         ctx.translate(canvas.width, 0)
         ctx.scale(-1, 1)

@@ -868,7 +868,8 @@
       "startRecording": "Start Recording",
       "stopRecording": "Stop Recording",
       "reRecord": "Re-record",
-      "submit": "Submit"
+      "submit": "Submit",
+      "noVoiceDetected": "No voice detected. Please speak clearly and try again."
     },
     "fingerprint": {
       "title": "Fingerprint Verification",
@@ -921,7 +922,14 @@
       "notSupported": "NFC is only supported in Chrome on Android. Please use Chrome on your Android device.",
       "hint": "Hold your NFC-enabled document (passport, national ID, or residence permit) flat against the back of your phone. Keep it steady for a few seconds."
     },
-    "sendOtpFailed": "Failed to send verification code"
+    "sendOtpFailed": "Failed to send verification code",
+    "errors": {
+      "networkError": "Network error. Please check your connection and try again.",
+      "faceDetectionFailed": "Face detection failed. Please ensure good lighting and try again.",
+      "voiceQualityLow": "Voice quality too low. Please speak clearly in a quiet environment.",
+      "timeoutError": "Request timed out. Please try again.",
+      "verificationFailed": "Verification failed. Please try again."
+    }
   },
   "webauthn": {
     "errors": {

@@ -54,12 +54,19 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
             })
             streamRef.current = stream
             if (videoRef.current) {
-                videoRef.current.srcObject = stream
-                await videoRef.current.play()
+                try {
+                    videoRef.current.srcObject = stream
+                    await videoRef.current.play()
+                } catch {
+                    setCameraError('Unable to start camera preview. Please try again.')
+                    stream.getTracks().forEach(t => t.stop())
+                    streamRef.current = null
+                    return
+                }
             }
             setCameraActive(true)
         } catch {
-            setCameraError('Unable to access camera. Please grant camera permissions.')
+            setCameraError('Unable to access camera. Please grant camera permissions and try again.')
         }
     }, [])
 
@@ -76,7 +83,11 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
         if (!cameraActive || !started || challengeState.stage === 'complete') return
 
         const loop = () => {
-            updateChallenge(detection, detection.cropFace, canvasRef)
+            try {
+                updateChallenge(detection, detection.cropFace, canvasRef)
+            } catch {
+                // Silently ignore individual frame errors to keep the loop running
+            }
             animFrameRef.current = requestAnimationFrame(loop)
         }
         animFrameRef.current = requestAnimationFrame(loop)

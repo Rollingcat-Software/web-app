@@ -868,7 +868,8 @@
       "startRecording": "Kaydı Başlat",
       "stopRecording": "Kaydı Durdur",
       "reRecord": "Tekrar Kaydet",
-      "submit": "Gönder"
+      "submit": "Gönder",
+      "noVoiceDetected": "Ses algılanmadı. Lütfen mikrofona net bir şekilde konuşun ve tekrar deneyin."
     },
     "fingerprint": {
       "title": "Parmak İzi Doğrulama",
@@ -921,7 +922,14 @@
       "notSupported": "NFC yalnızca Android Chrome'da desteklenir. Lütfen Android cihazınızda Chrome kullanın.",
       "hint": "NFC özellikli belgenizi (pasaport, nüfus cüzdanı veya ikamet izni) telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun."
     },
-    "sendOtpFailed": "Doğrulama kodu gönderilemedi"
+    "sendOtpFailed": "Doğrulama kodu gönderilemedi",
+    "errors": {
+      "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
+      "faceDetectionFailed": "Yüz algılama başarısız. Lütfen iyi ışıklı bir ortamda tekrar deneyin.",
+      "voiceQualityLow": "Ses kalitesi düşük. Lütfen sessiz bir ortamda net konuşun.",
+      "timeoutError": "İstek zaman aşımına uğradı. Lütfen tekrar deneyin.",
+      "verificationFailed": "Doğrulama başarısız. Lütfen tekrar deneyin."
+    }
   },
   "webauthn": {
     "errors": {

@@ -58,6 +58,12 @@ export function useAuditLogs(initialFilters?: AuditLogFilters): UseAuditLogsRetu
                     error: null,
                 })
             } catch (error) {
+                const axiosError = error as { response?: { status?: number } }
+                if (axiosError.response?.status === 403) {
+                    // Non-admin: return empty data silently
+                    setState({ auditLogs: [], total: 0, loading: false, error: null })
+                    return
+                }
                 setState((prev) => ({
                     ...prev,
                     loading: false,
