@@ -1,8 +1,8 @@
 {
-  "name": "FIVUCSAS Identity Platform",
+  "name": "FIVUCSAS — Kimlik Doğrulama Platformu",
   "short_name": "FIVUCSAS",
-  "description": "Multi-tenant biometric identity verification platform",
-  "theme_color": "#1565c0",
+  "description": "Biyometrik kimlik doğrulama ve yüz tanıma platformu",
+  "theme_color": "#1976d2",
   "background_color": "#ffffff",
   "display": "standalone",
   "start_url": "/",

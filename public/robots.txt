@@ -1,8 +1,2 @@
 User-agent: *
-Allow: /
-Disallow: /settings
-Disallow: /admin
-Disallow: /users
-Disallow: /auth-flows
-Disallow: /devices
-Disallow: /verification
+Disallow: /
