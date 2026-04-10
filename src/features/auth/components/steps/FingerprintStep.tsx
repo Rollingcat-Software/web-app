@@ -43,10 +43,12 @@ export default function FingerprintStep({
     const { t } = useTranslation()
     const [waiting, setWaiting] = useState(false)
     const [unavailable, setUnavailable] = useState(false)
+    const [localError, setLocalError] = useState<string | null>(null)
 
     const handleScan = useCallback(async () => {
         setWaiting(true)
         setUnavailable(false)
+        setLocalError(null)
 
         try {
             if (!window.PublicKeyCredential) {
@@ -102,11 +104,27 @@ export default function FingerprintStep({
                     signature: arrayBufferToBase64(assertionResponse.signature),
                 })))
             }
-        } catch {
-            // User cancelled or timed out — no action needed
+        } catch (err) {
             setWaiting(false)
+            if (err instanceof DOMException) {
+                if (err.name === 'NotAllowedError') {
+                    // NotAllowedError covers two cases:
+                    // 1. User explicitly dismissed the dialog (no error message needed)
+                    // 2. No matching passkey on device (OS shows "geçiş anahtarı yok" notification)
+                    // Distinguish by checking the message — if it mentions credentials/passkey,
+                    // show the re-enroll prompt; otherwise treat as user-cancelled.
+                    const msg = err.message.toLowerCase()
+                    if (msg.includes('credential') || msg.includes('passkey') || msg.includes('not found') || msg.includes('bulunamadı')) {
+                        setLocalError(t('mfa.fingerprint.noPasskey'))
+                    }
+                    // else: user cancelled — no message needed
+                } else if (err.name === 'SecurityError') {
+                    setLocalError(t('mfa.fingerprint.noPasskey'))
+                }
+                // AbortError, TimeoutError etc. → silent
+            }
         }
-    }, [challengeProp, rpIdProp, onRequestChallenge, onSubmit])
+    }, [challengeProp, rpIdProp, onRequestChallenge, onSubmit, t])
 
     const isProcessing = loading || waiting
 
@@ -147,14 +165,14 @@ export default function FingerprintStep({
                 </Typography>
             </Box>
 
-            {error && (
+            {(error || localError) && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: ANIMATION.STEP_TRANSITION }}
                 >
                     <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {error}
+                        {error || localError}
                     </Alert>
                 </motion.div>
             )}

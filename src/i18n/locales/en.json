@@ -890,6 +890,7 @@
       "subtitle": "Use fingerprint sensor",
       "description": "Use your fingerprint sensor to verify your identity",
       "unavailable": "Biometric authentication is not available on this device. Please use a device with a fingerprint sensor or biometric capability.",
+      "noPasskey": "No passkey found on this device. Please re-enroll your fingerprint in the Enrollment page.",
       "placeFinger": "Place your finger on the sensor...",
       "clickToStart": "Click the button below to start fingerprint scan",
       "scanButton": "Scan Fingerprint"

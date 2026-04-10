@@ -890,6 +890,7 @@
       "subtitle": "Parmak izi sensörünü kullanın",
       "description": "Kimliğinizi doğrulamak için parmak izi sensörünü kullanın",
       "unavailable": "Bu cihazda biyometrik doğrulama mevcut değil. Lütfen parmak izi sensörü veya biyometrik özelliği olan bir cihaz kullanın.",
+      "noPasskey": "Bu cihazda kayıtlı geçiş anahtarı bulunamadı. Lütfen Kayıt sayfasından parmak izinizi yeniden kaydedin.",
       "placeFinger": "Parmağınızı sensöre yerleştirin...",
       "clickToStart": "Parmak izi taramasını başlatmak için aşağıdaki düğmeye tıklayın",
       "scanButton": "Parmak İzi Tara"
