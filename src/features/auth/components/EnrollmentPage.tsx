@@ -815,12 +815,14 @@ export default function EnrollmentPage() {
                 apiBaseUrl={import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'}
                 token={accessToken}
                 onClose={() => setVoiceEnrollOpen(false)}
-                onSuccess={(action) => {
+                onSuccess={async (action) => {
                     if (action === 'enroll') {
-                        createEnrollment({
-                            tenantId: user?.tenantId ?? 'system',
-                            methodType: AuthMethodType.VOICE,
-                        }).catch(() => {})
+                        try {
+                            await createEnrollment({
+                                tenantId: user?.tenantId ?? 'system',
+                                methodType: AuthMethodType.VOICE,
+                            })
+                        } catch { /* bio enrollment succeeded even if record creation fails */ }
                         refetchEnrollments()
                         setSnackbar({ open: true, message: 'Voice Recognition enrolled successfully', severity: 'success' })
                     }
@@ -832,11 +834,13 @@ export default function EnrollmentPage() {
                 open={nfcEnrollOpen}
                 userId={userId}
                 onClose={() => setNfcEnrollOpen(false)}
-                onSuccess={() => {
-                    createEnrollment({
-                        tenantId: user?.tenantId ?? 'system',
-                        methodType: AuthMethodType.NFC_DOCUMENT,
-                    }).catch(() => {})
+                onSuccess={async () => {
+                    try {
+                        await createEnrollment({
+                            tenantId: user?.tenantId ?? 'system',
+                            methodType: AuthMethodType.NFC_DOCUMENT,
+                        })
+                    } catch { /* ignore */ }
                     setNfcEnrollOpen(false)
                     refetchEnrollments()
                     setSnackbar({ open: true, message: 'NFC Document enrolled successfully', severity: 'success' })

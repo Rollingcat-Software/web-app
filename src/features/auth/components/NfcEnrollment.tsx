@@ -121,13 +121,19 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
         } catch (err) {
             const axiosErr = err as { response?: { status?: number; data?: { message?: string } } }
             if (axiosErr.response?.status === 409) {
-                // Card already enrolled — check whose it is
+                // Card already in DB — check if it belongs to this user
                 try {
                     const verifyRes = await httpClient.post<Record<string, unknown>>('/nfc/verify', { cardSerial })
+                    const verifyData = verifyRes.data
+                    if (verifyData?.userId === userId) {
+                        // This user's card is already enrolled in identity-core — just complete
+                        onSuccess()
+                        return
+                    }
                     setCardInfo({
                         enrolled: true,
-                        message: 'This card is already enrolled.',
-                        data: verifyRes.data,
+                        message: 'This card is already enrolled to another account.',
+                        data: verifyData,
                     })
                 } catch {
                     setCardInfo({ enrolled: true, message: 'This card is already enrolled.' })
@@ -297,30 +303,36 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                 )}
 
                                 {cardInfo && (
-                                    <Alert severity={cardInfo.enrolled ? 'info' : 'success'} sx={{ mt: 2 }}>
-                                        <Typography variant="body2" fontWeight={600}>
-                                            {cardInfo.message}
-                                        </Typography>
-                                        {cardInfo.data && (
-                                            <Box sx={{ mt: 1 }}>
-                                                {cardInfo.data.userName ? (
-                                                    <Typography variant="body2">
-                                                        Owner: {String(cardInfo.data.userName)}
-                                                    </Typography>
-                                                ) : null}
-                                                {cardInfo.data.email ? (
-                                                    <Typography variant="body2">
-                                                        Email: {String(cardInfo.data.email)}
-                                                    </Typography>
-                                                ) : null}
-                                                {cardInfo.data.cardType ? (
-                                                    <Typography variant="body2">
-                                                        Card Type: {String(cardInfo.data.cardType)}
-                                                    </Typography>
-                                                ) : null}
-                                            </Box>
-                                        )}
-                                    </Alert>
+                                    <>
+                                        <Alert severity="warning" sx={{ mt: 2 }}>
+                                            <Typography variant="body2" fontWeight={600}>
+                                                {cardInfo.message}
+                                            </Typography>
+                                            {cardInfo.data && (
+                                                <Box sx={{ mt: 1 }}>
+                                                    {cardInfo.data.userName ? (
+                                                        <Typography variant="body2">
+                                                            Owner: {String(cardInfo.data.userName)}
+                                                        </Typography>
+                                                    ) : null}
+                                                    {cardInfo.data.email ? (
+                                                        <Typography variant="body2">
+                                                            Email: {String(cardInfo.data.email)}
+                                                        </Typography>
+                                                    ) : null}
+                                                </Box>
+                                            )}
+                                        </Alert>
+                                        <Button
+                                            fullWidth
+                                            variant="outlined"
+                                            size="small"
+                                            onClick={() => { setCardInfo(null); setCardSerial(''); setError(null) }}
+                                            sx={{ mt: 1, borderRadius: '10px' }}
+                                        >
+                                            Scan a different card
+                                        </Button>
+                                    </>
                                 )}
 
                                 <Alert severity="info" sx={{ mt: 2 }}>
