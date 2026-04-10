@@ -34,6 +34,7 @@ import {
     WarningAmber,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { useAuth } from '../hooks/useAuth'
 import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { AuthMethodType } from '@domain/models/AuthMethod'
@@ -248,6 +249,7 @@ async function detectCapabilities(): Promise<DeviceCapabilities> {
  * device capability detection, and enroll/test actions.
  */
 export default function EnrollmentPage() {
+    const { t } = useTranslation()
     const { user } = useAuth()
     const userId = user?.id ?? ''
     const {
@@ -367,9 +369,9 @@ export default function EnrollmentPage() {
                             tenantId: user?.tenantId ?? 'system',
                             methodType: type,
                         })
-                        setSnackbar({ open: true, message: `${METHOD_LABELS[type] ?? type} enrolled successfully`, severity: 'success' })
+                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: METHOD_LABELS[type] ?? type }), severity: 'success' })
                     } catch (err) {
-                        setSnackbar({ open: true, message: err instanceof Error ? err.message : `Failed to enroll ${METHOD_LABELS[type] ?? type}`, severity: 'error' })
+                        setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.enrollError', { method: METHOD_LABELS[type] ?? type }), severity: 'error' })
                     } finally {
                         setActionLoading(null)
                     }
@@ -382,9 +384,9 @@ export default function EnrollmentPage() {
                             tenantId: user?.tenantId ?? 'system',
                             methodType: type,
                         })
-                        setSnackbar({ open: true, message: `${METHOD_LABELS[type] ?? type} enrolled successfully`, severity: 'success' })
+                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: METHOD_LABELS[type] ?? type }), severity: 'success' })
                     } catch (err) {
-                        setSnackbar({ open: true, message: err instanceof Error ? err.message : `Failed to enroll ${METHOD_LABELS[type] ?? type}`, severity: 'error' })
+                        setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.enrollError', { method: METHOD_LABELS[type] ?? type }), severity: 'error' })
                     } finally {
                         setActionLoading(null)
                     }
@@ -779,23 +781,28 @@ export default function EnrollmentPage() {
                 userId={userId}
                 mode={webauthnMode}
                 onClose={() => setWebauthnEnrollOpen(false)}
-                onSuccess={() => {
+                onSuccess={async () => {
                     const methodType = webauthnMode === 'platform' ? AuthMethodType.FINGERPRINT : AuthMethodType.HARDWARE_KEY
-                    createEnrollment({
-                        tenantId: user?.tenantId ?? 'system',
-                        methodType,
-                    }).then(() => {
-                        // Mark enrollment as complete (ENROLLED status)
-                        const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
-                        httpClient.put(`/users/${userId}/enrollments/${methodType}/complete`, {}).catch(() => {})
-                    }).catch(() => {})
                     setWebauthnEnrollOpen(false)
+                    try {
+                        await createEnrollment({
+                            tenantId: user?.tenantId ?? 'system',
+                            methodType,
+                        })
+                        // Mark enrollment as ENROLLED (wait before refetch)
+                        const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                        await httpClient.put(`/users/${userId}/enrollments/${methodType}/complete`, {})
+                    } catch {
+                        // ignore — credential is saved in WebAuthn store regardless
+                    }
                     refetchEnrollments()
                     setSnackbar({
                         open: true,
-                        message: webauthnMode === 'platform'
-                            ? 'Fingerprint enrolled successfully'
-                            : 'Hardware Security Key enrolled successfully',
+                        message: t('enrollmentPage.enrolledSuccess', {
+                            method: methodType === AuthMethodType.FINGERPRINT
+                                ? METHOD_LABELS[AuthMethodType.FINGERPRINT]
+                                : METHOD_LABELS[AuthMethodType.HARDWARE_KEY],
+                        }),
                         severity: 'success',
                     })
                 }}
@@ -843,19 +850,19 @@ export default function EnrollmentPage() {
                 maxWidth="xs"
                 fullWidth
             >
-                <DialogTitle>Phone Number Required</DialogTitle>
+                <DialogTitle>{t('enrollmentPage.phoneDialog.title')}</DialogTitle>
                 <DialogContent>
                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                        SMS OTP requires a phone number. Please enter your phone number to continue enrollment.
+                        {t('enrollmentPage.phoneDialog.description')}
                     </Typography>
                     <TextField
                         fullWidth
-                        label="Phone Number"
+                        label={t('enrollmentPage.phoneDialog.label')}
                         type="tel"
                         value={phoneInput}
                         onChange={(e) => setPhoneInput(e.target.value)}
-                        placeholder="+905xxxxxxxxx"
-                        helperText="Include country code (e.g. +90 for Turkey)"
+                        placeholder={t('enrollmentPage.phoneDialog.placeholder')}
+                        helperText={t('enrollmentPage.phoneDialog.helper')}
                         disabled={phoneSaving}
                         autoFocus
                     />
@@ -891,7 +898,7 @@ export default function EnrollmentPage() {
                                 })
                                 setPhoneDialogOpen(false)
                                 setPhoneInput('')
-                                setSnackbar({ open: true, message: 'Phone number saved and SMS OTP enrolled successfully', severity: 'success' })
+                                setSnackbar({ open: true, message: t('enrollmentPage.phoneDialog.successMessage'), severity: 'success' })
                             } catch (err) {
                                 setSnackbar({
                                     open: true,
@@ -903,7 +910,7 @@ export default function EnrollmentPage() {
                             }
                         }}
                     >
-                        {phoneSaving ? 'Saving...' : 'Save & Enroll'}
+                        {phoneSaving ? t('enrollmentPage.phoneDialog.saving') : t('enrollmentPage.phoneDialog.saveAndEnroll')}
                     </Button>
                 </DialogActions>
             </Dialog>

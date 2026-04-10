@@ -808,6 +808,20 @@
     "allBiometricDeleted": "Tüm biyometrik veriler başarıyla silindi.",
     "deleteBiometricError": "Biyometrik veriler silinemedi."
   },
+  "enrollmentPage": {
+    "phoneDialog": {
+      "title": "Telefon Numarası Gerekli",
+      "description": "SMS OTP için bir telefon numarası gereklidir. Kaydı tamamlamak için lütfen telefon numaranızı girin.",
+      "label": "Telefon Numarası",
+      "placeholder": "+905xxxxxxxxx",
+      "helper": "Ülke kodu dahil girin (örn. Türkiye için +90)",
+      "saveAndEnroll": "Kaydet ve Kayıt Ol",
+      "saving": "Kaydediliyor...",
+      "successMessage": "Telefon numarası kaydedildi ve SMS OTP başarıyla kayıt edildi"
+    },
+    "enrolledSuccess": "{{method}} başarıyla kayıt edildi",
+    "enrollError": "{{method}} kayıt edilemedi"
+  },
   "mfa": {
     "chooseMethod": "Doğrulama Yöntemi Seçin",
     "chooseMethodSubtitle": "Kimliğinizi nasıl doğrulamak istediğinizi seçin",

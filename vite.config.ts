@@ -143,6 +143,7 @@ export default defineConfig(({ mode }) => ({
         reportCompressedSize: mode === 'analyze',
         chunkSizeWarningLimit: 500,
         rollupOptions: {
+            external: ['@tensorflow/tfjs-converter'],
             output: {
                 manualChunks(id: string) {
                     if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) {

@@ -808,6 +808,20 @@
     "allBiometricDeleted": "All biometric data deleted successfully.",
     "deleteBiometricError": "Failed to delete biometric data."
   },
+  "enrollmentPage": {
+    "phoneDialog": {
+      "title": "Phone Number Required",
+      "description": "SMS OTP requires a phone number. Please enter your phone number to continue enrollment.",
+      "label": "Phone Number",
+      "placeholder": "+905xxxxxxxxx",
+      "helper": "Include country code (e.g. +90 for Turkey)",
+      "saveAndEnroll": "Save & Enroll",
+      "saving": "Saving...",
+      "successMessage": "Phone number saved and SMS OTP enrolled successfully"
+    },
+    "enrolledSuccess": "{{method}} enrolled successfully",
+    "enrollError": "Failed to enroll {{method}}"
+  },
   "mfa": {
     "chooseMethod": "Choose Verification Method",
     "chooseMethodSubtitle": "Select how you'd like to verify your identity",
