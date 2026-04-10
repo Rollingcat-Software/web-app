@@ -382,6 +382,7 @@ export default function MultiStepAuthFlow({
                                     challenge: data.challenge,
                                     rpId: typeof data.rpId === 'string' ? data.rpId : undefined,
                                     timeout: typeof data.timeout === 'string' ? data.timeout : undefined,
+                                    allowCredentials: Array.isArray(data.allowCredentials) ? data.allowCredentials as string[] : undefined,
                                 }
                             }
                             return null

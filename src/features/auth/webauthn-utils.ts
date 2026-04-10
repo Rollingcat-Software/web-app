@@ -14,6 +14,7 @@ export interface ChallengeResponse {
     challenge: string
     rpId?: string
     timeout?: string
+    allowCredentials?: string[]
 }
 
 export interface WebAuthnAssertionResult {
@@ -104,9 +105,10 @@ export async function resolveChallenge(
     onRequestChallenge: (() => Promise<ChallengeResponse | null>) | undefined,
     challengeProp?: string,
     rpIdProp?: string,
-): Promise<{ challengeBytes: Uint8Array; rpId: string | undefined }> {
+): Promise<{ challengeBytes: Uint8Array; rpId: string | undefined; allowCredentials: string[] | undefined }> {
     let challenge = challengeProp
     let rpId = rpIdProp
+    let allowCredentials: string[] | undefined
 
     if (!challenge && onRequestChallenge) {
         try {
@@ -114,6 +116,7 @@ export async function resolveChallenge(
             if (serverChallenge?.challenge) {
                 challenge = serverChallenge.challenge
                 rpId = serverChallenge.rpId ?? rpId
+                allowCredentials = serverChallenge.allowCredentials
             }
         } catch (e) {
             console.error('[WebAuthn] Server challenge request failed:', e)
@@ -124,5 +127,5 @@ export async function resolveChallenge(
         ? decodeChallengeToBytes(challenge)
         : generateRandomChallenge()
 
-    return { challengeBytes, rpId }
+    return { challengeBytes, rpId, allowCredentials }
 }

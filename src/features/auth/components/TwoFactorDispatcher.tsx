@@ -120,6 +120,7 @@ export default function TwoFactorDispatcher({
                 challenge: res.data.challenge,
                 rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
                 timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
+                allowCredentials: Array.isArray(res.data.allowCredentials) ? res.data.allowCredentials as string[] : undefined,
             }
         }
         return null

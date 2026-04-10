@@ -10,7 +10,7 @@ import { Fingerprint, ArrowForward } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { WEBAUTHN, EASE_OUT, ANIMATION } from '../../constants'
-import { type ChallengeResponse, arrayBufferToBase64, resolveChallenge } from '../../webauthn-utils'
+import { type ChallengeResponse, arrayBufferToBase64, resolveChallenge, base64urlToBytes } from '../../webauthn-utils'
 
 const itemVariants: Variants = {
     hidden: { opacity: 0, y: 20 },
@@ -24,6 +24,7 @@ const itemVariants: Variants = {
 interface FingerprintStepProps {
     challenge?: string
     rpId?: string
+    allowCredentials?: string[]
     onRequestChallenge?: () => Promise<ChallengeResponse | null>
     onSubmit: (data: string) => void
     loading: boolean
@@ -33,6 +34,7 @@ interface FingerprintStepProps {
 export default function FingerprintStep({
     challenge: challengeProp,
     rpId: rpIdProp,
+    allowCredentials: allowCredentialsProp,
     onRequestChallenge,
     onSubmit,
     loading,
@@ -66,9 +68,18 @@ export default function FingerprintStep({
                 return
             }
 
-            const { challengeBytes, rpId } = await resolveChallenge(
+            const { challengeBytes, rpId, allowCredentials: resolvedCreds } = await resolveChallenge(
                 onRequestChallenge, challengeProp, rpIdProp
             )
+
+            // Use server-provided allowCredentials (from challenge) or prop fallback.
+            // This lets non-discoverable platform credentials be found on Android —
+            // without allowCredentials the passkey picker only shows resident credentials.
+            const rawIds = resolvedCreds ?? allowCredentialsProp ?? []
+            const allowCredentials: PublicKeyCredentialDescriptor[] = rawIds.map(id => ({
+                type: 'public-key' as const,
+                id: base64urlToBytes(id).buffer as ArrayBuffer,
+            }))
 
             const credential = await navigator.credentials.get({
                 publicKey: {
@@ -77,6 +88,7 @@ export default function FingerprintStep({
                     userVerification: WEBAUTHN.UV_REQUIRED,
                     authenticatorAttachment: WEBAUTHN.ATTACHMENT_PLATFORM,
                     timeout: WEBAUTHN.TIMEOUT_MS,
+                    ...(allowCredentials.length > 0 && { allowCredentials }),
                 } as PublicKeyCredentialRequestOptions,
             })
 

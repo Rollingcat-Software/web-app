@@ -459,11 +459,13 @@ export default function EnrollmentPage() {
                 // for 2+ images (quality-weighted template fusion)
                 await biometric.enrollFace(userId, images, user?.tenantId)
 
-                // Create enrollment record — backend auto-completes to ENROLLED
+                // Create enrollment record and explicitly complete it (FACE is ASYNC_ENROLLMENT_TYPE)
                 await createEnrollment({
                     tenantId: user?.tenantId ?? 'system',
                     methodType: AuthMethodType.FACE,
                 })
+                const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                await httpClient.put(`/users/${userId}/enrollments/FACE/complete`, {})
 
                 setFaceEnrollOpen(false)
                 refetchEnrollments()
@@ -822,6 +824,8 @@ export default function EnrollmentPage() {
                                 tenantId: user?.tenantId ?? 'system',
                                 methodType: AuthMethodType.VOICE,
                             })
+                            const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                            await httpClient.put(`/users/${userId}/enrollments/VOICE/complete`, {})
                         } catch { /* bio enrollment succeeded even if record creation fails */ }
                         refetchEnrollments()
                         setSnackbar({ open: true, message: 'Voice Recognition enrolled successfully', severity: 'success' })
