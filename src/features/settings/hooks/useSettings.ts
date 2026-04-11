@@ -11,6 +11,8 @@ import type {
     ChangePasswordData,
 } from '@domain/interfaces/ISettingsRepository'
 import { ErrorHandler } from '@core/errors/ErrorHandler'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 
 interface UseSettingsReturn {
     settings: UserSettings | null
@@ -29,6 +31,7 @@ interface UseSettingsReturn {
  * Hook for managing user settings
  */
 export function useSettings(): UseSettingsReturn {
+    const { t } = useTranslation()
     const [settings, setSettings] = useState<UserSettings | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
@@ -44,7 +47,7 @@ export function useSettings(): UseSettingsReturn {
             setSettings(data)
         } catch (err) {
             errorHandler.handle(err)
-            setError(err instanceof Error ? err.message : 'Failed to load settings')
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }

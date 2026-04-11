@@ -1,5 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -183,7 +184,7 @@ export default function LoginPage() {
             }
             setForgotSuccess(true)
         } catch (err) {
-            setForgotError(err instanceof Error ? err.message : t('auth.failedToSendReset'))
+            setForgotError(formatApiError(err, t))
         } finally {
             setForgotLoading(false)
         }
@@ -208,7 +209,7 @@ export default function LoginPage() {
             }
             setResetSuccess(true)
         } catch (err) {
-            setResetError(err instanceof Error ? err.message : t('auth.failedToResetPassword'))
+            setResetError(formatApiError(err, t))
         } finally {
             setResetLoading(false)
         }
@@ -249,8 +250,7 @@ export default function LoginPage() {
             setFaceError(t('auth.noMatchingFace'))
             return false
         } catch (err) {
-            const message = err instanceof Error ? err.message : t('auth.faceVerificationFailed')
-            setFaceError(message)
+            setFaceError(formatApiError(err, t))
             return false
         }
     }

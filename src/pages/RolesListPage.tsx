@@ -27,9 +27,12 @@ import {
 import { Add, Delete, Edit, Lock, Search, Shield } from '@mui/icons-material'
 import { useRoles } from '@features/roles'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 
 export default function RolesListPage() {
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const { roles, loading, error, deleteRole } = useRoles()
     const [searchQuery, setSearchQuery] = useState('')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -55,8 +58,7 @@ export default function RolesListPage() {
                 await deleteRole(deletingId)
                 setActionError(null)
             } catch (err) {
-                const message = err instanceof Error ? err.message : 'Failed to delete role'
-                setActionError(message)
+                setActionError(formatApiError(err, t))
             }
         }
         setDeleteDialogOpen(false)
@@ -93,7 +95,7 @@ export default function RolesListPage() {
 
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                    Failed to load roles: {error.message}
+                    {formatApiError(error, t)}
                 </Alert>
             )}
 

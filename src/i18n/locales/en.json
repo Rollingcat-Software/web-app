@@ -61,7 +61,7 @@
     "authSessions": "Auth Sessions",
     "devices": "Devices",
     "enrollments": "Enrollments",
-    "userEnrollment": "Self Enrollment",
+    "userEnrollment": "Identity Enrollment",
     "biometricEnrollment": "Biometric Enrollment",
     "cardDetection": "Card Detection",
     "faceSearch": "Face Search",
@@ -72,6 +72,7 @@
     "analytics": "Analytics",
     "verificationFlows": "Verification Flows",
     "verificationDashboard": "Verification Dashboard",
+    "verificationSessions": "Verification Sessions",
     "widgetDemo": "Auth Widget",
     "developerPortal": "Developer Portal",
     "settings": "Settings",
@@ -557,7 +558,7 @@
   },
   "footer": {
     "platform": "FIVUCSAS Identity Platform",
-    "copyright": "\u00a9 2026 Marmara University \u2014 Computer Engineering Department",
+    "copyright": "© 2026 Marmara University — Computer Engineering Department",
     "version": "v4.0.0",
     "terms": "Terms of Service",
     "privacy": "Privacy Policy"
@@ -812,6 +813,65 @@
     "deleteBiometricError": "Failed to delete biometric data."
   },
   "enrollmentPage": {
+    "title": "Biometric Enrollment",
+    "subtitle": "Manage your authentication methods and biometric enrollments",
+    "refreshTooltip": "Refresh enrollment status",
+    "enrolledCount": "{{count}} enrolled",
+    "unavailableCount": "{{count}} unavailable on this device",
+    "statusEnrolled": "Enrolled",
+    "statusUnavailable": "Unavailable",
+    "statusNotEnrolled": "Not enrolled",
+    "enroll": "Enroll",
+    "test": "Test",
+    "revoke": "Revoke",
+    "cancel": "Cancel",
+    "loginRequired": "Please log in to manage your enrollments.",
+    "notSupported": "{{method}} enrollment is not yet supported in the browser.",
+    "testHint": "To test {{method}}, use it as your auth method during login.",
+    "faceEnrolled": "Face Recognition enrolled successfully",
+    "faceEnrollFailed": "Face enrollment failed. Please try again.",
+    "voiceEnrolled": "Voice Recognition enrolled successfully",
+    "revokeSuccess": "{{method}} enrollment revoked",
+    "revokeFailed": "Failed to revoke {{method}}",
+    "phoneError": "Failed to save phone number",
+    "methods": {
+      "FACE": {
+        "label": "Face Recognition",
+        "description": "Enroll your face for biometric authentication"
+      },
+      "FINGERPRINT": {
+        "label": "Fingerprint",
+        "description": "Use your device fingerprint sensor for authentication"
+      },
+      "VOICE": {
+        "label": "Voice Recognition",
+        "description": "Enroll your voice for audio-based authentication"
+      },
+      "TOTP": {
+        "label": "Authenticator App",
+        "description": "Set up TOTP with Google Authenticator or similar"
+      },
+      "EMAIL_OTP": {
+        "label": "Email OTP",
+        "description": "Receive one-time codes via email"
+      },
+      "SMS_OTP": {
+        "label": "SMS OTP",
+        "description": "Receive one-time codes via SMS"
+      },
+      "QR_CODE": {
+        "label": "QR Code",
+        "description": "Scan QR codes for authentication"
+      },
+      "HARDWARE_KEY": {
+        "label": "Hardware Security Key / External Fingerprint",
+        "description": "Register a FIDO2 security key or USB fingerprint scanner"
+      },
+      "NFC_DOCUMENT": {
+        "label": "NFC Document",
+        "description": "Verify identity via NFC-enabled ID document"
+      }
+    },
     "phoneDialog": {
       "title": "Phone Number Required",
       "description": "SMS OTP requires a phone number. Please enter your phone number to continue enrollment.",
@@ -823,7 +883,51 @@
       "successMessage": "Phone number saved and SMS OTP enrolled successfully"
     },
     "enrolledSuccess": "{{method}} enrolled successfully",
-    "enrollError": "Failed to enroll {{method}}"
+    "enrollError": "Failed to enroll {{method}}",
+    "nfcCards": {
+      "title": "Enrolled NFC Cards",
+      "subtitle": "{{count}} card(s) registered",
+      "noCards": "No NFC cards found. Enroll a card using the NFC Document method above.",
+      "active": "Active",
+      "inactive": "Inactive",
+      "type": "Type",
+      "label": "Label",
+      "enrolledAt": "Enrolled",
+      "deactivate": "Deactivate card",
+      "deleteSuccess": "NFC card deactivated successfully",
+      "deleteError": "Failed to deactivate NFC card"
+    }
+  },
+  "nfcEnroll": {
+    "title": "Register NFC Document",
+    "stepScan": "Scan Card",
+    "stepRegister": "Register",
+    "stepComplete": "Complete",
+    "readError": "Failed to read NFC card. Please try again.",
+    "permissionDenied": "NFC permission denied. Please allow NFC access in your browser settings.",
+    "notSupported": "NFC is not supported on this device or browser.",
+    "scanFailed": "Failed to start NFC scan. Make sure NFC is enabled on your device.",
+    "registerFailed": "Failed to register NFC card",
+    "alreadyEnrolledOther": "This card is already enrolled to another account.",
+    "alreadyEnrolled": "This card is already enrolled.",
+    "browserNotSupported": "Web NFC is not supported in this browser. NFC enrollment requires Chrome on Android. Desktop browsers, iOS Safari, Firefox, and Brave do not support the Web NFC API.",
+    "waiting": "Waiting for NFC card...",
+    "holdCard": "Hold your NFC card (ID, passport, or access card) against the back of your phone",
+    "cardDetected": "Card Detected!",
+    "registerDescription": "Register an NFC-enabled card for identity verification.",
+    "supportedCards": "Supported: National ID cards, passports, access cards with NFC chips.",
+    "scanning": "Scanning...",
+    "startScan": "Start NFC Scan",
+    "cardLabel": "Card Label (optional)",
+    "cardLabelPlaceholder": "e.g., My National ID, Office Badge",
+    "registering": "Registering...",
+    "registerCard": "Register Card",
+    "owner": "Owner",
+    "scanDifferent": "Scan a different card",
+    "infoHint": "Make sure NFC is enabled in your phone settings. Hold the card flat against the back of your phone near the NFC antenna (usually top-center). Note: Turkish National ID cards (TC Kimlik) and passports use encrypted NFC chips that cannot be read by browsers — only student IDs, access cards, and other NDEF-compatible NFC cards are supported.",
+    "registered": "NFC Card Registered!",
+    "registeredDescription": "Your NFC card has been enrolled. You can now use it for identity verification.",
+    "done": "Done"
   },
   "mfa": {
     "chooseMethod": "Choose Verification Method",
@@ -1020,8 +1124,19 @@
     "tr": "Turkish"
   },
   "errors": {
+    "badRequest": "Invalid request. Please check your input.",
+    "unauthorized": "Your session has expired. Please log in again.",
+    "forbidden": "You don't have permission to perform this action.",
+    "notFound": "The requested resource was not found.",
+    "conflict": "This resource already exists or conflicts with existing data.",
+    "tooLarge": "The file is too large to upload.",
+    "validation": "Please check the form for errors.",
+    "tooManyRequests": "Too many requests. Please wait a moment and try again.",
+    "serverError": "An unexpected server error occurred. Please try again later.",
+    "networkError": "Unable to connect to the server. Please check your internet connection.",
+    "unknown": "An unexpected error occurred. Please try again.",
+    "failedToLoad": "Failed to load data. Please try again.",
     "rateLimitExceeded": "Too many requests. Please wait a moment before trying again.",
-    "networkError": "Network error. Please check your connection.",
     "unknownError": "Something went wrong. Please try again."
   },
   "faceDetection": {

@@ -13,6 +13,7 @@ import {
     Skeleton,
     Alert,
 } from '@mui/material'
+import { useTranslation } from 'react-i18next'
 
 /**
  * Column definition for paginated table
@@ -85,6 +86,7 @@ export function PaginatedTable<T>({
     stickyHeader = true,
     maxHeight,
 }: PaginatedTableProps<T>) {
+    const { t } = useTranslation()
     const handleChangePage = (_event: unknown, newPage: number) => {
         onPageChange(newPage)
     }
@@ -133,7 +135,7 @@ export function PaginatedTable<T>({
     if (error) {
         return (
             <Alert severity="error" sx={{ mb: 2 }}>
-                {error.message || 'An error occurred while loading data'}
+                {t('errors.failedToLoad')}
             </Alert>
         )
     }

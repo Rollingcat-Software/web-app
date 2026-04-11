@@ -53,31 +53,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                     <Paper sx={{ p: 4, textAlign: 'center', maxWidth: 500 }}>
                         <ErrorOutline sx={{ fontSize: 64, color: 'error.main', mb: 2 }} />
                         <Typography variant="h5" gutterBottom fontWeight={600}>
-                            Something went wrong
+                            {document.documentElement.lang === 'tr' ? 'Bir şeyler ters gitti' : 'Something went wrong'}
                         </Typography>
                         <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-                            An unexpected error occurred. Please try again or contact support if the problem persists.
+                            {document.documentElement.lang === 'tr'
+                                ? 'Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin veya sorun devam ederse destek ile iletişime geçin.'
+                                : 'An unexpected error occurred. Please try again or contact support if the problem persists.'}
                         </Typography>
-                        {this.state.error && (
-                            <Typography
-                                variant="caption"
-                                component="pre"
-                                sx={{
-                                    mb: 3,
-                                    p: 2,
-                                    bgcolor: 'grey.100',
-                                    borderRadius: 1,
-                                    overflow: 'auto',
-                                    textAlign: 'left',
-                                    maxHeight: 200,
-                                    fontSize: '0.7rem',
-                                }}
-                            >
-                                {this.state.error.message}
-                                {'\n'}
-                                {this.state.error.stack?.split('\n').slice(0, 5).join('\n')}
-                            </Typography>
-                        )}
                         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
                             <Button variant="contained" onClick={this.handleReset}>
                                 Try Again

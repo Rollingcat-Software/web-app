@@ -37,6 +37,8 @@ import {
 } from '@mui/icons-material'
 import { useAuditLogs } from '@features/auditLogs'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 
 function getActionIcon(action: string) {
     if (action.includes('LOGIN')) return <Login fontSize="small" />
@@ -144,6 +146,7 @@ const GROUPED_ACTION_ITEMS: Array<{ type: 'header'; label: string } | { type: 'a
 ]
 
 export default function AuditLogsPage() {
+    const { t } = useTranslation()
     const [searchQuery, setSearchQuery] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [actionFilter, setActionFilter] = useState<string>('ALL')
@@ -197,7 +200,7 @@ export default function AuditLogsPage() {
 
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                    Failed to load audit logs: {error.message}
+                    {formatApiError(error, t)}
                 </Alert>
             )}
 

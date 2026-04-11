@@ -8,6 +8,8 @@
  */
 
 import { useState, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatApiError } from '@utils/formatApiError';
 import { BiometricEngine } from '../core/BiometricEngine';
 import type { IBiometricEngineConfig } from '../interfaces';
 
@@ -29,6 +31,7 @@ export interface UseBiometricEngineReturn {
 export function useBiometricEngine(
   config?: Partial<IBiometricEngineConfig>,
 ): UseBiometricEngineReturn {
+  const { t } = useTranslation();
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export function useBiometricEngine(
         }
       } catch (err) {
         if (!disposed) {
-          setError(err instanceof Error ? err.message : 'Engine initialization failed');
+          setError(formatApiError(err, t));
           setIsLoading(false);
         }
       }

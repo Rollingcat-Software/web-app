@@ -25,6 +25,8 @@ import { useUsers } from '../hooks/useUsers'
 import { UserRole, UserStatus } from '@domain/models/User'
 import { ConfirmDialog } from '@components/ConfirmDialog'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 
 function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | 'default' {
     switch (status) {
@@ -53,6 +55,7 @@ function getRoleColor(role: UserRole): 'primary' | 'secondary' | 'default' {
 
 export default function UsersListPage() {
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const [searchQuery, setSearchQuery] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [page, setPage] = useState(0)
@@ -163,7 +166,7 @@ export default function UsersListPage() {
 
             {error && (
                 <Alert severity="error" sx={{ mb: 2 }}>
-                    Failed to load users: {error.message}
+                    {formatApiError(error, t)}
                 </Alert>
             )}
 

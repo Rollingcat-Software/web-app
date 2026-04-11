@@ -14,6 +14,8 @@ import {
     InputAdornment,
 } from '@mui/material'
 import { Visibility, VisibilityOff } from '@mui/icons-material'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { useService } from '@app/providers/DependencyProvider'
 import { TYPES } from '@core/di/types'
 import type { IPasswordService } from '@domain/interfaces/IPasswordService'
@@ -39,6 +41,7 @@ interface ShowPasswords {
 export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProps) {
     const passwordService = useService<IPasswordService>(TYPES.PasswordService)
     const { user } = useAuth()
+    const { t } = useTranslation()
 
     const [formData, setFormData] = useState<FormData>({
         currentPassword: '',
@@ -86,7 +89,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
             await passwordService.changePassword(user.id, formData)
             handleClose()
         } catch (err) {
-            setError((err as Error).message)
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }

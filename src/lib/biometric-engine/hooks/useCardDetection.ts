@@ -7,6 +7,8 @@
  */
 
 import { useState, useCallback, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatApiError } from '@utils/formatApiError';
 import type { BiometricEngine } from '../core/BiometricEngine';
 import type { CardDetectionResult } from '../types';
 
@@ -24,6 +26,7 @@ export interface UseCardDetectionReturn {
 export function useCardDetection(
   engine: BiometricEngine | null,
 ): UseCardDetectionReturn {
+  const { t } = useTranslation();
   const [isDetecting, setIsDetecting] = useState(false);
   const [result, setResult] = useState<CardDetectionResult | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -76,7 +79,7 @@ export function useCardDetection(
           });
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Card detection failed');
+        setError(formatApiError(err, t));
         setResult(null);
       } finally {
         detectingRef.current = false;

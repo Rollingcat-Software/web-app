@@ -19,6 +19,7 @@ import {
 import { Close, ArrowBack } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { useService } from '@app/providers/DependencyProvider'
 import { TYPES } from '@core/di/types'
 import type { IAuthRepository, AvailableMfaMethod, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
@@ -97,7 +98,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 })
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('widget.loginFailed'))
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }
@@ -135,7 +136,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
             const res = await authRepository.verifyMfaStep(mfaSessionToken, method, data)
             handleMfaResult(res)
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('widget.verificationFailed'))
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }

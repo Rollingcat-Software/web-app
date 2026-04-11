@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IUserEnrollmentService } from '@domain/interfaces/IUserEnrollmentService'
@@ -16,6 +18,7 @@ interface UseLivenessReturn {
 }
 
 export function useLiveness(): UseLivenessReturn {
+    const { t } = useTranslation()
     const service = useService<IUserEnrollmentService>(TYPES.UserEnrollmentService)
 
     const [challenge, setChallenge] = useState<LivenessChallenge | null>(null)
@@ -33,7 +36,7 @@ export function useLiveness(): UseLivenessReturn {
             const ch = await service.requestLivenessChallenge()
             setChallenge(ch)
         } catch (err) {
-            setError(err instanceof Error ? err.message : 'Failed to request liveness challenge')
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }
@@ -42,7 +45,7 @@ export function useLiveness(): UseLivenessReturn {
     const performLiveness = useCallback(
         async (captureFrame: () => Blob | null): Promise<LivenessResult | null> => {
             if (!challenge) {
-                setError('No active challenge. Request a challenge first.')
+                setError(t('errors.unknown'))
                 return null
             }
 
@@ -68,7 +71,7 @@ export function useLiveness(): UseLivenessReturn {
                 }
 
                 if (frames.length === 0) {
-                    setError('No frames captured. Please ensure your camera is working.')
+                    setError(t('errors.unknown'))
                     return null
                 }
 
@@ -79,7 +82,7 @@ export function useLiveness(): UseLivenessReturn {
                 setResult(livenessResult)
                 return livenessResult
             } catch (err) {
-                setError(err instanceof Error ? err.message : 'Liveness verification failed')
+                setError(formatApiError(err, t))
                 return null
             } finally {
                 setCapturing(false)

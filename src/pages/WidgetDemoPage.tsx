@@ -42,6 +42,7 @@ import { FivucsasAuth } from '@/verify-app/sdk/FivucsasAuth'
 import type { VerifyResult } from '@/verify-app/sdk/FivucsasAuth'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 
 // ─── Status ─────────────────────────────────────────────────────────
 
@@ -199,12 +200,12 @@ export function VerifyButton({ userId, onComplete }: VerifyButtonProps) {
         userId,
         container: containerRef.current ?? undefined,
         onStepChange: (step) => console.log('Step:', step),
-        onError: (err) => setError(err.message),
-        onCancel: () => setError('Cancelled by user'),
+        onError: (err) => setError(formatApiError(err, t)),
+        onCancel: () => setError(t('errors.unknown')),
       });
       onComplete(result);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Verification failed');
+      setError(formatApiError(err, t));
     } finally {
       setLoading(false);
     }
@@ -436,7 +437,7 @@ export default function WidgetDemoPage() {
                         }
                     },
                     onError: (err) => {
-                        setDemoError(err.message)
+                        setDemoError(formatApiError(err, t))
                         setDemoStatus('error')
                     },
                     onCancel: () => {
@@ -452,7 +453,7 @@ export default function WidgetDemoPage() {
                     !err.message.includes('cancelled') &&
                     !err.message.includes('destroyed')
                 ) {
-                    setDemoError(err.message)
+                    setDemoError(formatApiError(err, t))
                     setDemoStatus('error')
                 }
             } finally {

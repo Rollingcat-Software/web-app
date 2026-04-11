@@ -678,7 +678,7 @@ function AdminDashboardContent() {
                             },
                         }}
                     >
-                        {t('dashboard.failedToLoad')}: {error.message}
+                        {t('dashboard.failedToLoad')}
                     </Alert>
                 </Box>
             </motion.div>

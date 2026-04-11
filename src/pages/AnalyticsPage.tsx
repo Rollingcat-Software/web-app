@@ -32,6 +32,8 @@ import {
 import { motion, Variants } from 'framer-motion'
 import { useDashboard } from '@features/dashboard/hooks/useDashboard'
 import { useAuditLogs } from '@features/auditLogs'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 
 const containerVariants: Variants = {
     hidden: { opacity: 0 },
@@ -49,6 +51,7 @@ const itemVariants: Variants = {
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6']
 
 export default function AnalyticsPage() {
+    const { t } = useTranslation()
     const { stats, loading, error } = useDashboard()
     const { auditLogs, loading: logsLoading } = useAuditLogs()
 
@@ -233,7 +236,7 @@ export default function AnalyticsPage() {
             <Box>
                 <Typography variant="h4" gutterBottom fontWeight={600}>Analytics</Typography>
                 <Alert severity="error" sx={{ mt: 2 }}>
-                    Failed to load analytics: {error.message}
+                    {formatApiError(error, t)}
                 </Alert>
             </Box>
         )

@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -208,15 +209,7 @@ export default function RegisterPage() {
             }
             setSuccess(true)
         } catch (err: any) {
-            if (err.response?.status === 409) {
-                setError('An account with this email already exists')
-            } else if (err.response?.data?.message) {
-                setError(err.response.data.message)
-            } else if (err instanceof Error) {
-                setError(err.message)
-            } else {
-                setError('Registration failed. Please try again.')
-            }
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }

@@ -12,6 +12,7 @@ import { TYPES } from '@core/di/types'
 import type { IAuthRepository, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { AuthMethodType, MfaStepStatus, MfaStepAction, AUTH_API, EASE_OUT } from '../constants'
 import type { ChallengeResponse } from '../webauthn-utils'
 import TotpStep from './steps/TotpStep'
@@ -176,7 +177,7 @@ export default function TwoFactorDispatcher({
                                     method: AuthMethodType.SMS_OTP,
                                 })
                             } catch (err) {
-                                setError(err instanceof Error ? err.message : t('mfa.sendOtpFailed'))
+                                setError(formatApiError(err, t))
                             }
                         }}
                         loading={loading}

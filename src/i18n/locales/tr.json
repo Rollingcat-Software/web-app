@@ -61,7 +61,7 @@
     "authSessions": "Kimlik Doğrulama Oturumları",
     "devices": "Cihazlar",
     "enrollments": "Kayıtlar",
-    "userEnrollment": "Kendi Kaydı",
+    "userEnrollment": "Kimlik Kaydı",
     "biometricEnrollment": "Biyometrik Kayıt",
     "cardDetection": "Kart Algılama",
     "faceSearch": "Yüz Arama",
@@ -72,6 +72,7 @@
     "analytics": "Analitik",
     "verificationFlows": "Doğrulama Akışları",
     "verificationDashboard": "Doğrulama Paneli",
+    "verificationSessions": "Doğrulama Oturumları",
     "widgetDemo": "Kimlik Bileşeni",
     "developerPortal": "Geliştirici Portalı",
     "settings": "Ayarlar",
@@ -557,10 +558,10 @@
   },
   "footer": {
     "platform": "FIVUCSAS Kimlik Platformu",
-    "copyright": "\u00a9 2026 Marmara \u00dcniversitesi \u2014 Bilgisayar M\u00fchendisli\u011fi B\u00f6l\u00fcm\u00fc",
+    "copyright": "© 2026 Marmara Üniversitesi — Bilgisayar Mühendisliği Bölümü",
     "version": "v4.0.0",
-    "terms": "Kullan\u0131m Ko\u015fulllar\u0131",
-    "privacy": "Gizlilik Politikas\u0131"
+    "terms": "Kullanım Koşullları",
+    "privacy": "Gizlilik Politikası"
   },
   "widgetDemo": {
     "title": "Kimlik Doğrulama Bileşeni",
@@ -812,6 +813,65 @@
     "deleteBiometricError": "Biyometrik veriler silinemedi."
   },
   "enrollmentPage": {
+    "title": "Biyometrik Kayıt",
+    "subtitle": "Kimlik doğrulama yöntemlerinizi ve biyometrik kayıtlarınızı yönetin",
+    "refreshTooltip": "Kayıt durumunu yenile",
+    "enrolledCount": "{{count}} kayıtlı",
+    "unavailableCount": "{{count}} bu cihazda kullanılamıyor",
+    "statusEnrolled": "Kayıtlı",
+    "statusUnavailable": "Kullanılamıyor",
+    "statusNotEnrolled": "Kayıtlı değil",
+    "enroll": "Kayıt Ol",
+    "test": "Test Et",
+    "revoke": "İptal Et",
+    "cancel": "İptal",
+    "loginRequired": "Kayıtlarınızı yönetmek için lütfen giriş yapın.",
+    "notSupported": "{{method}} kaydı henüz tarayıcıda desteklenmiyor.",
+    "testHint": "{{method}} test etmek için giriş sırasında kimlik doğrulama yöntemi olarak kullanın.",
+    "faceEnrolled": "Yüz Tanıma başarıyla kayıt edildi",
+    "faceEnrollFailed": "Yüz kaydı başarısız. Lütfen tekrar deneyin.",
+    "voiceEnrolled": "Ses Tanıma başarıyla kayıt edildi",
+    "revokeSuccess": "{{method}} kaydı iptal edildi",
+    "revokeFailed": "{{method}} iptal edilemedi",
+    "phoneError": "Telefon numarası kaydedilemedi",
+    "methods": {
+      "FACE": {
+        "label": "Yüz Tanıma",
+        "description": "Biyometrik kimlik doğrulama için yüzünüzü kaydedin"
+      },
+      "FINGERPRINT": {
+        "label": "Parmak İzi",
+        "description": "Kimlik doğrulama için cihazınızın parmak izi sensörünü kullanın"
+      },
+      "VOICE": {
+        "label": "Ses Tanıma",
+        "description": "Sesli kimlik doğrulama için sesinizi kaydedin"
+      },
+      "TOTP": {
+        "label": "Kimlik Doğrulama Uygulaması",
+        "description": "Google Authenticator veya benzeri ile TOTP kurulumu yapın"
+      },
+      "EMAIL_OTP": {
+        "label": "E-posta OTP",
+        "description": "E-posta ile tek kullanımlık kodlar alın"
+      },
+      "SMS_OTP": {
+        "label": "SMS OTP",
+        "description": "SMS ile tek kullanımlık kodlar alın"
+      },
+      "QR_CODE": {
+        "label": "QR Kod",
+        "description": "Kimlik doğrulama için QR kodları tarayın"
+      },
+      "HARDWARE_KEY": {
+        "label": "Donanım Güvenlik Anahtarı / Harici Parmak İzi",
+        "description": "FIDO2 güvenlik anahtarı veya USB parmak izi okuyucu kaydedin"
+      },
+      "NFC_DOCUMENT": {
+        "label": "NFC Belge",
+        "description": "NFC özellikli kimlik belgesiyle doğrulama yapın"
+      }
+    },
     "phoneDialog": {
       "title": "Telefon Numarası Gerekli",
       "description": "SMS OTP için bir telefon numarası gereklidir. Kaydı tamamlamak için lütfen telefon numaranızı girin.",
@@ -823,7 +883,51 @@
       "successMessage": "Telefon numarası kaydedildi ve SMS OTP başarıyla kayıt edildi"
     },
     "enrolledSuccess": "{{method}} başarıyla kayıt edildi",
-    "enrollError": "{{method}} kayıt edilemedi"
+    "enrollError": "{{method}} kayıt edilemedi",
+    "nfcCards": {
+      "title": "Kayıtlı NFC Kartları",
+      "subtitle": "{{count}} kart kayıtlı",
+      "noCards": "NFC kartı bulunamadı. Yukarıdaki NFC Belge yöntemiyle bir kart kaydedin.",
+      "active": "Aktif",
+      "inactive": "Pasif",
+      "type": "Tür",
+      "label": "Etiket",
+      "enrolledAt": "Kayıt tarihi",
+      "deactivate": "Kartı devre dışı bırak",
+      "deleteSuccess": "NFC kartı başarıyla devre dışı bırakıldı",
+      "deleteError": "NFC kartı devre dışı bırakılamadı"
+    }
+  },
+  "nfcEnroll": {
+    "title": "NFC Belge Kaydet",
+    "stepScan": "Kart Tara",
+    "stepRegister": "Kayıt",
+    "stepComplete": "Tamamla",
+    "readError": "NFC kartı okunamadı. Lütfen tekrar deneyin.",
+    "permissionDenied": "NFC izni reddedildi. Lütfen tarayıcı ayarlarından NFC erişimine izin verin.",
+    "notSupported": "Bu cihazda veya tarayıcıda NFC desteklenmiyor.",
+    "scanFailed": "NFC taraması başlatılamadı. NFC'nin cihazınızda etkin olduğundan emin olun.",
+    "registerFailed": "NFC kartı kaydedilemedi",
+    "alreadyEnrolledOther": "Bu kart başka bir hesaba kayıtlı.",
+    "alreadyEnrolled": "Bu kart zaten kayıtlı.",
+    "browserNotSupported": "Bu tarayıcıda Web NFC desteklenmiyor. NFC kaydı için Android üzerinde Chrome gereklidir. Masaüstü tarayıcılar, iOS Safari, Firefox ve Brave Web NFC API'sini desteklemiyor.",
+    "waiting": "NFC kartı bekleniyor...",
+    "holdCard": "NFC kartınızı (kimlik, pasaport veya erişim kartı) telefonunuzun arkasına tutun",
+    "cardDetected": "Kart Algılandı!",
+    "registerDescription": "Kimlik doğrulama için NFC özellikli bir kart kaydedin.",
+    "supportedCards": "Desteklenen: Öğrenci kartları, erişim kartları ve NFC çipli diğer kartlar.",
+    "scanning": "Taranıyor...",
+    "startScan": "NFC Taramayı Başlat",
+    "cardLabel": "Kart Etiketi (isteğe bağlı)",
+    "cardLabelPlaceholder": "örn. Öğrenci Kartım, İstanbulKart",
+    "registering": "Kaydediliyor...",
+    "registerCard": "Kartı Kaydet",
+    "owner": "Sahip",
+    "scanDifferent": "Farklı bir kart tara",
+    "infoHint": "Telefon ayarlarınızda NFC'nin etkin olduğundan emin olun. Kartı telefonunuzun arkasına NFC anteni yakınına (genellikle üst-orta) düz bir şekilde tutun. Not: TC Kimlik kartları ve pasaportlar şifreli NFC çipleri kullanır ve tarayıcılar tarafından okunamaz — yalnızca öğrenci kartları, erişim kartları ve diğer NDEF uyumlu NFC kartları desteklenir.",
+    "registered": "NFC Kartı Kaydedildi!",
+    "registeredDescription": "NFC kartınız kayıt edildi. Artık kimlik doğrulama için kullanabilirsiniz.",
+    "done": "Tamam"
   },
   "mfa": {
     "chooseMethod": "Doğrulama Yöntemi Seçin",
@@ -997,74 +1101,85 @@
     "defaultDeviceKey": "Güvenlik Anahtarı"
   },
   "widget": {
-    "verifyIdentity": "Kimli\u011finizi Do\u011frulay\u0131n",
-    "cancel": "\u0130ptal",
-    "authComplete": "Kimlik Do\u011frulama Tamamland\u0131",
-    "allStepsCompleted": "T\u00fcm do\u011frulama ad\u0131mlar\u0131 ba\u015far\u0131yla tamamland\u0131.",
-    "noStepsRemaining": "Kalan kimlik do\u011frulama ad\u0131m\u0131 yok.",
-    "unknownMethod": "Bilinmeyen kimlik do\u011frulama y\u00f6ntemi: {{method}}",
-    "skipStep": "Bu ad\u0131m\u0131 atla",
-    "stepOfTotal": "Ad\u0131m {{current}} / {{total}}",
-    "verificationFailed": "Do\u011frulama ba\u015far\u0131s\u0131z. L\u00fctfen tekrar deneyin.",
-    "unexpectedError": "Beklenmeyen bir hata olu\u015ftu.",
-    "skipFailed": "Ad\u0131m atlanamad\u0131.",
-    "verificationError": "Do\u011frulama Hatas\u0131",
-    "loginTitle": "Giri\u015f Yap",
-    "loginSubtitle": "Devam etmek i\u00e7in kimlik bilgilerinizi girin.",
-    "mfaRequired": "Ek do\u011frulama gereklidir.",
-    "loginFailed": "Giri\u015f ba\u015far\u0131s\u0131z. L\u00fctfen bilgilerinizi kontrol edin.",
+    "verifyIdentity": "Kimliğinizi Doğrulayın",
+    "cancel": "İptal",
+    "authComplete": "Kimlik Doğrulama Tamamlandı",
+    "allStepsCompleted": "Tüm doğrulama adımları başarıyla tamamlandı.",
+    "noStepsRemaining": "Kalan kimlik doğrulama adımı yok.",
+    "unknownMethod": "Bilinmeyen kimlik doğrulama yöntemi: {{method}}",
+    "skipStep": "Bu adımı atla",
+    "stepOfTotal": "Adım {{current}} / {{total}}",
+    "verificationFailed": "Doğrulama başarısız. Lütfen tekrar deneyin.",
+    "unexpectedError": "Beklenmeyen bir hata oluştu.",
+    "skipFailed": "Adım atlanamadı.",
+    "verificationError": "Doğrulama Hatası",
+    "loginTitle": "Giriş Yap",
+    "loginSubtitle": "Devam etmek için kimlik bilgilerinizi girin.",
+    "mfaRequired": "Ek doğrulama gereklidir.",
+    "loginFailed": "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.",
     "missingParams": "Gerekli parametreler eksik (session_id veya client_id)."
   },
   "language": {
-    "en": "\u0130ngilizce",
-    "tr": "T\u00fcrk\u00e7e"
+    "en": "İngilizce",
+    "tr": "Türkçe"
   },
   "errors": {
-    "rateLimitExceeded": "\u00c7ok fazla istek. L\u00fctfen tekrar denemeden \u00f6nce biraz bekleyin.",
-    "networkError": "A\u011f hatas\u0131. L\u00fctfen ba\u011flant\u0131n\u0131z\u0131 kontrol edin.",
-    "unknownError": "Bir \u015feyler ters gitti. L\u00fctfen tekrar deneyin."
+    "badRequest": "Geçersiz istek. Lütfen girişinizi kontrol edin.",
+    "unauthorized": "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.",
+    "forbidden": "Bu işlemi gerçekleştirmek için yetkiniz yok.",
+    "notFound": "İstenen kaynak bulunamadı.",
+    "conflict": "Bu kaynak zaten mevcut veya mevcut verilerle çakışıyor.",
+    "tooLarge": "Dosya yüklemek için çok büyük.",
+    "validation": "Lütfen formdaki hataları kontrol edin.",
+    "tooManyRequests": "Çok fazla istek. Lütfen bir süre bekleyip tekrar deneyin.",
+    "serverError": "Beklenmeyen bir sunucu hatası oluştu. Lütfen daha sonra tekrar deneyin.",
+    "networkError": "Sunucuya bağlanılamıyor. Lütfen internet bağlantınızı kontrol edin.",
+    "unknown": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+    "failedToLoad": "Veriler yüklenemedi. Lütfen tekrar deneyin.",
+    "rateLimitExceeded": "Çok fazla istek. Lütfen tekrar denemeden önce biraz bekleyin.",
+    "unknownError": "Bir şeyler ters gitti. Lütfen tekrar deneyin."
   },
   "faceDetection": {
-    "positionFace": "Y\u00fcz\u00fcn\u00fcz\u00fc \u00e7er\u00e7eveye yerle\u015ftirin",
-    "noFace": "Y\u00fcz alg\u0131lanmad\u0131 \u2014 kameraya bak\u0131n",
-    "perfect": "M\u00fckemmel \u2014 sabit tutun",
-    "moveCloser": "Kameraya yakla\u015f\u0131n",
-    "moveFurther": "Kameradan uzakla\u015f\u0131n",
-    "centerFace": "Y\u00fcz\u00fcn\u00fcz\u00fc \u00e7er\u00e7evenin ortas\u0131na getirin"
+    "positionFace": "Yüzünüzü çerçeveye yerleştirin",
+    "noFace": "Yüz algılanmadı — kameraya bakın",
+    "perfect": "Mükemmel — sabit tutun",
+    "moveCloser": "Kameraya yaklaşın",
+    "moveFurther": "Kameradan uzaklaşın",
+    "centerFace": "Yüzünüzü çerçevenin ortasına getirin"
   },
   "faceChallenge": {
-    "positionOval": "Y\u00fcz\u00fcn\u00fcz\u00fc ovale yerle\u015ftirin",
-    "lookStraight": "Do\u011frudan kameraya bak\u0131n",
-    "turnLeft": "Ba\u015f\u0131n\u0131z\u0131 yava\u015f\u00e7a sola \u00e7evirin",
-    "turnRight": "Ba\u015f\u0131n\u0131z\u0131 yava\u015f\u00e7a sa\u011fa \u00e7evirin",
-    "blink": "Do\u011fal bir \u015fekilde g\u00f6z k\u0131rp\u0131n",
-    "enrolledSuccess": "Y\u00fcz kayd\u0131 ba\u015far\u0131yla tamamland\u0131!",
+    "positionOval": "Yüzünüzü ovale yerleştirin",
+    "lookStraight": "Doğrudan kameraya bakın",
+    "turnLeft": "Başınızı yavaşça sola çevirin",
+    "turnRight": "Başınızı yavaşça sağa çevirin",
+    "blink": "Doğal bir şekilde göz kırpın",
+    "enrolledSuccess": "Yüz kaydı başarıyla tamamlandı!",
     "holdStill": "Sabit durun...",
-    "capturedVerifying": "Yakaland\u0131! Do\u011frulan\u0131yor...",
-    "identityVerified": "Kimlik do\u011fruland\u0131!",
-    "verificationFailed": "Do\u011frulama ba\u015far\u0131s\u0131z oldu. Tekrar deneyin."
+    "capturedVerifying": "Yakalandı! Doğrulanıyor...",
+    "identityVerified": "Kimlik doğrulandı!",
+    "verificationFailed": "Doğrulama başarısız oldu. Tekrar deneyin."
   },
   "register": {
-    "verificationFailed": "Do\u011frulama ba\u015far\u0131s\u0131z oldu. L\u00fctfen tekrar deneyin.",
-    "invalidCode": "Ge\u00e7ersiz veya s\u00fcresi dolmu\u015f kod. L\u00fctfen tekrar deneyin."
+    "verificationFailed": "Doğrulama başarısız oldu. Lütfen tekrar deneyin.",
+    "invalidCode": "Geçersiz veya süresi dolmuş kod. Lütfen tekrar deneyin."
   },
   "widgetAuth": {
-    "verificationFailed": "Do\u011frulama ba\u015far\u0131s\u0131z oldu",
-    "invalidCode": "Ge\u00e7ersiz do\u011frulama kodu",
-    "authFailed": "Kimlik do\u011frulama ba\u015far\u0131s\u0131z",
-    "smsSendFailed": "SMS g\u00f6nderilemedi",
-    "authSuccessful": "Kimlik Do\u011frulama Ba\u015far\u0131l\u0131",
-    "returningResult": "Sonu\u00e7 uygulamaya iletiliyor...",
-    "securedBy": "FIVUCSAS taraf\u0131ndan korunmaktad\u0131r",
-    "twoFactorTitle": "\u0130ki Fakt\u00f6rl\u00fc Do\u011frulama",
-    "codeSentTo": "{{email}} adresine g\u00f6nderilen do\u011frulama kodunu girin",
-    "codeSentGeneric": "E-postan\u0131za g\u00f6nderilen do\u011frulama kodunu girin",
-    "verificationCode": "Do\u011frulama Kodu",
-    "verifyCode": "Kodu Do\u011frula",
-    "verifyIdentity": "Kimli\u011fi Do\u011frula",
-    "signInToVerify": "Do\u011frulamay\u0131 tamamlamak i\u00e7in giri\u015f yap\u0131n",
+    "verificationFailed": "Doğrulama başarısız oldu",
+    "invalidCode": "Geçersiz doğrulama kodu",
+    "authFailed": "Kimlik doğrulama başarısız",
+    "smsSendFailed": "SMS gönderilemedi",
+    "authSuccessful": "Kimlik Doğrulama Başarılı",
+    "returningResult": "Sonuç uygulamaya iletiliyor...",
+    "securedBy": "FIVUCSAS tarafından korunmaktadır",
+    "twoFactorTitle": "İki Faktörlü Doğrulama",
+    "codeSentTo": "{{email}} adresine gönderilen doğrulama kodunu girin",
+    "codeSentGeneric": "E-postanıza gönderilen doğrulama kodunu girin",
+    "verificationCode": "Doğrulama Kodu",
+    "verifyCode": "Kodu Doğrula",
+    "verifyIdentity": "Kimliği Doğrula",
+    "signInToVerify": "Doğrulamayı tamamlamak için giriş yapın",
     "emailLabel": "E-posta Adresi",
-    "passwordLabel": "\u015eifre",
-    "verify": "Do\u011frula"
+    "passwordLabel": "Şifre",
+    "verify": "Doğrula"
   }
 }

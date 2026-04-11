@@ -8,6 +8,8 @@
  */
 
 import { useState, useRef, useCallback, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatApiError } from '@utils/formatApiError';
 
 /** WAV sample rate for server submission. */
 const TARGET_SAMPLE_RATE = 16000;
@@ -103,6 +105,7 @@ function writeString(view: DataView, offset: number, str: string): void {
 }
 
 export function useVoiceRecorder(): UseVoiceRecorderReturn {
+  const { t: translate } = useTranslation();
   const [isRecording, setIsRecording] = useState(false);
   const [duration, setDuration] = useState(0);
   const [waveform, setWaveform] = useState<Uint8Array | null>(null);
@@ -192,7 +195,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
         }
       }, WAVEFORM_INTERVAL_MS);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Microphone access denied');
+      setError(formatApiError(err, translate));
     }
   }, []);
 
@@ -218,7 +221,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
           setWav16k(wavBlob);
           await offlineCtx.close();
         } catch (err) {
-          setError(err instanceof Error ? err.message : 'WAV conversion failed');
+          setError(formatApiError(err, translate));
         }
 
         stopInternal();

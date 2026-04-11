@@ -8,6 +8,8 @@
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatApiError } from '@utils/formatApiError';
 import { BlazeFaceDetector, type BlazeFaceResult } from './BlazeFaceDetector';
 
 export interface UseBlazeFaceReturn {
@@ -32,6 +34,7 @@ const TIMING_WINDOW = 30;
  * @param enabled - Set to false to skip initialization (e.g., when using MediaPipe instead).
  */
 export function useBlazeFace(enabled = true): UseBlazeFaceReturn {
+  const { t } = useTranslation();
   const detectorRef = useRef<BlazeFaceDetector | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
@@ -65,7 +68,7 @@ export function useBlazeFace(enabled = true): UseBlazeFaceReturn {
       })
       .catch((err: unknown) => {
         if (cancelled) return;
-        setError(err instanceof Error ? err.message : String(err));
+        setError(formatApiError(err, t));
         setIsLoading(false);
       });
 

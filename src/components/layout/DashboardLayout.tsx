@@ -8,35 +8,36 @@ import TopBar from './TopBar'
 
 const DRAWER_WIDTH = 260
 
-const BREADCRUMB_MAP: Record<string, string> = {
-    users: 'Users',
-    tenants: 'Tenants',
-    enrollments: 'Enrollments',
-    'user-enrollment': 'Identity Enrollment',
-    enrollment: 'Biometric Enrollment',
-    'audit-logs': 'Audit Logs',
-    'auth-flows': 'Auth Flows',
-    'auth-sessions': 'Auth Sessions',
-    devices: 'Devices',
-    roles: 'Roles',
-    guests: 'Guests',
-    'voice-search': 'Voice Search',
-    'nfc-enrollment': 'NFC Enrollment',
-    'my-profile': 'My Profile',
-    analytics: 'Analytics',
-    settings: 'Settings',
-    'biometric-tools': 'Biometric Tools',
-    'verification-flows': 'Verification Flows',
-    'verification-dashboard': 'Verification Dashboard',
-    'verification-sessions': 'Verification Sessions',
-    'widget-demo': 'Widget Demo',
-    'developer-portal': 'Developer Portal',
-    create: 'Create',
-    edit: 'Edit',
+const BREADCRUMB_I18N_MAP: Record<string, string> = {
+    users: 'nav.users',
+    tenants: 'nav.tenants',
+    enrollments: 'nav.enrollments',
+    'user-enrollment': 'nav.userEnrollment',
+    enrollment: 'enrollmentPage.title',
+    'audit-logs': 'nav.auditLogs',
+    'auth-flows': 'nav.authFlows',
+    'auth-sessions': 'nav.authSessions',
+    devices: 'nav.devices',
+    roles: 'nav.roles',
+    guests: 'nav.guests',
+    'voice-search': 'nav.voiceSearch',
+    'nfc-enrollment': 'nav.nfcEnrollment',
+    'my-profile': 'nav.myProfile',
+    analytics: 'nav.analytics',
+    settings: 'nav.settings',
+    'biometric-tools': 'nav.biometricTools',
+    'verification-flows': 'nav.verificationFlows',
+    'verification-dashboard': 'nav.verificationDashboard',
+    'verification-sessions': 'nav.verificationSessions',
+    'widget-demo': 'nav.widgetDemo',
+    'developer-portal': 'nav.developerPortal',
+    create: 'common.create',
+    edit: 'common.edit',
 }
 
 function PageBreadcrumbs() {
     const location = useLocation()
+    const {t} = useTranslation()
     const pathSegments = location.pathname.split('/').filter(Boolean)
 
     if (pathSegments.length === 0) return null
@@ -48,12 +49,13 @@ function PageBreadcrumbs() {
             aria-label="breadcrumb"
         >
             <Link component={RouterLink} to="/" underline="hover" color="inherit">
-                Dashboard
+                {t('nav.dashboard')}
             </Link>
             {pathSegments.map((segment, index) => {
                 const isLast = index === pathSegments.length - 1
                 const path = '/' + pathSegments.slice(0, index + 1).join('/')
-                const label = BREADCRUMB_MAP[segment] || segment
+                const i18nKey = BREADCRUMB_I18N_MAP[segment]
+                const label = i18nKey ? t(i18nKey) : segment
 
                 // Skip UUID segments in display
                 if (/^[0-9a-f-]{36}$/i.test(segment)) return null

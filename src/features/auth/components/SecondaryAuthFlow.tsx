@@ -14,6 +14,7 @@ import {
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -154,11 +155,7 @@ export default function SecondaryAuthFlow({
                 if (!cancelled) onSkip()
             } catch (err) {
                 if (!cancelled) {
-                    setError(
-                        err instanceof Error
-                            ? err.message
-                            : t('secondaryAuth.checkFailed')
-                    )
+                    setError(formatApiError(err, t))
                     setLoading(false)
                 }
             }
@@ -188,7 +185,7 @@ export default function SecondaryAuthFlow({
                 theme: { primaryColor: '#6366f1', borderRadius: '12px' },
             })
         } catch (initErr) {
-            setError(initErr instanceof Error ? initErr.message : t('secondaryAuth.initFailed'))
+            setError(formatApiError(initErr, t))
             return
         }
 
@@ -197,7 +194,7 @@ export default function SecondaryAuthFlow({
 
         const sessionId = authSession.sessionId ?? (authSession as unknown as Record<string, unknown>).id as string
         if (!sessionId) {
-            setError('Invalid auth session — no session ID')
+            setError(t('errors.unknown'))
             setWidgetActive(false)
             return
         }
@@ -213,7 +210,7 @@ export default function SecondaryAuthFlow({
                 }
             },
             onError: (err) => {
-                setError(err.message)
+                setError(formatApiError(err, t))
                 setWidgetActive(false)
             },
             onCancel: () => {
@@ -230,7 +227,7 @@ export default function SecondaryAuthFlow({
             } else if (err instanceof Error && err.message.includes('destroyed')) {
                 // Component unmounted — no action needed
             } else {
-                setError(err instanceof Error ? err.message : t('secondaryAuth.verificationFailed'))
+                setError(formatApiError(err, t))
                 setWidgetActive(false)
             }
         })

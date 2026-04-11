@@ -26,7 +26,7 @@ function mapCameraError(error: unknown): string {
             case 'AbortError':
                 return 'Camera access was aborted.'
             default:
-                return `Camera error: ${error.message}`
+                return 'Camera error'
         }
     }
     return 'An unexpected error occurred while accessing the camera.'

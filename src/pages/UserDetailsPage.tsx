@@ -14,6 +14,8 @@ import { ArrowBack, Edit, Email, Person, Shield, Business, Schedule } from '@mui
 import { useUser } from '@features/users'
 import { UserRole, UserStatus } from '@domain/models/User'
 import { format } from 'date-fns'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 
 function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | 'default' {
     switch (status) {
@@ -63,6 +65,7 @@ function DetailRow({ icon, label, value }: DetailRowProps) {
 export default function UserDetailsPage() {
     const { id } = useParams()
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const { user, loading, error } = useUser(id ?? '')
 
     if (!id) {
@@ -85,10 +88,10 @@ export default function UserDetailsPage() {
                 </Button>
                 <Paper sx={{ p: 4, textAlign: 'center' }}>
                     <Typography variant="h6" color="error" gutterBottom>
-                        Failed to load user
+                        {t('errors.failedToLoad')}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">
-                        {error.message}
+                        {formatApiError(error, t)}
                     </Typography>
                 </Paper>
             </Box>

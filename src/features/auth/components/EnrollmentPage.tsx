@@ -7,6 +7,7 @@ import {
     CardContent,
     Chip,
     CircularProgress,
+    Collapse,
     Dialog,
     DialogActions,
     DialogContent,
@@ -20,7 +21,10 @@ import {
 } from '@mui/material'
 import {
     CheckCircle,
+    Delete,
     Email,
+    ExpandLess,
+    ExpandMore,
     Face,
     Fingerprint,
     Key,
@@ -79,8 +83,8 @@ interface MethodCardConfig {
 const METHOD_CONFIGS: MethodCardConfig[] = [
     {
         type: AuthMethodType.FACE,
-        label: 'Face Recognition',
-        description: 'Enroll your face for biometric authentication',
+        label: 'enrollmentPage.methods.FACE.label',
+        description: 'enrollmentPage.methods.FACE.description',
         icon: <Face sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: 'camera',
         alwaysAvailable: false,
@@ -89,8 +93,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.FINGERPRINT,
-        label: 'Fingerprint',
-        description: 'Use your device fingerprint sensor for authentication',
+        label: 'enrollmentPage.methods.FINGERPRINT.label',
+        description: 'enrollmentPage.methods.FINGERPRINT.description',
         icon: <Fingerprint sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: 'webauthnPlatform',
         alwaysAvailable: false,
@@ -99,8 +103,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.VOICE,
-        label: 'Voice Recognition',
-        description: 'Enroll your voice for audio-based authentication',
+        label: 'enrollmentPage.methods.VOICE.label',
+        description: 'enrollmentPage.methods.VOICE.description',
         icon: <Mic sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: 'microphone',
         alwaysAvailable: false,
@@ -109,8 +113,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.TOTP,
-        label: 'Authenticator App',
-        description: 'Set up TOTP with Google Authenticator or similar',
+        label: 'enrollmentPage.methods.TOTP.label',
+        description: 'enrollmentPage.methods.TOTP.description',
         icon: <PhonelinkLock sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: null,
         alwaysAvailable: true,
@@ -119,8 +123,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.EMAIL_OTP,
-        label: 'Email OTP',
-        description: 'Receive one-time codes via email',
+        label: 'enrollmentPage.methods.EMAIL_OTP.label',
+        description: 'enrollmentPage.methods.EMAIL_OTP.description',
         icon: <Email sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: null,
         alwaysAvailable: true,
@@ -129,8 +133,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.SMS_OTP,
-        label: 'SMS OTP',
-        description: 'Receive one-time codes via SMS',
+        label: 'enrollmentPage.methods.SMS_OTP.label',
+        description: 'enrollmentPage.methods.SMS_OTP.description',
         icon: <SmsOutlined sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: null,
         alwaysAvailable: true,
@@ -139,8 +143,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.QR_CODE,
-        label: 'QR Code',
-        description: 'Scan QR codes for authentication',
+        label: 'enrollmentPage.methods.QR_CODE.label',
+        description: 'enrollmentPage.methods.QR_CODE.description',
         icon: <QrCode2 sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: 'camera',
         alwaysAvailable: false,
@@ -149,8 +153,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.HARDWARE_KEY,
-        label: 'Hardware Security Key / External Fingerprint',
-        description: 'Register a FIDO2 security key or USB fingerprint scanner',
+        label: 'enrollmentPage.methods.HARDWARE_KEY.label',
+        description: 'enrollmentPage.methods.HARDWARE_KEY.description',
         icon: <Key sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: 'webauthn',
         alwaysAvailable: false,
@@ -159,8 +163,8 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
     {
         type: AuthMethodType.NFC_DOCUMENT,
-        label: 'NFC Document',
-        description: 'Verify identity via NFC-enabled ID document',
+        label: 'enrollmentPage.methods.NFC_DOCUMENT.label',
+        description: 'enrollmentPage.methods.NFC_DOCUMENT.description',
         icon: <Nfc sx={{ fontSize: 32, color: 'white' }} />,
         capabilityKey: 'nfc',
         alwaysAvailable: false,
@@ -169,16 +173,24 @@ const METHOD_CONFIGS: MethodCardConfig[] = [
     },
 ]
 
-const METHOD_LABELS: Record<string, string> = {
-    FACE: 'Face Recognition',
-    FINGERPRINT: 'Fingerprint',
-    VOICE: 'Voice Recognition',
-    TOTP: 'Authenticator App (TOTP)',
-    EMAIL_OTP: 'Email OTP',
-    SMS_OTP: 'SMS OTP',
-    QR_CODE: 'QR Code',
-    HARDWARE_KEY: 'Hardware Security Key / External Fingerprint',
-    NFC_DOCUMENT: 'NFC Document',
+/**
+ * NFC card data from the backend
+ */
+interface NfcCard {
+    cardId: string
+    cardSerial: string
+    cardType: string
+    label: string
+    isActive: boolean
+    enrolledAt: string
+    lastUsedAt: string | null
+}
+
+interface NfcCardsResponse {
+    userId: string
+    count: number
+    activeCount: number
+    cards: NfcCard[]
 }
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -283,6 +295,12 @@ export default function EnrollmentPage() {
     const [, setActionSuccess] = useState<string | null>(null)
     const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: 'success' | 'error' | 'info' | 'warning' }>({ open: false, message: '', severity: 'info' })
 
+    // NFC cards list state
+    const [nfcCards, setNfcCards] = useState<NfcCard[]>([])
+    const [nfcCardsLoading, setNfcCardsLoading] = useState(false)
+    const [nfcCardsExpanded, setNfcCardsExpanded] = useState(true)
+    const [deletingCardId, setDeletingCardId] = useState<string | null>(null)
+
     // Phone number dialog for SMS OTP enrollment
     const [phoneDialogOpen, setPhoneDialogOpen] = useState(false)
     const [phoneInput, setPhoneInput] = useState('')
@@ -295,6 +313,40 @@ export default function EnrollmentPage() {
             setCapsLoading(false)
         })
     }, [])
+
+    // Fetch NFC cards when NFC_DOCUMENT is enrolled
+    const fetchNfcCards = useCallback(async () => {
+        if (!userId) return
+        setNfcCardsLoading(true)
+        try {
+            const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+            const response = await httpClient.get<NfcCardsResponse>(`/nfc/user/${userId}`)
+            setNfcCards(response.data?.cards ?? [])
+        } catch {
+            // Silently fail — cards list is supplementary
+            setNfcCards([])
+        } finally {
+            setNfcCardsLoading(false)
+        }
+    }, [userId])
+
+    const handleDeleteNfcCard = useCallback(async (cardId: string) => {
+        setDeletingCardId(cardId)
+        try {
+            const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+            await httpClient.delete(`/nfc/cards/${cardId}`)
+            setSnackbar({ open: true, message: t('enrollmentPage.nfcCards.deleteSuccess'), severity: 'success' })
+            fetchNfcCards()
+        } catch (err) {
+            setSnackbar({
+                open: true,
+                message: err instanceof Error ? err.message : t('enrollmentPage.nfcCards.deleteError'),
+                severity: 'error',
+            })
+        } finally {
+            setDeletingCardId(null)
+        }
+    }, [fetchNfcCards, t])
 
     // Fetch access token for voice endpoints
     useEffect(() => {
@@ -333,6 +385,17 @@ export default function EnrollmentPage() {
         [capabilities]
     )
 
+    // Re-fetch NFC cards whenever enrollments change and NFC is enrolled
+    useEffect(() => {
+        const nfcEntry = enrollmentMap.get(AuthMethodType.NFC_DOCUMENT)
+        const nfcEnrolled = nfcEntry?.status === EnrollmentStatus.ENROLLED || nfcEntry?.status === EnrollmentStatus.SUCCESS
+        if (nfcEnrolled && userId) {
+            fetchNfcCards()
+        } else {
+            setNfcCards([])
+        }
+    }, [enrollmentMap, userId, fetchNfcCards])
+
     // Handle enrollment for specific method types
     const handleEnroll = useCallback(
         async (type: AuthMethodType) => {
@@ -369,9 +432,9 @@ export default function EnrollmentPage() {
                             tenantId: user?.tenantId ?? 'system',
                             methodType: type,
                         })
-                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: METHOD_LABELS[type] ?? type }), severity: 'success' })
+                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
                     } catch (err) {
-                        setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.enrollError', { method: METHOD_LABELS[type] ?? type }), severity: 'error' })
+                        setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.enrollError', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'error' })
                     } finally {
                         setActionLoading(null)
                     }
@@ -384,9 +447,9 @@ export default function EnrollmentPage() {
                             tenantId: user?.tenantId ?? 'system',
                             methodType: type,
                         })
-                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: METHOD_LABELS[type] ?? type }), severity: 'success' })
+                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
                     } catch (err) {
-                        setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.enrollError', { method: METHOD_LABELS[type] ?? type }), severity: 'error' })
+                        setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.enrollError', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'error' })
                     } finally {
                         setActionLoading(null)
                     }
@@ -399,7 +462,7 @@ export default function EnrollmentPage() {
                     }
                     break
                 default:
-                    setSnackbar({ open: true, message: `${METHOD_LABELS[type] ?? type} enrollment is not yet supported in the browser.`, severity: 'info' })
+                    setSnackbar({ open: true, message: t('enrollmentPage.notSupported', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'info' })
             }
         },
         [createEnrollment, user?.tenantId]
@@ -438,7 +501,7 @@ export default function EnrollmentPage() {
                 case AuthMethodType.QR_CODE:
                     setSnackbar({
                         open: true,
-                        message: `To test ${METHOD_LABELS[type] ?? type}, use it as your auth method during login.`,
+                        message: t('enrollmentPage.testHint', { method: t(`enrollmentPage.methods.${type}.label`) }),
                         severity: 'info',
                     })
                     break
@@ -469,12 +532,12 @@ export default function EnrollmentPage() {
 
                 setFaceEnrollOpen(false)
                 refetchEnrollments()
-                setSnackbar({ open: true, message: 'Face Recognition enrolled successfully', severity: 'success' })
+                setSnackbar({ open: true, message: t('enrollmentPage.faceEnrolled'), severity: 'success' })
             } catch (err) {
                 setFaceEnrollOpen(false)
                 setSnackbar({
                     open: true,
-                    message: err instanceof Error ? err.message : 'Face enrollment failed. Please try again.',
+                    message: err instanceof Error ? err.message : t('enrollmentPage.faceEnrollFailed'),
                     severity: 'error',
                 })
             } finally {
@@ -492,9 +555,9 @@ export default function EnrollmentPage() {
             setActionSuccess(null)
             try {
                 await revokeEnrollment(type)
-                setSnackbar({ open: true, message: `${METHOD_LABELS[type] ?? type} enrollment revoked`, severity: 'success' })
+                setSnackbar({ open: true, message: t('enrollmentPage.revokeSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
             } catch (err) {
-                setSnackbar({ open: true, message: err instanceof Error ? err.message : `Failed to revoke ${METHOD_LABELS[type] ?? type}`, severity: 'error' })
+                setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.revokeFailed', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'error' })
             } finally {
                 setActionLoading(null)
             }
@@ -507,7 +570,7 @@ export default function EnrollmentPage() {
     if (!user) {
         return (
             <Box sx={{ p: 3 }}>
-                <Alert severity="warning">Please log in to manage your enrollments.</Alert>
+                <Alert severity="warning">{t('enrollmentPage.loginRequired')}</Alert>
             </Box>
         )
     }
@@ -525,13 +588,13 @@ export default function EnrollmentPage() {
             >
                 <Box>
                     <Typography variant="h4" fontWeight={700}>
-                        Biometric Enrollment
+                        {t('enrollmentPage.title')}
                     </Typography>
                     <Typography variant="body1" color="text.secondary" sx={{ mt: 0.5 }}>
-                        Manage your authentication methods and biometric enrollments
+                        {t('enrollmentPage.subtitle')}
                     </Typography>
                 </Box>
-                <Tooltip title="Refresh enrollment status">
+                <Tooltip title={t('enrollmentPage.refreshTooltip')}>
                     <IconButton
                         onClick={() => refetchEnrollments()}
                         disabled={loading}
@@ -549,13 +612,13 @@ export default function EnrollmentPage() {
             <Box sx={{ display: 'flex', gap: 2, mb: 3, flexWrap: 'wrap' }}>
                 <Chip
                     icon={<VerifiedUser />}
-                    label={`${enrollments.filter((e) => e.isSuccessful()).length} enrolled`}
+                    label={t('enrollmentPage.enrolledCount', { count: enrollments.filter((e) => e.isSuccessful()).length })}
                     color="success"
                     variant="outlined"
                 />
                 <Chip
                     icon={<WarningAmber />}
-                    label={`${METHOD_CONFIGS.filter((c) => !isMethodAvailable(c)).length} unavailable on this device`}
+                    label={t('enrollmentPage.unavailableCount', { count: METHOD_CONFIGS.filter((c) => !isMethodAvailable(c)).length })}
                     color="warning"
                     variant="outlined"
                 />
@@ -632,21 +695,21 @@ export default function EnrollmentPage() {
                                                 {enrolled ? (
                                                     <Chip
                                                         icon={<CheckCircle />}
-                                                        label="Enrolled"
+                                                        label={t('enrollmentPage.statusEnrolled')}
                                                         size="small"
                                                         color="success"
                                                         sx={{ fontWeight: 600 }}
                                                     />
                                                 ) : !available ? (
                                                     <Chip
-                                                        label="Unavailable"
+                                                        label={t('enrollmentPage.statusUnavailable')}
                                                         size="small"
                                                         color="default"
                                                         sx={{ fontWeight: 500 }}
                                                     />
                                                 ) : (
                                                     <Chip
-                                                        label="Not enrolled"
+                                                        label={t('enrollmentPage.statusNotEnrolled')}
                                                         size="small"
                                                         variant="outlined"
                                                         sx={{ fontWeight: 500 }}
@@ -660,14 +723,14 @@ export default function EnrollmentPage() {
                                                 fontWeight={700}
                                                 sx={{ mb: 0.5 }}
                                             >
-                                                {config.label}
+                                                {t(config.label)}
                                             </Typography>
                                             <Typography
                                                 variant="body2"
                                                 color="text.secondary"
                                                 sx={{ mb: 2, minHeight: 40 }}
                                             >
-                                                {config.description}
+                                                {t(config.description)}
                                             </Typography>
 
                                             {/* Actions */}
@@ -705,7 +768,7 @@ export default function EnrollmentPage() {
                                                                 }}
                                                             />
                                                         ) : null}
-                                                        Enroll
+                                                        {t('enrollmentPage.enroll')}
                                                     </Button>
                                                 )}
                                                 {enrolled && (
@@ -724,7 +787,7 @@ export default function EnrollmentPage() {
                                                                 textTransform: 'none',
                                                             }}
                                                         >
-                                                            Test
+                                                            {t('enrollmentPage.test')}
                                                         </Button>
                                                         <Button
                                                             variant="outlined"
@@ -740,7 +803,7 @@ export default function EnrollmentPage() {
                                                                 textTransform: 'none',
                                                             }}
                                                         >
-                                                            Revoke
+                                                            {t('enrollmentPage.revoke')}
                                                         </Button>
                                                     </>
                                                 )}
@@ -752,6 +815,138 @@ export default function EnrollmentPage() {
                         )
                     })}
                 </Grid>
+            )}
+
+            {/* NFC Cards List — visible when NFC_DOCUMENT is enrolled */}
+            {isMethodEnrolled(AuthMethodType.NFC_DOCUMENT) && (
+                <Card
+                    sx={{
+                        mt: 3,
+                        borderRadius: '16px',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                    }}
+                >
+                    <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                        <Box
+                            sx={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
+                                alignItems: 'center',
+                                cursor: 'pointer',
+                            }}
+                            onClick={() => setNfcCardsExpanded(!nfcCardsExpanded)}
+                        >
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                                <Box
+                                    sx={{
+                                        width: 40,
+                                        height: 40,
+                                        borderRadius: '10px',
+                                        background: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                    }}
+                                >
+                                    <Nfc sx={{ fontSize: 22, color: 'white' }} />
+                                </Box>
+                                <Box>
+                                    <Typography variant="subtitle1" fontWeight={700}>
+                                        {t('enrollmentPage.nfcCards.title')}
+                                    </Typography>
+                                    <Typography variant="body2" color="text.secondary">
+                                        {t('enrollmentPage.nfcCards.subtitle', { count: nfcCards.length })}
+                                    </Typography>
+                                </Box>
+                            </Box>
+                            <IconButton size="small">
+                                {nfcCardsExpanded ? <ExpandLess /> : <ExpandMore />}
+                            </IconButton>
+                        </Box>
+
+                        <Collapse in={nfcCardsExpanded}>
+                            <Box sx={{ mt: 2 }}>
+                                {nfcCardsLoading ? (
+                                    <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
+                                        <CircularProgress size={28} />
+                                    </Box>
+                                ) : nfcCards.length === 0 ? (
+                                    <Typography variant="body2" color="text.secondary" sx={{ py: 2, textAlign: 'center' }}>
+                                        {t('enrollmentPage.nfcCards.noCards')}
+                                    </Typography>
+                                ) : (
+                                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                                        {nfcCards.map((card) => (
+                                            <Box
+                                                key={card.cardId}
+                                                sx={{
+                                                    display: 'flex',
+                                                    alignItems: 'center',
+                                                    justifyContent: 'space-between',
+                                                    p: 2,
+                                                    borderRadius: '12px',
+                                                    bgcolor: card.isActive ? 'action.hover' : 'action.disabledBackground',
+                                                    border: '1px solid',
+                                                    borderColor: card.isActive ? 'divider' : 'action.disabled',
+                                                    opacity: card.isActive ? 1 : 0.7,
+                                                }}
+                                            >
+                                                <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
+                                                        <Typography
+                                                            variant="body2"
+                                                            fontWeight={700}
+                                                            sx={{ fontFamily: 'monospace', fontSize: '0.85rem' }}
+                                                        >
+                                                            {card.cardSerial}
+                                                        </Typography>
+                                                        <Chip
+                                                            label={card.isActive ? t('enrollmentPage.nfcCards.active') : t('enrollmentPage.nfcCards.inactive')}
+                                                            size="small"
+                                                            color={card.isActive ? 'success' : 'default'}
+                                                            sx={{ fontWeight: 600, height: 22, fontSize: '0.7rem' }}
+                                                        />
+                                                    </Box>
+                                                    <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {t('enrollmentPage.nfcCards.type')}: {card.cardType}
+                                                        </Typography>
+                                                        {card.label && (
+                                                            <Typography variant="caption" color="text.secondary">
+                                                                {t('enrollmentPage.nfcCards.label')}: {card.label}
+                                                            </Typography>
+                                                        )}
+                                                        <Typography variant="caption" color="text.secondary">
+                                                            {t('enrollmentPage.nfcCards.enrolledAt')}: {new Date(card.enrolledAt).toLocaleDateString()}
+                                                        </Typography>
+                                                    </Box>
+                                                </Box>
+                                                {card.isActive && (
+                                                    <Tooltip title={t('enrollmentPage.nfcCards.deactivate')}>
+                                                        <IconButton
+                                                            size="small"
+                                                            color="error"
+                                                            onClick={() => handleDeleteNfcCard(card.cardId)}
+                                                            disabled={deletingCardId === card.cardId}
+                                                            sx={{ ml: 1 }}
+                                                        >
+                                                            {deletingCardId === card.cardId ? (
+                                                                <CircularProgress size={18} color="error" />
+                                                            ) : (
+                                                                <Delete fontSize="small" />
+                                                            )}
+                                                        </IconButton>
+                                                    </Tooltip>
+                                                )}
+                                            </Box>
+                                        ))}
+                                    </Box>
+                                )}
+                            </Box>
+                        </Collapse>
+                    </CardContent>
+                </Card>
             )}
 
             {/* Face Enrollment Dialog */}
@@ -773,7 +968,7 @@ export default function EnrollmentPage() {
                     }).catch(() => {})
                     setTotpEnrollOpen(false)
                     refetchEnrollments()
-                    setSnackbar({ open: true, message: 'Authenticator App (TOTP) enrolled successfully', severity: 'success' })
+                    setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t('enrollmentPage.methods.TOTP.label') }), severity: 'success' })
                 }}
             />
 
@@ -802,8 +997,8 @@ export default function EnrollmentPage() {
                         open: true,
                         message: t('enrollmentPage.enrolledSuccess', {
                             method: methodType === AuthMethodType.FINGERPRINT
-                                ? METHOD_LABELS[AuthMethodType.FINGERPRINT]
-                                : METHOD_LABELS[AuthMethodType.HARDWARE_KEY],
+                                ? t('enrollmentPage.methods.FINGERPRINT.label')
+                                : t('enrollmentPage.methods.HARDWARE_KEY.label'),
                         }),
                         severity: 'success',
                     })
@@ -828,7 +1023,7 @@ export default function EnrollmentPage() {
                             await httpClient.put(`/users/${userId}/enrollments/VOICE/complete`, {})
                         } catch { /* bio enrollment succeeded even if record creation fails */ }
                         refetchEnrollments()
-                        setSnackbar({ open: true, message: 'Voice Recognition enrolled successfully', severity: 'success' })
+                        setSnackbar({ open: true, message: t('enrollmentPage.voiceEnrolled'), severity: 'success' })
                     }
                 }}
             />
@@ -852,7 +1047,7 @@ export default function EnrollmentPage() {
                     refetchEnrollments()
                     setSnackbar({
                         open: true,
-                        message: t('enrollmentPage.enrolledSuccess', { method: METHOD_LABELS[AuthMethodType.NFC_DOCUMENT] ?? 'NFC Document' }),
+                        message: t('enrollmentPage.enrolledSuccess', { method: t('enrollmentPage.methods.NFC_DOCUMENT.label') }),
                         severity: 'success',
                     })
                 }}
@@ -890,7 +1085,7 @@ export default function EnrollmentPage() {
                         }}
                         disabled={phoneSaving}
                     >
-                        Cancel
+                        {t('enrollmentPage.cancel')}
                     </Button>
                     <Button
                         variant="contained"
@@ -917,7 +1112,7 @@ export default function EnrollmentPage() {
                             } catch (err) {
                                 setSnackbar({
                                     open: true,
-                                    message: err instanceof Error ? err.message : 'Failed to save phone number',
+                                    message: err instanceof Error ? err.message : t('enrollmentPage.phoneError'),
                                     severity: 'error',
                                 })
                             } finally {

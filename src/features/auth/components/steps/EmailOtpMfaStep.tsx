@@ -10,6 +10,7 @@ import {
 import { Email, ArrowForward, ArrowBack, Refresh } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -72,7 +73,7 @@ export default function EmailOtpMfaStep({
             setMaskedEmail(res.data.email ?? null)
             setCountdown(60)
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('mfa.verificationFailed'))
+            setError(formatApiError(err, t))
         } finally {
             setSending(false)
         }
@@ -101,7 +102,7 @@ export default function EmailOtpMfaStep({
                 setError(t('mfa.verificationFailed'))
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('mfa.verificationFailed'))
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }

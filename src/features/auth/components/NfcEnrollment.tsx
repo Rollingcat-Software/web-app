@@ -15,6 +15,8 @@ import {
     Typography,
 } from '@mui/material'
 import { CheckCircle, Nfc } from '@mui/icons-material'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -26,10 +28,10 @@ interface NfcEnrollmentProps {
     userId: string
 }
 
-const steps = ['Scan Card', 'Register', 'Complete']
-
 export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcEnrollmentProps) {
+    const { t } = useTranslation()
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
+    const steps = [t('nfcEnroll.stepScan'), t('nfcEnroll.stepRegister'), t('nfcEnroll.stepComplete')]
     const [activeStep, setActiveStep] = useState(0)
     const [loading, setLoading] = useState(false)
     const [scanning, setScanning] = useState(false)
@@ -81,18 +83,18 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
             }, { once: true })
 
             ndef.addEventListener('readingerror', () => {
-                setError('Failed to read NFC card. Please try again.')
+                setError(t('nfcEnroll.readError'))
                 setScanning(false)
             }, { once: true })
         } catch (err) {
             setScanning(false)
             if (err instanceof DOMException && err.name === 'NotAllowedError') {
-                setError('NFC permission denied. Please allow NFC access in your browser settings.')
+                setError(t('nfcEnroll.permissionDenied'))
             } else if (err instanceof DOMException && err.name === 'NotSupportedError') {
-                setError('NFC is not supported on this device or browser.')
+                setError(t('nfcEnroll.notSupported'))
                 setNfcSupported(false)
             } else {
-                setError('Failed to start NFC scan. Make sure NFC is enabled on your device.')
+                setError(t('nfcEnroll.scanFailed'))
             }
         }
     }, [])
@@ -115,7 +117,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                 setActiveStep(2)
                 setTimeout(() => onSuccess(), 2000)
             } else {
-                setError(response.data.message || 'Failed to register NFC card')
+                setError(response.data.message || t('nfcEnroll.registerFailed'))
                 setActiveStep(0)
             }
         } catch (err) {
@@ -132,14 +134,14 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                     }
                     setCardInfo({
                         enrolled: true,
-                        message: 'This card is already enrolled to another account.',
+                        message: t('nfcEnroll.alreadyEnrolledOther'),
                         data: verifyData,
                     })
                 } catch {
-                    setCardInfo({ enrolled: true, message: 'This card is already enrolled.' })
+                    setCardInfo({ enrolled: true, message: t('nfcEnroll.alreadyEnrolled') })
                 }
             } else {
-                setError(err instanceof Error ? err.message : 'Failed to register NFC card')
+                setError(formatApiError(err, t))
             }
             setActiveStep(0)
         } finally {
@@ -163,14 +165,12 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                 >
                     <Nfc sx={{ fontSize: 24, color: 'white' }} />
                 </Box>
-                Register NFC Document
+                {t('nfcEnroll.title')}
             </DialogTitle>
             <DialogContent>
                 {!nfcSupported ? (
                     <Alert severity="warning" sx={{ mt: 1 }}>
-                        Web NFC is not supported in this browser. NFC enrollment requires
-                        <strong> Chrome on Android</strong>. Desktop browsers, iOS Safari, Firefox,
-                        and Brave do not support the Web NFC API.
+                        {t('nfcEnroll.browserNotSupported')}
                     </Alert>
                 ) : (
                     <>
@@ -219,16 +219,16 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                     {scanning ? (
                                         <>
                                             <Typography variant="h6" fontWeight={600}>
-                                                Waiting for NFC card...
+                                                {t('nfcEnroll.waiting')}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
-                                                Hold your NFC card (ID, passport, or access card) against the back of your phone
+                                                {t('nfcEnroll.holdCard')}
                                             </Typography>
                                         </>
                                     ) : cardSerial ? (
                                         <>
                                             <Typography variant="h6" fontWeight={600} color="success.main">
-                                                Card Detected!
+                                                {t('nfcEnroll.cardDetected')}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
                                                 Serial: <strong>{cardSerial}</strong>
@@ -237,10 +237,10 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                     ) : (
                                         <>
                                             <Typography variant="body1" sx={{ mb: 1 }}>
-                                                Register an NFC-enabled card for identity verification.
+                                                {t('nfcEnroll.registerDescription')}
                                             </Typography>
                                             <Typography variant="body2" color="text.secondary">
-                                                Supported: National ID cards, passports, access cards with NFC chips.
+                                                {t('nfcEnroll.supportedCards')}
                                             </Typography>
                                         </>
                                     )}
@@ -265,7 +265,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                             mb: 2,
                                         }}
                                     >
-                                        {scanning ? 'Scanning...' : 'Start NFC Scan'}
+                                        {scanning ? t('nfcEnroll.scanning') : t('nfcEnroll.startScan')}
                                     </Button>
                                 )}
 
@@ -273,10 +273,10 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                     <>
                                         <TextField
                                             fullWidth
-                                            label="Card Label (optional)"
+                                            label={t('nfcEnroll.cardLabel')}
                                             value={cardLabel}
                                             onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCardLabel(e.target.value)}
-                                            placeholder="e.g., My National ID, Office Badge"
+                                            placeholder={t('nfcEnroll.cardLabelPlaceholder')}
                                             InputLabelProps={{ shrink: true }}
                                             sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                         />
@@ -297,7 +297,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                                 },
                                             }}
                                         >
-                                            {loading ? 'Registering...' : 'Register Card'}
+                                            {loading ? t('nfcEnroll.registering') : t('nfcEnroll.registerCard')}
                                         </Button>
                                     </>
                                 )}
@@ -312,7 +312,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                                 <Box sx={{ mt: 1 }}>
                                                     {cardInfo.data.userName ? (
                                                         <Typography variant="body2">
-                                                            Owner: {String(cardInfo.data.userName)}
+                                                            {t('nfcEnroll.owner')}: {String(cardInfo.data.userName)}
                                                         </Typography>
                                                     ) : null}
                                                     {cardInfo.data.email ? (
@@ -330,17 +330,13 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                                             onClick={() => { setCardInfo(null); setCardSerial(''); setError(null) }}
                                             sx={{ mt: 1, borderRadius: '10px' }}
                                         >
-                                            Scan a different card
+                                            {t('nfcEnroll.scanDifferent')}
                                         </Button>
                                     </>
                                 )}
 
                                 <Alert severity="info" sx={{ mt: 2 }}>
-                                    Make sure NFC is enabled in your phone settings. Hold the card flat against the
-                                    back of your phone near the NFC antenna (usually top-center). Note: Turkish
-                                    National ID cards (TC Kimlik) and passports use encrypted NFC chips that cannot
-                                    be read by browsers — only student IDs, access cards, and other NDEF-compatible
-                                    NFC cards are supported.
+                                    {t('nfcEnroll.infoHint')}
                                 </Alert>
                             </Box>
                         )}
@@ -349,7 +345,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                             <Box sx={{ textAlign: 'center', py: 3 }}>
                                 <CircularProgress size={48} sx={{ mb: 2 }} />
                                 <Typography variant="h6" fontWeight={600}>
-                                    Registering Card...
+                                    {t('nfcEnroll.registering')}
                                 </Typography>
                             </Box>
                         )}
@@ -358,10 +354,10 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                             <Box sx={{ textAlign: 'center', py: 3 }}>
                                 <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
                                 <Typography variant="h6" fontWeight={600} sx={{ mb: 1 }}>
-                                    NFC Card Registered!
+                                    {t('nfcEnroll.registered')}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary">
-                                    Your NFC card has been enrolled. You can now use it for identity verification.
+                                    {t('nfcEnroll.registeredDescription')}
                                 </Typography>
                             </Box>
                         )}
@@ -369,8 +365,8 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                 )}
             </DialogContent>
             <DialogActions>
-                {activeStep < 2 && <Button onClick={onClose}>Cancel</Button>}
-                {activeStep === 2 && <Button onClick={onClose}>Done</Button>}
+                {activeStep < 2 && <Button onClick={onClose}>{t('common.cancel')}</Button>}
+                {activeStep === 2 && <Button onClick={onClose}>{t('nfcEnroll.done')}</Button>}
             </DialogActions>
         </Dialog>
     )
