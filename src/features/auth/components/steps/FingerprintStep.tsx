@@ -96,6 +96,7 @@ export default function FingerprintStep({
 
             if (credential && 'response' in credential) {
                 const assertionResponse = credential.response as AuthenticatorAssertionResponse
+                setWaiting(false)
 
                 onSubmit(btoa(JSON.stringify({
                     credentialId: credential.id,

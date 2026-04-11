@@ -436,7 +436,7 @@ function WidgetAuthPageInner() {
                             if (!resp.ok) return null
                             return resp.json()
                         }}
-                        onSubmit={(data: Record<string, unknown>) => verifyMethodStep('HARDWARE_KEY', data)}
+                        onSubmit={(data) => verifyMethodStep('HARDWARE_KEY', { assertion: data })}
                         loading={stepLoading}
                         error={stepError}
                     />

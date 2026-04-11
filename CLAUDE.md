@@ -93,9 +93,38 @@ Enrollment UIs:
 - **SecondaryAuthFlow** verify container overflow `hidden`→`auto`
 - **WebAuthn rpId fix**: FingerprintStep + HardwareKeyStep now get `rpId` from server challenge (`fivucsas.com`) instead of `window.location.hostname` — credentials work cross-subdomain
 - **Backend WebAuthn MFA verification**: `/auth/mfa/step` FINGERPRINT/HARDWARE_KEY now does full cryptographic verification (was stub: `assertion != null`)
-- **Backend challenge generation**: `action: "challenge"` in MFA step returns `{ status: "CHALLENGE", data: { challenge, rpId, timeout } }`
+- **Backend challenge generation**: `action: "challenge"` in MFA step returns `{ status: "CHALLENGE", data: { challenge, rpId, timeout, allowCredentials } }`
 - **Widget sends email** in completion payload (was N/A in BYS demo callback)
 - **BYS demo callback**: Redirect timer 3s→10s
+
+### WebAuthn / Auth Method Fixes (2026-04-11):
+- **CRITICAL: Base64 encoding mismatch fixed** — Frontend `btoa()` produces standard base64 (`+/`), but `WebAuthnService.java` used `Base64.getUrlDecoder()` which rejects `/` (0x2F). Added `decodeBase64()` helper that normalizes standard→URL-safe. This was THE root cause of ALL WebAuthn verification failures since April.
+- **MFA challenge now includes `allowCredentials`** — `AuthController.verifyMfaStep()` challenge response now returns user's credential IDs filtered by transport type (platform for FINGERPRINT, cross-platform for HARDWARE_KEY). Android Chrome needs explicit `allowCredentials` for non-discoverable credentials.
+- **LoginMfaFlow.tsx `allowCredentials` extraction** — Widget login flow now reads `allowCredentials` from challenge response (was missing, unlike TwoFactorDispatcher which already had it).
+- **FingerprintStep.tsx `waiting` state reset** — Added `setWaiting(false)` before `onSubmit()` on success path. Previously button stayed disabled after scan.
+- **MultiStepAuthFlow.tsx field name fix** — Changed `{ fingerprintData: data }` → `{ assertion: data }` to match backend `data.get("assertion")`.
+- **HardwareKeyStep.tsx base64 JSON encoding** — Now returns `btoa(JSON.stringify({...}))` string instead of plain object. All 4 callers updated to wrap as `{ assertion: data }`.
+- **Enhanced WebAuthn error logging** — AuthController logs `data.keySet()` when assertion field is null/blank.
+
+### Auth Method Audit (2026-04-11):
+- **MFA path (TwoFactorDispatcher/LoginMfaFlow → POST /auth/mfa/step)**: ALL 10 methods field names MATCH ✅
+- **Session path (MultiStepAuthFlow → POST /auth/sessions/{id}/steps/{order})**: 6 mismatches found:
+  - EMAIL_OTP/SMS_OTP send: frontend `send_otp` vs handler `send`
+  - FACE: FaceAuthHandler doesn't strip `data:image/jpeg;base64,` prefix
+  - FINGERPRINT: `assertion` vs handler `fingerprintData`
+  - HARDWARE_KEY: base64 blob vs handler reads individual fields
+  - QR_CODE: `token` vs handler `qrToken`
+
+### Known Issues (2026-04-11):
+- **Face MFA**: Camera box doesn't activate on mobile Chrome — no video feed, no capture, sends 0 bytes
+- **NFC**: Enrollment via Biometric Tools not reflected in `user_enrollments` table; shows "Not enrolled" on MFA picker
+- **Chrome multi-tap**: Android Chrome needs 2-7 taps to show fingerprint scanner (WebAuthn ceremony retry behavior)
+- **Brave fingerprint**: Shows "No passkey for app.fivucsas.com" — may not support cross-subdomain rpId
+
+### Research Reports (2026-04-11):
+- `docs/BIOMETRIC_FLOW_RESEARCH.md` (777 lines) — Full browser→DB trace for face/voice/fingerprint
+- `docs/AUTH_TEST_VS_WEBAPP_ANALYSIS.md` (377 lines) — Forensic comparison auth-test vs web-app
+- `docs/AUTH_METHOD_AUDIT.md` — Complete data contract audit across all 4 dispatchers × 2 backend paths
 
 ### Auth Widget / Verify App (2026-04-08):
 - **LoginMfaFlow.tsx** — embedded login + N-step MFA flow component for widget mode

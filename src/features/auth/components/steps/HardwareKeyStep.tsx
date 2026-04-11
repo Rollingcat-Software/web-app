@@ -25,12 +25,7 @@ interface HardwareKeyStepProps {
     challenge?: string
     rpId?: string
     onRequestChallenge?: () => Promise<ChallengeResponse | null>
-    onSubmit: (data: {
-        credentialId: string
-        authenticatorData: string
-        clientDataJSON: string
-        signature: string
-    }) => void
+    onSubmit: (data: string) => void
     loading: boolean
     error?: string
 }
@@ -74,12 +69,12 @@ export default function HardwareKeyStep({
             if (credential && 'response' in credential) {
                 const assertionResponse = credential.response as AuthenticatorAssertionResponse
 
-                onSubmit({
+                onSubmit(btoa(JSON.stringify({
                     credentialId: credential.id,
                     authenticatorData: arrayBufferToBase64(assertionResponse.authenticatorData),
                     clientDataJSON: arrayBufferToBase64(assertionResponse.clientDataJSON),
                     signature: arrayBufferToBase64(assertionResponse.signature),
-                })
+                })))
             }
         } catch (err) {
             const mapped = mapWebAuthnError(err, t)

@@ -225,7 +225,7 @@ export default function TwoFactorDispatcher({
                 return (
                     <HardwareKeyStep
                         onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.HARDWARE_KEY)}
-                        onSubmit={(data) => verifyStep(AuthMethodType.HARDWARE_KEY, data)}
+                        onSubmit={(data) => verifyStep(AuthMethodType.HARDWARE_KEY, { assertion: data })}
                         loading={loading}
                         error={error}
                     />

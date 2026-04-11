@@ -387,7 +387,7 @@ export default function MultiStepAuthFlow({
                             }
                             return null
                         }}
-                        onSubmit={(data) => handleStepSubmit({ fingerprintData: data })}
+                        onSubmit={(data) => handleStepSubmit({ assertion: data })}
                         loading={loading}
                         error={error}
                     />
@@ -421,7 +421,7 @@ export default function MultiStepAuthFlow({
                             }
                             return null
                         }}
-                        onSubmit={(data) => handleStepSubmit(data)}
+                        onSubmit={(data) => handleStepSubmit({ assertion: data })}
                         loading={loading}
                         error={error}
                     />

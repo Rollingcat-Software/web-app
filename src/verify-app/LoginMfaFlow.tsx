@@ -185,6 +185,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 challenge: res.data.challenge,
                 rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
                 timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
+                allowCredentials: Array.isArray(res.data.allowCredentials) ? res.data.allowCredentials as string[] : undefined,
             }
         }
         return null
@@ -283,7 +284,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 return (
                     <HardwareKeyStep
                         onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.HARDWARE_KEY)}
-                        onSubmit={(data) => verifyStep(AuthMethodType.HARDWARE_KEY, data)}
+                        onSubmit={(data) => verifyStep(AuthMethodType.HARDWARE_KEY, { assertion: data })}
                         loading={loading}
                         error={error}
                     />
