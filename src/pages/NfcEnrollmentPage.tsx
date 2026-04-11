@@ -130,9 +130,9 @@ export default function NfcEnrollmentPage() {
                         setCardEnrolled(true)
                         break
                     case 'verify':
-                        if (data.verified) {
-                            message = data.userId
-                                ? `${t('nfc.verifySuccess', 'NFC card verified!')} — ${t('nfc.cardOwner', 'Card owner')}: ${data.userId}`
+                        if (data.success && data.enrolled) {
+                            message = data.userName
+                                ? `${t('nfc.verifySuccess', 'NFC card verified!')} — ${t('nfc.cardOwner', 'Card owner')}: ${data.userName}`
                                 : t('nfc.verifySuccess', 'NFC card verified!')
                             setCardEnrolled(true)
                         } else {
@@ -141,10 +141,16 @@ export default function NfcEnrollmentPage() {
                         }
                         break
                     case 'search':
-                        message = data.userId
-                            ? `${t('nfc.cardOwner', 'Card owner')}: ${data.userId}`
-                            : t('nfc.noOwner', 'No user found for this card.')
-                        setCardEnrolled(!!data.userId)
+                        if (data.found && data.results?.length > 0) {
+                            const owners = data.results.map((r: Record<string, unknown>) =>
+                                `${r.userName} (${r.isActive ? t('nfc.active', 'Active') : t('nfc.inactive', 'Inactive')})`
+                            ).join(', ')
+                            message = `${t('nfc.cardOwner', 'Card owner')}: ${owners}`
+                            setCardEnrolled(data.results.some((r: Record<string, unknown>) => r.isActive))
+                        } else {
+                            message = t('nfc.noOwner', 'No user found for this card.')
+                            setCardEnrolled(false)
+                        }
                         break
                 }
                 setActionResult({ success: true, message, data })

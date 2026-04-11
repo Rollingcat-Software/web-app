@@ -137,7 +137,7 @@ export default function SettingsPage() {
         if (settings) {
             setFirstName(settings.firstName || user?.firstName || '')
             setLastName(settings.lastName || user?.lastName || '')
-            setPhoneNumber(settings.phoneNumber || '')
+            setPhoneNumber(settings.phoneNumber || user?.phoneNumber || '')
             setEmailNotifications(settings.emailNotifications)
             setLoginAlerts(settings.loginAlerts)
             setSecurityAlerts(settings.securityAlerts)
