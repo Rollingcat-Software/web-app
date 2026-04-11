@@ -395,7 +395,7 @@ export default function EnrollmentPage() {
                     if ('NDEFReader' in window) {
                         setNfcEnrollOpen(true)
                     } else {
-                        setSnackbar({ open: true, message: 'NFC enrollment requires Chrome on Android. Your browser does not support Web NFC.', severity: 'warning' })
+                        setSnackbar({ open: true, message: t('mfa.nfc.notSupported'), severity: 'warning' })
                     }
                     break
                 default:
@@ -430,7 +430,7 @@ export default function EnrollmentPage() {
                     if ('NDEFReader' in window) {
                         setNfcEnrollOpen(true)
                     } else {
-                        setSnackbar({ open: true, message: 'NFC requires Chrome on Android.', severity: 'warning' })
+                        setSnackbar({ open: true, message: t('mfa.nfc.notSupported'), severity: 'warning' })
                     }
                     break
                 case AuthMethodType.EMAIL_OTP:
@@ -839,15 +839,22 @@ export default function EnrollmentPage() {
                 userId={userId}
                 onClose={() => setNfcEnrollOpen(false)}
                 onSuccess={async () => {
+                    // The backend NfcController.enrollCard() now auto-creates the enrollment
+                    // record (NFC_DOCUMENT is in AUTO_COMPLETE_TYPES), but we also call
+                    // createEnrollment as a safety net in case the backend auto-create failed.
                     try {
                         await createEnrollment({
                             tenantId: user?.tenantId ?? 'system',
                             methodType: AuthMethodType.NFC_DOCUMENT,
                         })
-                    } catch { /* ignore */ }
+                    } catch { /* ignore — backend already created it */ }
                     setNfcEnrollOpen(false)
                     refetchEnrollments()
-                    setSnackbar({ open: true, message: 'NFC Document enrolled successfully', severity: 'success' })
+                    setSnackbar({
+                        open: true,
+                        message: t('enrollmentPage.enrolledSuccess', { method: METHOD_LABELS[AuthMethodType.NFC_DOCUMENT] ?? 'NFC Document' }),
+                        severity: 'success',
+                    })
                 }}
             />
 

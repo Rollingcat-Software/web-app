@@ -88,24 +88,50 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                 },
             })
             streamRef.current = stream
-            if (videoRef.current) {
-                videoRef.current.srcObject = stream
-                await videoRef.current.play()
-            }
+            // Set cameraActive first so the <video> element renders in the DOM,
+            // then attach the stream in a follow-up effect (see useEffect below).
             setCameraActive(true)
         } catch (_err) {
             setCameraError(
                 t('mfa.face.cameraError')
             )
         }
-    }, [])
+    }, [t])
 
     const stopCamera = useCallback(() => {
+        if (videoRef.current) {
+            videoRef.current.srcObject = null
+        }
         if (streamRef.current) {
             streamRef.current.getTracks().forEach((track) => track.stop())
             streamRef.current = null
         }
         setCameraActive(false)
+    }, [])
+
+    // Once cameraActive flips to true and the <video> element is in the DOM,
+    // attach the pending stream. This fixes the race condition where getUserMedia
+    // resolved before React rendered the video element (root cause of blank
+    // camera on mobile Chrome during MFA).
+    useEffect(() => {
+        if (cameraActive && !capturedImage && videoRef.current && streamRef.current) {
+            const video = videoRef.current
+            if (!video.srcObject) {
+                video.srcObject = streamRef.current
+                video.play().catch(() => {
+                    // play() may fail if the element was unmounted; safe to ignore
+                })
+            }
+        }
+    }, [cameraActive, capturedImage])
+
+    // Auto-start camera on mount so MFA flows don't require an extra tap
+    useEffect(() => {
+        if (!cameraActive && !capturedImage && !cameraError) {
+            startCamera()
+        }
+        // Only run on mount
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
