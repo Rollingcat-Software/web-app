@@ -83,15 +83,29 @@ export default function FingerprintStep({
                 id: base64urlToBytes(id).buffer as ArrayBuffer,
             }))
 
-            const credential = await navigator.credentials.get({
-                publicKey: {
-                    challenge: challengeBytes.buffer as ArrayBuffer,
-                    rpId: rpId || window.location.hostname,
-                    userVerification: WEBAUTHN.UV_REQUIRED,
-                    authenticatorAttachment: WEBAUTHN.ATTACHMENT_PLATFORM,
-                    timeout: WEBAUTHN.TIMEOUT_MS,
-                    ...(allowCredentials.length > 0 && { allowCredentials }),
-                } as PublicKeyCredentialRequestOptions,
+            const publicKeyOptions: PublicKeyCredentialRequestOptions = {
+                challenge: challengeBytes.buffer as ArrayBuffer,
+                rpId: rpId || window.location.hostname,
+                userVerification: WEBAUTHN.UV_REQUIRED,
+                authenticatorAttachment: WEBAUTHN.ATTACHMENT_PLATFORM,
+                timeout: WEBAUTHN.TIMEOUT_MS,
+                ...(allowCredentials.length > 0 && { allowCredentials }),
+            }
+
+            console.log('[FingerprintStep] WebAuthn get() called', {
+                rpId: publicKeyOptions.rpId,
+                credentialCount: allowCredentials.length,
+                credentialIds: rawIds,
+                timeout: publicKeyOptions.timeout,
+                timestamp: new Date().toISOString(),
+            })
+
+            const credential = await navigator.credentials.get({ publicKey: publicKeyOptions })
+
+            console.log('[FingerprintStep] WebAuthn get() resolved', {
+                hasCredential: !!credential,
+                credentialId: credential?.id,
+                timestamp: new Date().toISOString(),
             })
 
             if (credential && 'response' in credential) {
@@ -106,6 +120,11 @@ export default function FingerprintStep({
                 })))
             }
         } catch (err) {
+            console.warn('[FingerprintStep] WebAuthn get() error', {
+                name: err instanceof DOMException ? err.name : 'unknown',
+                message: err instanceof Error ? err.message : String(err),
+                timestamp: new Date().toISOString(),
+            })
             setWaiting(false)
             if (err instanceof DOMException) {
                 if (err.name === 'NotAllowedError') {

@@ -121,8 +121,8 @@ Enrollment UIs:
 - **Session path B1-B6 FIXED**: All 6 backend handlers now accept both old and new field names.
 
 ### Known Issues (2026-04-11):
-- **Chrome multi-tap**: Android Chrome needs 2-7 taps to show fingerprint scanner (WebAuthn ceremony retry behavior)
-- **Brave fingerprint**: Shows "No passkey for app.fivucsas.com" — may not support cross-subdomain rpId
+- **Mobile multi-tap**: Both Chrome and Brave on Android need 2-7 taps before fingerprint scanner appears. Console logging added to FingerprintStep (`[FingerprintStep]` prefix) to diagnose WebAuthn ceremony timing/retry behavior.
+- ~~**Brave fingerprint**: "No passkey" error~~ — FIXED by base64 encoding fix. Brave fingerprint now works.
 
 ### Research Reports (2026-04-11):
 - `docs/BIOMETRIC_FLOW_RESEARCH.md` (777 lines) — Full browser→DB trace for face/voice/fingerprint
