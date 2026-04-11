@@ -60,3 +60,9 @@ pnpm-lock.yaml
 dist-verify/
 dist-sdk/
 dist-adapter/
+
+# Production env
+.env.production
+
+# Archives
+*.zip
