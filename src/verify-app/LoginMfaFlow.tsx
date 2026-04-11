@@ -170,7 +170,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 setPhase('method-picker')
             }
         } else {
-            setError(res.message || t('widget.verificationFailed'))
+            setError(t('widget.verificationFailed'))
         }
     }, [onComplete, availableMethods, t])
 

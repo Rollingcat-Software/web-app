@@ -215,10 +215,8 @@ function WidgetAuthPageInner() {
                 })
 
                 if (!response.ok) {
-                    const body = await response.json().catch(() => ({}))
-                    throw new Error(
-                        body.message || body.error || `Authentication failed (${response.status})`
-                    )
+                    await response.json().catch(() => ({}))
+                    throw new Error(t('widgetAuth.authFailed'))
                 }
 
                 const body = await response.json()
@@ -293,13 +291,12 @@ function WidgetAuthPageInner() {
             })
 
             if (!response.ok) {
-                const body = await response.json().catch(() => ({}))
-                throw new Error(body.message || t('widgetAuth.verificationFailed'))
+                throw new Error(t('widgetAuth.verificationFailed'))
             }
 
             const body = await response.json()
             if (body.success === false) {
-                throw new Error(body.message || t('widgetAuth.invalidCode'))
+                throw new Error(t('widgetAuth.invalidCode'))
             }
 
             // 2FA verified — complete auth
@@ -329,12 +326,11 @@ function WidgetAuthPageInner() {
                     body: JSON.stringify({ method: methodType, data }),
                 })
                 if (!response.ok) {
-                    const body = await response.json().catch(() => ({}))
-                    throw new Error(body.message || t('widgetAuth.verificationFailed'))
+                    throw new Error(t('widgetAuth.verificationFailed'))
                 }
                 const body = await response.json()
                 if (body.success === false) {
-                    throw new Error(body.message || t('widgetAuth.verificationFailed'))
+                    throw new Error(t('widgetAuth.verificationFailed'))
                 }
                 completeAuth(pendingAuthData, pendingEmail)
             } catch (err) {

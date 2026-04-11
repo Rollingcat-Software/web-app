@@ -46,6 +46,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const streamRef = useRef<MediaStream | null>(null)
 
     const [cameraActive, setCameraActive] = useState(false)
+    const [videoReady, setVideoReady] = useState(false)
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const [cameraError, setCameraError] = useState<string | null>(null)
 
@@ -80,7 +81,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const startCamera = useCallback(async () => {
         try {
             setCameraError(null)
-            console.log('[FaceCaptureStep] Requesting camera...')
+            setVideoReady(false)
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: 'user',
@@ -88,16 +89,10 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     height: { ideal: 480 },
                 },
             })
-            console.log('[FaceCaptureStep] Got stream, tracks:', stream.getVideoTracks().length,
-                'active:', stream.active,
-                'track settings:', stream.getVideoTracks()[0]?.getSettings())
             streamRef.current = stream
             setCameraActive(true)
-        } catch (err) {
-            console.error('[FaceCaptureStep] getUserMedia failed:', err)
-            setCameraError(
-                t('mfa.face.cameraError')
-            )
+        } catch {
+            setCameraError(t('mfa.face.cameraError'))
         }
     }, [t])
 
@@ -110,57 +105,45 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             streamRef.current = null
         }
         setCameraActive(false)
+        setVideoReady(false)
     }, [])
 
-    // Once cameraActive flips to true and the <video> element is in the DOM,
-    // attach the pending stream. Retries with rAF to handle mobile Chrome where
-    // the ref may not be populated in the same render cycle.
-    useEffect(() => {
-        if (!cameraActive || capturedImage || !streamRef.current) return
-
-        let attempts = 0
-        const maxAttempts = 20 // ~330ms total
-
-        function tryAttach() {
-            const video = videoRef.current
-            if (video && streamRef.current) {
-                if (!video.srcObject) {
-                    video.srcObject = streamRef.current
-                    video.play().catch((err) => {
-                        console.warn('[FaceCaptureStep] video.play() failed:', err.message)
-                    })
-                }
-                return
+    // Callback ref for the video element — attaches the stream as soon as
+    // the element is mounted into the DOM. This is more reliable than
+    // useEffect + useRef because it fires exactly when the node appears.
+    const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
+        // Also keep videoRef in sync for other hooks (useFaceDetection, captureImage)
+        (videoRef as React.MutableRefObject<HTMLVideoElement | null>).current = node
+        if (node && streamRef.current) {
+            node.srcObject = streamRef.current
+            node.onloadeddata = () => {
+                setVideoReady(true)
             }
-            attempts++
-            if (attempts < maxAttempts) {
-                requestAnimationFrame(tryAttach)
-            } else {
-                console.warn('[FaceCaptureStep] Could not attach stream after', maxAttempts, 'attempts')
-            }
+            node.play().catch(() => {
+                // Autoplay blocked — user will tap capture which acts as gesture
+            })
         }
-
-        // First try synchronously, then fall back to rAF retries
-        tryAttach()
-    }, [cameraActive, capturedImage])
-
-    // Auto-start camera on mount so MFA flows don't require an extra tap
-    useEffect(() => {
-        if (!cameraActive && !capturedImage && !cameraError) {
-            startCamera()
-        }
-        // Only run on mount
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    // Auto-start camera on mount
     useEffect(() => {
+        startCamera()
         return () => {
             stopCamera()
         }
-    }, [stopCamera])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [])
 
     const captureImage = useCallback(() => {
         if (!videoRef.current || !canvasRef.current) return
+
+        // Guard: video must have actual dimensions (is actually playing)
+        const vw = videoRef.current.videoWidth
+        const vh = videoRef.current.videoHeight
+        if (!vw || !vh) {
+            setCameraError(t('mfa.face.cameraError'))
+            return
+        }
 
         // Quality gate: block if quality is too poor
         if (quality.overall > 0 && quality.overall < 40) {
@@ -309,7 +292,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     ) : cameraActive ? (
                         <>
                             <video
-                                ref={videoRef}
+                                ref={videoCallbackRef}
                                 autoPlay
                                 playsInline
                                 muted
@@ -503,7 +486,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         variant="contained"
                         size="large"
                         onClick={captureImage}
-                        disabled={loading}
+                        disabled={loading || !videoReady}
                         startIcon={<CameraAlt />}
                         sx={{
                             py: 1.5,

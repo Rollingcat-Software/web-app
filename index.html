@@ -29,7 +29,8 @@
 <div id="root"></div>
 <!-- Mobile console: add ?debug=1 to URL to activate eruda -->
 <script>
-if (new URLSearchParams(location.search).has('debug')) {
+if (new URLSearchParams(location.search).has('debug') || location.hash.includes('debug') || localStorage.getItem('eruda') === '1') {
+    localStorage.setItem('eruda', '1');
     var s = document.createElement('script');
     s.src = 'https://cdn.jsdelivr.net/npm/eruda';
     s.onload = function() { eruda.init(); };

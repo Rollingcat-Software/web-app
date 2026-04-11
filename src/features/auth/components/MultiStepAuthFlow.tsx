@@ -169,7 +169,7 @@ export default function MultiStepAuthFlow({
                 )
 
                 if (result.status === 'FAILED') {
-                    setError(result.message || t('widget.verificationFailed'))
+                    setError(t('widget.verificationFailed'))
                 } else {
                     processStepResult(result)
                 }

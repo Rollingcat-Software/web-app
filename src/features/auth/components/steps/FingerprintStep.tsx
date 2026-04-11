@@ -87,7 +87,6 @@ export default function FingerprintStep({
                 challenge: challengeBytes.buffer as ArrayBuffer,
                 rpId: rpId || window.location.hostname,
                 userVerification: WEBAUTHN.UV_REQUIRED,
-                authenticatorAttachment: WEBAUTHN.ATTACHMENT_PLATFORM,
                 timeout: WEBAUTHN.TIMEOUT_MS,
                 ...(allowCredentials.length > 0 && { allowCredentials }),
             }

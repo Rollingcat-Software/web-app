@@ -98,7 +98,7 @@ export default function EmailOtpMfaStep({
             if (res.status === 'AUTHENTICATED' || res.status === 'STEP_COMPLETED') {
                 onAuthenticated(res)
             } else {
-                setError(res.message || t('mfa.verificationFailed'))
+                setError(t('mfa.verificationFailed'))
             }
         } catch (err) {
             setError(err instanceof Error ? err.message : t('mfa.verificationFailed'))
