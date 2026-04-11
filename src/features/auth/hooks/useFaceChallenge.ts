@@ -34,12 +34,12 @@ export interface VerificationState {
     capturedImage: string | null
 }
 
-const ENROLLMENT_STAGES: { stage: ChallengeStage; instruction: string; holdMs: number }[] = [
-    { stage: 'position', instruction: 'Position your face in the oval', holdMs: 300 },
-    { stage: 'frontal', instruction: 'Look straight at the camera', holdMs: 300 },
-    { stage: 'turn_left', instruction: 'Slowly turn your head left', holdMs: 300 },
-    { stage: 'turn_right', instruction: 'Slowly turn your head right', holdMs: 300 },
-    { stage: 'blink', instruction: 'Blink naturally', holdMs: 400 },
+const ENROLLMENT_STAGES: { stage: ChallengeStage; instructionKey: string; holdMs: number }[] = [
+    { stage: 'position', instructionKey: 'faceChallenge.positionOval', holdMs: 300 },
+    { stage: 'frontal', instructionKey: 'faceChallenge.lookStraight', holdMs: 300 },
+    { stage: 'turn_left', instructionKey: 'faceChallenge.turnLeft', holdMs: 300 },
+    { stage: 'turn_right', instructionKey: 'faceChallenge.turnRight', holdMs: 300 },
+    { stage: 'blink', instructionKey: 'faceChallenge.blink', holdMs: 400 },
 ]
 
 const HEAD_TURN_THRESHOLD = 0.06 // relaxed for mobile front cameras
@@ -52,7 +52,7 @@ export function useFaceChallenge() {
         totalStages: ENROLLMENT_STAGES.length,
         progress: 0,
         stageProgress: 0,
-        instruction: ENROLLMENT_STAGES[0].instruction,
+        instruction: ENROLLMENT_STAGES[0].instructionKey,
         captures: [],
     })
 
@@ -76,7 +76,7 @@ export function useFaceChallenge() {
             totalStages: ENROLLMENT_STAGES.length,
             progress: 0,
             stageProgress: 0,
-            instruction: ENROLLMENT_STAGES[0].instruction,
+            instruction: ENROLLMENT_STAGES[0].instructionKey,
             captures: [],
         })
     }, [])
@@ -198,7 +198,7 @@ export function useFaceChallenge() {
                         totalStages: ENROLLMENT_STAGES.length,
                         progress: 1,
                         stageProgress: 1,
-                        instruction: 'Face enrolled successfully!',
+                        instruction: 'faceChallenge.enrolledSuccess',
                         captures: capturesRef.current,
                     })
                 } else {
@@ -208,7 +208,7 @@ export function useFaceChallenge() {
                         totalStages: ENROLLMENT_STAGES.length,
                         progress: nextIdx / ENROLLMENT_STAGES.length,
                         stageProgress: 0,
-                        instruction: ENROLLMENT_STAGES[nextIdx].instruction,
+                        instruction: ENROLLMENT_STAGES[nextIdx].instructionKey,
                         captures: capturesRef.current,
                     })
                 }
@@ -237,7 +237,7 @@ export function useFaceVerification() {
     const [verificationState, setVerificationState] = useState<VerificationState>({
         stage: 'position',
         progress: 0,
-        instruction: 'Position your face in the frame',
+        instruction: 'faceDetection.positionFace',
         capturedImage: null,
     })
 
@@ -249,7 +249,7 @@ export function useFaceVerification() {
         setVerificationState({
             stage: 'position',
             progress: 0,
-            instruction: 'Position your face in the frame',
+            instruction: 'faceDetection.positionFace',
             capturedImage: null,
         })
     }, [])
@@ -268,7 +268,7 @@ export function useFaceVerification() {
                 holdStartRef.current = Date.now()
                 setVerificationState(prev => ({
                     ...prev,
-                    instruction: 'Hold still...',
+                    instruction: 'faceChallenge.holdStill',
                 }))
             }
 
@@ -285,7 +285,7 @@ export function useFaceVerification() {
                 setVerificationState({
                     stage: 'hold',
                     progress: 1,
-                    instruction: 'Captured! Verifying...',
+                    instruction: 'faceChallenge.capturedVerifying',
                     capturedImage,
                 })
             } else {
@@ -296,7 +296,7 @@ export function useFaceVerification() {
             setVerificationState(prev => ({
                 ...prev,
                 progress: 0,
-                instruction: detection.hint || 'Position your face in the frame',
+                instruction: detection.hint || 'faceDetection.positionFace',
             }))
         }
     }, [verificationState.stage])
@@ -305,7 +305,7 @@ export function useFaceVerification() {
         setVerificationState(prev => ({
             ...prev,
             stage: success ? 'success' : 'failure',
-            instruction: success ? 'Identity verified!' : 'Verification failed. Try again.',
+            instruction: success ? 'faceChallenge.identityVerified' : 'faceChallenge.verificationFailed',
         }))
     }, [])
 

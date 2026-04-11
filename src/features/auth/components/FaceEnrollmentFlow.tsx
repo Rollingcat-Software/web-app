@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
     Box,
     Button,
@@ -33,6 +34,7 @@ const STAGE_ICONS: Record<ChallengeStage, string> = {
 }
 
 export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEnrollmentFlowProps) {
+    const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const streamRef = useRef<MediaStream | null>(null)
@@ -314,7 +316,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                             transition={{ duration: 0.3 }}
                         >
                             <Chip
-                                label={challengeState.instruction}
+                                label={t(challengeState.instruction)}
                                 icon={
                                     <span style={{ fontSize: '1.3rem' }}>
                                         {STAGE_ICONS[challengeState.stage]}

@@ -10,6 +10,7 @@ import type { IConfig } from '@domain/interfaces/IConfig'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import { getCsrfToken } from '@utils/auth'
+import i18n from '@/i18n/index'
 
 /**
  * Axios HTTP Client (Secure Implementation)
@@ -194,6 +195,17 @@ export class AxiosClient implements IHttpClient {
                         message: error.message,
                         data: error.response?.data,
                     })
+
+                    // Handle 429 Too Many Requests - transform to user-friendly message
+                    if (error.response?.status === 429) {
+                        const responseData = error.response?.data as { retryAfterSeconds?: number } | undefined
+                        const retrySeconds = responseData?.retryAfterSeconds
+                        const rateLimitMsg = retrySeconds
+                            ? i18n.t('mfa.errors.rateLimited', { seconds: retrySeconds })
+                            : i18n.t('mfa.errors.rateLimitedNoTime')
+                        // Replace error message so downstream consumers get the translated message
+                        error.message = rateLimitMsg
+                    }
 
                     // Handle 401 Unauthorized - attempt token refresh with deduplication
                     if (error.response?.status === 401 && error.config) {

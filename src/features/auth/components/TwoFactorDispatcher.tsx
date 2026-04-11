@@ -137,10 +137,18 @@ export default function TwoFactorDispatcher({
             } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
                 onAuthenticated(res)
             } else {
-                setError(res.message || t('mfa.verificationFailed'))
+                // Backend sends English messages like "Verification failed for FACE"
+                // Always show translated message instead
+                setError(t('mfa.verificationFailed'))
             }
         } catch (err) {
-            setError(err instanceof Error ? err.message : t('mfa.verificationFailed'))
+            // Check for rate limit (429)
+            const axiosErr = err as { response?: { status?: number } }
+            if (axiosErr.response?.status === 429) {
+                setError(t('errors.rateLimitExceeded'))
+            } else {
+                setError(t('mfa.verificationFailed'))
+            }
         } finally {
             setLoading(false)
         }

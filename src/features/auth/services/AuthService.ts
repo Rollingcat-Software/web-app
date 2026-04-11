@@ -7,6 +7,7 @@ import type { ILogger } from '@domain/interfaces/ILogger'
 import { User } from '@domain/models/User'
 import { ValidationError, UnauthorizedError } from '@core/errors'
 import { validateLoginCredentials } from '@domain/validators/authValidator'
+import i18n from '@/i18n/index'
 
 /**
  * Auth Service
@@ -33,7 +34,7 @@ export class AuthService implements IAuthService {
         if (this.lockoutUntil && Date.now() < this.lockoutUntil) {
             const remainingSeconds = Math.ceil((this.lockoutUntil - Date.now()) / 1000)
             throw new UnauthorizedError(
-                `Too many login attempts. Please try again in ${remainingSeconds} seconds.`
+                i18n.t('mfa.errors.rateLimited', { seconds: remainingSeconds })
             )
         }
 

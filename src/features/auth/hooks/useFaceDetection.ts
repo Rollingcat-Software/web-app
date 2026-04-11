@@ -28,7 +28,7 @@ const INITIAL_STATE: FaceDetectionState = {
     centered: false,
     tooClose: false,
     tooFar: false,
-    hint: 'Position your face in the frame',
+    hint: 'faceDetection.positionFace',
     confidence: 0,
     boundingBox: null,
 }
@@ -125,7 +125,7 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
             if (!result || !result.detected || result.faces.length === 0) {
                 setState({
                     ...INITIAL_STATE,
-                    hint: 'No face detected — look at the camera',
+                    hint: 'faceDetection.noFace',
                 })
             } else {
                 const face = result.faces[0]
@@ -141,10 +141,10 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                 const tooClose = bb.width > 0.65
                 const tooFar = bb.width < 0.15
 
-                let hint = 'Perfect — hold steady'
-                if (tooFar) hint = 'Move closer to the camera'
-                else if (tooClose) hint = 'Move further from the camera'
-                else if (!centered) hint = 'Center your face in the frame'
+                let hint = 'faceDetection.perfect'
+                if (tooFar) hint = 'faceDetection.moveCloser'
+                else if (tooClose) hint = 'faceDetection.moveFurther'
+                else if (!centered) hint = 'faceDetection.centerFace'
 
                 setState({
                     detected: true,
@@ -199,13 +199,13 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
             if (!detections || detections.length === 0) {
                 setState({
                     ...INITIAL_STATE,
-                    hint: 'No face detected — look at the camera',
+                    hint: 'faceDetection.noFace',
                 })
             } else {
                 const face = detections[0]
                 const bb = face.boundingBox
                 if (!bb) {
-                    setState({ ...INITIAL_STATE, hint: 'No face detected' })
+                    setState({ ...INITIAL_STATE, hint: 'faceDetection.noFace' })
                 } else {
                     const vw = video.videoWidth
                     const vh = video.videoHeight
@@ -220,10 +220,10 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                     const tooClose = faceRatio > 0.65
                     const tooFar = faceRatio < 0.15
 
-                    let hint = 'Perfect — hold steady'
-                    if (tooFar) hint = 'Move closer to the camera'
-                    else if (tooClose) hint = 'Move further from the camera'
-                    else if (!centered) hint = 'Center your face in the frame'
+                    let hint = 'faceDetection.perfect'
+                    if (tooFar) hint = 'faceDetection.moveCloser'
+                    else if (tooClose) hint = 'faceDetection.moveFurther'
+                    else if (!centered) hint = 'faceDetection.centerFace'
 
                     const confidence = face.categories?.[0]?.score ?? 0
 

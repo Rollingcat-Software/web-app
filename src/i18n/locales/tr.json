@@ -681,7 +681,10 @@
     "subtitle": "Giriş yapmak için aşağıdaki doğrulama adımlarını tamamlayın",
     "retry": "Tekrar Dene",
     "securedBy": "FIVUCSAS tarafından korunmaktadır",
-    "skipForNow": "Şimdilik geç"
+    "skipForNow": "Şimdilik geç",
+    "checkFailed": "İkincil doğrulama kontrol edilemedi",
+    "initFailed": "Doğrulama bileşeni başlatılamadı",
+    "verificationFailed": "Doğrulama başarısız oldu"
   },
   "twoFactor": {
     "title": "İki Faktörlü Doğrulama",
@@ -943,7 +946,9 @@
       "faceDetectionFailed": "Yüz algılama başarısız. Lütfen iyi ışıklı bir ortamda tekrar deneyin.",
       "voiceQualityLow": "Ses kalitesi düşük. Lütfen sessiz bir ortamda net konuşun.",
       "timeoutError": "İstek zaman aşımına uğradı. Lütfen tekrar deneyin.",
-      "verificationFailed": "Doğrulama başarısız. Lütfen tekrar deneyin."
+      "verificationFailed": "Doğrulama başarısız. Lütfen tekrar deneyin.",
+      "rateLimited": "Çok fazla istek. Lütfen tekrar denemeden önce {{seconds}} saniye bekleyin.",
+      "rateLimitedNoTime": "Çok fazla istek. Lütfen bir süre bekleyip tekrar deneyin."
     }
   },
   "webauthn": {
@@ -1013,5 +1018,53 @@
   "language": {
     "en": "\u0130ngilizce",
     "tr": "T\u00fcrk\u00e7e"
+  },
+  "errors": {
+    "rateLimitExceeded": "\u00c7ok fazla istek. L\u00fctfen tekrar denemeden \u00f6nce biraz bekleyin.",
+    "networkError": "A\u011f hatas\u0131. L\u00fctfen ba\u011flant\u0131n\u0131z\u0131 kontrol edin.",
+    "unknownError": "Bir \u015feyler ters gitti. L\u00fctfen tekrar deneyin."
+  },
+  "faceDetection": {
+    "positionFace": "Y\u00fcz\u00fcn\u00fcz\u00fc \u00e7er\u00e7eveye yerle\u015ftirin",
+    "noFace": "Y\u00fcz alg\u0131lanmad\u0131 \u2014 kameraya bak\u0131n",
+    "perfect": "M\u00fckemmel \u2014 sabit tutun",
+    "moveCloser": "Kameraya yakla\u015f\u0131n",
+    "moveFurther": "Kameradan uzakla\u015f\u0131n",
+    "centerFace": "Y\u00fcz\u00fcn\u00fcz\u00fc \u00e7er\u00e7evenin ortas\u0131na getirin"
+  },
+  "faceChallenge": {
+    "positionOval": "Y\u00fcz\u00fcn\u00fcz\u00fc ovale yerle\u015ftirin",
+    "lookStraight": "Do\u011frudan kameraya bak\u0131n",
+    "turnLeft": "Ba\u015f\u0131n\u0131z\u0131 yava\u015f\u00e7a sola \u00e7evirin",
+    "turnRight": "Ba\u015f\u0131n\u0131z\u0131 yava\u015f\u00e7a sa\u011fa \u00e7evirin",
+    "blink": "Do\u011fal bir \u015fekilde g\u00f6z k\u0131rp\u0131n",
+    "enrolledSuccess": "Y\u00fcz kayd\u0131 ba\u015far\u0131yla tamamland\u0131!",
+    "holdStill": "Sabit durun...",
+    "capturedVerifying": "Yakaland\u0131! Do\u011frulan\u0131yor...",
+    "identityVerified": "Kimlik do\u011fruland\u0131!",
+    "verificationFailed": "Do\u011frulama ba\u015far\u0131s\u0131z oldu. Tekrar deneyin."
+  },
+  "register": {
+    "verificationFailed": "Do\u011frulama ba\u015far\u0131s\u0131z oldu. L\u00fctfen tekrar deneyin.",
+    "invalidCode": "Ge\u00e7ersiz veya s\u00fcresi dolmu\u015f kod. L\u00fctfen tekrar deneyin."
+  },
+  "widgetAuth": {
+    "verificationFailed": "Do\u011frulama ba\u015far\u0131s\u0131z oldu",
+    "invalidCode": "Ge\u00e7ersiz do\u011frulama kodu",
+    "authFailed": "Kimlik do\u011frulama ba\u015far\u0131s\u0131z",
+    "smsSendFailed": "SMS g\u00f6nderilemedi",
+    "authSuccessful": "Kimlik Do\u011frulama Ba\u015far\u0131l\u0131",
+    "returningResult": "Sonu\u00e7 uygulamaya iletiliyor...",
+    "securedBy": "FIVUCSAS taraf\u0131ndan korunmaktad\u0131r",
+    "twoFactorTitle": "\u0130ki Fakt\u00f6rl\u00fc Do\u011frulama",
+    "codeSentTo": "{{email}} adresine g\u00f6nderilen do\u011frulama kodunu girin",
+    "codeSentGeneric": "E-postan\u0131za g\u00f6nderilen do\u011frulama kodunu girin",
+    "verificationCode": "Do\u011frulama Kodu",
+    "verifyCode": "Kodu Do\u011frula",
+    "verifyIdentity": "Kimli\u011fi Do\u011frula",
+    "signInToVerify": "Do\u011frulamay\u0131 tamamlamak i\u00e7in giri\u015f yap\u0131n",
+    "emailLabel": "E-posta Adresi",
+    "passwordLabel": "\u015eifre",
+    "verify": "Do\u011frula"
   }
 }

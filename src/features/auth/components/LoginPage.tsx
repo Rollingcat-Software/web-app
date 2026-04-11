@@ -32,6 +32,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
+import { AxiosError } from 'axios'
 import { useAuth } from '../hooks/useAuth'
 import FaceVerificationFlow from './FaceVerificationFlow'
 import TwoFactorDispatcher from './TwoFactorDispatcher'
@@ -543,7 +544,11 @@ export default function LoginPage() {
                                     transition={{ duration: 0.3 }}
                                 >
                                     <Alert
-                                        severity="error"
+                                        severity={
+                                            error instanceof AxiosError && error.response?.status === 429
+                                                ? 'warning'
+                                                : 'error'
+                                        }
                                         role="alert"
                                         sx={{
                                             mb: 3,

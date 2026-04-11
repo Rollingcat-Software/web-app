@@ -681,7 +681,10 @@
     "subtitle": "Complete the verification steps below to sign in",
     "retry": "Retry",
     "securedBy": "Secured by FIVUCSAS",
-    "skipForNow": "Skip for now"
+    "skipForNow": "Skip for now",
+    "checkFailed": "Failed to check secondary authentication",
+    "initFailed": "Failed to initialize verification widget",
+    "verificationFailed": "Verification failed"
   },
   "twoFactor": {
     "title": "Two-Factor Authentication",
@@ -943,7 +946,9 @@
       "faceDetectionFailed": "Face detection failed. Please ensure good lighting and try again.",
       "voiceQualityLow": "Voice quality too low. Please speak clearly in a quiet environment.",
       "timeoutError": "Request timed out. Please try again.",
-      "verificationFailed": "Verification failed. Please try again."
+      "verificationFailed": "Verification failed. Please try again.",
+      "rateLimited": "Too many requests. Please wait {{seconds}} seconds before trying again.",
+      "rateLimitedNoTime": "Too many requests. Please wait a moment before trying again."
     }
   },
   "webauthn": {
@@ -1013,5 +1018,53 @@
   "language": {
     "en": "English",
     "tr": "Turkish"
+  },
+  "errors": {
+    "rateLimitExceeded": "Too many requests. Please wait a moment before trying again.",
+    "networkError": "Network error. Please check your connection.",
+    "unknownError": "Something went wrong. Please try again."
+  },
+  "faceDetection": {
+    "positionFace": "Position your face in the frame",
+    "noFace": "No face detected — look at the camera",
+    "perfect": "Perfect — hold steady",
+    "moveCloser": "Move closer to the camera",
+    "moveFurther": "Move further from the camera",
+    "centerFace": "Center your face in the frame"
+  },
+  "faceChallenge": {
+    "positionOval": "Position your face in the oval",
+    "lookStraight": "Look straight at the camera",
+    "turnLeft": "Slowly turn your head left",
+    "turnRight": "Slowly turn your head right",
+    "blink": "Blink naturally",
+    "enrolledSuccess": "Face enrolled successfully!",
+    "holdStill": "Hold still...",
+    "capturedVerifying": "Captured! Verifying...",
+    "identityVerified": "Identity verified!",
+    "verificationFailed": "Verification failed. Try again."
+  },
+  "register": {
+    "verificationFailed": "Verification failed. Please try again.",
+    "invalidCode": "Invalid or expired code. Please try again."
+  },
+  "widgetAuth": {
+    "verificationFailed": "Verification failed",
+    "invalidCode": "Invalid verification code",
+    "authFailed": "Authentication failed",
+    "smsSendFailed": "Failed to send SMS",
+    "authSuccessful": "Authentication Successful",
+    "returningResult": "Returning result to the application...",
+    "securedBy": "Secured by FIVUCSAS",
+    "twoFactorTitle": "Two-Factor Authentication",
+    "codeSentTo": "Enter the verification code sent to {{email}}",
+    "codeSentGeneric": "Enter the verification code sent to your email",
+    "verificationCode": "Verification Code",
+    "verifyCode": "Verify Code",
+    "verifyIdentity": "Verify Identity",
+    "signInToVerify": "Sign in to complete verification",
+    "emailLabel": "Email Address",
+    "passwordLabel": "Password",
+    "verify": "Verify"
   }
 }

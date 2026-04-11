@@ -3,6 +3,7 @@ import { AxiosError } from 'axios'
 import { TYPES } from '@core/di/types'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { INotifier } from '@domain/interfaces/INotifier'
+import i18n from '@/i18n/index'
 import {
     AppError,
     NetworkError,
@@ -101,9 +102,15 @@ export class ErrorHandler {
             case 422:
                 this.notifier.error(message || 'Unable to process your request.')
                 break
-            case 429:
-                this.notifier.error('Too many requests. Please try again later.')
+            case 429: {
+                const responseData = error.response?.data as { retryAfterSeconds?: number } | undefined
+                const retrySeconds = responseData?.retryAfterSeconds
+                const rateLimitMsg = retrySeconds
+                    ? i18n.t('mfa.errors.rateLimited', { seconds: retrySeconds })
+                    : i18n.t('mfa.errors.rateLimitedNoTime')
+                this.notifier.warning(rateLimitMsg)
                 break
+            }
             case 500:
             case 502:
             case 503:

@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -152,6 +153,7 @@ const FloatingShape = ({ delay, size, left, top }: {
  * Beautiful animated registration with glassmorphism design
  */
 export default function RegisterPage() {
+    const { t } = useTranslation()
     const navigate = useNavigate()
     const [showPassword, setShowPassword] = useState(false)
     const [showConfirmPassword, setShowConfirmPassword] = useState(false)
@@ -411,10 +413,10 @@ export default function RegisterPage() {
                                                         if (res?.data?.success) {
                                                             setVerified(true)
                                                         } else {
-                                                            setOtpError(res?.data?.message ?? 'Invalid or expired code. Please try again.')
+                                                            setOtpError(res?.data?.message ?? t('register.invalidCode'))
                                                         }
                                                     } catch {
-                                                        setOtpError('Verification failed. Please try again.')
+                                                        setOtpError(t('register.verificationFailed'))
                                                     } finally {
                                                         setVerifying(false)
                                                     }

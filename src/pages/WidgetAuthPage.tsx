@@ -34,6 +34,7 @@ import {
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
+import { useTranslation } from 'react-i18next'
 
 import TotpStep from '@/features/auth/components/steps/TotpStep'
 import SmsOtpStep from '@/features/auth/components/steps/SmsOtpStep'
@@ -101,6 +102,7 @@ type WidgetStep = 'login' | '2fa' | 'success'
 const widgetLightTheme = createTheme({ palette: { mode: 'light' } })
 
 function WidgetAuthPageInner() {
+    const { t } = useTranslation()
     const isInIframe = typeof window !== 'undefined' && window !== window.parent
     const [config] = useState(() => parseWidgetParams())
     const [showPassword, setShowPassword] = useState(false)
@@ -256,7 +258,7 @@ function WidgetAuthPageInner() {
                 }
             } catch (err) {
                 const message =
-                    err instanceof Error ? err.message : 'Authentication failed'
+                    err instanceof Error ? err.message : t('widgetAuth.authFailed')
                 setError(message)
                 sendToParent({
                     type: 'fivucsas:error',
@@ -270,7 +272,7 @@ function WidgetAuthPageInner() {
                 setLoading(false)
             }
         },
-        [config, completeAuth]
+        [config, completeAuth, t]
     )
 
     /** Handle 2FA code verification */
@@ -292,24 +294,24 @@ function WidgetAuthPageInner() {
 
             if (!response.ok) {
                 const body = await response.json().catch(() => ({}))
-                throw new Error(body.message || 'Verification failed')
+                throw new Error(body.message || t('widgetAuth.verificationFailed'))
             }
 
             const body = await response.json()
             if (body.success === false) {
-                throw new Error(body.message || 'Invalid verification code')
+                throw new Error(body.message || t('widgetAuth.invalidCode'))
             }
 
             // 2FA verified — complete auth
             completeAuth(pendingAuthData, pendingEmail)
         } catch (err) {
             const message =
-                err instanceof Error ? err.message : 'Verification failed'
+                err instanceof Error ? err.message : t('widgetAuth.verificationFailed')
             setError(message)
         } finally {
             setLoading(false)
         }
-    }, [config, pendingAuthData, pendingEmail, twoFactorCode, completeAuth])
+    }, [config, pendingAuthData, pendingEmail, twoFactorCode, completeAuth, t])
 
     // ─── Generic 2FA verify helper for non-email methods ─────
     const verifyMethodStep = useCallback(
@@ -328,20 +330,20 @@ function WidgetAuthPageInner() {
                 })
                 if (!response.ok) {
                     const body = await response.json().catch(() => ({}))
-                    throw new Error(body.message || 'Verification failed')
+                    throw new Error(body.message || t('widgetAuth.verificationFailed'))
                 }
                 const body = await response.json()
                 if (body.success === false) {
-                    throw new Error(body.message || 'Verification failed')
+                    throw new Error(body.message || t('widgetAuth.verificationFailed'))
                 }
                 completeAuth(pendingAuthData, pendingEmail)
             } catch (err) {
-                setStepError(err instanceof Error ? err.message : 'Verification failed')
+                setStepError(err instanceof Error ? err.message : t('widgetAuth.verificationFailed'))
             } finally {
                 setStepLoading(false)
             }
         },
-        [config, pendingAuthData, pendingEmail, completeAuth]
+        [config, pendingAuthData, pendingEmail, completeAuth, t]
     )
 
     // ─── Render the appropriate 2FA step component ──────────
@@ -370,7 +372,7 @@ function WidgetAuthPageInner() {
                                     },
                                 })
                             } catch {
-                                setStepError('Failed to send SMS')
+                                setStepError(t('widgetAuth.smsSendFailed'))
                             }
                         }}
                         loading={stepLoading}
@@ -465,10 +467,10 @@ function WidgetAuthPageInner() {
             >
                 <CheckCircle sx={{ fontSize: 64, color: 'success.main', mb: 2 }} />
                 <Typography variant="h6" fontWeight={700} sx={{ mb: 1 }}>
-                    Authentication Successful
+                    {t('widgetAuth.authSuccessful')}
                 </Typography>
                 <Typography variant="body2" color="text.secondary">
-                    Returning result to the application...
+                    {t('widgetAuth.returningResult')}
                 </Typography>
             </Box>
         )
@@ -506,7 +508,7 @@ function WidgetAuthPageInner() {
                         >
                             <VerifiedUser sx={{ fontSize: 12 }} />
                             <Typography variant="caption" color="text.secondary">
-                                Secured by FIVUCSAS
+                                {t('widgetAuth.securedBy')}
                             </Typography>
                         </Box>
                     </Box>
@@ -553,7 +555,7 @@ function WidgetAuthPageInner() {
                         WebkitTextFillColor: 'transparent',
                     }}
                 >
-                    Two-Factor Authentication
+                    {t('widgetAuth.twoFactorTitle')}
                 </Typography>
                 <Typography
                     variant="body2"
@@ -561,8 +563,8 @@ function WidgetAuthPageInner() {
                     sx={{ mb: 3, textAlign: 'center' }}
                 >
                     {maskedEmail
-                        ? `Enter the verification code sent to ${maskedEmail}`
-                        : 'Enter the verification code sent to your email'}
+                        ? t('widgetAuth.codeSentTo', { email: maskedEmail })
+                        : t('widgetAuth.codeSentGeneric')}
                 </Typography>
 
                 <Box sx={{ width: '100%', maxWidth: 400 }}>
@@ -574,7 +576,7 @@ function WidgetAuthPageInner() {
 
                     <TextField
                         fullWidth
-                        label="Verification Code"
+                        label={t('widgetAuth.verificationCode')}
                         value={twoFactorCode}
                         onChange={(e) => {
                             const val = e.target.value.replace(/\D/g, '').slice(0, 6)
@@ -631,7 +633,7 @@ function WidgetAuthPageInner() {
                         {loading ? (
                             <CircularProgress size={22} sx={{ color: 'white' }} />
                         ) : (
-                            'Verify Code'
+                            t('widgetAuth.verifyCode')
                         )}
                     </Button>
                 </Box>
@@ -647,7 +649,7 @@ function WidgetAuthPageInner() {
                 >
                     <VerifiedUser sx={{ fontSize: 12 }} />
                     <Typography variant="caption" color="text.secondary">
-                        Secured by FIVUCSAS
+                        {t('widgetAuth.securedBy')}
                     </Typography>
                 </Box>
             </Box>
@@ -704,14 +706,14 @@ function WidgetAuthPageInner() {
                     WebkitTextFillColor: 'transparent',
                 }}
             >
-                Verify Identity
+                {t('widgetAuth.verifyIdentity')}
             </Typography>
             <Typography
                 variant="body2"
                 color="text.secondary"
                 sx={{ mb: 3, textAlign: 'center' }}
             >
-                Sign in to complete verification
+                {t('widgetAuth.signInToVerify')}
             </Typography>
 
             {/* Form */}
@@ -733,7 +735,7 @@ function WidgetAuthPageInner() {
                         <TextField
                             {...field}
                             fullWidth
-                            label="Email Address"
+                            label={t('widgetAuth.emailLabel')}
                             type="email"
                             error={!!errors.email}
                             helperText={errors.email?.message}
@@ -772,7 +774,7 @@ function WidgetAuthPageInner() {
                         <TextField
                             {...field}
                             fullWidth
-                            label="Password"
+                            label={t('widgetAuth.passwordLabel')}
                             type={showPassword ? 'text' : 'password'}
                             error={!!errors.password}
                             helperText={errors.password?.message}
@@ -847,7 +849,7 @@ function WidgetAuthPageInner() {
                     {loading ? (
                         <CircularProgress size={22} sx={{ color: 'white' }} />
                     ) : (
-                        'Verify'
+                        t('widgetAuth.verify')
                     )}
                 </Button>
             </Box>

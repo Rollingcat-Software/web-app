@@ -6,10 +6,12 @@ import { AxiosError } from 'axios'
 export interface ApiErrorResponse {
     message: string
     code?: string
+    error?: string
     errors?: Record<string, string[]>
     timestamp?: string
     path?: string
     status?: number
+    retryAfterSeconds?: number
 }
 
 /**
@@ -20,9 +22,11 @@ export interface AppApiError {
     code: string
     status: number
     fieldErrors?: Record<string, string[]>
+    retryAfterSeconds?: number
     isNetworkError: boolean
     isAuthError: boolean
     isValidationError: boolean
+    isRateLimited: boolean
     isServerError: boolean
     originalError: Error
 }
@@ -38,6 +42,7 @@ export const ErrorCodes = {
     NOT_FOUND: 'NOT_FOUND',
     VALIDATION_ERROR: 'VALIDATION_ERROR',
     CONFLICT: 'CONFLICT',
+    RATE_LIMITED: 'RATE_LIMITED',
     SERVER_ERROR: 'SERVER_ERROR',
     UNKNOWN: 'UNKNOWN',
 } as const
@@ -53,6 +58,7 @@ const ErrorMessages: Record<string, string> = {
     [ErrorCodes.NOT_FOUND]: 'The requested resource was not found.',
     [ErrorCodes.VALIDATION_ERROR]: 'Please check your input and try again.',
     [ErrorCodes.CONFLICT]: 'This action conflicts with existing data.',
+    [ErrorCodes.RATE_LIMITED]: 'Too many requests. Please try again later.',
     [ErrorCodes.SERVER_ERROR]: 'An unexpected error occurred. Please try again later.',
     [ErrorCodes.UNKNOWN]: 'An unexpected error occurred.',
 }
@@ -72,6 +78,8 @@ function statusToErrorCode(status: number | undefined): string {
             return ErrorCodes.NOT_FOUND
         case 409:
             return ErrorCodes.CONFLICT
+        case 429:
+            return ErrorCodes.RATE_LIMITED
         case 422:
         case 400:
             return ErrorCodes.VALIDATION_ERROR
@@ -117,6 +125,7 @@ export function mapApiError(error: unknown): AppApiError {
                     isNetworkError: true,
                     isAuthError: false,
                     isValidationError: false,
+                    isRateLimited: false,
                     isServerError: false,
                     originalError: error,
                 }
@@ -129,19 +138,28 @@ export function mapApiError(error: unknown): AppApiError {
                 isNetworkError: true,
                 isAuthError: false,
                 isValidationError: false,
+                isRateLimited: false,
                 isServerError: false,
                 originalError: error,
             }
         }
+
+        // Extract retryAfterSeconds from response body or Retry-After header
+        const retryAfterSeconds = responseData?.retryAfterSeconds
+            ?? (error.response?.headers?.['retry-after']
+                ? parseInt(error.response.headers['retry-after'], 10)
+                : undefined)
 
         return {
             message,
             code: responseData?.code || code,
             status: status || 0,
             fieldErrors: responseData?.errors,
+            retryAfterSeconds: status === 429 ? retryAfterSeconds : undefined,
             isNetworkError: false,
             isAuthError: status === 401 || status === 403,
             isValidationError: status === 400 || status === 422,
+            isRateLimited: status === 429,
             isServerError: (status || 0) >= 500,
             originalError: error,
         }
@@ -157,6 +175,7 @@ export function mapApiError(error: unknown): AppApiError {
         isNetworkError: false,
         isAuthError: false,
         isValidationError: false,
+        isRateLimited: false,
         isServerError: false,
         originalError: error instanceof Error ? error : new Error(String(error)),
     }
@@ -175,6 +194,10 @@ export function isValidationError(error: unknown): boolean {
 
 export function isNetworkError(error: unknown): boolean {
     return mapApiError(error).isNetworkError
+}
+
+export function isRateLimited(error: unknown): boolean {
+    return mapApiError(error).isRateLimited
 }
 
 export function isServerError(error: unknown): boolean {

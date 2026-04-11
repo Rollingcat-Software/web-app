@@ -80,6 +80,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const startCamera = useCallback(async () => {
         try {
             setCameraError(null)
+            console.log('[FaceCaptureStep] Requesting camera...')
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: 'user',
@@ -87,11 +88,13 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     height: { ideal: 480 },
                 },
             })
+            console.log('[FaceCaptureStep] Got stream, tracks:', stream.getVideoTracks().length,
+                'active:', stream.active,
+                'track settings:', stream.getVideoTracks()[0]?.getSettings())
             streamRef.current = stream
-            // Set cameraActive first so the <video> element renders in the DOM,
-            // then attach the stream in a follow-up effect (see useEffect below).
             setCameraActive(true)
-        } catch (_err) {
+        } catch (err) {
+            console.error('[FaceCaptureStep] getUserMedia failed:', err)
             setCameraError(
                 t('mfa.face.cameraError')
             )
@@ -110,19 +113,35 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     }, [])
 
     // Once cameraActive flips to true and the <video> element is in the DOM,
-    // attach the pending stream. This fixes the race condition where getUserMedia
-    // resolved before React rendered the video element (root cause of blank
-    // camera on mobile Chrome during MFA).
+    // attach the pending stream. Retries with rAF to handle mobile Chrome where
+    // the ref may not be populated in the same render cycle.
     useEffect(() => {
-        if (cameraActive && !capturedImage && videoRef.current && streamRef.current) {
+        if (!cameraActive || capturedImage || !streamRef.current) return
+
+        let attempts = 0
+        const maxAttempts = 20 // ~330ms total
+
+        function tryAttach() {
             const video = videoRef.current
-            if (!video.srcObject) {
-                video.srcObject = streamRef.current
-                video.play().catch(() => {
-                    // play() may fail if the element was unmounted; safe to ignore
-                })
+            if (video && streamRef.current) {
+                if (!video.srcObject) {
+                    video.srcObject = streamRef.current
+                    video.play().catch((err) => {
+                        console.warn('[FaceCaptureStep] video.play() failed:', err.message)
+                    })
+                }
+                return
+            }
+            attempts++
+            if (attempts < maxAttempts) {
+                requestAnimationFrame(tryAttach)
+            } else {
+                console.warn('[FaceCaptureStep] Could not attach stream after', maxAttempts, 'attempts')
             }
         }
+
+        // First try synchronously, then fall back to rAF retries
+        tryAttach()
     }, [cameraActive, capturedImage])
 
     // Auto-start camera on mount so MFA flows don't require an extra tap
@@ -383,7 +402,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                             transition: 'color 0.2s ease',
                         }}
                     >
-                        {hint}
+                        {t(hint)}
                     </Typography>
                 </motion.div>
             )}

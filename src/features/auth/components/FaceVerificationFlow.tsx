@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
     Box,
     Button,
@@ -21,6 +22,7 @@ interface FaceVerificationFlowProps {
 }
 
 export default function FaceVerificationFlow({ open, onClose, onVerify }: FaceVerificationFlowProps) {
+    const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const streamRef = useRef<MediaStream | null>(null)
@@ -267,7 +269,7 @@ export default function FaceVerificationFlow({ open, onClose, onVerify }: FaceVe
                                 mb: 1,
                             }}
                         >
-                            {verificationState.instruction}
+                            {t(verificationState.instruction)}
                         </Typography>
                     )}
 

@@ -157,7 +157,7 @@ export default function SecondaryAuthFlow({
                     setError(
                         err instanceof Error
                             ? err.message
-                            : 'Failed to check secondary authentication'
+                            : t('secondaryAuth.checkFailed')
                     )
                     setLoading(false)
                 }
@@ -188,7 +188,7 @@ export default function SecondaryAuthFlow({
                 theme: { primaryColor: '#6366f1', borderRadius: '12px' },
             })
         } catch (initErr) {
-            setError(initErr instanceof Error ? initErr.message : 'Failed to initialize verification widget')
+            setError(initErr instanceof Error ? initErr.message : t('secondaryAuth.initFailed'))
             return
         }
 
@@ -230,7 +230,7 @@ export default function SecondaryAuthFlow({
             } else if (err instanceof Error && err.message.includes('destroyed')) {
                 // Component unmounted — no action needed
             } else {
-                setError(err instanceof Error ? err.message : 'Verification failed')
+                setError(err instanceof Error ? err.message : t('secondaryAuth.verificationFailed'))
                 setWidgetActive(false)
             }
         })
