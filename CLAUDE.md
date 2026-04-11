@@ -115,9 +115,12 @@ Enrollment UIs:
   - HARDWARE_KEY: base64 blob vs handler reads individual fields
   - QR_CODE: `token` vs handler `qrToken`
 
+### Fixes (2026-04-11 continued):
+- **Face MFA camera FIXED**: Race condition — `getUserMedia()` ran before `<video>` element was in DOM (conditional on `cameraActive`). Added stream-attach useEffect + auto-start on mount.
+- **NFC enrollment FIXED**: NfcController now auto-creates user_enrollments record. NFC_DOCUMENT added to AUTO_COMPLETE_TYPES. Hardcoded English in EnrollmentPage NFC replaced with t() i18n.
+- **Session path B1-B6 FIXED**: All 6 backend handlers now accept both old and new field names.
+
 ### Known Issues (2026-04-11):
-- **Face MFA**: Camera box doesn't activate on mobile Chrome — no video feed, no capture, sends 0 bytes
-- **NFC**: Enrollment via Biometric Tools not reflected in `user_enrollments` table; shows "Not enrolled" on MFA picker
 - **Chrome multi-tap**: Android Chrome needs 2-7 taps to show fingerprint scanner (WebAuthn ceremony retry behavior)
 - **Brave fingerprint**: Shows "No passkey for app.fivucsas.com" — may not support cross-subdomain rpId
 
