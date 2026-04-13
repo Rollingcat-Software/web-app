@@ -35,7 +35,7 @@ jobs:
           switches: -avz --delete --exclude auth-test
           path: dist/
           remote_path: ~/domains/app.fivucsas.com/public_html/
-          remote_host: 46.202.158.52
-          remote_port: 65002
-          remote_user: u349700627
+          remote_host: ${{ secrets.HOSTINGER_IP }}
+          remote_port: ${{ secrets.HOSTINGER_PORT }}
+          remote_user: ${{ secrets.HOSTINGER_USER }}
           remote_key: ${{ secrets.HOSTINGER_SSH_KEY }}

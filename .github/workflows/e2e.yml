@@ -1,15 +1,7 @@
 name: E2E Tests
 
 on:
-  push:
-    branches: [main]
-    paths:
-      - 'src/**'
-      - 'e2e/**'
-      - 'playwright.config.*'
-      - 'package*.json'
-      - '.github/workflows/e2e.yml'
-  workflow_dispatch: # manual trigger
+  workflow_dispatch: # manual trigger only — do not run against production on every push
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -40,7 +32,6 @@ jobs:
         run: npx playwright test
         env:
           E2E_BASE_URL: https://app.fivucsas.com
-        continue-on-error: true
 
       - name: Upload test results
         uses: actions/upload-artifact@v4
