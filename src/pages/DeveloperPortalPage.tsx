@@ -33,6 +33,8 @@ import {
     Code,
     CheckCircle,
     Login,
+    MenuBook,
+    OpenInNew,
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
@@ -294,6 +296,61 @@ if (code) {
                         {success}
                     </Alert>
                 )}
+
+                {/* --- Integration Guide Banner --- */}
+                <motion.div
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4, delay: 0.1, ease: easeOut }}
+                >
+                    <Paper
+                        elevation={0}
+                        sx={{
+                            display: 'flex',
+                            flexDirection: { xs: 'column', sm: 'row' },
+                            alignItems: { xs: 'flex-start', sm: 'center' },
+                            gap: 2,
+                            p: { xs: 2, sm: 2.5 },
+                            mb: 3,
+                            border: '1px solid',
+                            borderColor: 'primary.main',
+                            borderRadius: 2,
+                            background: (theme) =>
+                                theme.palette.mode === 'dark'
+                                    ? 'rgba(99,102,241,0.08)'
+                                    : 'rgba(99,102,241,0.04)',
+                        }}
+                    >
+                        <MenuBook sx={{ fontSize: 36, color: 'primary.main', flexShrink: 0 }} />
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                <Typography variant="subtitle1" fontWeight={700}>
+                                    {t('developerPortal.integrationGuide')}
+                                </Typography>
+                                <Chip
+                                    label={t('developerPortal.integrationGuideBadge')}
+                                    size="small"
+                                    color="primary"
+                                    variant="outlined"
+                                    sx={{ fontSize: 11 }}
+                                />
+                            </Box>
+                            <Typography variant="body2" color="text.secondary" sx={{ mt: 0.5 }}>
+                                {t('developerPortal.integrationGuideDesc')}
+                            </Typography>
+                        </Box>
+                        <Button
+                            variant="contained"
+                            endIcon={<OpenInNew sx={{ fontSize: 16 }} />}
+                            href="https://github.com/fivucsas/docs/blob/main/INTEGRATION_GUIDE.md"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
+                        >
+                            {t('developerPortal.integrationGuideBtn')}
+                        </Button>
+                    </Paper>
+                </motion.div>
 
                 {/* --- Sign-in CTA for unauthenticated users --- */}
                 {!isAuthenticated && (

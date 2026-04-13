@@ -550,7 +550,11 @@
     "copyClientId": "İstemci Kimliğini Kopyala",
     "copiedToClipboard": "Panoya kopyalandı!",
     "signInToManage": "Uygulamalarınızı yönetmek için giriş yapın",
-    "signInToManageDesc": "OAuth 2.0 istemci kimlik bilgileri oluşturun, kayıtlı uygulamaları görüntüleyin ve yönlendirme URI'lerini yapılandırın. Entegrasyonun nasıl çalıştığını öğrenmek için aşağıdaki Hızlı Başlangıç Kılavuzuna göz atın."
+    "signInToManageDesc": "OAuth 2.0 istemci kimlik bilgileri oluşturun, kayıtlı uygulamaları görüntüleyin ve yönlendirme URI'lerini yapılandırın. Entegrasyonun nasıl çalıştığını öğrenmek için aşağıdaki Hızlı Başlangıç Kılavuzuna göz atın.",
+    "integrationGuide": "Entegrasyon Kılavuzu",
+    "integrationGuideDesc": "OAuth 2.0 akışı, auth widget ekleme (JS/React/iframe), postMessage olayları, hata kodları ve üretim kontrol listesi için tam referans.",
+    "integrationGuideBtn": "Entegrasyon Kılavuzunu Oku →",
+    "integrationGuideBadge": "30 dakikada entegrasyon"
   },
   "publicLayout": {
     "backToDashboard": "Panele Dön",
