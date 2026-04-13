@@ -30,7 +30,7 @@
     "@tensorflow-models/blazeface": "^0.1.0",
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
-    "axios": "^1.7.0",
+    "axios": "^1.15.0",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "date-fns": "^3.6.0",
@@ -72,7 +72,7 @@
     "@typescript-eslint/eslint-plugin": "^7.13.1",
     "@typescript-eslint/parser": "^7.13.1",
     "@vitejs/plugin-react": "^6.0.1",
-    "@vitest/ui": "^2.0.0",
+    "@vitest/ui": "^4.1.4",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.7",
@@ -80,7 +80,11 @@
     "typescript": "^5.5.3",
     "vite": "^8.0.3",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^2.0.0"
+    "vitest": "^4.1.4"
+  },
+  "overrides": {
+    "serialize-javascript": ">=7.0.5",
+    "esbuild": ">=0.25.0"
   },
   "author": "FIVUCSAS Team",
   "license": "MIT"
