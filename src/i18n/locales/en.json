@@ -981,7 +981,8 @@
       "startCamera": "Start Camera",
       "capturePhoto": "Capture Photo",
       "retake": "Retake",
-      "submit": "Submit"
+      "submit": "Submit",
+      "noFaceDetected": "No face detected — position your face in the frame and try again"
     },
     "voice": {
       "title": "Voice Verification",

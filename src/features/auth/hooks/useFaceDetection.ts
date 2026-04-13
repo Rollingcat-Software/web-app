@@ -10,6 +10,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 import { FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision'
 import { useBlazeFace } from '../../../lib/ml/useBlazeFace'
+import { cropFaceToDataURL } from '../utils/faceCropper'
 
 export type DetectionBackend = 'blazeface' | 'mediapipe' | 'none'
 
@@ -287,45 +288,24 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
         }
     }, [])
 
+    /**
+     * Always-client-crop: crops the current face bounding box to a 224×224 JPEG.
+     * This eliminates the 200-730ms server-side face detection step because the
+     * server receives a tight pre-cropped face instead of a full-resolution frame.
+     *
+     * The `canvas` parameter is accepted for API compatibility but unused — the
+     * crop is performed on an internal offscreen canvas so the output is always
+     * exactly 224×224 regardless of the hidden canvas in the DOM.
+     *
+     * @returns Base64 JPEG data-URL (~8-18KB), or null if no face is detected.
+     */
     const cropFace = useCallback(
-        (canvas: HTMLCanvasElement): string | null => {
+        (_canvas: HTMLCanvasElement): string | null => {
             const video = videoRef.current
             if (!video || !state.boundingBox) return null
 
-            const vw = video.videoWidth
-            const vh = video.videoHeight
-            const bb = state.boundingBox
-
-            // Add 30% padding around the face
-            const padding = 0.3
-            const rawX = bb.x * vw
-            const rawY = bb.y * vh
-            const rawW = bb.width * vw
-            const rawH = bb.height * vh
-
-            const padW = rawW * padding
-            const padH = rawH * padding
-            const cropX = Math.max(0, rawX - padW)
-            const cropY = Math.max(0, rawY - padH)
-            const cropW = Math.min(vw - cropX, rawW + padW * 2)
-            const cropH = Math.min(vh - cropY, rawH + padH * 2)
-
-            canvas.width = cropW
-            canvas.height = cropH
-
-            const ctx = canvas.getContext('2d')
-            if (!ctx) return null
-
-            // Mirror for selfie (video is mirrored via CSS)
-            ctx.translate(canvas.width, 0)
-            ctx.scale(-1, 1)
-            ctx.drawImage(
-                video,
-                cropX, cropY, cropW, cropH,
-                0, 0, cropW, cropH
-            )
-
-            return canvas.toDataURL('image/jpeg', 0.85)
+            // Client pre-crops to 224×224 — server detection only as fallback
+            return cropFaceToDataURL(video, state.boundingBox, 224, 0.2)
         },
         [videoRef, state.boundingBox]
     )

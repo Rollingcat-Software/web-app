@@ -145,45 +145,24 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             return
         }
 
-        // Quality gate: block if quality is too poor
-        if (quality.overall > 0 && quality.overall < 40) {
-            // Allow capture but warn — don't block entirely
+        // Face gate: always crop to 224×224 — never send a full-resolution frame.
+        // This eliminates the 200-730ms server-side face detection step.
+        // If no face is detected, block the capture and ask the user to re-position.
+        if (!detected || !boundingBox) {
+            setCameraError(t('mfa.face.noFaceDetected'))
+            return
         }
 
-        // Try cropped face capture first (MediaPipe detected)
-        if (detected && boundingBox) {
-            const cropped = cropFace(canvasRef.current)
-            if (cropped) {
-                setCapturedImage(cropped)
-                stopCamera()
-                return
-            }
-        }
-
-        // Fallback: full frame capture with 640px resize
-        const video = videoRef.current
-        const canvas = canvasRef.current
-        const w = video.videoWidth
-        const h = video.videoHeight
-        const maxDim = 640
-        const scale = Math.min(1, maxDim / Math.max(w, h))
-        canvas.width = Math.round(w * scale)
-        canvas.height = Math.round(h * scale)
-
-        const ctx = canvas.getContext('2d')
-        if (!ctx) {
+        // Client pre-crops to 224×224 JPEG (<20KB) — server detection only as fallback
+        const cropped = cropFace(canvasRef.current)
+        if (!cropped) {
             setCameraError(t('mfa.face.cameraError'))
             return
         }
 
-        ctx.translate(canvas.width, 0)
-        ctx.scale(-1, 1)
-        ctx.drawImage(video, 0, 0, w, h, 0, 0, canvas.width, canvas.height)
-
-        const base64 = canvas.toDataURL('image/jpeg', 0.85)
-        setCapturedImage(base64)
+        setCapturedImage(cropped)
         stopCamera()
-    }, [stopCamera, detected, boundingBox, cropFace, quality.overall])
+    }, [stopCamera, detected, boundingBox, cropFace])
 
     const retakePhoto = useCallback(() => {
         setCapturedImage(null)

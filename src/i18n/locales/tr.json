@@ -981,7 +981,8 @@
       "startCamera": "Kamerayı Başlat",
       "capturePhoto": "Fotoğraf Çek",
       "retake": "Tekrar Çek",
-      "submit": "Gönder"
+      "submit": "Gönder",
+      "noFaceDetected": "Yüz algılanamadı — yüzünüzü çerçeve içine konumlandırın ve tekrar deneyin"
     },
     "voice": {
       "title": "Ses Doğrulama",

@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from 'react'
+import { cropFaceToDataURL } from '../utils/faceCropper'
 
 /**
  * Landmark distance helper
@@ -257,26 +258,82 @@ export function useLivenessPuzzle() {
     }, [])
 
     /**
-     * Capture a frame from the video element, cropped to face if landmarks available.
+     * Capture a 224×224 face crop from the video element.
+     *
+     * Always-client-crop: uses the FaceLandmarker's latest result to compute
+     * a normalized bounding box and crop via cropFaceToDataURL, so the server
+     * receives a 224×224 JPEG instead of a full-resolution frame.
+     * This eliminates the 200-730ms server-side detection step for each liveness frame.
+     * Falls back to a center-biased full-frame encode if landmarks are unavailable.
+     *
+     * Returns a Blob (multipart form upload) converted from the cropped data-URL.
      */
     const captureFrame = useCallback((
         videoRef: React.RefObject<HTMLVideoElement | null>,
     ): Promise<Blob | null> => {
         return new Promise((resolve) => {
             const video = videoRef.current
-            if (!video) { resolve(null); return }
+            if (!video || video.readyState < 2) { resolve(null); return }
 
-            const c = document.createElement('canvas')
             const w = video.videoWidth
             const h = video.videoHeight
-            const maxDim = 640
-            const scale = Math.min(1, maxDim / Math.max(w, h))
-            c.width = Math.round(w * scale)
-            c.height = Math.round(h * scale)
-            const ctx = c.getContext('2d')
-            if (!ctx) { resolve(null); return }
-            ctx.drawImage(video, 0, 0, w, h, 0, 0, c.width, c.height)
-            c.toBlob((blob) => resolve(blob), 'image/jpeg', 0.92)
+            if (!w || !h) { resolve(null); return }
+
+            // Client pre-crops to 224×224 — server detection only as fallback.
+            // Derive a bounding box from the latest FaceLandmarker result when available.
+            let dataUrl: string | null = null
+            const landmarker = landmarkerRef.current
+            if (landmarker) {
+                try {
+                    const result = landmarker.detectForVideo(video, performance.now())
+                    if (result.faceLandmarks && result.faceLandmarks.length > 0) {
+                        const lms = result.faceLandmarks[0]
+                        // Compute tight bbox from all 478 landmarks
+                        let minX = 1, minY = 1, maxX = 0, maxY = 0
+                        for (const lm of lms) {
+                            if (lm.x < minX) minX = lm.x
+                            if (lm.y < minY) minY = lm.y
+                            if (lm.x > maxX) maxX = lm.x
+                            if (lm.y > maxY) maxY = lm.y
+                        }
+                        const bbox = {
+                            x: minX,
+                            y: minY,
+                            width: maxX - minX,
+                            height: maxY - minY,
+                        }
+                        dataUrl = cropFaceToDataURL(video, bbox, 224, 0.2)
+                    }
+                } catch {
+                    // Landmark detection frame error — fall through to center crop
+                }
+            }
+
+            if (!dataUrl) {
+                // Fallback: encode center region as 224×224 when no landmarks available
+                const c = document.createElement('canvas')
+                c.width = 224
+                c.height = 224
+                const ctx = c.getContext('2d')
+                if (!ctx) { resolve(null); return }
+                // Draw center square of video
+                const size = Math.min(w, h)
+                const sx = (w - size) / 2
+                const sy = (h - size) / 2
+                ctx.translate(224, 0)
+                ctx.scale(-1, 1)
+                ctx.drawImage(video, sx, sy, size, size, 0, 0, 224, 224)
+                dataUrl = c.toDataURL('image/jpeg', 0.85)
+            }
+
+            // Convert data-URL to Blob for multipart upload
+            const byteString = atob(dataUrl.split(',')[1])
+            const ab = new ArrayBuffer(byteString.length)
+            const ia = new Uint8Array(ab)
+            for (let i = 0; i < byteString.length; i++) {
+                ia[i] = byteString.charCodeAt(i)
+            }
+            resolve(new Blob([ab], { type: 'image/jpeg' }))
         })
     }, [])
 
