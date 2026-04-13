@@ -437,7 +437,13 @@ export default function MultiStepAuthFlow({
                 )
 
             case 'NFC_DOCUMENT':
-                return <NfcStep loading={loading} error={error} />
+                return (
+                    <NfcStep
+                        onSubmit={(data) => handleStepSubmit({ nfcData: data })}
+                        loading={loading}
+                        error={error}
+                    />
+                )
 
             default:
                 return (
