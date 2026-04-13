@@ -7,7 +7,7 @@
  * Communicates completion via onComplete callback (which sends postMessage to parent).
  */
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
     Alert,
     Box,
@@ -44,9 +44,10 @@ interface LoginMfaFlowProps {
     clientId: string
     onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string }) => void
     onCancel: () => void
+    onStepChange?: (stepIndex: number, methodType: string, totalSteps: number) => void
 }
 
-export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel, onStepChange }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -60,6 +61,19 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
     const [currentStep, setCurrentStep] = useState(1)
     const [totalSteps, setTotalSteps] = useState(1)
     const [usedMethods, setUsedMethods] = useState<string[]>([])
+
+    // Notify parent bridge when the login/MFA phase changes
+    useEffect(() => {
+        if (!onStepChange) return
+        // Map login flow phases to step indices for the postMessage bridge
+        // password=0, method-picker=1, mfa-step=1 (step 2 of 2 when MFA is active)
+        if (phase === 'password') {
+            onStepChange(0, 'PASSWORD', totalSteps > 1 ? totalSteps : 1)
+        } else if (phase === 'method-picker' || phase === 'mfa-step') {
+            const stepIdx = currentStep - 1
+            onStepChange(stepIdx, selectedMethod || 'MFA', totalSteps)
+        }
+    }, [phase, selectedMethod, currentStep, totalSteps, onStepChange])
 
     // ─── Password Submit ────────────────────────────────────────
 

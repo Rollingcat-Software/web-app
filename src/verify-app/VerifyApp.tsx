@@ -165,8 +165,7 @@ export default function VerifyApp() {
             })
     }, [config.sessionId, config.mode, config.clientId, container, t])
 
-    // Track step changes via a MutationObserver on the step counter text
-    // Instead, we use a ref-based approach via the MultiStepAuthFlow step data
+    // Forward step changes from MultiStepAuthFlow / LoginMfaFlow to the postMessage bridge
     const handleStepChangeTracking = useCallback(
         (stepIndex: number, methodType: string, totalSteps: number) => {
             sendStepChange(stepIndex, methodType, totalSteps)
@@ -262,6 +261,7 @@ export default function VerifyApp() {
                             clientId={config.clientId}
                             onComplete={handleLoginComplete}
                             onCancel={handleCancel}
+                            onStepChange={handleStepChangeTracking}
                         />
                     </Box>
                 </DependencyProvider>
@@ -282,20 +282,6 @@ export default function VerifyApp() {
         status: s.status,
         isRequired: s.isRequired,
     }))
-
-    // Track step changes by watching the steps array
-    // We pass this data upstream via the postMessage bridge
-    const currentPendingIdx = flowSteps.findIndex(
-        (s) => s.status !== 'COMPLETED' && s.status !== 'SKIPPED' && s.status !== 'FAILED'
-    )
-    if (currentPendingIdx >= 0) {
-        // Fire step-change on render (debounced by the parent)
-        handleStepChangeTracking(
-            currentPendingIdx,
-            flowSteps[currentPendingIdx].methodType,
-            flowSteps.length
-        )
-    }
 
     return (
         <ThemeProvider theme={theme}>
@@ -318,6 +304,7 @@ export default function VerifyApp() {
                         steps={flowSteps}
                         onComplete={handleSessionComplete}
                         onCancel={handleCancel}
+                        onStepChange={handleStepChangeTracking}
                     />
                 </Box>
             </DependencyProvider>

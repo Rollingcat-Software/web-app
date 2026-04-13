@@ -40,6 +40,7 @@ interface MultiStepAuthFlowProps {
     steps: AuthFlowStep[]
     onComplete: (result: { accessToken: string; userId: string }) => void
     onCancel: () => void
+    onStepChange?: (stepIndex: number, methodType: string, totalSteps: number) => void
 }
 
 /**
@@ -71,6 +72,7 @@ export default function MultiStepAuthFlow({
     steps: initialSteps,
     onComplete,
     onCancel,
+    onStepChange,
 }: MultiStepAuthFlowProps) {
     const authSessionRepo = useService<AuthSessionRepository>(TYPES.AuthSessionRepository)
     const { t } = useTranslation()
@@ -113,6 +115,13 @@ export default function MultiStepAuthFlow({
     }, [steps])
 
     const currentStep = steps[activeStepIndex] ?? null
+
+    // Notify parent (postMessage bridge) when the active step changes
+    useEffect(() => {
+        if (onStepChange && currentStep && !flowComplete) {
+            onStepChange(activeStepIndex, currentStep.methodType, steps.length)
+        }
+    }, [activeStepIndex, currentStep, flowComplete, steps.length, onStepChange])
 
     /**
      * Process the result of completing or skipping a step.
