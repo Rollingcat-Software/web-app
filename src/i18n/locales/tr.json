@@ -995,7 +995,8 @@
       "stopRecording": "Kaydı Durdur",
       "reRecord": "Tekrar Kaydet",
       "submit": "Gönder",
-      "noVoiceDetected": "Ses algılanmadı. Lütfen mikrofona net bir şekilde konuşun ve tekrar deneyin."
+      "noVoiceDetected": "Ses algılanmadı. Lütfen mikrofona net bir şekilde konuşun ve tekrar deneyin.",
+      "noSpeechDetected": "Konuşma algılanamadı. Lütfen tekrar deneyin ve net konuşun."
     },
     "fingerprint": {
       "title": "Parmak İzi Doğrulama",

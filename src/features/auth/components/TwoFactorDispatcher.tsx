@@ -15,6 +15,7 @@ import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@utils/formatApiError'
 import { AuthMethodType, MfaStepStatus, MfaStepAction, AUTH_API, EASE_OUT } from '../constants'
 import type { ChallengeResponse } from '../webauthn-utils'
+import { BiometricEngine } from '@/lib/biometric-engine/core/BiometricEngine'
 import TotpStep from './steps/TotpStep'
 import SmsOtpStep from './steps/SmsOtpStep'
 import FaceCaptureStep from './steps/FaceCaptureStep'
@@ -24,6 +25,25 @@ import QrCodeStep from './steps/QrCodeStep'
 import HardwareKeyStep from './steps/HardwareKeyStep'
 import NfcStep from './steps/NfcStep'
 import EmailOtpMfaStep from './steps/EmailOtpMfaStep'
+
+/**
+ * Decode a `data:...;base64,...` URL into an ArrayBuffer.
+ * Returns null for non-data-URL / non-base64 strings so the VAD check can
+ * gracefully skip unsupported inputs instead of throwing.
+ */
+function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
+    try {
+        const commaIdx = dataUrl.indexOf(',')
+        if (commaIdx < 0 || !dataUrl.startsWith('data:')) return null
+        const base64 = dataUrl.slice(commaIdx + 1)
+        const binary = atob(base64)
+        const bytes = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+        return bytes.buffer
+    } catch {
+        return null
+    }
+}
 
 interface TwoFactorDispatcherProps {
     method: string
@@ -197,7 +217,30 @@ export default function TwoFactorDispatcher({
             case AuthMethodType.VOICE:
                 return (
                     <VoiceStep
-                        onSubmit={(voiceData) => verifyStep(AuthMethodType.VOICE, { voiceData })}
+                        onSubmit={async (voiceData) => {
+                            // Client-side VAD: reject silent captures before server upload.
+                            // Graceful fallback: when the Silero model is missing or the
+                            // recording is not a 16kHz PCM WAV, the check is skipped and
+                            // the upload proceeds exactly as before.
+                            try {
+                                const vad = BiometricEngine.getInstance().voiceVAD
+                                if (vad && vad.isAvailable()) {
+                                    const wavBuffer = dataUrlToArrayBuffer(voiceData)
+                                    if (wavBuffer) {
+                                        const result = await vad.classify(wavBuffer)
+                                        // Only block when classification actually ran
+                                        // (confidence > 0 implies frames were evaluated).
+                                        if (result.confidence > 0 && result.speechRatio < 0.2) {
+                                            setError(t('mfa.voice.noSpeechDetected'))
+                                            return
+                                        }
+                                    }
+                                }
+                            } catch (vadErr) {
+                                console.warn('[TwoFactorDispatcher] VAD check failed, proceeding:', vadErr)
+                            }
+                            verifyStep(AuthMethodType.VOICE, { voiceData })
+                        }}
                         loading={loading}
                         error={error}
                     />

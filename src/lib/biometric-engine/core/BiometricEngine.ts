@@ -22,6 +22,7 @@ import type {
   IEmbeddingComputer,
   ICardDetector,
   IVoiceProcessor,
+  IVoiceVAD,
   IFaceMetricsCalculator,
   IBiometricEngineConfig,
 } from '../interfaces';
@@ -35,6 +36,9 @@ import { HeadPoseEstimator } from './HeadPoseEstimator';
 import { FaceTracker } from './FaceTracker';
 import { FaceMetricsCalculator } from './FaceMetricsCalculator';
 import { PassiveLivenessDetector } from './PassiveLivenessDetector';
+import { CardDetector } from './CardDetector';
+import { EmbeddingComputer } from './EmbeddingComputer';
+import { VoiceVAD } from './VoiceVAD';
 
 /**
  * BiometricEngine is the top-level orchestrator for all biometric operations.
@@ -91,6 +95,9 @@ export class BiometricEngine {
   /** Voice recording processor. */
   readonly voiceProcessor: IVoiceProcessor | null;
 
+  /** Client-side Voice Activity Detection (Silero VAD). */
+  readonly voiceVAD: IVoiceVAD | null;
+
   /** Shared face metrics calculator (DRY). */
   readonly metricsCalculator: IFaceMetricsCalculator;
 
@@ -127,6 +134,7 @@ export class BiometricEngine {
     this.embeddingComputer = config.embeddingComputer ?? null;
     this.cardDetector = config.cardDetector ?? null;
     this.voiceProcessor = config.voiceProcessor ?? null;
+    this.voiceVAD = config.voiceVAD ?? null;
 
     // Create FrameProcessor with injected deps (SRP: it only runs the loop)
     this.frameProcessor = new FrameProcessor({
@@ -174,6 +182,7 @@ export class BiometricEngine {
     if (config.embeddingComputer) builder.withEmbeddingComputer(config.embeddingComputer);
     if (config.cardDetector) builder.withCardDetector(config.cardDetector);
     if (config.voiceProcessor) builder.withVoiceProcessor(config.voiceProcessor);
+    if (config.voiceVAD) builder.withVoiceVAD(config.voiceVAD);
 
     return builder.buildWithDefaults();
   }
@@ -324,6 +333,12 @@ export class BiometricEngineBuilder {
     return this;
   }
 
+  /** Inject a custom client-side voice activity detector. */
+  withVoiceVAD(vad: IVoiceVAD): this {
+    this.config.voiceVAD = vad;
+    return this;
+  }
+
   /** Inject a custom metrics calculator. */
   withMetricsCalculator(calculator: IFaceMetricsCalculator): this {
     this.config.metricsCalculator = calculator;
@@ -385,6 +400,37 @@ export class BiometricEngineBuilder {
     }
     if (!this.config.livenessDetector) {
       this.config.livenessDetector = new PassiveLivenessDetector();
+    }
+
+    // P2 optional: CardDetector — loads YOLO ONNX model asynchronously.
+    // Does not block engine startup; model unavailability is handled gracefully.
+    if (!this.config.cardDetector) {
+      const cardDetector = new CardDetector();
+      cardDetector
+        .initialize()
+        .catch(e => console.warn('[BiometricEngine] Card detector not available:', e));
+      this.config.cardDetector = cardDetector;
+    }
+
+    // P2 optional: VoiceVAD — loads Silero VAD ONNX model asynchronously.
+    // Does not block engine startup; model unavailability is handled gracefully
+    // (isAvailable() returns false and the upload pipeline skips the check).
+    if (!this.config.voiceVAD) {
+      const voiceVAD = new VoiceVAD();
+      voiceVAD
+        .initialize()
+        .catch(e => console.warn('[BiometricEngine] Voice VAD not available:', e));
+      this.config.voiceVAD = voiceVAD;
+    }
+
+    // P2 optional: EmbeddingComputer — loads MobileFaceNet ONNX model asynchronously.
+    // Does not block engine startup; model unavailability is handled gracefully.
+    if (!this.config.embeddingComputer) {
+      const embeddingComputer = new EmbeddingComputer();
+      embeddingComputer
+        .initialize('/models/mobilefacenet.onnx')
+        .catch(e => console.warn('[BiometricEngine] Embedding computer not available:', e));
+      this.config.embeddingComputer = embeddingComputer;
     }
 
     return this.build();

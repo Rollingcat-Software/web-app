@@ -995,7 +995,8 @@
       "stopRecording": "Stop Recording",
       "reRecord": "Re-record",
       "submit": "Submit",
-      "noVoiceDetected": "No voice detected. Please speak clearly and try again."
+      "noVoiceDetected": "No voice detected. Please speak clearly and try again.",
+      "noSpeechDetected": "No speech detected. Please try again and speak clearly."
     },
     "fingerprint": {
       "title": "Fingerprint Verification",

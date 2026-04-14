@@ -74,6 +74,7 @@ export { FaceTracker } from './core/FaceTracker';
 export { FaceMetricsCalculator } from './core/FaceMetricsCalculator';
 export { PassiveLivenessDetector } from './core/PassiveLivenessDetector';
 export { EmbeddingComputer } from './core/EmbeddingComputer';
+export { CardDetector } from './core/CardDetector';
 
 // ===== Challenge Detectors (Strategy Pattern) =====
 export {

@@ -129,6 +129,20 @@ export interface IVoiceProcessor {
 }
 
 /**
+ * Client-side Voice Activity Detection (Silero VAD).
+ * Classifies a 16kHz mono PCM WAV buffer as speech / silence before upload.
+ * Graceful fallback: when the ONNX model is unavailable, isAvailable() returns
+ * false and the caller should skip the check (never block voice auth).
+ */
+export interface IVoiceVAD {
+  initialize(): Promise<void>;
+  isAvailable(): boolean;
+  classify(
+    wav16k: ArrayBuffer,
+  ): Promise<{ isSpeech: boolean; speechRatio: number; confidence: number }>;
+}
+
+/**
  * Face metrics calculator for EAR, MAR, smile, and eyebrow detection.
  * @see demo_local_fast.py lines 462-471
  */
@@ -176,5 +190,6 @@ export interface IBiometricEngineConfig {
   embeddingComputer?: IEmbeddingComputer;
   cardDetector?: ICardDetector;
   voiceProcessor?: IVoiceProcessor;
+  voiceVAD?: IVoiceVAD;
   metricsCalculator?: IFaceMetricsCalculator;
 }
