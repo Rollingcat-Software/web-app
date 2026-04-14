@@ -1,0 +1,24 @@
+{
+  "version": "2026.04.14",
+  "base_url_default": "https://app.fivucsas.com/models",
+  "files": [
+    {
+      "name": "mobilefacenet.onnx",
+      "sha256": null,
+      "bytes": 4915200,
+      "purpose": "Face embedding (MobileFaceNet 128-dim INT8) — client-side log-only per D2. PENDING: InsightFace release requires auth; user must download and upload manually. Without it, client gracefully falls back (server ignores client_embedding per D2, so auth still works)."
+    },
+    {
+      "name": "yolo-card-nano.onnx",
+      "sha256": "1b0db1183de768b1f0a7ab3d280b79ad84b653c433cc6a7ee55ac9c73e0b1863",
+      "bytes": 51865658,
+      "purpose": "Card detection overlay (YOLOv8 FP16 from trained best_fp16.onnx). NOTE: 50 MB is larger than plan-spec 6.2 MB; consider re-exporting a true YOLOv8n backbone if bandwidth is a concern."
+    },
+    {
+      "name": "silero-vad.onnx",
+      "sha256": "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3",
+      "bytes": 2327524,
+      "purpose": "Voice activity detection — skip upload on silent captures. Canonical release from github.com/snakers4/silero-vad."
+    }
+  ]
+}

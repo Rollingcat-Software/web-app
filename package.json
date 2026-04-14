@@ -5,6 +5,8 @@
   "description": "FIVUCSAS Admin Dashboard - Face and Identity Verification Platform",
   "scripts": {
     "dev": "vite",
+    "fetch-models": "node scripts/fetch-models.mjs",
+    "prebuild": "npm run fetch-models",
     "build": "tsc && vite build",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 45",
     "preview": "vite preview",
@@ -15,7 +17,8 @@
     "build:adapter": "vite build --config vite.adapter.config.ts",
     "build:verify": "vite build --config vite.verify.config.ts",
     "dev:verify": "vite dev --config vite.verify.config.ts",
-    "build:sdk": "vite build --config vite.sdk.config.ts"
+    "build:sdk": "vite build --config vite.sdk.config.ts",
+    "build:elements": "vite build --config vite.config.elements.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",
@@ -41,6 +44,7 @@
     "jwt-decode": "^4.0.0",
     "lottie-react": "^2.4.1",
     "notistack": "^3.0.0",
+    "onnxruntime-web": "^1.18.0",
     "qrcode.react": "^4.2.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
