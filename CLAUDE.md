@@ -9,11 +9,14 @@ Clean Architecture with InversifyJS dependency injection, Material-UI, Zod valid
 
 ```bash
 npm install
-npm run dev        # Dev server on port 3000
-npm run build      # Production build
-npm run test       # Run tests (Vitest)
-npm run lint       # ESLint
+npm run dev              # Dev server on port 3000
+npm run fetch-models     # Pull ONNX models from Hostinger bucket (auto via prebuild)
+npm run build            # Production build (prebuild → fetch-models, then tsc + vite)
+npm run test             # Run tests (Vitest)
+npm run lint             # ESLint
 ```
+
+ONNX models live at `https://app.fivucsas.com/models/`. `scripts/fetch-models.mjs` downloads them with SHA256 verification (fatal on mismatch). See `public/models/README.md` and `manifest.json`.
 
 Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with mock data.
 
