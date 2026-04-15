@@ -427,14 +427,16 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
 
                             {phase === 'mfa-step' && (
                                 <Box>
-                                    {renderMfaStep()}
-                                    {/* Back to method selection (if multiple methods) */}
+                                    {/* Back to method selection — rendered ABOVE the step so it
+                                        stays visible even when step content (e.g. Face camera)
+                                        is tall enough to push trailing UI off-screen. */}
                                     {availableMethods.filter((m) => m.enrolled).length > 1 &&
                                         selectedMethod !== 'EMAIL_OTP' && (
-                                            <Box sx={{ textAlign: 'center', mt: 2 }}>
+                                            <Box sx={{ mb: 1 }}>
                                                 <Button
                                                     variant="text"
                                                     size="small"
+                                                    startIcon={<ArrowBack />}
                                                     onClick={handleBackToMethodSelection}
                                                     sx={{ color: 'text.secondary' }}
                                                 >
@@ -442,6 +444,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                                                 </Button>
                                             </Box>
                                         )}
+                                    {renderMfaStep()}
                                 </Box>
                             )}
                         </motion.div>

@@ -194,6 +194,29 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                 </motion.div>
             )}
 
+            {/* Prompt phrase to read */}
+            <motion.div variants={itemVariants}>
+                <Box
+                    sx={{
+                        mt: 1,
+                        mb: 2,
+                        p: 2,
+                        borderRadius: '12px',
+                        border: '1px dashed',
+                        borderColor: 'divider',
+                        backgroundColor: 'rgba(99, 102, 241, 0.04)',
+                        textAlign: 'center',
+                    }}
+                >
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 0.5 }}>
+                        {t('mfa.voice.promptPhrase')}
+                    </Typography>
+                    <Typography variant="body1" fontWeight={600} color="text.primary">
+                        “{t('mfa.voice.samplePhrase')}”
+                    </Typography>
+                </Box>
+            </motion.div>
+
             {/* Microphone Animation */}
             <motion.div variants={itemVariants}>
                 <Box

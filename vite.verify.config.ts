@@ -56,7 +56,6 @@ export default defineConfig({
         sourcemap: false,
         chunkSizeWarningLimit: 400,
         rollupOptions: {
-            external: ['@tensorflow/tfjs-converter'],
             output: {
                 manualChunks(id: string) {
                     if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {

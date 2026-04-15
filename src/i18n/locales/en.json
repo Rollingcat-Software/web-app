@@ -991,6 +991,8 @@
       "micError": "Unable to access microphone. Please allow microphone permission and try again.",
       "recordingTime": "{{current}}s / {{max}}s",
       "recordingCaptured": "Voice recording captured ({{seconds}}s). Ready to submit.",
+      "promptPhrase": "Please read the following sentence aloud:",
+      "samplePhrase": "Hello, I am a registered user and I verify my identity with my voice.",
       "startRecording": "Start Recording",
       "stopRecording": "Stop Recording",
       "reRecord": "Re-record",

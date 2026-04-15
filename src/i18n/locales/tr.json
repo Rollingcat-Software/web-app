@@ -991,6 +991,8 @@
       "micError": "Mikrofona erişilemiyor. Lütfen mikrofon iznini verin ve tekrar deneyin.",
       "recordingTime": "{{current}}s / {{max}}s",
       "recordingCaptured": "Ses kaydı alındı ({{seconds}}s). Gönderilmeye hazır.",
+      "promptPhrase": "Aşağıdaki cümleyi sesli okuyun:",
+      "samplePhrase": "Merhaba, ben kayıtlı kullanıcıyım ve kimliğimi sesimle doğruluyorum.",
       "startRecording": "Kaydı Başlat",
       "stopRecording": "Kaydı Durdur",
       "reRecord": "Tekrar Kaydet",
