@@ -31,3 +31,12 @@
 ### Previous
 - Cross-module integration audit (March 2026): 38 issues identified
 - Previous audit (Feb 2026): 47/48 items completed
+
+## [2026-04-15b] — demo.fivucsas test round 2
+
+### Fixed
+- **Face step crash**: `usePerf must be used inside <PerfProvider>` — widget iframe has no PerfProvider; changed `usePerf()` to return a no-op value instead of throwing (PerfContext.tsx)
+
+### Known follow-ups
+- SMS message content ("Dogrulama kodunuz: … TWVerify ile gonderildi. B043") is controlled by the Twilio Verify service template, not our backend. Update friendly name + Turkish locale + diacritic support in the Twilio console.
+- Same-method reuse across MFA steps currently returns a raw 400; needs an i18n-friendly message.
