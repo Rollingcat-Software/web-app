@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -16,6 +16,7 @@ import {
 } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { useVoiceRecorder } from '@/lib/biometric-engine/hooks/useVoiceRecorder'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -36,95 +37,113 @@ interface VoiceStepProps {
     error?: string
 }
 
+/**
+ * Read a Blob as a base64 data URL.
+ */
+function blobToDataUrl(blob: Blob): Promise<string> {
+    return new Promise((resolve, reject) => {
+        const reader = new FileReader()
+        reader.onloadend = () => resolve(reader.result as string)
+        reader.onerror = () => reject(reader.error ?? new Error('FileReader failed'))
+        reader.readAsDataURL(blob)
+    })
+}
+
+/**
+ * VoiceStep — records microphone audio for MFA voice verification.
+ *
+ * Emits a base64 data URL of a 16kHz mono WAV blob (produced by
+ * `useVoiceRecorder`). Emitting WAV instead of the raw WebM enables the
+ * Silero VAD gate in `TwoFactorDispatcher` to actually classify the
+ * recording (Silero only accepts 16kHz PCM WAV) and skip uploads when the
+ * user stayed silent — previously the dispatcher received WebM, failed to
+ * decode it, and silently bypassed the gate.
+ *
+ * If the WAV conversion fails for any reason, we fall back to the raw
+ * WebM blob so voice auth still works end-to-end; the backend accepts
+ * both formats.
+ */
 export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) {
     const { t } = useTranslation()
-    const mediaRecorderRef = useRef<MediaRecorder | null>(null)
-    const chunksRef = useRef<Blob[]>([])
+    const {
+        start,
+        stop,
+        isRecording,
+        duration,
+        blob,
+        wav16k,
+        error: recorderError,
+    } = useVoiceRecorder()
 
-    const [recording, setRecording] = useState(false)
-    const [recordedData, setRecordedData] = useState<string | null>(null)
-    const [recordingTime, setRecordingTime] = useState(0)
-    const [micError, setMicError] = useState<string | null>(null)
+    const [recordedReady, setRecordedReady] = useState(false)
+    const [displayDuration, setDisplayDuration] = useState(0)
+    const autoStopTriggered = useRef(false)
 
+    // Auto-stop after MAX_RECORDING_SECONDS.
     useEffect(() => {
-        if (!recording) return
-
-        const timer = setInterval(() => {
-            setRecordingTime((prev) => {
-                if (prev >= MAX_RECORDING_SECONDS) {
-                    stopRecording()
-                    return prev
-                }
-                return prev + 1
-            })
-        }, 1000)
-
-        return () => clearInterval(timer)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [recording])
-
-    const startRecording = useCallback(async () => {
-        try {
-            setMicError(null)
-            setRecordedData(null)
-            setRecordingTime(0)
-            chunksRef.current = []
-
-            const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-            const mediaRecorder = new MediaRecorder(stream)
-            mediaRecorderRef.current = mediaRecorder
-
-            mediaRecorder.ondataavailable = (event) => {
-                if (event.data.size > 0) {
-                    chunksRef.current.push(event.data)
-                }
-            }
-
-            mediaRecorder.onstop = () => {
-                const blob = new Blob(chunksRef.current, { type: 'audio/webm' })
-                const reader = new FileReader()
-                reader.onloadend = () => {
-                    setRecordedData(reader.result as string)
-                }
-                reader.readAsDataURL(blob)
-
-                stream.getTracks().forEach((track) => track.stop())
-            }
-
-            mediaRecorder.start()
-            setRecording(true)
-        } catch (_err) {
-            setMicError(
-                t('mfa.voice.micError')
-            )
+        if (!isRecording) return
+        if (duration >= MAX_RECORDING_SECONDS && !autoStopTriggered.current) {
+            autoStopTriggered.current = true
+            void stop()
         }
-    }, [])
+    }, [isRecording, duration, stop])
 
-    const stopRecording = useCallback(() => {
-        if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-            mediaRecorderRef.current.stop()
+    // Track the live duration while recording, freeze it when stopped so the
+    // success alert keeps showing the captured length.
+    useEffect(() => {
+        if (isRecording) {
+            setDisplayDuration(duration)
         }
-        setRecording(false)
-    }, [])
+    }, [isRecording, duration])
+
+    // Mark recording as ready once the hook has produced at least a webm blob
+    // (wav16k arrives slightly later because conversion is async).
+    useEffect(() => {
+        if (!isRecording && blob) {
+            setRecordedReady(true)
+        }
+    }, [isRecording, blob])
+
+    const handleStart = useCallback(async () => {
+        autoStopTriggered.current = false
+        setRecordedReady(false)
+        setDisplayDuration(0)
+        await start()
+    }, [start])
+
+    const handleStop = useCallback(() => {
+        void stop()
+    }, [stop])
 
     const handleRetry = useCallback(() => {
-        setRecordedData(null)
-        setRecordingTime(0)
+        setRecordedReady(false)
+        setDisplayDuration(0)
+        autoStopTriggered.current = false
     }, [])
 
-    const handleSubmit = useCallback(() => {
-        if (recordedData) {
-            onSubmit(recordedData)
-        }
-    }, [recordedData, onSubmit])
-
-    useEffect(() => {
-        return () => {
-            if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
-                mediaRecorderRef.current.stop()
+    const handleSubmit = useCallback(async () => {
+        try {
+            if (wav16k) {
+                const dataUrl = await blobToDataUrl(wav16k)
+                onSubmit(dataUrl)
+                return
             }
+            // Fallback: WAV conversion failed — send raw WebM so the user
+            // isn't blocked. The VAD gate will skip (non-WAV input) and the
+            // server will still accept the audio.
+            if (blob) {
+                console.warn(
+                    '[VoiceStep] wav16k unavailable, falling back to WebM. VAD gating will be bypassed for this submission.'
+                )
+                const dataUrl = await blobToDataUrl(blob)
+                onSubmit(dataUrl)
+            }
+        } catch (err) {
+            console.warn('[VoiceStep] failed to encode recording as data URL', err)
         }
-    }, [])
+    }, [wav16k, blob, onSubmit])
+
+    const micErrorMessage = recorderError ? t('mfa.voice.micError') : null
 
     return (
         <motion.div
@@ -163,14 +182,14 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                 </Typography>
             </Box>
 
-            {(error || micError) && (
+            {(error || micErrorMessage) && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3 }}
                 >
                     <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {error || micError}
+                        {error || micErrorMessage}
                     </Alert>
                 </motion.div>
             )}
@@ -186,7 +205,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                 >
                     <motion.div
                         animate={
-                            recording
+                            isRecording
                                 ? {
                                       scale: [1, 1.1, 1],
                                   }
@@ -203,18 +222,18 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                                 width: 100,
                                 height: 100,
                                 borderRadius: '50%',
-                                background: recording
+                                background: isRecording
                                     ? 'linear-gradient(135deg, rgba(239, 68, 68, 0.15) 0%, rgba(239, 68, 68, 0.25) 100%)'
-                                    : recordedData
+                                    : recordedReady
                                       ? 'linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(16, 185, 129, 0.25) 100%)'
                                       : 'rgba(99, 102, 241, 0.06)',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 border: '2px solid',
-                                borderColor: recording
+                                borderColor: isRecording
                                     ? 'error.main'
-                                    : recordedData
+                                    : recordedReady
                                       ? 'success.main'
                                       : 'divider',
                                 transition: 'all 0.3s ease',
@@ -223,9 +242,9 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                             <Mic
                                 sx={{
                                     fontSize: 48,
-                                    color: recording
+                                    color: isRecording
                                         ? 'error.main'
-                                        : recordedData
+                                        : recordedReady
                                           ? 'success.main'
                                           : 'text.secondary',
                                 }}
@@ -236,7 +255,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
             </motion.div>
 
             {/* Waveform Placeholder / Progress */}
-            {recording && (
+            {isRecording && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
@@ -276,7 +295,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                         </Box>
                         <LinearProgress
                             variant="determinate"
-                            value={(recordingTime / MAX_RECORDING_SECONDS) * 100}
+                            value={(displayDuration / MAX_RECORDING_SECONDS) * 100}
                             sx={{ borderRadius: 1 }}
                         />
                         <Typography
@@ -284,32 +303,32 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                             color="text.secondary"
                             sx={{ display: 'block', textAlign: 'center', mt: 1 }}
                         >
-                            {t('mfa.voice.recordingTime', { current: recordingTime, max: MAX_RECORDING_SECONDS })}
+                            {t('mfa.voice.recordingTime', { current: displayDuration, max: MAX_RECORDING_SECONDS })}
                         </Typography>
                     </Box>
                 </motion.div>
             )}
 
-            {recordedData && !recording && (
+            {recordedReady && !isRecording && (
                 <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     transition={{ duration: 0.3 }}
                 >
                     <Alert severity="success" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {t('mfa.voice.recordingCaptured', { seconds: recordingTime })}
+                        {t('mfa.voice.recordingCaptured', { seconds: displayDuration })}
                     </Alert>
                 </motion.div>
             )}
 
             {/* Actions */}
             <motion.div variants={itemVariants}>
-                {!recording && !recordedData && (
+                {!isRecording && !recordedReady && (
                     <Button
                         fullWidth
                         variant="contained"
                         size="large"
-                        onClick={startRecording}
+                        onClick={handleStart}
                         disabled={loading}
                         startIcon={<Mic />}
                         sx={{
@@ -329,12 +348,12 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                     </Button>
                 )}
 
-                {recording && (
+                {isRecording && (
                     <Button
                         fullWidth
                         variant="contained"
                         size="large"
-                        onClick={stopRecording}
+                        onClick={handleStop}
                         startIcon={<Stop />}
                         color="error"
                         sx={{
@@ -348,7 +367,7 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
                     </Button>
                 )}
 
-                {recordedData && !recording && (
+                {recordedReady && !isRecording && (
                     <Box sx={{ display: 'flex', gap: 2 }}>
                         <Button
                             variant="outlined"

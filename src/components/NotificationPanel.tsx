@@ -37,6 +37,8 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { IAuditLogService } from '@domain/interfaces/IAuditLogService'
 import type { AuditLog } from '@domain/models/AuditLog'
 import { useTranslation } from 'react-i18next'
+import { formatDistanceToNow } from 'date-fns'
+import { tr as trLocale, enUS } from 'date-fns/locale'
 import { useAuth } from '@features/auth/hooks/useAuth'
 
 const POLL_INTERVAL = 30_000 // 30 seconds
@@ -124,17 +126,11 @@ function getActionIcon(action: string) {
 
 // --- Time formatting ---
 
-function formatTimeAgo(date: Date, t: (key: string, options?: Record<string, unknown>) => string): string {
-    const now = new Date()
-    const diffMs = now.getTime() - date.getTime()
-    const diffMin = Math.floor(diffMs / 60_000)
-    const diffHours = Math.floor(diffMs / 3_600_000)
-    const diffDays = Math.floor(diffMs / 86_400_000)
-
-    if (diffMin < 1) return t('notifications.justNow')
-    if (diffMin < 60) return t('notifications.minutesAgo', { n: diffMin })
-    if (diffHours < 24) return t('notifications.hoursAgo', { n: diffHours })
-    return t('notifications.daysAgo', { n: diffDays })
+function formatTimeAgo(date: Date, language: string): string {
+    return formatDistanceToNow(date, {
+        addSuffix: true,
+        locale: language.startsWith('tr') ? trLocale : enUS,
+    })
 }
 
 // --- Date grouping ---
@@ -203,7 +199,7 @@ function getActionDescription(action: string, t: any, details?: Record<string, u
  * - Unread count badge
  */
 export default function NotificationPanel() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { user } = useAuth()
     const auditLogService = useService<IAuditLogService>(TYPES.AuditLogService)
 
@@ -456,7 +452,7 @@ export default function NotificationPanel() {
                                                     }
                                                     secondary={
                                                         <Typography variant="caption" color="text.secondary">
-                                                            {formatTimeAgo(log.createdAt, t)}
+                                                            {formatTimeAgo(log.createdAt, i18n.language)}
                                                             {log.ipAddress && ` \u00B7 ${log.ipAddress}`}
                                                         </Typography>
                                                     }
