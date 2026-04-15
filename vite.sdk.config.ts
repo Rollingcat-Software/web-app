@@ -13,7 +13,6 @@ export default defineConfig({
         outDir: 'dist-sdk',
         emptyOutDir: true,
         target: 'es2020',
-        minify: 'esbuild',
         sourcemap: true,
         rollupOptions: {
             output: {
