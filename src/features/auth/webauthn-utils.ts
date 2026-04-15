@@ -92,9 +92,10 @@ export function generateRandomChallenge(): Uint8Array {
     return arr
 }
 
-/** Decode a base64 challenge string to bytes */
+/** Decode a base64 or base64url challenge string to bytes.
+ *  Backend encodes with Base64.getUrlEncoder() so URL-safe chars must be handled. */
 export function decodeChallengeToBytes(challenge: string): Uint8Array {
-    return Uint8Array.from(atob(challenge), (c) => c.charCodeAt(0))
+    return base64urlToBytes(challenge)
 }
 
 /**

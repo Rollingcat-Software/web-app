@@ -54,12 +54,19 @@ export default function QrCodeStep({
     const currentTokenRef = useRef<string>('')
     const onInvalidateTokenRef = useRef(onInvalidateToken)
     onInvalidateTokenRef.current = onInvalidateToken
+    const didInitialGenerateRef = useRef(false)
+    const [rateLimitedUntil, setRateLimitedUntil] = useState<number | null>(null)
 
     const handleGenerateToken = useCallback(async () => {
         if (!userId) {
             setGenerationError(
                 t('mfa.qrCode.autoUnavailable')
             )
+            return
+        }
+
+        // Block generation while rate-limited
+        if (rateLimitedUntil && Date.now() < rateLimitedUntil) {
             return
         }
 
@@ -83,19 +90,34 @@ export default function QrCodeStep({
             setRemainingSeconds(result.expiresInSeconds)
             setToken(result.token)
             currentTokenRef.current = result.token
+            setRateLimitedUntil(null)
         } catch (err) {
-            const message =
-                err instanceof Error ? err.message : 'Unable to generate QR token automatically.'
-            setGenerationError(`${message} ${t('mfa.qrCode.manualFallback')}`)
+            // Detect 429 rate limit from axios-style error
+            const status = (err as { response?: { status?: number; headers?: Record<string, string> } })?.response?.status
+            if (status === 429) {
+                const retryAfterHeader = (err as { response?: { headers?: Record<string, string> } })?.response?.headers?.['retry-after']
+                const retrySeconds = retryAfterHeader ? Math.max(1, parseInt(retryAfterHeader, 10) || 30) : 30
+                setRateLimitedUntil(Date.now() + retrySeconds * 1000)
+                setGenerationError(t('mfa.qrCode.rateLimited', { seconds: retrySeconds, defaultValue: `Çok fazla deneme. ${retrySeconds} saniye sonra tekrar deneyin.` }))
+                setIsExpired(false)
+            } else {
+                const message =
+                    err instanceof Error ? err.message : 'Unable to generate QR token automatically.'
+                setGenerationError(`${message} ${t('mfa.qrCode.manualFallback')}`)
+            }
         } finally {
             setIsGenerating(false)
         }
-    }, [userId, onGenerateToken, onInvalidateToken])
+    }, [userId, onGenerateToken, onInvalidateToken, rateLimitedUntil, t])
 
-    // Generate token on mount
+    // Generate token on mount — ref guard protects against StrictMode + callback identity churn
     useEffect(() => {
+        if (didInitialGenerateRef.current) return
+        if (!userId) return
+        didInitialGenerateRef.current = true
         void handleGenerateToken()
-    }, [handleGenerateToken])
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId])
 
     // Countdown timer for token expiry
     useEffect(() => {
@@ -114,15 +136,16 @@ export default function QrCodeStep({
         return () => clearInterval(timer)
     }, [remainingSeconds])
 
-    // Auto-refresh when token expires
+    // Auto-refresh when token expires — skip while rate-limited
     useEffect(() => {
         if (isExpired && !isGenerating && !loading) {
+            if (rateLimitedUntil && Date.now() < rateLimitedUntil) return
             const timeout = setTimeout(() => {
                 void handleGenerateToken()
             }, 2000)
             return () => clearTimeout(timeout)
         }
-    }, [isExpired, isGenerating, loading, handleGenerateToken])
+    }, [isExpired, isGenerating, loading, handleGenerateToken, rateLimitedUntil])
 
     // Invalidate token on unmount
     useEffect(() => {

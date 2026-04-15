@@ -214,14 +214,25 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                     <motion.div variants={itemVariants}>
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button
-                                variant="text"
+                                variant="outlined"
                                 size="small"
                                 startIcon={<Refresh />}
                                 onClick={handleSendOtp}
                                 disabled={countdown > 0 || loading}
                                 sx={{
-                                    color: countdown > 0 ? 'text.secondary' : 'primary.main',
+                                    borderColor: 'primary.main',
+                                    color: 'primary.main',
                                     fontWeight: 500,
+                                    backgroundColor: 'background.paper',
+                                    '&:hover': {
+                                        borderColor: 'primary.dark',
+                                        backgroundColor: 'action.hover',
+                                    },
+                                    '&.Mui-disabled': {
+                                        borderColor: 'action.disabled',
+                                        color: 'text.secondary',
+                                        backgroundColor: 'background.paper',
+                                    },
                                 }}
                             >
                                 {countdown > 0

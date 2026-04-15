@@ -212,9 +212,11 @@ export class FivucsasAuth {
         iframe.id = IFRAME_ID;
         iframe.className = 'fivucsas-iframe';
         iframe.src = this.buildIframeUrl(options);
+        // Permissions Policy: bare feature names delegate to the iframe's src origin
+        // (verify.fivucsas.com). Quoted 'src' is NOT valid Permissions Policy syntax.
         iframe.setAttribute(
             'allow',
-            "camera 'src'; microphone 'src'; publickey-credentials-get 'src'"
+            'camera; microphone; publickey-credentials-get; publickey-credentials-create'
         );
         iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin allow-popups allow-modals');
         iframe.setAttribute('title', 'FIVUCSAS Identity Verification');

@@ -81,10 +81,16 @@ export function sendComplete(result: {
     userId: string
     sessionId?: string
     email?: string
+    completedMethods?: string[]
+    timestamp?: number
 }): void {
     sendToParent({
         type: 'fivucsas:complete',
-        payload: result,
+        payload: {
+            ...result,
+            completedMethods: result.completedMethods ?? [],
+            timestamp: result.timestamp ?? Date.now(),
+        },
     })
 }
 

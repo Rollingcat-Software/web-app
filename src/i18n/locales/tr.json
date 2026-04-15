@@ -999,14 +999,14 @@
       "noSpeechDetected": "Konuşma algılanamadı. Lütfen tekrar deneyin ve net konuşun."
     },
     "fingerprint": {
-      "title": "Parmak İzi Doğrulama",
-      "subtitle": "Parmak izi sensörünü kullanın",
-      "description": "Kimliğinizi doğrulamak için parmak izi sensörünü kullanın",
-      "unavailable": "Bu cihazda biyometrik doğrulama mevcut değil. Lütfen parmak izi sensörü veya biyometrik özelliği olan bir cihaz kullanın.",
-      "noPasskey": "Bu cihazda kayıtlı geçiş anahtarı bulunamadı. Lütfen Kayıt sayfasından parmak izinizi yeniden kaydedin.",
-      "placeFinger": "Parmağınızı sensöre yerleştirin...",
-      "clickToStart": "Parmak izi taramasını başlatmak için aşağıdaki düğmeye tıklayın",
-      "scanButton": "Parmak İzi Tara"
+      "title": "Cihaz Kimlik Doğrulaması",
+      "subtitle": "Cihazınızın biyometrik veya ekran kilidini kullanın",
+      "description": "Kimliğinizi parmak izi, yüz veya cihaz PIN'i ile doğrulayın",
+      "unavailable": "Bu cihazda kimlik doğrulama mevcut değil. Lütfen biyometrik sensör veya ekran kilidi olan bir cihaz kullanın.",
+      "noPasskey": "Bu cihazda kayıtlı geçiş anahtarı bulunamadı. Lütfen Kayıt sayfasından cihaz doğrulamayı yeniden kaydedin.",
+      "placeFinger": "Cihazınızın yönergesini takip edin...",
+      "clickToStart": "Cihaz doğrulamayı başlatmak için aşağıdaki düğmeye tıklayın",
+      "scanButton": "Cihaz ile Doğrula"
     },
     "hardwareKey": {
       "title": "Güvenlik Anahtarı Doğrulama",

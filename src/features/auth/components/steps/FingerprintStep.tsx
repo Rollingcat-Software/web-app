@@ -78,9 +78,13 @@ export default function FingerprintStep({
             // This lets non-discoverable platform credentials be found on Android —
             // without allowCredentials the passkey picker only shows resident credentials.
             const rawIds = resolvedCreds ?? allowCredentialsProp ?? []
+            // transports: ['internal'] biases the OS picker toward platform authenticators
+            // (Windows Hello / Touch ID / Android biometric) and away from security keys / phone hand-off.
+            // Note: get() does NOT support authenticatorSelection; transports is the only hint available.
             const allowCredentials: PublicKeyCredentialDescriptor[] = rawIds.map(id => ({
                 type: 'public-key' as const,
                 id: base64urlToBytes(id).buffer as ArrayBuffer,
+                transports: ['internal'] as AuthenticatorTransport[],
             }))
 
             const publicKeyOptions: PublicKeyCredentialRequestOptions = {

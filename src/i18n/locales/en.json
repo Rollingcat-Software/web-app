@@ -999,14 +999,14 @@
       "noSpeechDetected": "No speech detected. Please try again and speak clearly."
     },
     "fingerprint": {
-      "title": "Fingerprint Verification",
-      "subtitle": "Use fingerprint sensor",
-      "description": "Use your fingerprint sensor to verify your identity",
-      "unavailable": "Biometric authentication is not available on this device. Please use a device with a fingerprint sensor or biometric capability.",
-      "noPasskey": "No passkey found on this device. Please re-enroll your fingerprint in the Enrollment page.",
-      "placeFinger": "Place your finger on the sensor...",
-      "clickToStart": "Click the button below to start fingerprint scan",
-      "scanButton": "Scan Fingerprint"
+      "title": "Device Authentication",
+      "subtitle": "Use your device's biometric or screen unlock",
+      "description": "Verify your identity using fingerprint, face, or your device PIN",
+      "unavailable": "Device authentication is not available. Please use a device with a biometric sensor or screen unlock enabled.",
+      "noPasskey": "No passkey found on this device. Please re-enroll device authentication in the Enrollment page.",
+      "placeFinger": "Follow your device's prompt to authenticate...",
+      "clickToStart": "Click the button below to start device authentication",
+      "scanButton": "Authenticate with Device"
     },
     "hardwareKey": {
       "title": "Security Key Authentication",

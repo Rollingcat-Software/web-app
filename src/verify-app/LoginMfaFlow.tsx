@@ -42,7 +42,7 @@ type FlowPhase = 'password' | 'method-picker' | 'mfa-step' | 'complete'
 
 interface LoginMfaFlowProps {
     clientId: string
-    onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string }) => void
+    onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; timestamp?: number }) => void
     onCancel: () => void
     onStepChange?: (stepIndex: number, methodType: string, totalSteps: number) => void
 }
@@ -109,6 +109,8 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                     refreshToken: result.refreshToken ?? undefined,
                     userId: result.user?.id ?? '',
                     email: result.user?.email ?? undefined,
+                    completedMethods: ['PASSWORD'],
+                    timestamp: Date.now(),
                 })
             }
         } catch (err) {
@@ -158,12 +160,19 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
 
     const handleMfaResult = useCallback((res: MfaStepResponse) => {
         if (res.status === MfaStepStatus.AUTHENTICATED && res.accessToken) {
-            // All steps complete
+            // All steps complete — include PASSWORD (always first) + any MFA methods used + current
+            const finalMethods = Array.from(new Set<string>([
+                'PASSWORD',
+                ...usedMethods,
+                ...(selectedMethod ? [selectedMethod] : []),
+            ]))
             onComplete({
                 accessToken: res.accessToken,
                 refreshToken: res.refreshToken,
                 userId: res.user?.id ? String(res.user.id) : '',
                 email: res.user?.email ? String(res.user.email) : undefined,
+                completedMethods: finalMethods,
+                timestamp: Date.now(),
             })
         } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
             // More steps remain — track the method just used to exclude it from step 2
