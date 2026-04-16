@@ -143,10 +143,10 @@ export default function UsersListPage() {
             <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3 }}>
                 <Box component="header">
                     <Typography variant="h4" gutterBottom fontWeight={600}>
-                        Users
+                        {t('users.pageTitle')}
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
-                        Manage user accounts and permissions
+                        {t('users.pageSubtitle')}
                     </Typography>
                 </Box>
                 <Button
@@ -154,7 +154,7 @@ export default function UsersListPage() {
                     startIcon={<Add />}
                     onClick={() => navigate('/users/create')}
                 >
-                    Add User
+                    {t('users.addButton')}
                 </Button>
             </Box>
 
@@ -173,7 +173,7 @@ export default function UsersListPage() {
             <Paper sx={{ p: 2, mb: 3 }}>
                 <TextField
                     fullWidth
-                    placeholder="Search users by name or email..."
+                    placeholder={t('users.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     InputProps={{
@@ -199,12 +199,12 @@ export default function UsersListPage() {
                         <Table>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Name</TableCell>
-                                    <TableCell>Email</TableCell>
-                                    <TableCell>Role</TableCell>
-                                    <TableCell>Status</TableCell>
-                                    <TableCell>Last Login</TableCell>
-                                    <TableCell align="right">Actions</TableCell>
+                                    <TableCell>{t('users.columns.name')}</TableCell>
+                                    <TableCell>{t('users.columns.email')}</TableCell>
+                                    <TableCell>{t('users.columns.role')}</TableCell>
+                                    <TableCell>{t('users.columns.status')}</TableCell>
+                                    <TableCell>{t('users.columns.lastLogin')}</TableCell>
+                                    <TableCell align="right">{t('users.columns.actions')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -212,7 +212,7 @@ export default function UsersListPage() {
                                     <TableRow>
                                         <TableCell colSpan={6} align="center">
                                             <Typography color="text.secondary" py={4}>
-                                                {debouncedSearch ? 'No users match your search' : 'No users found'}
+                                                {debouncedSearch ? t('users.emptySearch') : t('users.empty')}
                                             </Typography>
                                         </TableCell>
                                     </TableRow>

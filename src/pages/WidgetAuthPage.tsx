@@ -773,7 +773,11 @@ function WidgetAuthPageInner() {
                             label={t('widgetAuth.passwordLabel')}
                             type={showPassword ? 'text' : 'password'}
                             error={!!errors.password}
-                            helperText={errors.password?.message}
+                            helperText={
+                                errors.password?.message === 'Password is required'
+                                    ? t('auth.error.passwordRequired')
+                                    : errors.password?.message
+                            }
                             margin="normal"
                             required
                             autoComplete="current-password"

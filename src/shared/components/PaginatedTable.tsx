@@ -81,12 +81,13 @@ export function PaginatedTable<T>({
     onPageChange,
     onPageSizeChange,
     getRowKey,
-    emptyMessage = 'No data available',
+    emptyMessage,
     onRowClick,
     stickyHeader = true,
     maxHeight,
 }: PaginatedTableProps<T>) {
     const { t } = useTranslation()
+    const resolvedEmptyMessage = emptyMessage ?? t('common.noData')
     const handleChangePage = (_event: unknown, newPage: number) => {
         onPageChange(newPage)
     }
@@ -146,7 +147,7 @@ export function PaginatedTable<T>({
             <Paper sx={{ width: '100%', p: 4 }}>
                 <Box textAlign="center">
                     <Typography variant="body1" color="text.secondary">
-                        {emptyMessage}
+                        {resolvedEmptyMessage}
                     </Typography>
                 </Box>
             </Paper>

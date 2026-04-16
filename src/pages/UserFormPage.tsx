@@ -3,6 +3,7 @@ import {useNavigate, useParams} from 'react-router-dom'
 import {Controller, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import {z} from 'zod'
+import {useTranslation} from 'react-i18next'
 import {
     Alert, Box, Button, Checkbox, Chip, CircularProgress, FormControl, FormHelperText,
     InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, TextField, Typography,
@@ -28,6 +29,7 @@ type UserFormData = z.infer<typeof userSchema>
 
 export default function UserFormPage() {
     const navigate = useNavigate()
+    const {t} = useTranslation()
     const {id} = useParams<{ id: string }>()
     const isEditMode = Boolean(id)
 
@@ -81,7 +83,7 @@ export default function UserFormPage() {
                 await updateUser(id, updateData)
             } else {
                 if (!data.password) {
-                    setError('Password is required for new users')
+                    setError(t('users.error.passwordRequiredNew'))
                     setLoading(false)
                     return
                 }

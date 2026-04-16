@@ -1,4 +1,5 @@
 import { useState, useCallback, useEffect } from 'react'
+import { useTranslation } from 'react-i18next'
 import {
     Alert,
     Box,
@@ -59,6 +60,7 @@ function getErrorMessage(err: unknown, fallback: string): string {
 }
 
 export default function TotpEnrollment({ open, userId, onClose, onSuccess }: TotpEnrollmentProps) {
+    const { t } = useTranslation()
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
     const [activeStep, setActiveStep] = useState(0)
     const [loading, setLoading] = useState(false)
@@ -109,7 +111,7 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
 
     const handleSetup = useCallback(async () => {
         if (!userId) {
-            setError('User ID is required for TOTP setup')
+            setError(t('auth.totp.error.userIdRequired'))
             return
         }
 
@@ -126,11 +128,11 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
         } finally {
             setLoading(false)
         }
-    }, [httpClient, userId])
+    }, [httpClient, t, userId])
 
     const handleVerify = useCallback(async () => {
         if (!userId) {
-            setError('User ID is required for TOTP verification')
+            setError(t('auth.totp.error.userIdRequiredVerify'))
             return
         }
 
@@ -158,7 +160,7 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
         } finally {
             setLoading(false)
         }
-    }, [code, httpClient, onSuccess, handleReset, userId])
+    }, [code, httpClient, onSuccess, handleReset, t, userId])
 
     const handleDisable = useCallback(async () => {
         if (!userId) return

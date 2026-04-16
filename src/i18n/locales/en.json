@@ -346,13 +346,39 @@
       "emailRequired": "Email is required",
       "invalidEmail": "Invalid email address",
       "passwordMinLength": "Password must be at least 8 characters"
+    },
+    "error": {
+      "passwordRequired": "Password is required"
+    },
+    "totp": {
+      "error": {
+        "userIdRequired": "User ID is required for TOTP setup",
+        "userIdRequiredVerify": "User ID is required for TOTP verification"
+      }
     }
   },
   "users": {
     "title": "Users",
     "createUser": "Create User",
     "editUser": "Edit User",
-    "userDetails": "User Details"
+    "userDetails": "User Details",
+    "pageTitle": "Users",
+    "pageSubtitle": "Manage user accounts and permissions",
+    "addButton": "Add User",
+    "searchPlaceholder": "Search users by name or email...",
+    "empty": "No users found",
+    "emptySearch": "No users match your search",
+    "columns": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "status": "Status",
+      "lastLogin": "Last Login",
+      "actions": "Actions"
+    },
+    "error": {
+      "passwordRequiredNew": "Password is required for new users"
+    }
   },
   "tenants": {
     "title": "Tenants",
@@ -1103,6 +1129,7 @@
       "title": "Email Verification",
       "subtitle": "Enter the code sent to your email",
       "sentTo": "Code sent to {{email}}",
+      "codeLabel": "Email verification code",
       "resend": "Resend Code",
       "resendCountdown": "Resend Code ({{seconds}}s)"
     },
@@ -1198,6 +1225,7 @@
       "scanSuccess": "NFC document read successfully!",
       "readError": "Failed to read NFC document. Try holding it closer.",
       "scanFailed": "NFC scan failed. Please try again.",
+      "scanTimeout": "No NFC tag detected within 30 seconds. Tap your document to the back of your phone and try again.",
       "notSupported": "NFC is only supported in Chrome on Android. Please use Chrome on your Android device.",
       "hint": "Hold your NFC-enabled document (passport, national ID, or residence permit) flat against the back of your phone. Keep it steady for a few seconds.",
       "framedTitle": "NFC can't run here",
@@ -1291,7 +1319,12 @@
     "invalidRedirect": "Invalid redirect destination. For your security this sign-in cannot continue.",
     "exchangeFailed": "We couldn't finalize your sign-in. Please try again from the original site.",
     "sessionLost": "Your sign-in session has expired. Please start over from the original site.",
-    "returnToApp": "Return to the application"
+    "returnToApp": "Return to the application",
+    "loadError": {
+      "title": "We couldn't load this sign-in page",
+      "body": "The connection to our servers timed out or failed. Please check your internet connection and try again.",
+      "retry": "Try again"
+    }
   },
   "language": {
     "en": "English",
@@ -1320,6 +1353,12 @@
     "moveCloser": "Move closer to the camera",
     "moveFurther": "Move further from the camera",
     "centerFace": "Center your face in the frame"
+  },
+  "faceCapture": {
+    "backend": {
+      "blazeface": "BlazeFace (on-device)",
+      "mediapipe": "MediaPipe (CDN)"
+    }
   },
   "faceChallenge": {
     "positionOval": "Position your face in the oval",

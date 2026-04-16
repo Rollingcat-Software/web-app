@@ -7,7 +7,7 @@
     "create": "Oluştur",
     "search": "Ara",
     "loading": "Yükleniyor...",
-    "noData": "Veri bulunamadı",
+    "noData": "Veri yok",
     "confirm": "Onayla",
     "back": "Geri",
     "actions": "İşlemler",
@@ -346,13 +346,39 @@
       "emailRequired": "E-posta gerekli",
       "invalidEmail": "Geçersiz e-posta adresi",
       "passwordMinLength": "Şifre en az 8 karakter olmalıdır"
+    },
+    "error": {
+      "passwordRequired": "Şifre zorunludur"
+    },
+    "totp": {
+      "error": {
+        "userIdRequired": "TOTP kurulumu için kullanıcı kimliği gerekli",
+        "userIdRequiredVerify": "TOTP doğrulaması için kullanıcı kimliği gerekli"
+      }
     }
   },
   "users": {
     "title": "Kullanıcılar",
     "createUser": "Kullanıcı Oluştur",
     "editUser": "Kullanıcı Düzenle",
-    "userDetails": "Kullanıcı Detayları"
+    "userDetails": "Kullanıcı Detayları",
+    "pageTitle": "Kullanıcılar",
+    "pageSubtitle": "Kullanıcı hesaplarını ve izinleri yönetin",
+    "addButton": "Kullanıcı Ekle",
+    "searchPlaceholder": "Ad veya e-posta ile ara...",
+    "empty": "Kullanıcı bulunamadı",
+    "emptySearch": "Aramanızla eşleşen kullanıcı yok",
+    "columns": {
+      "name": "Ad",
+      "email": "E-posta",
+      "role": "Rol",
+      "status": "Durum",
+      "lastLogin": "Son Giriş",
+      "actions": "İşlemler"
+    },
+    "error": {
+      "passwordRequiredNew": "Yeni kullanıcılar için şifre zorunludur"
+    }
   },
   "tenants": {
     "title": "Kiracılar",
@@ -1103,6 +1129,7 @@
       "title": "E-posta Doğrulama",
       "subtitle": "E-postanıza gönderilen kodu girin",
       "sentTo": "Kod {{email}} adresine gönderildi",
+      "codeLabel": "E-posta doğrulama kodu",
       "resend": "Kodu Tekrar Gönder",
       "resendCountdown": "Tekrar Gönder ({{seconds}}s)"
     },
@@ -1198,6 +1225,7 @@
       "scanSuccess": "NFC belge başarıyla okundu!",
       "readError": "NFC belge okunamadı. Daha yakın tutmayı deneyin.",
       "scanFailed": "NFC tarama başarısız. Tekrar deneyin.",
+      "scanTimeout": "30 saniye içinde NFC etiketi algılanmadı. Belgenizi telefonunuzun arkasına dokundurup tekrar deneyin.",
       "notSupported": "NFC yalnızca Android Chrome'da desteklenir. Lütfen Android cihazınızda Chrome kullanın.",
       "hint": "NFC özellikli belgenizi (pasaport, nüfus cüzdanı veya ikamet izni) telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun.",
       "framedTitle": "NFC burada çalışmıyor",
@@ -1291,7 +1319,12 @@
     "invalidRedirect": "Geçersiz yönlendirme hedefi. Güvenliğiniz için bu giriş sürdürülemiyor.",
     "exchangeFailed": "Girişinizi tamamlayamadık. Lütfen orijinal siteden yeniden deneyin.",
     "sessionLost": "Giriş oturumunuz sona erdi. Lütfen baştan başlayın.",
-    "returnToApp": "Uygulamaya dön"
+    "returnToApp": "Uygulamaya dön",
+    "loadError": {
+      "title": "Bu giriş sayfasını yükleyemedik",
+      "body": "Sunucularımıza bağlantı zaman aşımına uğradı veya başarısız oldu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
+      "retry": "Tekrar dene"
+    }
   },
   "language": {
     "en": "İngilizce",
@@ -1320,6 +1353,12 @@
     "moveCloser": "Kameraya yaklaşın",
     "moveFurther": "Kameradan uzaklaşın",
     "centerFace": "Yüzünüzü çerçevenin ortasına getirin"
+  },
+  "faceCapture": {
+    "backend": {
+      "blazeface": "BlazeFace (cihazda)",
+      "mediapipe": "MediaPipe (CDN)"
+    }
   },
   "faceChallenge": {
     "positionOval": "Yüzünüzü ovale yerleştirin",
