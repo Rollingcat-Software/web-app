@@ -1135,6 +1135,19 @@
     "loginFailed": "Login failed. Please check your credentials.",
     "missingParams": "Missing required parameters (session_id or client_id)."
   },
+  "hosted": {
+    "loadingApp": "Loading…",
+    "signingInTo": "Signing in to {{tenant}}",
+    "signingInToClient": "Signing in to {{client}}",
+    "securedBy": "Secured by FIVUCSAS",
+    "redirecting": "Redirecting you back to {{client}}…",
+    "missingParams": "This sign-in link is incomplete. Please return to the original site and try again.",
+    "invalidClient": "Unknown application. This sign-in link cannot be completed.",
+    "invalidRedirect": "Invalid redirect destination. For your security this sign-in cannot continue.",
+    "exchangeFailed": "We couldn't finalize your sign-in. Please try again from the original site.",
+    "sessionLost": "Your sign-in session has expired. Please start over from the original site.",
+    "returnToApp": "Return to the application"
+  },
   "language": {
     "en": "English",
     "tr": "Turkish"

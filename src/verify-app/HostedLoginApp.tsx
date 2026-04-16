@@ -1,0 +1,325 @@
+/**
+ * HostedLoginApp — Top-level hosted OAuth 2.0 / OIDC sign-in surface
+ *
+ * Rendered at {@code verify.fivucsas.com/login}. Reads OAuth parameters from
+ * the URL, shows tenant branding, runs the same {@link LoginMfaFlow} used by
+ * the iframe widget, and on completion mints an authorization code by calling
+ * {@code POST /oauth2/authorize/complete} — then redirects the browser to the
+ * tenant's registered {@code redirect_uri} with {@code ?code=...&state=...}.
+ *
+ * This is the primary integration mode (hosted-first). The widget iframe is
+ * kept for step-up MFA only.
+ *
+ * @see docs/plans/HOSTED_LOGIN_INTEGRATION.md
+ */
+
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import {
+    Alert,
+    Box,
+    Button,
+    CircularProgress,
+    CssBaseline,
+    Paper,
+    Stack,
+    ThemeProvider,
+    Typography,
+} from '@mui/material'
+import { useTranslation } from 'react-i18next'
+import { createAppTheme } from '../theme'
+import { DependencyProvider } from '@app/providers/DependencyProvider'
+import { createVerifyContainer } from './verifyContainer'
+import LoginMfaFlow from './LoginMfaFlow'
+import { TYPES } from '@core/di/types'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+
+// ─── URL Parameter Parsing ───────────────────────────────────────
+
+interface HostedParams {
+    clientId: string
+    redirectUri: string
+    scope: string
+    state: string
+    nonce: string
+    codeChallenge: string
+    codeChallengeMethod: string
+    locale: 'en' | 'tr'
+    theme: 'light' | 'dark'
+    apiBaseUrl: string
+}
+
+function parseHostedParams(): HostedParams {
+    const params = new URLSearchParams(window.location.search)
+    return {
+        clientId: params.get('client_id') ?? '',
+        redirectUri: params.get('redirect_uri') ?? '',
+        scope: params.get('scope') ?? 'openid profile email',
+        state: params.get('state') ?? '',
+        nonce: params.get('nonce') ?? '',
+        codeChallenge: params.get('code_challenge') ?? '',
+        codeChallengeMethod: params.get('code_challenge_method') ?? 'S256',
+        locale: (params.get('locale') as 'en' | 'tr') || 'en',
+        theme: (params.get('theme') as 'light' | 'dark') || 'light',
+        apiBaseUrl:
+            params.get('api_base_url') ||
+            import.meta.env.VITE_API_BASE_URL ||
+            'https://api.fivucsas.com/api/v1',
+    }
+}
+
+// ─── Types ───────────────────────────────────────────────────────
+
+interface ClientPublicMeta {
+    client_id: string
+    client_name: string
+    tenant_name?: string | null
+}
+
+interface AuthorizeCompleteResponse {
+    code: string
+    redirect_uri: string
+    state?: string | null
+}
+
+// ─── Component ───────────────────────────────────────────────────
+
+export default function HostedLoginApp() {
+    const { t } = useTranslation()
+    const [config] = useState(parseHostedParams)
+
+    const theme = useMemo(() => createAppTheme(config.theme), [config.theme])
+    const container = useMemo(() => createVerifyContainer(config.apiBaseUrl), [config.apiBaseUrl])
+
+    const [clientMeta, setClientMeta] = useState<ClientPublicMeta | null>(null)
+    const [paramError, setParamError] = useState<string | null>(null)
+    const [metaLoading, setMetaLoading] = useState(true)
+    const [redirecting, setRedirecting] = useState(false)
+    const [finalError, setFinalError] = useState<string | null>(null)
+
+    // Set locale from URL
+    useEffect(() => {
+        if (config.locale) {
+            import('../i18n').then((mod) => {
+                mod.default.changeLanguage(config.locale)
+            })
+        }
+    }, [config.locale])
+
+    // Validate required params up front
+    useEffect(() => {
+        if (!config.clientId || !config.redirectUri) {
+            setParamError(t('hosted.missingParams'))
+            setMetaLoading(false)
+            return
+        }
+
+        const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+        httpClient
+            .get<ClientPublicMeta>(`/oauth2/clients/${encodeURIComponent(config.clientId)}/public`)
+            .then((res) => {
+                setClientMeta(res.data)
+                setMetaLoading(false)
+            })
+            .catch(() => {
+                setParamError(t('hosted.invalidClient'))
+                setMetaLoading(false)
+            })
+    }, [config.clientId, config.redirectUri, container, t])
+
+    // ─── Completion handler ─────────────────────────────────────
+
+    const handleLoginComplete = useCallback(
+        async (result: {
+            accessToken: string
+            refreshToken?: string
+            userId: string
+            email?: string
+            completedMethods?: string[]
+            mfaSessionToken?: string
+            timestamp?: number
+        }) => {
+            if (!result.mfaSessionToken) {
+                setFinalError(t('hosted.sessionLost'))
+                return
+            }
+
+            setRedirecting(true)
+            const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+
+            try {
+                const response = await httpClient.post<AuthorizeCompleteResponse>(
+                    '/oauth2/authorize/complete',
+                    {
+                        mfaSessionToken: result.mfaSessionToken,
+                        clientId: config.clientId,
+                        redirectUri: config.redirectUri,
+                        scope: config.scope,
+                        state: config.state || null,
+                        nonce: config.nonce || null,
+                        codeChallenge: config.codeChallenge || null,
+                        codeChallengeMethod: config.codeChallengeMethod || null,
+                    }
+                )
+
+                const { code, redirect_uri: redirectUri } = response.data
+                if (!code || !redirectUri) {
+                    setRedirecting(false)
+                    setFinalError(t('hosted.exchangeFailed'))
+                    return
+                }
+
+                const target = new URL(redirectUri)
+                target.searchParams.set('code', code)
+                if (config.state) target.searchParams.set('state', config.state)
+                window.location.replace(target.toString())
+            } catch {
+                setRedirecting(false)
+                setFinalError(t('hosted.exchangeFailed'))
+            }
+        },
+        [
+            container,
+            config.clientId,
+            config.redirectUri,
+            config.scope,
+            config.state,
+            config.nonce,
+            config.codeChallenge,
+            config.codeChallengeMethod,
+            t,
+        ]
+    )
+
+    const handleCancel = useCallback(() => {
+        // Best-effort: return user to the origin of the redirect URI.
+        if (config.redirectUri) {
+            try {
+                const origin = new URL(config.redirectUri).origin
+                window.location.assign(origin)
+                return
+            } catch {
+                // fall through
+            }
+        }
+        window.history.length > 1 ? window.history.back() : window.close()
+    }, [config.redirectUri])
+
+    // ─── Render ─────────────────────────────────────────────────
+
+    if (metaLoading) {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <HostedFrame>
+                    <Stack alignItems="center" spacing={2} sx={{ py: 8 }}>
+                        <CircularProgress />
+                        <Typography variant="body2" color="text.secondary">
+                            {t('hosted.loadingApp')}
+                        </Typography>
+                    </Stack>
+                </HostedFrame>
+            </ThemeProvider>
+        )
+    }
+
+    if (paramError) {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <HostedFrame>
+                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                        <Typography variant="subtitle2" fontWeight={600}>
+                            {t('widget.verificationError')}
+                        </Typography>
+                        <Typography variant="body2">{paramError}</Typography>
+                    </Alert>
+                </HostedFrame>
+            </ThemeProvider>
+        )
+    }
+
+    const clientLabel =
+        clientMeta?.tenant_name ?? clientMeta?.client_name ?? config.clientId
+
+    return (
+        <ThemeProvider theme={theme}>
+            <CssBaseline />
+            <DependencyProvider container={container}>
+                <HostedFrame>
+                    <Stack spacing={3}>
+                        <Box>
+                            <Typography
+                                variant="overline"
+                                color="text.secondary"
+                                sx={{ letterSpacing: 1 }}
+                            >
+                                {t('hosted.securedBy')}
+                            </Typography>
+                            <Typography variant="h5" fontWeight={600}>
+                                {t('hosted.signingInTo', { tenant: clientLabel })}
+                            </Typography>
+                        </Box>
+
+                        {redirecting ? (
+                            <Stack alignItems="center" spacing={2} sx={{ py: 6 }}>
+                                <CircularProgress />
+                                <Typography variant="body2" color="text.secondary">
+                                    {t('hosted.redirecting', { client: clientLabel })}
+                                </Typography>
+                            </Stack>
+                        ) : finalError ? (
+                            <Stack spacing={2}>
+                                <Alert severity="error" sx={{ borderRadius: 2 }}>
+                                    {finalError}
+                                </Alert>
+                                <Button variant="outlined" onClick={handleCancel}>
+                                    {t('hosted.returnToApp')}
+                                </Button>
+                            </Stack>
+                        ) : (
+                            <LoginMfaFlow
+                                clientId={config.clientId}
+                                onComplete={handleLoginComplete}
+                                onCancel={handleCancel}
+                            />
+                        )}
+                    </Stack>
+                </HostedFrame>
+            </DependencyProvider>
+        </ThemeProvider>
+    )
+}
+
+// ─── Layout helper ───────────────────────────────────────────────
+
+function HostedFrame({ children }: { children: React.ReactNode }) {
+    return (
+        <Box
+            sx={{
+                minHeight: '100vh',
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                pt: { xs: 3, sm: 6 },
+                pb: { xs: 4, sm: 8 },
+                px: { xs: 2, sm: 3 },
+                bgcolor: 'background.default',
+            }}
+        >
+            <Paper
+                elevation={0}
+                sx={{
+                    width: '100%',
+                    maxWidth: 480,
+                    p: { xs: 3, sm: 4 },
+                    borderRadius: 3,
+                    border: '1px solid',
+                    borderColor: 'divider',
+                }}
+            >
+                {children}
+            </Paper>
+        </Box>
+    )
+}

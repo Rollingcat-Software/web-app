@@ -1135,6 +1135,19 @@
     "loginFailed": "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.",
     "missingParams": "Gerekli parametreler eksik (session_id veya client_id)."
   },
+  "hosted": {
+    "loadingApp": "Yükleniyor…",
+    "signingInTo": "{{tenant}} hesabına giriş yapılıyor",
+    "signingInToClient": "{{client}} uygulamasına giriş yapılıyor",
+    "securedBy": "FIVUCSAS tarafından güvence altında",
+    "redirecting": "{{client}} adresine yönlendiriliyorsunuz…",
+    "missingParams": "Bu giriş bağlantısı eksik. Lütfen orijinal siteye dönüp yeniden deneyin.",
+    "invalidClient": "Bilinmeyen uygulama. Bu giriş bağlantısı tamamlanamıyor.",
+    "invalidRedirect": "Geçersiz yönlendirme hedefi. Güvenliğiniz için bu giriş sürdürülemiyor.",
+    "exchangeFailed": "Girişinizi tamamlayamadık. Lütfen orijinal siteden yeniden deneyin.",
+    "sessionLost": "Giriş oturumunuz sona erdi. Lütfen baştan başlayın.",
+    "returnToApp": "Uygulamaya dön"
+  },
   "language": {
     "en": "İngilizce",
     "tr": "Türkçe"

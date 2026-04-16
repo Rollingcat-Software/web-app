@@ -42,7 +42,7 @@ type FlowPhase = 'password' | 'method-picker' | 'mfa-step' | 'complete'
 
 interface LoginMfaFlowProps {
     clientId: string
-    onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; timestamp?: number }) => void
+    onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; mfaSessionToken?: string; timestamp?: number }) => void
     onCancel: () => void
     onStepChange?: (stepIndex: number, methodType: string, totalSteps: number) => void
 }
@@ -177,6 +177,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 userId: res.user?.id ? String(res.user.id) : '',
                 email: res.user?.email ? String(res.user.email) : undefined,
                 completedMethods: finalMethods,
+                mfaSessionToken: mfaSessionToken || undefined,
                 timestamp: Date.now(),
             })
         } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
@@ -206,7 +207,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         } else {
             setError(t('widget.verificationFailed'))
         }
-    }, [onComplete, availableMethods, t])
+    }, [onComplete, availableMethods, mfaSessionToken, usedMethods, selectedMethod, t])
 
     // ─── WebAuthn Challenge Helper ────────────────────────────────
 

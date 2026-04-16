@@ -187,7 +187,7 @@ export default function VerifyApp() {
 
     // Handle auth completion (login mode)
     const handleLoginComplete = useCallback(
-        (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; timestamp?: number }) => {
+        (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; mfaSessionToken?: string; timestamp?: number }) => {
             sendComplete({
                 accessToken: result.accessToken,
                 refreshToken: result.refreshToken,
