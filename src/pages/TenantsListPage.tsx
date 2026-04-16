@@ -28,6 +28,7 @@ import {Add, Block, CheckCircle, Delete, Edit, Search, Visibility,} from '@mui/i
 import {useTenants} from '@features/tenants'
 import {TenantStatus} from '@domain/models/Tenant'
 import {format} from 'date-fns'
+import {Trans, useTranslation} from 'react-i18next'
 
 function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
     switch (status) {
@@ -44,6 +45,7 @@ function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
 
 export default function TenantsListPage() {
     const navigate = useNavigate()
+    const {t} = useTranslation()
     const {tenants, loading, deleteTenant, activateTenant, suspendTenant} = useTenants()
     const [searchQuery, setSearchQuery] = useState('')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -69,7 +71,7 @@ export default function TenantsListPage() {
                 await deleteTenant(deletingId)
                 setDeleteError(null)
             } catch (err) {
-                setDeleteError(err instanceof Error ? err.message : 'Failed to delete tenant')
+                setDeleteError(err instanceof Error ? err.message : t('tenants.deleteFailed'))
             }
         }
         setDeleteDialogOpen(false)
@@ -92,10 +94,10 @@ export default function TenantsListPage() {
             <Box sx={{display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 3}}>
                 <div>
                     <Typography variant="h4" gutterBottom fontWeight={600}>
-                        Tenants
+                        {t('tenants.title')}
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
-                        Manage tenant organizations and subscriptions
+                        {t('tenants.subtitle')}
                     </Typography>
                 </div>
                 <Button
@@ -103,7 +105,7 @@ export default function TenantsListPage() {
                     startIcon={<Add/>}
                     onClick={() => navigate('/tenants/create')}
                 >
-                    Add Tenant
+                    {t('tenants.addTenant')}
                 </Button>
             </Box>
 
@@ -116,7 +118,7 @@ export default function TenantsListPage() {
             <Paper sx={{p: 2, mb: 3}}>
                 <TextField
                     fullWidth
-                    placeholder="Search tenants by name or slug..."
+                    placeholder={t('tenants.searchPlaceholder')}
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                     InputProps={{
@@ -138,12 +140,12 @@ export default function TenantsListPage() {
                     <Table>
                         <TableHead>
                             <TableRow>
-                                <TableCell>Name</TableCell>
-                                <TableCell>Slug</TableCell>
-                                <TableCell>Status</TableCell>
-                                <TableCell>Users</TableCell>
-                                <TableCell>Created</TableCell>
-                                <TableCell align="right">Actions</TableCell>
+                                <TableCell>{t('tenants.columnName')}</TableCell>
+                                <TableCell>{t('tenants.columnSlug')}</TableCell>
+                                <TableCell>{t('tenants.columnStatus')}</TableCell>
+                                <TableCell>{t('tenants.columnUsers')}</TableCell>
+                                <TableCell>{t('tenants.columnCreated')}</TableCell>
+                                <TableCell align="right">{t('tenants.columnActions')}</TableCell>
                             </TableRow>
                         </TableHead>
                         <TableBody>
@@ -151,7 +153,7 @@ export default function TenantsListPage() {
                                 <TableRow>
                                     <TableCell colSpan={6} align="center">
                                         <Typography color="text.secondary" py={4}>
-                                            No tenants found
+                                            {t('tenants.noTenantsFound')}
                                         </Typography>
                                     </TableCell>
                                 </TableRow>
@@ -177,7 +179,10 @@ export default function TenantsListPage() {
                                                 <LinearProgress
                                                     variant="determinate"
                                                     value={getUserPercentage(tenant.currentUsers, tenant.maxUsers)}
-                                                    aria-label={`${tenant.currentUsers} of ${tenant.maxUsers} users`}
+                                                    aria-label={t('tenants.usersOfMax', {
+                                                        current: tenant.currentUsers,
+                                                        max: tenant.maxUsers,
+                                                    })}
                                                     sx={{
                                                         height: 6,
                                                         borderRadius: 1,
@@ -193,32 +198,36 @@ export default function TenantsListPage() {
                                             <IconButton
                                                 size="small"
                                                 onClick={() => navigate(`/tenants/${tenant.id}/edit`)}
-                                                aria-label="View details"
+                                                aria-label={t('tenants.viewDetails')}
                                             >
                                                 <Visibility fontSize="small"/>
                                             </IconButton>
                                             <IconButton
                                                 size="small"
                                                 onClick={() => navigate(`/tenants/${tenant.id}/edit`)}
-                                                aria-label="Edit tenant"
+                                                aria-label={t('tenants.editTenantAria')}
                                             >
                                                 <Edit fontSize="small"/>
                                             </IconButton>
                                             {tenant.status === TenantStatus.SUSPENDED ? (
                                                 <IconButton
                                                     size="small"
-                                                    onClick={() => activateTenant(tenant.id).catch(() => {})}
+                                                    onClick={() => activateTenant(tenant.id).catch((e) => {
+                                                        console.error('Failed to activate tenant', e)
+                                                    })}
                                                     color="success"
-                                                    aria-label="Activate tenant"
+                                                    aria-label={t('tenants.activateTenantAria')}
                                                 >
                                                     <CheckCircle fontSize="small"/>
                                                 </IconButton>
                                             ) : tenant.status === TenantStatus.ACTIVE ? (
                                                 <IconButton
                                                     size="small"
-                                                    onClick={() => suspendTenant(tenant.id).catch(() => {})}
+                                                    onClick={() => suspendTenant(tenant.id).catch((e) => {
+                                                        console.error('Failed to suspend tenant', e)
+                                                    })}
                                                     color="warning"
-                                                    aria-label="Suspend tenant"
+                                                    aria-label={t('tenants.suspendTenantAria')}
                                                 >
                                                     <Block fontSize="small"/>
                                                 </IconButton>
@@ -227,7 +236,7 @@ export default function TenantsListPage() {
                                                 size="small"
                                                 onClick={() => handleDeleteClick(tenant.id, tenant.name)}
                                                 color="error"
-                                                aria-label="Delete tenant"
+                                                aria-label={t('tenants.deleteTenantAria')}
                                             >
                                                 <Delete fontSize="small"/>
                                             </IconButton>
@@ -245,16 +254,20 @@ export default function TenantsListPage() {
                 onClose={handleDeleteCancel}
                 aria-labelledby="delete-tenant-dialog-title"
             >
-                <DialogTitle id="delete-tenant-dialog-title">Delete Tenant</DialogTitle>
+                <DialogTitle id="delete-tenant-dialog-title">{t('tenants.deleteTitle')}</DialogTitle>
                 <DialogContent>
                     <DialogContentText>
-                        Are you sure you want to delete <strong>{deletingName}</strong>? All associated users will be affected. This action cannot be undone.
+                        <Trans
+                            i18nKey="tenants.deleteConfirm"
+                            values={{name: deletingName}}
+                            components={{strong: <strong/>}}
+                        />
                     </DialogContentText>
                 </DialogContent>
                 <DialogActions>
-                    <Button onClick={handleDeleteCancel}>Cancel</Button>
+                    <Button onClick={handleDeleteCancel}>{t('common.cancel')}</Button>
                     <Button onClick={handleDeleteConfirm} color="error" variant="contained">
-                        Delete
+                        {t('common.delete')}
                     </Button>
                 </DialogActions>
             </Dialog>

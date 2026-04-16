@@ -58,7 +58,7 @@ const itemVariants: Variants = {
 const PIE_COLORS = ['#10b981', '#ef4444', '#f59e0b', '#3b82f6', '#94a3b8']
 
 export default function VerificationDashboardPage() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const navigate = useNavigate()
     const {
         stats,
@@ -404,7 +404,7 @@ export default function VerificationDashboardPage() {
                                                         />
                                                     </TableCell>
                                                     <TableCell>
-                                                        {new Date(session.startedAt).toLocaleString()}
+                                                        {new Date(session.startedAt).toLocaleString(i18n.language)}
                                                     </TableCell>
                                                 </TableRow>
                                             ))

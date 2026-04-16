@@ -21,9 +21,11 @@ import {
 import { Cancel, Save } from '@mui/icons-material'
 import { useRoles } from '@features/roles'
 import { Permission } from '@domain/models/Permission'
+import { useTranslation } from 'react-i18next'
 
 export default function RoleFormPage() {
     const navigate = useNavigate()
+    const { t } = useTranslation()
     const { id } = useParams<{ id: string }>()
     const isEditMode = Boolean(id)
     const { roles, permissions, loading: dataLoading, createRole, updateRole, assignPermission, revokePermission } = useRoles()
@@ -74,7 +76,7 @@ export default function RoleFormPage() {
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault()
         if (!name.trim()) {
-            setError('Role name is required')
+            setError(t('roleForm.roleNameRequired'))
             return
         }
         setSaving(true)
@@ -103,7 +105,8 @@ export default function RoleFormPage() {
             }
             navigate('/roles')
         } catch (err) {
-            const message = err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'create'} role`
+            const fallback = isEditMode ? t('roleForm.updateFailed') : t('roleForm.createFailed')
+            const message = err instanceof Error ? err.message : fallback
             setError(message)
         } finally {
             setSaving(false)
@@ -141,22 +144,24 @@ export default function RoleFormPage() {
         return (
             <Box>
                 <Typography variant="h4" gutterBottom fontWeight={600}>
-                    View Role
+                    {t('roleForm.viewTitle')}
                 </Typography>
                 <Alert severity="info" sx={{ mb: 3 }}>
-                    System roles cannot be modified. Viewing in read-only mode.
+                    {t('roleForm.systemRoleReadOnly')}
                 </Alert>
                 <Paper sx={{ p: 4, maxWidth: 800 }}>
                     <Typography variant="h6" gutterBottom>{existingRole.name}</Typography>
                     <Typography color="text.secondary" sx={{ mb: 3 }}>{existingRole.description}</Typography>
-                    <Typography variant="subtitle2" sx={{ mb: 1 }}>Permissions ({existingRole.permissionCount})</Typography>
+                    <Typography variant="subtitle2" sx={{ mb: 1 }}>
+                        {t('roleForm.permissionsCount', { count: existingRole.permissionCount })}
+                    </Typography>
                     <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
                         {existingRole.permissions.map((p) => (
                             <Chip key={p.id} label={p.authority} size="small" variant="outlined" />
                         ))}
                     </Box>
                     <Box sx={{ mt: 3 }}>
-                        <Button variant="outlined" onClick={() => navigate('/roles')}>Back to Roles</Button>
+                        <Button variant="outlined" onClick={() => navigate('/roles')}>{t('roleForm.backToRoles')}</Button>
                     </Box>
                 </Paper>
             </Box>
@@ -166,10 +171,10 @@ export default function RoleFormPage() {
     return (
         <Box>
             <Typography variant="h4" gutterBottom fontWeight={600}>
-                {isEditMode ? 'Edit Role' : 'Create New Role'}
+                {isEditMode ? t('roleForm.editTitle') : t('roleForm.createTitle')}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{ mb: 3 }}>
-                {isEditMode ? 'Update role details and permissions' : 'Define a new role with permissions'}
+                {isEditMode ? t('roleForm.editSubtitle') : t('roleForm.createSubtitle')}
             </Typography>
 
             {error && (
@@ -182,28 +187,28 @@ export default function RoleFormPage() {
                 <Paper sx={{ p: 4, mb: 3, maxWidth: 800 }}>
                     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 3 }}>
                         <TextField
-                            label="Role Name"
+                            label={t('roleForm.roleNameLabel')}
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             fullWidth
                             required
-                            placeholder="e.g., Tenant Admin"
+                            placeholder={t('roleForm.roleNamePlaceholder')}
                         />
                         <TextField
-                            label="Description"
+                            label={t('roleForm.descriptionLabel')}
                             value={description}
                             onChange={(e) => setDescription(e.target.value)}
                             fullWidth
                             multiline
                             rows={2}
-                            placeholder="Describe the purpose of this role..."
+                            placeholder={t('roleForm.descriptionPlaceholder')}
                         />
                     </Box>
                 </Paper>
 
                 <Paper sx={{ p: 4, mb: 3 }}>
                     <Typography variant="h6" sx={{ mb: 2 }}>
-                        Permissions ({selectedPermissionIds.size} selected)
+                        {t('roleForm.permissionsHeader', { count: selectedPermissionIds.size })}
                     </Typography>
 
                     {Object.entries(permissionsByResource).map(([resource, perms]) => {
@@ -231,9 +236,9 @@ export default function RoleFormPage() {
                                         <TableHead>
                                             <TableRow>
                                                 <TableCell padding="checkbox" />
-                                                <TableCell>Permission</TableCell>
-                                                <TableCell>Authority</TableCell>
-                                                <TableCell>Description</TableCell>
+                                                <TableCell>{t('roleForm.columnPermission')}</TableCell>
+                                                <TableCell>{t('roleForm.columnAuthority')}</TableCell>
+                                                <TableCell>{t('roleForm.columnDescription')}</TableCell>
                                             </TableRow>
                                         </TableHead>
                                         <TableBody>
@@ -265,14 +270,14 @@ export default function RoleFormPage() {
 
                     {permissions.length === 0 && (
                         <Typography color="text.secondary" sx={{ py: 2 }}>
-                            No permissions available
+                            {t('roleForm.noPermissionsAvailable')}
                         </Typography>
                     )}
                 </Paper>
 
                 <Box sx={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
                     <Button variant="outlined" startIcon={<Cancel />} onClick={() => navigate('/roles')} disabled={saving}>
-                        Cancel
+                        {t('common.cancel')}
                     </Button>
                     <Button
                         type="submit"
@@ -280,7 +285,7 @@ export default function RoleFormPage() {
                         startIcon={saving ? <CircularProgress size={20} /> : <Save />}
                         disabled={saving}
                     >
-                        {isEditMode ? 'Update Role' : 'Create Role'}
+                        {isEditMode ? t('roleForm.updateRole') : t('roleForm.createRole')}
                     </Button>
                 </Box>
             </form>

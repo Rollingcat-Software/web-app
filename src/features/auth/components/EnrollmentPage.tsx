@@ -351,7 +351,10 @@ export default function EnrollmentPage() {
     // Fetch access token for voice endpoints
     useEffect(() => {
         const tokenService = container.get<ITokenService>(TYPES.TokenService)
-        tokenService.getAccessToken().then(setAccessToken).catch(() => {})
+        tokenService.getAccessToken().then(setAccessToken).catch((e) => {
+            // Voice endpoints will fall back to unauthenticated mode; log so we can diagnose later.
+            console.error('EnrollmentPage: failed to fetch access token for voice endpoints', e)
+        })
     }, [])
 
     // Build enrollment status map

@@ -94,8 +94,10 @@ export default function MultiStepAuthFlow({
                 }
                 setSessionUserId(session.userId)
             })
-            .catch(() => {
+            .catch((e) => {
                 // Session may have expired; QR step can still use manual token entry.
+                // Log so a real failure (network, server 5xx) doesn't silently disappear.
+                console.error('MultiStepAuthFlow: failed to fetch session', e)
             })
 
         return () => {

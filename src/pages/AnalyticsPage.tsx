@@ -51,7 +51,7 @@ const itemVariants: Variants = {
 const COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ef4444', '#3b82f6', '#8b5cf6', '#ec4899', '#14b8a6']
 
 export default function AnalyticsPage() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { stats, loading, error } = useDashboard()
     const { auditLogs, loading: logsLoading } = useAuditLogs()
 
@@ -198,10 +198,10 @@ export default function AnalyticsPage() {
             .map(log => ({
                 action: log.action.replace(/_/g, ' '),
                 user: log.userId || 'Unknown',
-                time: new Date(log.createdAt).toLocaleString(),
+                time: new Date(log.createdAt).toLocaleString(i18n.language),
                 success: !log.action.includes('FAILED'),
             }))
-    }, [auditLogs])
+    }, [auditLogs, i18n.language])
 
     // Success/failure rate data for bar display
     const successFailureRates = useMemo(() => {
