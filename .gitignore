@@ -60,6 +60,7 @@ pnpm-lock.yaml
 dist-verify/
 dist-sdk/
 dist-adapter/
+dist-elements/
 
 # Production env
 .env.production

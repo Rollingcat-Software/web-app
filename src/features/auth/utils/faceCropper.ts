@@ -105,6 +105,36 @@ export function cropFaceToDataURL(
 }
 
 /**
+ * Convert a base64 JPEG data-URL to an ImageData object.
+ *
+ * Used to feed a captured face crop into EmbeddingComputer.extract().
+ * The image is drawn at its native resolution; EmbeddingComputer will
+ * internally resize to 112×112 for MobileFaceNet inference.
+ *
+ * @param dataURL  Base64 JPEG data-URL (e.g. from cropFaceToDataURL).
+ * @returns        ImageData, or null if the canvas context fails.
+ */
+export async function dataURLToImageData(dataURL: string): Promise<ImageData | null> {
+  return new Promise((resolve) => {
+    const img = new Image()
+    img.onload = () => {
+      const canvas = document.createElement('canvas')
+      canvas.width = img.width
+      canvas.height = img.height
+      const ctx = canvas.getContext('2d')
+      if (!ctx) {
+        resolve(null)
+        return
+      }
+      ctx.drawImage(img, 0, 0)
+      resolve(ctx.getImageData(0, 0, img.width, img.height))
+    }
+    img.onerror = () => resolve(null)
+    img.src = dataURL
+  })
+}
+
+/**
  * Capture and crop the best face from the current video frame.
  *
  * Selects the face with the highest confidence score (if multiple detected).

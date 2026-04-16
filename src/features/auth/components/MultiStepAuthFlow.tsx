@@ -370,7 +370,7 @@ export default function MultiStepAuthFlow({
             case 'FACE':
                 return (
                     <FaceCaptureStep
-                        onSubmit={(image) => handleStepSubmit({ image })}
+                        onSubmit={(image, clientEmbedding) => handleStepSubmit({ image, ...(clientEmbedding ? { clientEmbedding } : {}) })}
                         loading={loading}
                         error={error}
                     />

@@ -68,13 +68,23 @@ export class BiometricService {
      * Enroll a face for a user (1:1 registration).
      * When multiple images are provided, uses the /enroll/multi endpoint
      * for quality-weighted template fusion (30-40% better accuracy).
+     *
+     * @param imageBase64      Single or multiple base64 JPEG data-URLs (224×224 client crop).
+     * @param tenantId         Optional tenant scope.
+     * @param clientEmbeddings Optional per-image MobileFaceNet embeddings computed client-side.
+     *                         Server ignores this field if it does not recognize it (additive).
      */
-    async enrollFace(userId: string, imageBase64: string | string[], tenantId?: string): Promise<EnrollmentResult> {
+    async enrollFace(
+        userId: string,
+        imageBase64: string | string[],
+        tenantId?: string,
+        clientEmbeddings?: (number[] | null)[],
+    ): Promise<EnrollmentResult> {
         const images = Array.isArray(imageBase64) ? imageBase64 : [imageBase64]
 
         try {
             if (images.length >= 2) {
-                return await this.enrollFaceMulti(userId, images, tenantId)
+                return await this.enrollFaceMulti(userId, images, tenantId, clientEmbeddings)
             }
 
             const blob = this.base64ToBlob(images[0])
@@ -82,6 +92,12 @@ export class BiometricService {
             formData.append('file', blob, 'face.jpg')
             formData.append('user_id', userId)
             if (tenantId) formData.append('tenant_id', tenantId)
+
+            // Attach client embedding if available (server ignores unknown fields)
+            const embedding = clientEmbeddings?.[0]
+            if (embedding) {
+                formData.append('client_embedding', JSON.stringify(embedding))
+            }
 
             const response = await this.client.post('/enroll', formData, {
                 headers: { 'Content-Type': 'multipart/form-data' },
@@ -100,8 +116,17 @@ export class BiometricService {
 
     /**
      * Enroll using multiple images with quality-weighted fusion.
+     *
+     * @param clientEmbeddings Optional per-image MobileFaceNet embeddings (128-dim).
+     *                         Serialized as JSON array in FormData field "client_embeddings".
+     *                         Server ignores this field if it does not recognize it (additive).
      */
-    private async enrollFaceMulti(userId: string, images: string[], tenantId?: string): Promise<EnrollmentResult> {
+    private async enrollFaceMulti(
+        userId: string,
+        images: string[],
+        tenantId?: string,
+        clientEmbeddings?: (number[] | null)[],
+    ): Promise<EnrollmentResult> {
         const formData = new FormData()
         formData.append('user_id', userId)
         if (tenantId) formData.append('tenant_id', tenantId)
@@ -109,6 +134,11 @@ export class BiometricService {
         for (let i = 0; i < images.length; i++) {
             const blob = this.base64ToBlob(images[i])
             formData.append('files', blob, `face_${i}.jpg`)
+        }
+
+        // Attach client embeddings if at least one is non-null (server ignores unknown fields)
+        if (clientEmbeddings && clientEmbeddings.some(Boolean)) {
+            formData.append('client_embeddings', JSON.stringify(clientEmbeddings))
         }
 
         const response = await this.client.post('/enroll/multi', formData, {

@@ -20,7 +20,7 @@ import FaceOvalGuide from './FaceOvalGuide'
 interface FaceEnrollmentFlowProps {
     open: boolean
     onClose: () => void
-    onComplete: (images: string[]) => void
+    onComplete: (images: string[], clientEmbeddings?: (number[] | null)[]) => void
 }
 
 const STAGE_ICONS: Record<ChallengeStage, string> = {
@@ -121,7 +121,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
     const handleSubmit = () => {
         // Don't close here — the parent (EnrollmentPage) will close the dialog
         // after the biometric API call completes (success or failure)
-        onComplete(challengeState.captures)
+        onComplete(challengeState.captures, challengeState.clientEmbeddings)
     }
 
     const handleRetry = () => {

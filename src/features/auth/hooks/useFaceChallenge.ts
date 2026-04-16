@@ -1,5 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { FaceDetectionState } from './useFaceDetection'
+import { BiometricEngine } from '../../../lib/biometric-engine/core/BiometricEngine'
+import { dataURLToImageData } from '../utils/faceCropper'
 
 export type ChallengeStage =
     | 'position'      // Center face in oval
@@ -25,6 +27,7 @@ export interface ChallengeState {
     stageProgress: number      // 0-1, current stage hold progress
     instruction: string
     captures: string[]         // base64 images captured at each stage
+    clientEmbeddings: (number[] | null)[]  // MobileFaceNet 128-dim embedding per capture (null if not available)
 }
 
 export interface VerificationState {
@@ -54,11 +57,13 @@ export function useFaceChallenge() {
         stageProgress: 0,
         instruction: ENROLLMENT_STAGES[0].instructionKey,
         captures: [],
+        clientEmbeddings: [],
     })
 
     const holdStartRef = useRef<number | null>(null)
     const stageIndexRef = useRef(0)
     const capturesRef = useRef<string[]>([])
+    const clientEmbeddingsRef = useRef<(number[] | null)[]>([])
     const prevConfidenceRef = useRef<number>(0)
     const blinkDetectedRef = useRef(false)
     const stageStartRef = useRef<number>(Date.now())
@@ -66,6 +71,7 @@ export function useFaceChallenge() {
     const resetChallenge = useCallback(() => {
         stageIndexRef.current = 0
         capturesRef.current = []
+        clientEmbeddingsRef.current = []
         holdStartRef.current = null
         prevConfidenceRef.current = 0
         blinkDetectedRef.current = false
@@ -78,6 +84,7 @@ export function useFaceChallenge() {
             stageProgress: 0,
             instruction: ENROLLMENT_STAGES[0].instructionKey,
             captures: [],
+            clientEmbeddings: [],
         })
     }, [])
 
@@ -182,6 +189,32 @@ export function useFaceChallenge() {
                 }
                 if (capturedImage) {
                     capturesRef.current = [...capturesRef.current, capturedImage]
+
+                    // Async: extract client-side embedding via MobileFaceNet (ONNX).
+                    // Push null immediately so the array index lines up with captures[],
+                    // then replace with the real embedding once inference completes.
+                    const captureIdx = capturesRef.current.length - 1
+                    clientEmbeddingsRef.current = [...clientEmbeddingsRef.current, null]
+                    ;(async () => {
+                        try {
+                            const engine = BiometricEngine.getInstance()
+                            const computer = engine.embeddingComputer
+                            if (computer && computer.isAvailable()) {
+                                const imageData = await dataURLToImageData(capturedImage)
+                                if (imageData) {
+                                    const vec = await computer.extract(imageData)
+                                    if (vec) {
+                                        clientEmbeddingsRef.current = clientEmbeddingsRef.current.map(
+                                            (e, i) => i === captureIdx ? Array.from(vec) : e
+                                        )
+                                    }
+                                }
+                            }
+                        } catch {
+                            // Non-critical: embedding extraction failure is silently ignored.
+                            // Server will perform its own embedding extraction.
+                        }
+                    })()
                 }
 
                 const nextIdx = idx + 1
@@ -200,6 +233,7 @@ export function useFaceChallenge() {
                         stageProgress: 1,
                         instruction: 'faceChallenge.enrolledSuccess',
                         captures: capturesRef.current,
+                        clientEmbeddings: clientEmbeddingsRef.current,
                     })
                 } else {
                     setChallengeState({
@@ -210,6 +244,7 @@ export function useFaceChallenge() {
                         stageProgress: 0,
                         instruction: ENROLLMENT_STAGES[nextIdx].instructionKey,
                         captures: capturesRef.current,
+                        clientEmbeddings: clientEmbeddingsRef.current,
                     })
                 }
             } else {
