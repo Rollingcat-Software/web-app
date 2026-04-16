@@ -62,12 +62,18 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
         setScanError(null)
         setScanResult(null)
 
+        // Track whether the scan succeeded so the 30s timeout doesn't stomp a
+        // result — and, conversely, so it can surface a user-visible error if
+        // nothing was tapped.
+        let completed = false
+
         try {
             // @ts-expect-error NDEFReader is not in TypeScript types yet
             const ndef = new window.NDEFReader()
             await ndef.scan()
 
             ndef.addEventListener('reading', ({ serialNumber }: { serialNumber: string }) => {
+                completed = true
                 setScanResult(serialNumber)
                 setScanning(false)
                 if (onSubmit) {
@@ -76,13 +82,18 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
             })
 
             ndef.addEventListener('readingerror', () => {
+                completed = true
                 setScanError(t('mfa.nfc.readError'))
                 setScanning(false)
             })
 
-            // Auto-timeout after 30 seconds
+            // Auto-timeout after 30 seconds with a user-visible message so the
+            // user doesn't stare at a silently-stopped spinner.
             setTimeout(() => {
-                setScanning(false)
+                if (!completed) {
+                    setScanError(t('mfa.nfc.scanTimeout'))
+                    setScanning(false)
+                }
             }, 30000)
         } catch (err) {
             setScanError(err instanceof Error ? err.message : t('mfa.nfc.scanFailed'))

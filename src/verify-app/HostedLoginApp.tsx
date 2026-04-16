@@ -113,6 +113,8 @@ export default function HostedLoginApp() {
     const [clientMeta, setClientMeta] = useState<ClientPublicMeta | null>(null)
     const [paramError, setParamError] = useState<string | null>(null)
     const [metaLoading, setMetaLoading] = useState(true)
+    const [metaLoadFailed, setMetaLoadFailed] = useState(false)
+    const [metaReloadKey, setMetaReloadKey] = useState(0)
     const [redirecting, setRedirecting] = useState(false)
     const [finalError, setFinalError] = useState<string | null>(null)
 
@@ -125,7 +127,10 @@ export default function HostedLoginApp() {
         }
     }, [config.locale])
 
-    // Validate required params up front
+    // Validate required params up front + fetch tenant-branding metadata.
+    // The fetch is bounded by a 10s abort timeout so a stalled network does
+    // not leave the user on an indefinite loading spinner. On timeout or any
+    // network error (≠ invalid client) we surface a retry UI.
     useEffect(() => {
         if (!config.clientId || !config.redirectUri) {
             setParamError(t('hosted.missingParams'))
@@ -133,18 +138,49 @@ export default function HostedLoginApp() {
             return
         }
 
+        setMetaLoading(true)
+        setMetaLoadFailed(false)
+
         const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+        const controller = new AbortController()
+        const timeoutId = window.setTimeout(() => controller.abort(), 10000)
+        let cancelled = false
+
         httpClient
-            .get<ClientPublicMeta>(`/oauth2/clients/${encodeURIComponent(config.clientId)}/public`)
+            .get<ClientPublicMeta>(
+                `/oauth2/clients/${encodeURIComponent(config.clientId)}/public`,
+                {
+                    timeout: 10000,
+                    // signal isn't in RequestConfig, but axios passes through
+                    // unknown keys unchanged. Cast narrowly to keep typecheck happy.
+                    ...({ signal: controller.signal } as { signal: AbortSignal }),
+                }
+            )
             .then((res) => {
+                if (cancelled) return
                 setClientMeta(res.data)
                 setMetaLoading(false)
             })
-            .catch(() => {
-                setParamError(t('hosted.invalidClient'))
+            .catch((err: unknown) => {
+                if (cancelled) return
+                const status = (err as { response?: { status?: number } })?.response?.status
+                if (status === 404 || status === 400) {
+                    setParamError(t('hosted.invalidClient'))
+                } else {
+                    setMetaLoadFailed(true)
+                }
                 setMetaLoading(false)
             })
-    }, [config.clientId, config.redirectUri, container, t])
+            .finally(() => {
+                window.clearTimeout(timeoutId)
+            })
+
+        return () => {
+            cancelled = true
+            window.clearTimeout(timeoutId)
+            controller.abort()
+        }
+    }, [config.clientId, config.redirectUri, container, t, metaReloadKey])
 
     // ─── Completion handler ─────────────────────────────────────
 
@@ -265,6 +301,32 @@ export default function HostedLoginApp() {
                         </Typography>
                         <Typography variant="body2">{paramError}</Typography>
                     </Alert>
+                </HostedFrame>
+            </ThemeProvider>
+        )
+    }
+
+    if (metaLoadFailed) {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <HostedFrame>
+                    <Stack spacing={2}>
+                        <Alert severity="error" sx={{ borderRadius: 2 }}>
+                            <Typography variant="subtitle2" fontWeight={600}>
+                                {t('hosted.loadError.title')}
+                            </Typography>
+                            <Typography variant="body2">
+                                {t('hosted.loadError.body')}
+                            </Typography>
+                        </Alert>
+                        <Button
+                            variant="contained"
+                            onClick={() => setMetaReloadKey((k) => k + 1)}
+                        >
+                            {t('hosted.loadError.retry')}
+                        </Button>
+                    </Stack>
                 </HostedFrame>
             </ThemeProvider>
         )

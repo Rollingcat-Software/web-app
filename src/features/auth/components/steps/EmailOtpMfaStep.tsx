@@ -165,7 +165,7 @@ export default function EmailOtpMfaStep({
                 <motion.div variants={itemVariants}>
                     <TextField
                         fullWidth
-                        label={t('mfa.totp.codeLabel')}
+                        label={t('mfa.emailOtp.codeLabel')}
                         value={code}
                         onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
                         placeholder="000000"

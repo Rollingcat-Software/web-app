@@ -448,7 +448,11 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         )}
                         {backend !== 'none' && (
                             <Chip
-                                label={backend === 'blazeface' ? 'BlazeFace (on-device)' : 'MediaPipe (CDN)'}
+                                label={
+                                    backend === 'blazeface'
+                                        ? t('faceCapture.backend.blazeface')
+                                        : t('faceCapture.backend.mediapipe')
+                                }
                                 size="small"
                                 color={backend === 'blazeface' ? 'success' : 'info'}
                                 variant="outlined"

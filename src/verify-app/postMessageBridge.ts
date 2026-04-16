@@ -37,22 +37,49 @@ export type InboundMessage = ParentConfigMessage
 
 /**
  * Stores the allowed origin received from the parent's config message.
- * When set, postMessage will be restricted to this origin instead of '*'.
+ *
+ * SECURITY: Stays `null` until the first `fivucsas:config` message arrives
+ * from a known parent origin. While null, outbound messages are DROPPED
+ * rather than broadcast to `'*'` — a wildcard target would leak early
+ * ready/step-change/resize payloads (potentially containing tenant-scoped
+ * metadata) to any window that happens to embed us before the parent
+ * completes its handshake.
  */
-let parentOrigin: string = '*'
+let parentOrigin: string | null = null
 
 export function setParentOrigin(origin: string): void {
     parentOrigin = origin
 }
 
+/** Test-only: reset the handshake state between unit tests. */
+export function _resetParentOriginForTests(): void {
+    parentOrigin = null
+}
+
 /**
  * Send a message to the parent window (if we are embedded).
  * In standalone mode (window.parent === window), this is a no-op.
+ *
+ * If the parent origin has not yet been established (no config handshake
+ * received), the message is DROPPED to avoid broadcasting to `'*'`. A
+ * dev-mode warning is logged so the handshake gap is visible during
+ * integration work.
  */
 export function sendToParent(msg: VerifyMessage): void {
-    if (window.parent !== window) {
-        window.parent.postMessage(msg, parentOrigin)
+    if (window.parent === window) {
+        return
     }
+    if (parentOrigin === null) {
+        if (import.meta.env?.DEV) {
+            // eslint-disable-next-line no-console
+            console.warn(
+                '[fivucsas] Dropping postMessage — parent origin not yet established via fivucsas:config handshake',
+                msg.type
+            )
+        }
+        return
+    }
+    window.parent.postMessage(msg, parentOrigin)
 }
 
 // ─── Convenience Senders ─────────────────────────────────────────
@@ -136,12 +163,14 @@ export function onParentMessage(callback: MessageCallback): () => void {
             // Accept the first config message to learn the parent origin,
             // then restrict subsequent messages to that origin only
             if (data.type === 'fivucsas:config' && event.origin && event.origin !== 'null') {
-                if (parentOrigin === '*') {
+                if (parentOrigin === null) {
                     setParentOrigin(event.origin)
                 }
             }
-            // Validate origin: once parentOrigin is set, reject messages from other origins
-            if (parentOrigin !== '*' && event.origin !== parentOrigin) {
+            // Validate origin: once parentOrigin is set, reject messages from other origins.
+            // If still null (no handshake yet), drop the inbound message — we won't leak
+            // callback state to an unverified origin.
+            if (parentOrigin === null || event.origin !== parentOrigin) {
                 return
             }
             callback(data as InboundMessage)
