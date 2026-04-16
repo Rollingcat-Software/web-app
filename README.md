@@ -1,19 +1,20 @@
 # FIVUCSAS Admin Dashboard
 
-![Version](https://img.shields.io/badge/version-2.0.0-blue.svg)
 ![React](https://img.shields.io/badge/React-18-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
-![Architecture](https://img.shields.io/badge/Architecture-Clean-brightgreen.svg)
-![Tests](https://img.shields.io/badge/Tests-230%2B-brightgreen.svg)
+![Vite](https://img.shields.io/badge/Vite-8-purple.svg)
+![MUI](https://img.shields.io/badge/MUI-6-0081cb.svg)
+![Tests](https://img.shields.io/badge/Vitest-619-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## Overview
 
-Professional admin dashboard for the **FIVUCSAS** (Face and Identity Verification Using Cloud-based SaaS) platform.
+Admin dashboard + hosted login + auth SDK for the **FIVUCSAS** biometric identity platform.
 
-Built with React 18, TypeScript, Material-UI, and **Clean Architecture** with dependency injection.
+Built with React 18 + TypeScript 5 + Vite 8 on Clean Architecture (InversifyJS DI, repository pattern, Zod validation, i18next en+tr). Deploys two surfaces:
 
-Provides comprehensive user management, biometric enrollment tracking, audit logging, and system analytics.
+- **Admin dashboard** at `app.fivucsas.com` — user/tenant/role/flow/device/audit management across 17 pages
+- **Hosted login + embeddable widget** at `verify.fivucsas.com` — hosted-first redirective OIDC login (primary) plus iframe widget for inline step-up MFA (secondary); ships `@fivucsas/auth-js` SDK (`loginRedirect({...})`), `@fivucsas/auth-react` components, and `@fivucsas/auth-elements` Web Components
 
 ## Architecture
 
