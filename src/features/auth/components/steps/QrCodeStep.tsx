@@ -96,9 +96,15 @@ export default function QrCodeStep({
             const status = (err as { response?: { status?: number; headers?: Record<string, string> } })?.response?.status
             if (status === 429) {
                 const retryAfterHeader = (err as { response?: { headers?: Record<string, string> } })?.response?.headers?.['retry-after']
-                const retrySeconds = retryAfterHeader ? Math.max(1, parseInt(retryAfterHeader, 10) || 30) : 30
+                const rawSeconds = retryAfterHeader ? parseInt(retryAfterHeader, 10) || 30 : 30
+                // Cap to max 300s so a misbehaving server can't freeze the UI for hours.
+                const retrySeconds = Math.max(1, Math.min(rawSeconds, 300))
                 setRateLimitedUntil(Date.now() + retrySeconds * 1000)
-                setGenerationError(t('mfa.qrCode.rateLimited', { seconds: retrySeconds, defaultValue: `Çok fazla deneme. ${retrySeconds} saniye sonra tekrar deneyin.` }))
+                if (rawSeconds > 300) {
+                    setGenerationError(t('mfa.qr.rateLimited.extended'))
+                } else {
+                    setGenerationError(t('mfa.qrCode.rateLimited', { seconds: retrySeconds, defaultValue: `Çok fazla deneme. ${retrySeconds} saniye sonra tekrar deneyin.` }))
+                }
                 setIsExpired(false)
             } else {
                 const message =

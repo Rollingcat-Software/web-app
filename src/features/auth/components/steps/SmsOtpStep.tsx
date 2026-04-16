@@ -157,7 +157,7 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                             label={t('mfa.smsOtp.codeLabel')}
                             value={code}
                             onChange={handleCodeChange}
-                            placeholder="000000"
+                            placeholder={t('mfa.placeholder.code')}
                             disabled={loading}
                             autoFocus
                             inputProps={{
@@ -216,7 +216,13 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                             <Button
                                 variant="outlined"
                                 size="small"
-                                startIcon={<Refresh />}
+                                startIcon={
+                                    loading ? (
+                                        <CircularProgress size={16} />
+                                    ) : (
+                                        <Refresh />
+                                    )
+                                }
                                 onClick={handleSendOtp}
                                 disabled={countdown > 0 || loading}
                                 sx={{
@@ -235,9 +241,11 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                                     },
                                 }}
                             >
-                                {countdown > 0
-                                    ? t('mfa.smsOtp.resendCountdown', { seconds: countdown })
-                                    : t('mfa.smsOtp.resend')}
+                                <span aria-live="polite" aria-atomic="true">
+                                    {countdown > 0
+                                        ? t('mfa.smsOtp.resendCountdown', { seconds: countdown })
+                                        : t('mfa.smsOtp.resend')}
+                                </span>
                             </Button>
                         </Box>
                     </motion.div>

@@ -49,7 +49,31 @@
     "from": "kaynak",
     "role": "Rol",
     "tenant": "Kiracı",
-    "noVoiceDetected": "Ses algılanamadı. Lütfen mikrofona net bir şekilde konuşun ve tekrar deneyin."
+    "noVoiceDetected": "Ses algılanamadı. Lütfen mikrofona net bir şekilde konuşun ve tekrar deneyin.",
+    "aria": {
+      "action": "İşlem",
+      "edit": "Düzenle",
+      "delete": "Sil",
+      "view": "Görüntüle",
+      "copy": "Kopyala",
+      "refresh": "Yenile",
+      "menu": "Menü",
+      "close": "Kapat",
+      "add": "Ekle",
+      "remove": "Kaldır",
+      "download": "İndir",
+      "upload": "Yükle",
+      "settings": "Ayarlar",
+      "search": "Ara",
+      "more": "Daha fazla",
+      "expand": "Genişlet",
+      "collapse": "Daralt",
+      "next": "Sonraki",
+      "previous": "Önceki",
+      "drag": "Sürükle",
+      "showPassword": "Parolayı göster",
+      "hidePassword": "Parolayı gizle"
+    }
   },
   "nav": {
     "dashboard": "Kontrol Paneli",
@@ -1234,6 +1258,14 @@
       "framedSecondary": "Başka yöntem seç"
     },
     "sendOtpFailed": "Doğrulama kodu gönderilemedi",
+    "placeholder": {
+      "code": "000000"
+    },
+    "qr": {
+      "rateLimited": {
+        "extended": "Hız limiti etkin. Lütfen birkaç dakika sonra tekrar deneyin."
+      }
+    },
     "errors": {
       "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
       "faceDetectionFailed": "Yüz algılama başarısız. Lütfen iyi ışıklı bir ortamda tekrar deneyin.",
@@ -1355,6 +1387,7 @@
     "centerFace": "Yüzünüzü çerçevenin ortasına getirin"
   },
   "faceCapture": {
+    "videoAriaLabel": "Yüz yakalama için kamera önizlemesi",
     "backend": {
       "blazeface": "BlazeFace (cihazda)",
       "mediapipe": "MediaPipe (CDN)"

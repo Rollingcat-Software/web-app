@@ -138,6 +138,27 @@ export default function HostedLoginApp() {
             return
         }
 
+        // Dev-only hint: surface likely-malformed redirect_uri values (e.g. missing
+        // scheme, stray whitespace, or a value the URL parser rejects). No
+        // user-facing change — the authoritative scheme check runs in
+        // `assertSafeRedirectScheme` during the complete handler.
+        if (import.meta.env.DEV) {
+            try {
+                const parsed = new URL(config.redirectUri)
+                if (!parsed.protocol || !/^(https?:|[a-z][a-z0-9+.-]*:)$/i.test(parsed.protocol)) {
+                    console.warn(
+                        '[HostedLoginApp] redirect_uri has unexpected protocol:',
+                        config.redirectUri
+                    )
+                }
+            } catch {
+                console.warn(
+                    '[HostedLoginApp] redirect_uri is not a valid URL:',
+                    config.redirectUri
+                )
+            }
+        }
+
         setMetaLoading(true)
         setMetaLoadFailed(false)
 

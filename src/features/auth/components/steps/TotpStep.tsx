@@ -119,7 +119,7 @@ export default function TotpStep({ onSubmit, loading, error }: TotpStepProps) {
                         label={t('mfa.totp.codeLabel')}
                         value={code}
                         onChange={handleCodeChange}
-                        placeholder="000000"
+                        placeholder={t('mfa.placeholder.code')}
                         disabled={loading}
                         autoFocus
                         inputProps={{

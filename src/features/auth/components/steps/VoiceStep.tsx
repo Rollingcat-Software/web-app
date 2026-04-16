@@ -132,14 +132,18 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
             // isn't blocked. The VAD gate will skip (non-WAV input) and the
             // server will still accept the audio.
             if (blob) {
-                console.warn(
-                    '[VoiceStep] wav16k unavailable, falling back to WebM. VAD gating will be bypassed for this submission.'
-                )
+                if (import.meta.env.DEV) {
+                    console.warn(
+                        '[VoiceStep] wav16k unavailable, falling back to WebM. VAD gating will be bypassed for this submission.'
+                    )
+                }
                 const dataUrl = await blobToDataUrl(blob)
                 onSubmit(dataUrl)
             }
         } catch (err) {
-            console.warn('[VoiceStep] failed to encode recording as data URL', err)
+            if (import.meta.env.DEV) {
+                console.warn('[VoiceStep] failed to encode recording as data URL', err)
+            }
         }
     }, [wav16k, blob, onSubmit])
 

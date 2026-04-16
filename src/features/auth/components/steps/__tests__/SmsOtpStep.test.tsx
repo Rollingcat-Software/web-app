@@ -79,7 +79,7 @@ describe('SmsOtpStep', () => {
 
             fireEvent.click(screen.getByRole('button', { name: /mfa.smsOtp.sendCode/i }))
 
-            expect(screen.getByPlaceholderText('000000')).toBeInTheDocument()
+            expect(screen.getByPlaceholderText('mfa.placeholder.code')).toBeInTheDocument()
             expect(screen.getByText('mfa.smsOtp.enterCode')).toBeInTheDocument()
         })
 
@@ -98,7 +98,7 @@ describe('SmsOtpStep', () => {
 
             fireEvent.click(screen.getByRole('button', { name: /mfa.smsOtp.sendCode/i }))
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: 'abc123def456' } })
 
             expect(input).toHaveValue('123456')
@@ -109,7 +109,7 @@ describe('SmsOtpStep', () => {
 
             fireEvent.click(screen.getByRole('button', { name: /mfa.smsOtp.sendCode/i }))
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '12345678' } })
 
             expect(input).toHaveValue('123456')
@@ -122,7 +122,7 @@ describe('SmsOtpStep', () => {
 
             fireEvent.click(screen.getByRole('button', { name: /mfa.smsOtp.sendCode/i }))
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             const form = input.closest('form')!
@@ -136,7 +136,7 @@ describe('SmsOtpStep', () => {
 
             fireEvent.click(screen.getByRole('button', { name: /mfa.smsOtp.sendCode/i }))
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123' } })
 
             const form = input.closest('form')!
@@ -161,7 +161,7 @@ describe('SmsOtpStep', () => {
 
             fireEvent.click(screen.getByRole('button', { name: /mfa.smsOtp.sendCode/i }))
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             const verifyBtn = screen.getByRole('button', { name: /mfa.smsOtp.verifyCode/i })

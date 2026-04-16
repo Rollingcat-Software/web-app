@@ -261,11 +261,11 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             )}
 
             {/* Camera / Captured Image Area */}
-            <motion.div variants={itemVariants}>
+            <motion.div variants={itemVariants} style={{ overflowX: 'hidden' }}>
                 <Box
                     sx={{
-                        width: '100%',
-                        maxWidth: 360,
+                        maxWidth: '100%',
+                        width: 360,
                         mx: 'auto',
                         mb: 1,
                         borderRadius: '16px',
@@ -302,6 +302,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                                 autoPlay
                                 playsInline
                                 muted
+                                aria-label={t('faceCapture.videoAriaLabel')}
                                 style={{
                                     width: '100%',
                                     height: '100%',

@@ -168,7 +168,7 @@ export default function EmailOtpMfaStep({
                         label={t('mfa.emailOtp.codeLabel')}
                         value={code}
                         onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-                        placeholder="000000"
+                        placeholder={t('mfa.placeholder.code')}
                         disabled={loading}
                         autoFocus
                         inputProps={{

@@ -42,7 +42,7 @@ describe('TotpStep', () => {
         it('should render 6-digit code input with correct attributes', () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             expect(input).toBeInTheDocument()
             expect(input).toHaveAttribute('maxLength', '6')
             expect(input).toHaveAttribute('inputMode', 'numeric')
@@ -71,7 +71,7 @@ describe('TotpStep', () => {
         it('should only accept numeric input', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: 'abc123def456' } })
 
             expect(input).toHaveValue('123456')
@@ -80,7 +80,7 @@ describe('TotpStep', () => {
         it('should limit input to 6 digits', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '12345678' } })
 
             expect(input).toHaveValue('123456')
@@ -89,7 +89,7 @@ describe('TotpStep', () => {
         it('should support paste of 6-digit code', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '654321' } })
 
             expect(input).toHaveValue('654321')
@@ -100,7 +100,7 @@ describe('TotpStep', () => {
         it('should call onSubmit when form is submitted with 6 digits', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             const form = input.closest('form')!
@@ -112,7 +112,7 @@ describe('TotpStep', () => {
         it('should not call onSubmit when code is less than 6 digits', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123' } })
 
             const form = input.closest('form')!
@@ -124,7 +124,7 @@ describe('TotpStep', () => {
         it('should auto-submit when 6 digits are entered', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             await waitFor(() => {
@@ -135,7 +135,7 @@ describe('TotpStep', () => {
         it('should not auto-submit the same code twice', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             await waitFor(() => {
@@ -149,7 +149,7 @@ describe('TotpStep', () => {
         it('should allow re-submit after clearing and re-entering code', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
 
             // Enter first code
             fireEvent.change(input, { target: { value: '123456' } })
@@ -179,7 +179,7 @@ describe('TotpStep', () => {
         it('should enable verify button when code is 6 digits', async () => {
             render(<TotpStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             const button = screen.getByRole('button', { name: /mfa.verify/i })
@@ -204,14 +204,14 @@ describe('TotpStep', () => {
         it('should disable input when loading', () => {
             render(<TotpStep {...defaultProps} loading={true} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             expect(input).toBeDisabled()
         })
 
         it('should not auto-submit when loading', async () => {
             render(<TotpStep {...defaultProps} loading={true} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             // Wait a tick to ensure effect runs

@@ -49,7 +49,31 @@
     "from": "from",
     "role": "Role",
     "tenant": "Tenant",
-    "noVoiceDetected": "No voice detected. Please speak clearly into the microphone and try again."
+    "noVoiceDetected": "No voice detected. Please speak clearly into the microphone and try again.",
+    "aria": {
+      "action": "Action",
+      "edit": "Edit",
+      "delete": "Delete",
+      "view": "View",
+      "copy": "Copy",
+      "refresh": "Refresh",
+      "menu": "Menu",
+      "close": "Close",
+      "add": "Add",
+      "remove": "Remove",
+      "download": "Download",
+      "upload": "Upload",
+      "settings": "Settings",
+      "search": "Search",
+      "more": "More",
+      "expand": "Expand",
+      "collapse": "Collapse",
+      "next": "Next",
+      "previous": "Previous",
+      "drag": "Drag",
+      "showPassword": "Show password",
+      "hidePassword": "Hide password"
+    }
   },
   "nav": {
     "dashboard": "Dashboard",
@@ -1234,6 +1258,14 @@
       "framedSecondary": "Pick another method"
     },
     "sendOtpFailed": "Failed to send verification code",
+    "placeholder": {
+      "code": "000000"
+    },
+    "qr": {
+      "rateLimited": {
+        "extended": "Rate limit active. Please retry in a few minutes."
+      }
+    },
     "errors": {
       "networkError": "Network error. Please check your connection and try again.",
       "faceDetectionFailed": "Face detection failed. Please ensure good lighting and try again.",
@@ -1355,6 +1387,7 @@
     "centerFace": "Center your face in the frame"
   },
   "faceCapture": {
+    "videoAriaLabel": "Camera preview for face capture",
     "backend": {
       "blazeface": "BlazeFace (on-device)",
       "mediapipe": "MediaPipe (CDN)"

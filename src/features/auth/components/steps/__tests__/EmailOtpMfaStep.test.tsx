@@ -67,7 +67,7 @@ describe('EmailOtpMfaStep', () => {
         it('should render code input', async () => {
             render(<EmailOtpMfaStep {...defaultProps} />)
 
-            expect(screen.getByPlaceholderText('000000')).toBeInTheDocument()
+            expect(screen.getByPlaceholderText('mfa.placeholder.code')).toBeInTheDocument()
         })
 
         it('should render verify button', async () => {
@@ -133,7 +133,7 @@ describe('EmailOtpMfaStep', () => {
         it('should only accept numeric input', async () => {
             render(<EmailOtpMfaStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: 'abc123xyz' } })
 
             expect(input).toHaveValue('123')
@@ -142,7 +142,7 @@ describe('EmailOtpMfaStep', () => {
         it('should limit input to 6 digits', async () => {
             render(<EmailOtpMfaStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '12345678' } })
 
             expect(input).toHaveValue('123456')
@@ -163,7 +163,7 @@ describe('EmailOtpMfaStep', () => {
                 expect(mockPost).toHaveBeenCalled()
             })
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             const form = input.closest('form')!
@@ -191,7 +191,7 @@ describe('EmailOtpMfaStep', () => {
                 expect(mockPost).toHaveBeenCalled()
             })
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             const form = input.closest('form')!
@@ -215,7 +215,7 @@ describe('EmailOtpMfaStep', () => {
                 expect(mockPost).toHaveBeenCalled()
             })
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '654321' } })
 
             const form = input.closest('form')!
@@ -238,7 +238,7 @@ describe('EmailOtpMfaStep', () => {
                 expect(mockPost).toHaveBeenCalled()
             })
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '000000' } })
 
             const form = input.closest('form')!
@@ -260,7 +260,7 @@ describe('EmailOtpMfaStep', () => {
                 expect(mockPost).toHaveBeenCalled()
             })
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '111111' } })
 
             const form = input.closest('form')!
@@ -274,7 +274,7 @@ describe('EmailOtpMfaStep', () => {
         it('should not submit when code is less than 6 digits', async () => {
             render(<EmailOtpMfaStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123' } })
 
             const form = input.closest('form')!
@@ -298,7 +298,7 @@ describe('EmailOtpMfaStep', () => {
                 expect(mockPost).toHaveBeenCalled()
             })
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             await waitFor(() => {
@@ -322,7 +322,7 @@ describe('EmailOtpMfaStep', () => {
         it('should enable verify button when code is 6 digits', async () => {
             render(<EmailOtpMfaStep {...defaultProps} />)
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             // Wait for any auto-submit side effects to settle
@@ -453,7 +453,7 @@ describe('EmailOtpMfaStep', () => {
                 expect(mockPost).toHaveBeenCalled()
             })
 
-            const input = screen.getByPlaceholderText('000000')
+            const input = screen.getByPlaceholderText('mfa.placeholder.code')
             fireEvent.change(input, { target: { value: '123456' } })
 
             const form = input.closest('form')!
