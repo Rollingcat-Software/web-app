@@ -3,8 +3,50 @@
 > Source of truth for current sprint. Derived from `docs/AUDIT_REPORT_2026-04-16.md` and Round-5 testing. Update as items close.
 
 **Current branch:** `feat/hosted-first-auth-round5`
-**Target PR:** PR-1 (Wave 1)
+**Target PR:** PR-1 (Wave 1) — **IN REVIEW: needs revision before merge**
 **Last updated:** 2026-04-16
+
+---
+
+## PR-1 Review Blockers (2026-04-16) — post-demo sprint, ~1 focused day
+
+> Consolidated from three independent review passes (Copilot inline on identity-core-api#16, backend reviewer, web-app reviewer) + the 5-agent audit. Order: security show-stopper first, then security correctness, then code quality. **Must land before PR-1 merges.**
+
+### Show-stopper (anonymous endpoint auth chain)
+- [ ] **B1 — SecurityConfig.java:86-91** add `/oauth2/authorize/complete` and `/oauth2/clients/*/public` to the `permitAll()` chain. New endpoints are currently caught by the default `authenticated()` rule so every hosted-login hit returns 401 before it reaches the controller. 2-line diff, 5 minutes, zero risk. *Unit tests with `addFilters=false` missed this; add an integration test that hits the real SecurityFilterChain.*
+
+### Security correctness
+- [ ] **B2 — OAuth2Controller.authorizeComplete** bind `clientId` to `MfaSession` when the session is created. Today `/authorize/complete` accepts any completed MfaSession for any clientId belonging to the same tenant → cross-client code replay within the tenant. Add `mfa_sessions.client_id` column + check at complete-time.
+- [ ] **B3 — OAuth2Controller.authorizeComplete** require PKCE S256 when `OAuth2Client.confidential == false`. RFC 6749+RFC 7636; hosted login flow is a public-client surface by design.
+- [ ] **B4 — OAuth2Controller.authorizeComplete** atomicity: code-mint + `mfaSessionRepository.delete(session)` must be `@Transactional`, and the session must carry a `consumedAt` timestamp so a crash between the two calls doesn't leave the session replayable. Current order mints the code first; if delete fails, attacker with session token can mint again.
+- [ ] **B5 — OAuth2Client.matchesLoopbackRegistration** (a) reject query-param smuggling (`http://127.0.0.1:*` must match host+port only, never query string); (b) drop `localhost` hostname entirely — RFC 8252 §7.3 says loopback IP literal only.
+- [ ] **B7 — FivucsasAuth.handleRedirectCallback** validate `nonce` against the `id_token` claim (OIDC §3.1.3.7). Today nonce is stored in sessionStorage and never checked after issuance → ID token replay from another session. Either implement the check or remove nonce handling so we don't pretend to protect.
+- [ ] **B9 — .htaccess + vite.config.ts** split CSP `frame-ancestors` per route: `/login` must be `'none'` (hosted page must not be framable — prevents click-jacking against the password field); widget routes keep the existing allowlist. Add runtime frame-bust (`if (window.top !== window.self) window.top.location = window.location`) to `HostedLoginApp.tsx` as defense-in-depth.
+
+### Code quality
+- [ ] **B6 — OAuth2Client.splitRegisteredRedirectUris** replace the string-splitting parser with Jackson `ObjectMapper.readValue(..., new TypeReference<List<String>>(){})`. Today a URI containing a comma would silently corrupt the allowlist.
+- [ ] **B8 — HostedLoginApp.tsx** test coverage: missing-params (no `client_id`), invalid-client (revoked tenant), expired MFA session, happy-path (code → `/authorize/complete` → `window.location.replace`), and redirect URL shape (`?code=&state=` formatted correctly). Component is security-sensitive and currently has zero tests.
+
+### Smaller fixes surfaced in review (same sprint, minutes each)
+- [ ] Validate `redirectUri` scheme (http/https/custom) before `window.location.replace` in `FivucsasAuth.handleRedirectCallback` — even though backend validates, belt-and-suspenders against XSS in stored state.
+- [ ] `/oauth2/authorize/complete` 403 → 400 on tenant-mismatch. OAuth error responses are 400 per RFC 6749 §5.2; 403 leaks policy info to unauthenticated callers.
+- [ ] Remove `isHtmlAccept` branch from `OAuth2Controller.authorize` (redundant with `display=page` now that SDK always sets it explicitly; reduces conditional surface).
+- [ ] Add `Retry-After` header on the `/authorize/complete` rate-limit 429 branch so well-behaved clients back off correctly.
+- [ ] Derive `completedMethods` from `MfaSession.getCompletedMethods()` in the initial `/auth/login` response instead of the current hardcoded `[PASSWORD]` — the hardcoded value assumes password-first, which breaks for tenants whose first step is NOT password.
+
+---
+
+## Audit-surfaced items (this week, parallel to blocker fixes)
+
+> Not PR-1-merge-blocking but called out by the 5-agent audit (docs/AUDIT_REPORT_2026-04-16.md). Grades: **hygiene B+ / security A- / compliance B-**.
+
+- [ ] **Compliance — GDPR/KVKK export + soft-delete purge**: UI exists (`ProfilePage.tsx` → export button), backend endpoint `/users/{id}/export` does NOT. Soft-delete purge job (30-day retention) missing entirely. *Matrix row: GDPR Art. 17/20 = GAP.*
+- [ ] **OIDC discovery** — `.well-known/openid-configuration` endpoint exists but needs verification against conformance suite (code + id_token + PKCE S256 + JWKS reachable).
+- [ ] **`.gitignore`** verify-widget/html/assets/*.js — bundle artifacts currently tracked. Purge from history after adding ignore.
+- [ ] **Lazy-load ONNX Runtime + BlazeFace** via dynamic `import()` so the face capture bundle (~8MB) doesn't hit the critical path for users who never use face auth.
+- [ ] **`oauth2_clients.tenant_id` index** — query plan shows seq scan on tenant lookup; hot path during `/authorize`.
+- [ ] **CI speed** — Maven `<parallel>` + Vitest `--pool=threads --poolOptions.threads.maxThreads=4` to halve CI wall-clock.
+- [ ] **Stuck Deploy-to-Hetzner run** — self-hosted runner queued 8h+; clear queue, investigate runner registration.
 
 ---
 
