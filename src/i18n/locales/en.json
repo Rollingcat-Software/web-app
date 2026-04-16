@@ -546,7 +546,15 @@
       "MFA_STARTED": "Multi-factor authentication started",
       "MFA_STEP_COMPLETED": "Authentication step completed",
       "MFA_STEP_FAILED": "Authentication step failed",
-      "MFA_COMPLETE": "Multi-factor authentication completed"
+      "MFA_COMPLETE": "Multi-factor authentication completed",
+      "EMAIL_VERIFIED": "Email verified",
+      "EMAIL_VERIFICATION_FAILED": "Email verification failed",
+      "VERIFICATION_EMAIL_RESENT": "Verification email resent",
+      "PASSWORD_RESET_REQUESTED": "Password reset requested",
+      "PASSWORD_RESET_SUCCESS": "Password reset successful",
+      "PASSWORD_RESET_FAILED": "Password reset failed",
+      "SESSION_REVOKED": "Session revoked",
+      "ALL_SESSIONS_REVOKED": "All other sessions revoked"
     }
   },
   "nfc": {

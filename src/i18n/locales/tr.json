@@ -546,7 +546,15 @@
       "MFA_STARTED": "Çok aşamalı doğrulama başlatıldı",
       "MFA_STEP_COMPLETED": "Doğrulama adımı tamamlandı",
       "MFA_STEP_FAILED": "Doğrulama adımı başarısız",
-      "MFA_COMPLETE": "Çok aşamalı doğrulama tamamlandı"
+      "MFA_COMPLETE": "Çok aşamalı doğrulama tamamlandı",
+      "EMAIL_VERIFIED": "E-posta doğrulandı",
+      "EMAIL_VERIFICATION_FAILED": "E-posta doğrulaması başarısız",
+      "VERIFICATION_EMAIL_RESENT": "Doğrulama e-postası tekrar gönderildi",
+      "PASSWORD_RESET_REQUESTED": "Şifre sıfırlama istendi",
+      "PASSWORD_RESET_SUCCESS": "Şifre başarıyla sıfırlandı",
+      "PASSWORD_RESET_FAILED": "Şifre sıfırlama başarısız",
+      "SESSION_REVOKED": "Oturum sonlandırıldı",
+      "ALL_SESSIONS_REVOKED": "Diğer tüm oturumlar sonlandırıldı"
     }
   },
   "nfc": {
