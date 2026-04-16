@@ -2,37 +2,37 @@
 
 > Source of truth for current sprint. Derived from `docs/AUDIT_REPORT_2026-04-16.md` and Round-5 testing. Update as items close.
 
-**Current branch:** `feat/hosted-first-auth-round5`
-**Target PR:** PR-1 (Wave 1) — **IN REVIEW: needs revision before merge**
+**Current branch:** `main`
+**Target PR:** PR-1 (Wave 1) — ✅ **MERGED 2026-04-16** (identity-core-api#16 + web-app#22)
 **Last updated:** 2026-04-16
 
 ---
 
-## PR-1 Review Blockers (2026-04-16) — post-demo sprint, ~1 focused day
+## PR-1 Review Blockers — ✅ ALL MERGED 2026-04-16
 
-> Consolidated from three independent review passes (Copilot inline on identity-core-api#16, backend reviewer, web-app reviewer) + the 5-agent audit. Order: security show-stopper first, then security correctness, then code quality. **Must land before PR-1 merges.**
+> All nine blockers + smaller fixes landed in identity-core-api#16 (merged `8059ca9`) and web-app#22 (merged `048de42`). History preserved via merge-commit strategy; see CHANGELOG.md for per-blocker commit hashes.
 
-### Show-stopper (anonymous endpoint auth chain)
-- [ ] **B1 — SecurityConfig.java:86-91** add `/oauth2/authorize/complete` and `/oauth2/clients/*/public` to the `permitAll()` chain. New endpoints are currently caught by the default `authenticated()` rule so every hosted-login hit returns 401 before it reaches the controller. 2-line diff, 5 minutes, zero risk. *Unit tests with `addFilters=false` missed this; add an integration test that hits the real SecurityFilterChain.*
+### Show-stopper — done
+- [x] **B1** SecurityConfig permitAll `/oauth2/authorize/complete` + `/oauth2/clients/*/public` + real SecurityFilterChain integration test (V34/V35/V36 Flyway stack applied)
 
-### Security correctness
-- [ ] **B2 — OAuth2Controller.authorizeComplete** bind `clientId` to `MfaSession` when the session is created. Today `/authorize/complete` accepts any completed MfaSession for any clientId belonging to the same tenant → cross-client code replay within the tenant. Add `mfa_sessions.client_id` column + check at complete-time.
-- [ ] **B3 — OAuth2Controller.authorizeComplete** require PKCE S256 when `OAuth2Client.confidential == false`. RFC 6749+RFC 7636; hosted login flow is a public-client surface by design.
-- [ ] **B4 — OAuth2Controller.authorizeComplete** atomicity: code-mint + `mfaSessionRepository.delete(session)` must be `@Transactional`, and the session must carry a `consumedAt` timestamp so a crash between the two calls doesn't leave the session replayable. Current order mints the code first; if delete fails, attacker with session token can mint again.
-- [ ] **B5 — OAuth2Client.matchesLoopbackRegistration** (a) reject query-param smuggling (`http://127.0.0.1:*` must match host+port only, never query string); (b) drop `localhost` hostname entirely — RFC 8252 §7.3 says loopback IP literal only.
-- [ ] **B7 — FivucsasAuth.handleRedirectCallback** validate `nonce` against the `id_token` claim (OIDC §3.1.3.7). Today nonce is stored in sessionStorage and never checked after issuance → ID token replay from another session. Either implement the check or remove nonce handling so we don't pretend to protect.
-- [ ] **B9 — .htaccess + vite.config.ts** split CSP `frame-ancestors` per route: `/login` must be `'none'` (hosted page must not be framable — prevents click-jacking against the password field); widget routes keep the existing allowlist. Add runtime frame-bust (`if (window.top !== window.self) window.top.location = window.location`) to `HostedLoginApp.tsx` as defense-in-depth.
+### Security correctness — done
+- [x] **B2** client_id bound to MfaSession (V36 migration)
+- [x] **B3** PKCE S256 mandated for public clients (V34 `confidential` column)
+- [x] **B4** @Transactional code-mint + V35 `consumed_at` replay guard
+- [x] **B5** IPv4-only loopback + any-query rejected (RFC 8252 §7.3)
+- [x] **B7** nonce validation against id_token claim + redirect URI scheme allowlist
+- [x] **B9** per-route CSP `frame-ancestors` + runtime frame-bust
 
-### Code quality
-- [ ] **B6 — OAuth2Client.splitRegisteredRedirectUris** replace the string-splitting parser with Jackson `ObjectMapper.readValue(..., new TypeReference<List<String>>(){})`. Today a URI containing a comma would silently corrupt the allowlist.
-- [ ] **B8 — HostedLoginApp.tsx** test coverage: missing-params (no `client_id`), invalid-client (revoked tenant), expired MFA session, happy-path (code → `/authorize/complete` → `window.location.replace`), and redirect URL shape (`?code=&state=` formatted correctly). Component is security-sensitive and currently has zero tests.
+### Code quality — done
+- [x] **B6** Jackson `ObjectMapper.readValue` for redirect URIs
+- [x] **B8** HostedLoginApp.tsx end-to-end test coverage (407 LOC)
 
-### Smaller fixes surfaced in review (same sprint, minutes each)
-- [ ] Validate `redirectUri` scheme (http/https/custom) before `window.location.replace` in `FivucsasAuth.handleRedirectCallback` — even though backend validates, belt-and-suspenders against XSS in stored state.
-- [ ] `/oauth2/authorize/complete` 403 → 400 on tenant-mismatch. OAuth error responses are 400 per RFC 6749 §5.2; 403 leaks policy info to unauthenticated callers.
-- [ ] Remove `isHtmlAccept` branch from `OAuth2Controller.authorize` (redundant with `display=page` now that SDK always sets it explicitly; reduces conditional surface).
-- [ ] Add `Retry-After` header on the `/authorize/complete` rate-limit 429 branch so well-behaved clients back off correctly.
-- [ ] Derive `completedMethods` from `MfaSession.getCompletedMethods()` in the initial `/auth/login` response instead of the current hardcoded `[PASSWORD]` — the hardcoded value assumes password-first, which breaks for tenants whose first step is NOT password.
+### Smaller fixes — done
+- [x] redirectUri scheme validation in `handleRedirectCallback`
+- [x] tenant-mismatch 403 → 400
+- [x] `isHtmlAccept` branch removed
+- [x] `Retry-After` header on 429
+- [x] `completedMethods` derived from MfaSession
 
 ---
 
@@ -63,12 +63,12 @@
 
 ### Part A — Shared bug fixes (ship in both widget + hosted modes)
 
-#### A1. Method-reuse resilience
+#### A1. Method-reuse resilience — ✅ shipped in PR-1
 - [x] Frontend type extensions — `IAuthRepository.ts` `MfaStepResponse.completedMethods`, `AuthResponse.completedMethods`
 - [x] Frontend hydration — `LoginMfaFlow.tsx` merges `completedMethods` from all responses into `usedMethods`
-- [ ] Backend echo — `AuthController.java` STEP_COMPLETED response (~line 893-899) adds `completedMethods: mfaSession.getCompletedMethods()`
-- [ ] Backend echo — initial `/auth/login` response when `twoFactorRequired=true` adds `completedMethods`
-- [ ] `AuthSessionRepository.ts` response type extension
+- [x] Backend echo — `AuthenticateUserService.java` derives `completedMethods` from `MfaSession.getCompletedMethods()`
+- [x] Backend echo — initial `/auth/login` response when `twoFactorRequired=true` includes `completedMethods`
+- [x] `AuthSessionRepository.ts` response type extension
 
 #### A2. Mobile layout
 - [x] `VerifyApp.tsx` root Box flex column + responsive padding
@@ -84,33 +84,33 @@
 - [x] `NotificationPanel.tsx:53-64` MFA codes mapped to 'login' category
 - [ ] Audit sweep — grep backend `saveAuditLog("<CODE>"` and cross-check all codes have i18n keys in both locales
 
-### Part B — Hosted login V1 (primary new surface)
+### Part B — Hosted login V1 (primary new surface) — ✅ shipped in PR-1
 
-#### B.1 Backend — OAuth2 content negotiation
-- [ ] `OAuth2Controller.authorize` — add `display=page` branch → 302 to `verify.fivucsas.com/login?<params>`
-- [ ] `POST /oauth2/authorize/complete` — NEW endpoint; accepts `{mfaSessionToken, clientId, redirectUri, scope, state?, nonce?, codeChallenge, codeChallengeMethod}`; validates + mints code via existing `OAuth2Service.generateAuthorizationCode()`; returns `{code, state, redirectUri}`
-- [ ] `GET /oauth2/clients/{clientId}/public` — NEW; returns `{clientName, logoUrl?, homepageUrl?}` for tenant branding header
-- [ ] Extend `OAuth2Client.isRedirectUriAllowed()` — support custom schemes (`com.acme://auth`) + loopback wildcard (`http://127.0.0.1:*`) per RFC 8252
-- [ ] `RateLimitInterceptor` — register 2 new paths
+#### B.1 Backend — OAuth2 content negotiation — done
+- [x] `OAuth2Controller.authorize` `display=page` branch → 302 to `verify.fivucsas.com/login`
+- [x] `POST /oauth2/authorize/complete` — endpoint live, validates + mints code
+- [x] `GET /oauth2/clients/{clientId}/public` — returns branding metadata
+- [x] `OAuth2Client.isRedirectUriAllowed()` — HTTPS + custom schemes + RFC 8252 loopback
+- [x] `RateLimitInterceptor` paths registered
 
-#### B.2 Frontend — HostedLoginApp
-- [ ] `HostedLoginApp.tsx` NEW (~200 LOC) — top-level shell at `/login`, wraps `LoginMfaFlow`, fetches tenant branding, POSTs to `/oauth2/authorize/complete` on completion, `window.location.replace`
-- [ ] `main.tsx` — mount `<HostedLoginApp />` when pathname is `/login`
-- [ ] `VerifyApp.tsx` — extend `WidgetMode` union; mode detection via `window.top === window.self && pathname === '/login'`
-- [ ] Graceful handling of missing `client_id`, revoked tenant, expired MFA session
+#### B.2 Frontend — HostedLoginApp — done
+- [x] `HostedLoginApp.tsx` top-level shell at `/login` with tenant branding fetch + POST to `/authorize/complete`
+- [x] `main.tsx` routes `<HostedLoginApp />` by pathname
+- [x] `VerifyApp.tsx` WidgetMode union extended; hosted detection wired
+- [x] Graceful missing-params / revoked-tenant / expired-session handling
 
-#### B.3 SDK — loginRedirect
-- [ ] `FivucsasAuth.loginRedirect({ redirectUri, scope?, state?, nonce? })` — generates PKCE S256, sessionStorage, `window.location.assign`
-- [ ] `FivucsasAuth.handleRedirectCallback()` — parses `?code=&state=`, validates state, POSTs to `/oauth2/token`, returns tokens
-- [ ] PKCE helper — `generatePkce()` using WebCrypto SubtleCrypto
-- [ ] State generator — 32-byte cryptographically random base64url
-- [ ] Preserve existing `verify()` for step-up use case
+#### B.3 SDK — loginRedirect — done
+- [x] `FivucsasAuth.loginRedirect()` with PKCE S256 + state + nonce + sessionStorage
+- [x] `FivucsasAuth.handleRedirectCallback()` with state + nonce validation
+- [x] PKCE helper via WebCrypto SubtleCrypto
+- [x] 32-byte crypto-random base64url state generator
+- [x] `verify()` preserved for step-up use case
 
-#### B.4 Demo + tenant docs
-- [ ] `bys-demo/index.html` — flip primary CTA to `loginRedirect()`; demote widget to "İnline MFA (gelişmiş)" button; rename brand "Marmara Üniversitesi BYS" → "Örnek Üniversite Portalı"
+#### B.4 Demo + tenant docs — partial
+- [ ] `bys-demo/index.html` flip primary CTA to `loginRedirect()` (demo still uses widget)
 - [ ] `bys-demo/callback.html` NEW — calls `handleRedirectCallback()`
-- [ ] `bys-demo/dashboard.html` — same rename
-- [ ] `docs/plans/HOSTED_LOGIN_INTEGRATION.md` NEW — tenant integration recipe, PKCE walkthrough, redirect-URI registration, state/nonce, troubleshooting
+- [ ] `bys-demo/dashboard.html` brand rename
+- [x] `docs/plans/HOSTED_LOGIN_INTEGRATION.md` NEW — tenant integration recipe shipped
 
 ### Part C — Widget repositioning (light touch)
 
@@ -118,16 +118,22 @@
 - [ ] i18n keys `mfa.nfc.framedTitle`, `mfa.nfc.framedBody`, `mfa.nfc.framedCta`, `mfa.nfc.framedSecondary` (tr+en)
 - [ ] `docs/EMBEDDABLE_AUTH_WIDGET_ARCHITECTURE.md` — rewrite to position widget as step-up MFA only; recommend hosted for full auth
 
-### Part D — Dashboard P0 i18n fixes (Wave 1 essential)
+### Part D — Dashboard P0 i18n fixes — ✅ shipped in PR-1
 
-- [ ] `AuditLogsPage.tsx` — wrap all 12 hardcoded strings in `t()` + keys in tr/en
-- [ ] `RolesListPage.tsx` — wrap all 10 hardcoded strings
-- [ ] `TenantsListPage.tsx` — wrap all 8 hardcoded strings
-- [ ] `RoleFormPage.tsx` — wrap hardcoded alert
-- [ ] `useLivenessPuzzle.ts` — i18n-wrap action instructions
-- [ ] Dashboard dates — `.toLocaleString(i18n.language, ...)` across `AnalyticsPage`, `VerificationDashboardPage`, `DashboardPage`
-- [ ] `LoginPage.tsx` — remove demo credentials from UI
-- [ ] Swallowed-catch fixes — `EnrollmentPage.tsx:354`, `MultiStepAuthFlow.tsx:97-99` log errors properly
+- [x] `AuditLogsPage.tsx` — 50 keys wrapped in `t()` across both locales
+- [x] `RolesListPage.tsx` — 15 keys
+- [x] `TenantsListPage.tsx` — 17 keys
+- [x] `RoleFormPage.tsx` — 21 keys
+- [x] `useLivenessPuzzle.ts` — 9 action-instruction keys
+- [x] Dashboard dates localized via `i18n.language` in `AnalyticsPage`, `VerificationDashboardPage`, `DashboardPage`
+- [x] `LoginPage.tsx` — demo credentials gated behind `import.meta.env.DEV`
+- [x] Swallowed-catch fixes in `EnrollmentPage.tsx:354` + `MultiStepAuthFlow.tsx:97-99`
+
+### Wave 1 follow-ups (not blocking PR-1 merge)
+- [ ] `QrCodeStep.tsx` / `VoiceStep.tsx` root Box — strip `height:'100%'` / `flex:1` for mobile fit
+- [ ] Audit i18n sweep — grep backend `saveAuditLog("<CODE>"` and cross-check all codes in tr/en
+- [ ] Part C widget repositioning — NfcStep framed-fallback card + docs
+- [ ] Part B.4 demo-side — `bys-demo/` flip to `loginRedirect()` + callback.html
 
 ---
 

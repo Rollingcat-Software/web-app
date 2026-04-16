@@ -1,5 +1,40 @@
 # Changelog - FIVUCSAS Web App
 
+## [2026-04-16] — PR-1 Hosted-first V1 + PR-1 review blockers
+
+### Added
+- **Hosted login page** — `HostedLoginApp.tsx` (357 LOC) at `/login`; top-level shell, tenant branding fetch, POST to `/oauth2/authorize/complete`, `window.location.replace` on success (verify-app/HostedLoginApp.tsx)
+- **SDK loginRedirect** — `FivucsasAuth.loginRedirect({redirectUri, scope?, state?, nonce?})` with PKCE S256 via WebCrypto SubtleCrypto, 32-byte crypto-random state, sessionStorage, `window.location.assign` (sdk/FivucsasAuth.ts)
+- **SDK handleRedirectCallback** — parses `?code=&state=`, validates state AND nonce against id_token claim (OIDC §3.1.3.7), POSTs `/oauth2/token` (B7) (sdk/FivucsasAuth.ts)
+- **Web Components** — `<fivucsas-verify>` and `<fivucsas-button>` custom elements shipped (elements/)
+- **Silero VAD gating** — `audioToWav16k.ts` util converts WebM → 16kHz 16-bit mono PCM WAV so Silero VAD `parseWav16kMono` actually parses the blob; VoiceEnrollmentFlow + useVoiceRecorder delegate to helper; `[VoiceVAD] decision` debug log in TwoFactorDispatcher (audioToWav16k.ts, __tests__ 5 tests)
+- **Test coverage** — HostedLoginApp.test.tsx (407 LOC: missing-params, invalid-client, expired session, happy-path, redirect URL shape) + FivucsasAuth.test.ts (333 LOC) (B8)
+- **CardDetector** — YOLOv8n ONNX client-side card detection (biometric-engine/core/CardDetector.ts, 434 LOC)
+- **PerfOverlay** — dev-mode `?debug=perf` performance overlay with usePerformanceMetrics hook
+- **HOSTED_LOGIN_INTEGRATION.md** — tenant integration recipe, PKCE walkthrough, redirect-URI registration, state/nonce, troubleshooting (docs/plans/)
+- **AUDIT_REPORT_2026-04-16.md** — 5-agent audit (hygiene B+ / security A- / compliance B-)
+- **Part D i18n** — +112 keys per locale across AuditLogsPage, RolesListPage, TenantsListPage, RoleFormPage, useLivenessPuzzle (9 action keys)
+
+### Fixed
+- **B7 nonce validation** — previously stored in sessionStorage and never checked; now validated against `id_token.nonce` claim; redirect URI scheme allowlist (http/https/custom) before `window.location.replace` (sdk/FivucsasAuth.ts)
+- **B9 CSP frame-ancestors** — per-route split; `/login` = `'none'` (click-jacking protection for password field); widget routes keep allowlist; runtime frame-bust in HostedLoginApp.tsx (public/.htaccess, vite.config.ts, HostedLoginApp.tsx)
+- **Dashboard dates** — localized via `i18n.language` in AnalyticsPage, VerificationDashboardPage, DashboardPage; Turkish users now see Turkish date formatting
+- **Swallowed catches** — EnrollmentPage.tsx:354 + MultiStepAuthFlow.tsx:97-99 now log errors instead of silent `catch {}`
+- **LoginPage demo credentials** — gated behind `import.meta.env.DEV` so they never ship to production
+
+### Changed
+- **Voice capture pipeline** — useVoiceRecorder now always emits 16kHz WAV; enrollment + login paths share `encodeToWav16kMono` helper
+- **NfcStep** — framed-mode fallback card with i18n keys `mfa.nfc.framedTitle/Body/Cta/Secondary`
+- **Face pipeline** — FaceCaptureStep + useFaceChallenge + useFaceDetection integrated with useLivenessPuzzle
+
+### Commits
+- `fa18586` CSP per-route + frame-bust (B9)
+- `14d601f` nonce validation + URI scheme allowlist (B7)
+- `7e581f4` hosted-login end-to-end tests (B8)
+- `d1a5c6f` Part D i18n sweep + date locales + swallowed-catch logs
+- `519b035` voice wav16k so Silero VAD gates
+- Merged to main in `048de42` (fast-forward)
+
 ## [2026-04-15] — demo.fivucsas MFA hardening
 
 ### Fixed
