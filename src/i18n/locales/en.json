@@ -1054,7 +1054,11 @@
       "readError": "Failed to read NFC document. Try holding it closer.",
       "scanFailed": "NFC scan failed. Please try again.",
       "notSupported": "NFC is only supported in Chrome on Android. Please use Chrome on your Android device.",
-      "hint": "Hold your NFC-enabled document (passport, national ID, or residence permit) flat against the back of your phone. Keep it steady for a few seconds."
+      "hint": "Hold your NFC-enabled document (passport, national ID, or residence permit) flat against the back of your phone. Keep it steady for a few seconds.",
+      "framedTitle": "NFC can't run here",
+      "framedBody": "For security, Web NFC only runs in a top-level browser tab. Open the login in a new tab to continue.",
+      "framedCta": "Continue in a new tab",
+      "framedSecondary": "Pick another method"
     },
     "sendOtpFailed": "Failed to send verification code",
     "errors": {

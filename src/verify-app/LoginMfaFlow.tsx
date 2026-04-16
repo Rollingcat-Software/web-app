@@ -330,6 +330,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                         onSubmit={(data) => verifyStep(AuthMethodType.NFC_DOCUMENT, { nfcData: data })}
                         loading={loading}
                         error={error}
+                        onBack={handleBackToMethodSelection}
                     />
                 )
 

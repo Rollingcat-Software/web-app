@@ -1054,7 +1054,11 @@
       "readError": "NFC belge okunamadı. Daha yakın tutmayı deneyin.",
       "scanFailed": "NFC tarama başarısız. Tekrar deneyin.",
       "notSupported": "NFC yalnızca Android Chrome'da desteklenir. Lütfen Android cihazınızda Chrome kullanın.",
-      "hint": "NFC özellikli belgenizi (pasaport, nüfus cüzdanı veya ikamet izni) telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun."
+      "hint": "NFC özellikli belgenizi (pasaport, nüfus cüzdanı veya ikamet izni) telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun.",
+      "framedTitle": "NFC burada çalışmıyor",
+      "framedBody": "Web NFC, güvenlik nedeniyle yalnızca üst düzey tarayıcı sekmesinde çalışır. Devam etmek için girişi yeni bir sekmede açın.",
+      "framedCta": "Yeni sekmede tamamla",
+      "framedSecondary": "Başka yöntem seç"
     },
     "sendOtpFailed": "Doğrulama kodu gönderilemedi",
     "errors": {

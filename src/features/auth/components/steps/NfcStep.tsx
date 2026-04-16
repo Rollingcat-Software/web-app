@@ -1,12 +1,13 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useMemo } from 'react'
 import {
     Alert,
     Box,
     Button,
     CircularProgress,
+    Stack,
     Typography,
 } from '@mui/material'
-import { Nfc, Contactless } from '@mui/icons-material'
+import { Nfc, Contactless, OpenInNew } from '@mui/icons-material'
 import { motion, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 
@@ -25,15 +26,31 @@ interface NfcStepProps {
     onSubmit?: (data: string) => void
     loading: boolean
     error?: string
+    /** When the widget is framed, clicking "pick another method" routes back to the method picker. */
+    onBack?: () => void
 }
 
-export default function NfcStep({ onSubmit, loading, error }: NfcStepProps) {
+/**
+ * Web NFC (NDEFReader) only runs in top-level browsing contexts by spec. When our verify
+ * widget is embedded in a tenant page via iframe, `NDEFReader.scan()` rejects with a
+ * NotAllowedError. We detect that situation up-front and offer a "continue in a new tab"
+ * CTA that opens the hosted login surface at the same origin so NFC works natively.
+ */
+export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepProps) {
     const { t } = useTranslation()
     const [scanning, setScanning] = useState(false)
     const [scanResult, setScanResult] = useState<string | null>(null)
     const [scanError, setScanError] = useState<string | null>(null)
 
     const isNfcSupported = typeof window !== 'undefined' && 'NDEFReader' in window
+    const isFramed = typeof window !== 'undefined' && window.top !== window.self
+
+    const hostedLoginHref = useMemo(() => {
+        if (typeof window === 'undefined') return '/login'
+        const url = new URL(window.location.href)
+        url.pathname = '/login'
+        return url.toString()
+    }, [])
 
     const handleScan = useCallback(async () => {
         if (!isNfcSupported) {
@@ -72,6 +89,82 @@ export default function NfcStep({ onSubmit, loading, error }: NfcStepProps) {
             setScanning(false)
         }
     }, [isNfcSupported, onSubmit, t])
+
+    if (isFramed && isNfcSupported) {
+        return (
+            <motion.div
+                initial="hidden"
+                animate="visible"
+                variants={{
+                    hidden: { opacity: 0 },
+                    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
+                }}
+            >
+                <Box sx={{ textAlign: 'center', mb: 3 }}>
+                    <Box
+                        sx={{
+                            width: 56,
+                            height: 56,
+                            borderRadius: '14px',
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            mx: 'auto',
+                            mb: 2,
+                            boxShadow: '0 8px 32px rgba(245, 158, 11, 0.3)',
+                        }}
+                    >
+                        <OpenInNew sx={{ fontSize: 28, color: 'white' }} />
+                    </Box>
+                    <Typography variant="h6" fontWeight={600}>
+                        {t('mfa.nfc.framedTitle')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
+                        {t('mfa.nfc.framedBody')}
+                    </Typography>
+                </Box>
+
+                <Stack spacing={1.5}>
+                    <Button
+                        fullWidth
+                        variant="contained"
+                        size="large"
+                        component="a"
+                        href={hostedLoginHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        startIcon={<OpenInNew />}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            fontSize: '1rem',
+                            fontWeight: 600,
+                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
+                            boxShadow: '0 10px 40px rgba(245, 158, 11, 0.4)',
+                            '&:hover': {
+                                background: 'linear-gradient(135deg, #d97706 0%, #b45309 100%)',
+                            },
+                        }}
+                    >
+                        {t('mfa.nfc.framedCta')}
+                    </Button>
+
+                    {onBack && (
+                        <Button
+                            fullWidth
+                            variant="outlined"
+                            size="large"
+                            onClick={onBack}
+                            sx={{ py: 1.5, borderRadius: '12px', fontWeight: 600 }}
+                        >
+                            {t('mfa.nfc.framedSecondary')}
+                        </Button>
+                    )}
+                </Stack>
+            </motion.div>
+        )
+    }
 
     return (
         <motion.div
