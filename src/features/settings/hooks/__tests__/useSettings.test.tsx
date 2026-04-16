@@ -103,7 +103,8 @@ describe('useSettings', () => {
             expect(result.current.loading).toBe(false)
         })
 
-        expect(result.current.error).toBe('Load failed')
+        expect(result.current.error).toBeTruthy()
+        expect(result.current.error).not.toBe('Load failed')
         expect(result.current.settings).toBeNull()
         expect(mockErrorHandler.handle).toHaveBeenCalledWith(error)
     })

@@ -34,7 +34,11 @@ const INITIAL_STATE: FaceDetectionState = {
     boundingBox: null,
 }
 
-export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | null>, active: boolean) {
+export function useFaceDetection(
+    videoRef: React.RefObject<HTMLVideoElement | null>,
+    active: boolean,
+    recordOperation?: (name: string, durationMs: number) => void,
+) {
     // --- MediaPipe state (fallback) ---
     const mpDetectorRef = useRef<FaceDetector | null>(null)
     const animFrameRef = useRef<number>(0)
@@ -162,6 +166,9 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                     },
                 })
 
+                // Record timing for dev perf overlay
+                recordOperation?.('face-detect', result.inferenceTimeMs)
+
                 // Performance logging: log every 60 frames (~2 seconds)
                 perfLogCountRef.current++
                 if (perfLogCountRef.current % 60 === 0) {
@@ -174,7 +181,7 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
         }
 
         animFrameRef.current = requestAnimationFrame(detectWithBlazeFace)
-    }, [videoRef, blazeFace])
+    }, [videoRef, blazeFace, recordOperation])
 
     // --- MediaPipe detection loop (fallback) ---
     const detectWithMediaPipe = useCallback(() => {
@@ -245,6 +252,9 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
                 }
             }
 
+            // Record timing for dev perf overlay
+            recordOperation?.('face-detect', inferenceMs)
+
             // Performance logging
             perfLogCountRef.current++
             if (perfLogCountRef.current % 60 === 0) {
@@ -257,7 +267,7 @@ export function useFaceDetection(videoRef: React.RefObject<HTMLVideoElement | nu
         }
 
         animFrameRef.current = requestAnimationFrame(detectWithMediaPipe)
-    }, [videoRef])
+    }, [videoRef, recordOperation])
 
     // --- Start the appropriate detection loop ---
     useEffect(() => {

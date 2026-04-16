@@ -31,7 +31,17 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
 - `src/core/di/` - InversifyJS DI container and TYPES
 - `src/pages/` - Page components (17 pages)
 - `src/utils/formatApiError.ts` - Centralized HTTP error → i18n message mapping
-- `src/verify-app/` - Embeddable auth widget (LoginMfaFlow, VerifyApp, SDK)
+- `src/verify-app/` - Auth surfaces (both widget iframe + hosted-first redirect page)
+
+## Architectural direction (2026-04-16)
+
+**Hosted-first auth.** Primary integration is redirective: tenants use `FivucsasAuth.loginRedirect({...})` which navigates the user to `verify.fivucsas.com/login` (top-level browsing context). After MFA, the browser redirects back to the tenant's `redirect_uri` with `?code=…&state=…`. The tenant exchanges the code at `/oauth2/token` for access + id tokens (OIDC). Widget iframe remains available but demoted to **inline step-up MFA** (sensitive-action re-auth, checkout confirmation).
+
+**Why:** Industry pattern (Auth0, Okta, Microsoft, Google, Apple, Keycloak, AWS Cognito, Stripe, Turkish banks, e-Devlet all use hosted-first). Native platform features (Web NFC, WebAuthn, autofill, password managers) behave correctly in top-level context. Future-proof against Safari ITP + 3P cookie deprecation.
+
+**Platform coverage:** hosted mode supports web, iOS (ASWebAuthenticationSession), Android (Chrome Custom Tabs), Electron (loopback), CLI (loopback). Redirect-URI allowlist accepts HTTPS, custom schemes (`com.acme://auth`), and loopback (`http://127.0.0.1:*`) per RFC 8252.
+
+**Backend OAuth 2.0 + OIDC already production-grade:** `OAuth2Controller.authorize`, `.token`, PKCE S256, state/nonce, JWKS, OIDC discovery, exact-match redirect-URI allowlist. PR-1 only adds `display=page` content negotiation + `POST /oauth2/authorize/complete` to mint the code after MFA.
 
 ## Auth Methods (ALL 10 WORKING)
 

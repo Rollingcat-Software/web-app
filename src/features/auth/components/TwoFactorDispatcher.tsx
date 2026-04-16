@@ -228,6 +228,18 @@ export default function TwoFactorDispatcher({
                                     const wavBuffer = dataUrlToArrayBuffer(voiceData)
                                     if (wavBuffer) {
                                         const result = await vad.classify(wavBuffer)
+                                        // One-liner trace so we can confirm VAD is actually
+                                        // gating uploads in prod DevTools.
+                                        // eslint-disable-next-line no-console
+                                        console.debug(
+                                            '[VoiceVAD] decision',
+                                            {
+                                                speechRatio: result.speechRatio,
+                                                confidence: result.confidence,
+                                                isSpeech: result.isSpeech,
+                                                wavBytes: wavBuffer.byteLength,
+                                            },
+                                        )
                                         // Only block when classification actually ran
                                         // (confidence > 0 implies frames were evaluated).
                                         if (result.confidence > 0 && result.speechRatio < 0.2) {

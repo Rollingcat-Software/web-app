@@ -10,17 +10,9 @@ import { DependencyProvider } from '@app/providers'
 import { createTestContainer } from '@test/testUtils'
 import App from './App'
 
-// Mock react-i18next so PageTitle does not throw
-vi.mock('react-i18next', () => ({
-    useTranslation: () => ({
-        t: (key: string) => key,
-        i18n: {
-            language: 'en',
-            on: vi.fn(),
-            off: vi.fn(),
-        },
-    }),
-}))
+// Use the real i18n runtime (loads en.json/tr.json) so LoginPage renders
+// its translated headings like "Welcome Back" that the tests assert on.
+import './i18n'
 
 // Variable to control the mock per test
 let mockAuthReturn = {

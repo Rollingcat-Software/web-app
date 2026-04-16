@@ -13,6 +13,7 @@ import {DependencyProvider} from '@app/providers'
 import {AuthProvider} from '@features/auth/hooks/useAuth'
 import {ThemeModeProvider, useThemeMode} from '@app/providers/ThemeModeProvider'
 import {createAppTheme} from './theme'
+import {PerfProvider} from './contexts/PerfContext'
 import './index.css'
 
 function AppLoader() {
@@ -32,7 +33,9 @@ function ThemedApp() {
             <CssBaseline/>
             <SnackbarProvider maxSnack={3} preventDuplicate anchorOrigin={{vertical: 'top', horizontal: 'right'}}>
                 <AuthProvider>
-                    <App/>
+                    <PerfProvider>
+                        <App/>
+                    </PerfProvider>
                 </AuthProvider>
             </SnackbarProvider>
         </ThemeProvider>

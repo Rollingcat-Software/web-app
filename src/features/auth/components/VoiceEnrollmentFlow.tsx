@@ -24,57 +24,11 @@ import {
 } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { encodeToWav16kMono } from '@/features/auth/utils/audioToWav16k'
 
-// ── WAV Conversion Helpers ──────────────────────────────────────
-
-function writeString(view: DataView, offset: number, str: string) {
-    for (let i = 0; i < str.length; i++) {
-        view.setUint8(offset + i, str.charCodeAt(i))
-    }
-}
-
-function createWavBuffer(samples: Float32Array, sampleRate: number): ArrayBuffer {
-    const buffer = new ArrayBuffer(44 + samples.length * 2)
-    const view = new DataView(buffer)
-    writeString(view, 0, 'RIFF')
-    view.setUint32(4, 36 + samples.length * 2, true)
-    writeString(view, 8, 'WAVE')
-    writeString(view, 12, 'fmt ')
-    view.setUint32(16, 16, true)
-    view.setUint16(20, 1, true)     // PCM
-    view.setUint16(22, 1, true)     // mono
-    view.setUint32(24, sampleRate, true)
-    view.setUint32(28, sampleRate * 2, true)
-    view.setUint16(32, 2, true)
-    view.setUint16(34, 16, true)    // 16-bit
-    writeString(view, 36, 'data')
-    view.setUint32(40, samples.length * 2, true)
-    for (let i = 0; i < samples.length; i++) {
-        const s = Math.max(-1, Math.min(1, samples[i]))
-        view.setInt16(44 + i * 2, s < 0 ? s * 0x8000 : s * 0x7FFF, true)
-    }
-    return buffer
-}
-
-async function convertToWav16k(blob: Blob): Promise<Blob> {
-    const audioCtx = new AudioContext({ sampleRate: 16000 })
-    const arrayBuffer = await blob.arrayBuffer()
-    const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer)
-    let channelData: Float32Array
-    if (audioBuffer.numberOfChannels === 1) {
-        channelData = audioBuffer.getChannelData(0)
-    } else {
-        const ch0 = audioBuffer.getChannelData(0)
-        const ch1 = audioBuffer.getChannelData(1)
-        channelData = new Float32Array(ch0.length)
-        for (let i = 0; i < ch0.length; i++) {
-            channelData[i] = (ch0[i] + ch1[i]) / 2
-        }
-    }
-    const wavBuffer = createWavBuffer(channelData, 16000)
-    await audioCtx.close()
-    return new Blob([wavBuffer], { type: 'audio/wav' })
-}
+// WAV conversion is delegated to the shared helper so enrollment and
+// login paths stay in lockstep (same header layout, same resample, same
+// fallback behaviour). See src/features/auth/utils/audioToWav16k.ts.
 
 function formatBytes(bytes: number): string {
     if (bytes < 1024) return `${bytes} B`
@@ -240,7 +194,7 @@ export default function VoiceEnrollmentFlow({
                 // Convert WebM -> WAV 16kHz mono
                 try {
                     const convStart = performance.now()
-                    const wavBlob = await convertToWav16k(blob)
+                    const wavBlob = await encodeToWav16kMono(blob)
                     const convTime = performance.now() - convStart
 
                     setConversionStats({

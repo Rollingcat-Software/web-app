@@ -351,7 +351,10 @@ export default function EnrollmentPage() {
     // Fetch access token for voice endpoints
     useEffect(() => {
         const tokenService = container.get<ITokenService>(TYPES.TokenService)
-        tokenService.getAccessToken().then(setAccessToken).catch(() => {})
+        tokenService.getAccessToken().then(setAccessToken).catch((e) => {
+            // Voice endpoints will fall back to unauthenticated mode; log so we can diagnose later.
+            console.error('EnrollmentPage: failed to fetch access token for voice endpoints', e)
+        })
     }, [])
 
     // Build enrollment status map
@@ -512,15 +515,17 @@ export default function EnrollmentPage() {
 
     // Handle face enrollment completion
     const handleFaceEnrollComplete = useCallback(
-        async (images: string[]) => {
+        async (images: string[], clientEmbeddings?: (number[] | null)[]) => {
             if (!userId || images.length === 0) return
             setActionLoading(AuthMethodType.FACE)
             setActionError(null)
             try {
                 const biometric = getBiometricService()
                 // Send all captured images — enrollFace will use /enroll/multi
-                // for 2+ images (quality-weighted template fusion)
-                await biometric.enrollFace(userId, images, user?.tenantId)
+                // for 2+ images (quality-weighted template fusion).
+                // clientEmbeddings are MobileFaceNet 128-dim vectors computed in-browser
+                // via EmbeddingComputer (ONNX/WebGL). Server ignores this field if not recognized.
+                await biometric.enrollFace(userId, images, user?.tenantId, clientEmbeddings)
 
                 // Create enrollment record and explicitly complete it (FACE is ASYNC_ENROLLMENT_TYPE)
                 await createEnrollment({

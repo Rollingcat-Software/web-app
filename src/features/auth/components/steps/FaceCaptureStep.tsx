@@ -21,6 +21,9 @@ import { motion, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useFaceDetection } from '../../hooks/useFaceDetection'
 import { useQualityAssessment } from '../../hooks/useQualityAssessment'
+import { usePerf } from '../../../../contexts/PerfContext'
+import { BiometricEngine } from '../../../../lib/biometric-engine/core/BiometricEngine'
+import { dataURLToImageData } from '../../utils/faceCropper'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -34,13 +37,14 @@ const itemVariants: Variants = {
 }
 
 interface FaceCaptureStepProps {
-    onSubmit: (image: string) => void
+    onSubmit: (image: string, clientEmbedding?: number[]) => void
     loading: boolean
     error?: string
 }
 
 export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptureStepProps) {
     const { t } = useTranslation()
+    const { recordFrame, recordOperation } = usePerf()
     const videoRef = useRef<HTMLVideoElement>(null)
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const streamRef = useRef<MediaStream | null>(null)
@@ -57,7 +61,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         boundingBox,
         cropFace,
         backend,
-    } = useFaceDetection(videoRef, cameraActive && !capturedImage)
+    } = useFaceDetection(videoRef, cameraActive && !capturedImage, recordOperation)
 
     const { quality, updateQuality, resetQuality, getScoreColor, getQualityLabel } = useQualityAssessment()
 
@@ -66,8 +70,11 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         if (!cameraActive || capturedImage) return
         let animFrame = 0
         function loop() {
+            recordFrame()
             if (videoRef.current && videoRef.current.readyState >= 2) {
+                const t0 = performance.now()
                 updateQuality(videoRef.current)
+                recordOperation('quality-assess', performance.now() - t0)
             }
             animFrame = requestAnimationFrame(loop)
         }
@@ -76,7 +83,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             cancelAnimationFrame(animFrame)
             resetQuality()
         }
-    }, [cameraActive, capturedImage, updateQuality, resetQuality])
+    }, [cameraActive, capturedImage, updateQuality, resetQuality, recordFrame, recordOperation])
 
     const startCamera = useCallback(async () => {
         try {
@@ -169,10 +176,30 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         startCamera()
     }, [startCamera])
 
-    const handleSubmit = useCallback(() => {
-        if (capturedImage) {
-            onSubmit(capturedImage)
+    const handleSubmit = useCallback(async () => {
+        if (!capturedImage) return
+
+        // Attempt client-side MobileFaceNet embedding extraction (non-blocking).
+        // If the ONNX model is loaded (via BiometricEngine), extract a 128-dim
+        // embedding in browser WebGL before submitting to the server.
+        // The embedding is passed as clientEmbedding to onSubmit — callers
+        // include it in the auth step payload; server ignores it if not recognized.
+        let clientEmbedding: number[] | undefined
+        try {
+            const engine = BiometricEngine.getInstance()
+            const computer = engine.embeddingComputer
+            if (computer && computer.isAvailable()) {
+                const imageData = await dataURLToImageData(capturedImage)
+                if (imageData) {
+                    const vec = await computer.extract(imageData)
+                    if (vec) clientEmbedding = Array.from(vec)
+                }
+            }
+        } catch {
+            // Non-critical: embedding extraction failure is silently ignored.
         }
+
+        onSubmit(capturedImage, clientEmbedding)
     }, [capturedImage, onSubmit])
 
     // Determine bounding box overlay color

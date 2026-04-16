@@ -52,7 +52,6 @@ import { useAuditLogs } from '@features/auditLogs'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { AuditLog } from '@domain/models/AuditLog'
-import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
@@ -224,7 +223,7 @@ function getActivityColor(action: string): 'success' | 'error' | 'warning' | 'in
 }
 
 const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[] }) {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const recentLogs = logs.slice(0, 8)
 
     if (recentLogs.length === 0) {
@@ -256,7 +255,19 @@ const RecentActivity = memo(function RecentActivity({ logs }: { logs: AuditLog[]
                         }
                         secondary={
                             <Typography variant="caption" color="text.secondary">
-                                {(() => { try { return format(new Date(log.createdAt), 'MMM dd, HH:mm:ss') } catch { return 'N/A' } })()}
+                                {(() => {
+                                    try {
+                                        return new Date(log.createdAt).toLocaleString(i18n.language, {
+                                            month: 'short',
+                                            day: '2-digit',
+                                            hour: '2-digit',
+                                            minute: '2-digit',
+                                            second: '2-digit',
+                                        })
+                                    } catch {
+                                        return 'N/A'
+                                    }
+                                })()}
                                 {log.ipAddress && ` ${t('common.from')} ${log.ipAddress}`}
                             </Typography>
                         }
@@ -298,7 +309,7 @@ const METHOD_LABEL_KEYS: Record<string, string> = {
  */
 function UserDashboardContent() {
     const { user } = useAuth()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const navigate = useNavigate()
     const userId = user?.id ?? ''
     const { enrollments, loading: enrollmentsLoading } = useUserEnrollments(userId)
@@ -431,7 +442,19 @@ function UserDashboardContent() {
                                                     primary={<Typography variant="body2" color="text.secondary">{t('dashboard.memberSince', 'Member Since')}</Typography>}
                                                     secondary={
                                                         <Typography variant="body1">
-                                                            {(() => { try { return user?.createdAt ? format(new Date(user.createdAt), 'MMMM dd, yyyy') : 'N/A' } catch { return 'N/A' } })()}
+                                                            {(() => {
+                                                                try {
+                                                                    return user?.createdAt
+                                                                        ? new Date(user.createdAt).toLocaleDateString(i18n.language, {
+                                                                              year: 'numeric',
+                                                                              month: 'long',
+                                                                              day: '2-digit',
+                                                                          })
+                                                                        : 'N/A'
+                                                                } catch {
+                                                                    return 'N/A'
+                                                                }
+                                                            })()}
                                                         </Typography>
                                                     }
                                                 />
@@ -554,7 +577,20 @@ function UserDashboardContent() {
                                                             }
                                                             secondary={
                                                                 <Typography variant="caption" color="text.secondary">
-                                                                    {(() => { try { return format(new Date(log.createdAt), 'MMM dd, yyyy HH:mm:ss') } catch { return 'N/A' } })()}
+                                                                    {(() => {
+                                                                        try {
+                                                                            return new Date(log.createdAt).toLocaleString(i18n.language, {
+                                                                                year: 'numeric',
+                                                                                month: 'short',
+                                                                                day: '2-digit',
+                                                                                hour: '2-digit',
+                                                                                minute: '2-digit',
+                                                                                second: '2-digit',
+                                                                            })
+                                                                        } catch {
+                                                                            return 'N/A'
+                                                                        }
+                                                                    })()}
                                                                     {log.userAgent && ` -- ${log.userAgent.substring(0, 60)}${log.userAgent.length > 60 ? '...' : ''}`}
                                                                 </Typography>
                                                             }
@@ -616,7 +652,7 @@ function UserDashboardContent() {
 function AdminDashboardContent() {
     const { stats, loading, error } = useDashboard()
     const { auditLogs, loading: logsLoading } = useAuditLogs()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
 
     if (loading) {
         return (
@@ -723,7 +759,7 @@ function AdminDashboardContent() {
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
                             title={t('dashboard.totalUsers')}
-                            value={stats.totalUsers.toLocaleString()}
+                            value={stats.totalUsers.toLocaleString(i18n.language)}
                             icon={<People sx={{ fontSize: 28 }} />}
                             color="primary"
                         />
@@ -732,7 +768,7 @@ function AdminDashboardContent() {
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
                             title={t('dashboard.activeUsers')}
-                            value={stats.activeUsers.toLocaleString()}
+                            value={stats.activeUsers.toLocaleString(i18n.language)}
                             icon={<CheckCircle sx={{ fontSize: 28 }} />}
                             color="success"
                             subtitle={`${stats.activeUserPercentage.toFixed(1)}% ${t('dashboard.ofTotal')}`}
@@ -742,7 +778,7 @@ function AdminDashboardContent() {
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
                             title={t('dashboard.totalTenants')}
-                            value={stats.totalTenants.toLocaleString()}
+                            value={stats.totalTenants.toLocaleString(i18n.language)}
                             icon={<Business sx={{ fontSize: 28 }} />}
                             color="info"
                         />
@@ -752,7 +788,7 @@ function AdminDashboardContent() {
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
                             title={t('dashboard.biometricEnrolled')}
-                            value={stats.biometricEnrolledUsers.toLocaleString()}
+                            value={stats.biometricEnrolledUsers.toLocaleString(i18n.language)}
                             icon={<Fingerprint sx={{ fontSize: 28 }} />}
                             color="success"
                             subtitle={`${stats.totalUsers > 0 ? ((stats.biometricEnrolledUsers / stats.totalUsers) * 100).toFixed(1) : 0}% ${t('dashboard.ofUsers')}`}
@@ -762,7 +798,7 @@ function AdminDashboardContent() {
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
                             title={t('dashboard.pendingEnrollments')}
-                            value={stats.pendingEnrollments.toLocaleString()}
+                            value={stats.pendingEnrollments.toLocaleString(i18n.language)}
                             icon={<PersonAdd sx={{ fontSize: 28 }} />}
                             color="warning"
                             subtitle={t('dashboard.awaitingEnrollment')}
@@ -772,7 +808,7 @@ function AdminDashboardContent() {
                     <Grid item xs={12} sm={6} md={4}>
                         <StatCard
                             title={t('dashboard.failedEnrollments')}
-                            value={stats.failedEnrollments.toLocaleString()}
+                            value={stats.failedEnrollments.toLocaleString(i18n.language)}
                             icon={<ErrorIcon sx={{ fontSize: 28 }} />}
                             color="error"
                             subtitle={stats.failedEnrollments > 0 ? t('dashboard.requiresAttention') : t('dashboard.noFailures')}
@@ -896,7 +932,7 @@ function AdminDashboardContent() {
                                                     </Typography>
                                                 </Box>
                                                 <Typography variant="h5" fontWeight={700}>
-                                                    {stats.totalVerifications.toLocaleString()}
+                                                    {stats.totalVerifications.toLocaleString(i18n.language)}
                                                 </Typography>
                                             </Box>
                                         </Grid>

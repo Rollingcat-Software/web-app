@@ -42,7 +42,7 @@ type FlowPhase = 'password' | 'method-picker' | 'mfa-step' | 'complete'
 
 interface LoginMfaFlowProps {
     clientId: string
-    onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; timestamp?: number }) => void
+    onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; mfaSessionToken?: string; timestamp?: number }) => void
     onCancel: () => void
     onStepChange?: (stepIndex: number, methodType: string, totalSteps: number) => void
 }
@@ -92,6 +92,11 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 const methods = result.availableMethods ?? []
                 const enrolledMethods = methods.filter((m) => m.enrolled)
                 setAvailableMethods(methods)
+                if (result.completedMethods?.length) {
+                    setUsedMethods((prev) =>
+                        Array.from(new Set([...prev, ...result.completedMethods!])),
+                    )
+                }
 
                 if (enrolledMethods.length > 1) {
                     // Multiple enrolled methods: show picker
@@ -172,11 +177,17 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 userId: res.user?.id ? String(res.user.id) : '',
                 email: res.user?.email ? String(res.user.email) : undefined,
                 completedMethods: finalMethods,
+                mfaSessionToken: mfaSessionToken || undefined,
                 timestamp: Date.now(),
             })
         } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
-            // More steps remain — track the method just used to exclude it from step 2
-            setUsedMethods((prev) => selectedMethod && !prev.includes(selectedMethod) ? [...prev, selectedMethod] : prev)
+            // More steps remain — merge backend-authoritative completed list with local + current
+            setUsedMethods((prev) => {
+                const merged = new Set<string>(prev)
+                if (res.completedMethods?.length) res.completedMethods.forEach((m) => merged.add(m))
+                if (selectedMethod) merged.add(selectedMethod)
+                return Array.from(merged)
+            })
             if (res.mfaSessionToken) setMfaSessionToken(res.mfaSessionToken)
             if (res.currentStep) setCurrentStep(res.currentStep)
             if (res.totalSteps) setTotalSteps(res.totalSteps)
@@ -196,7 +207,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         } else {
             setError(t('widget.verificationFailed'))
         }
-    }, [onComplete, availableMethods, t])
+    }, [onComplete, availableMethods, mfaSessionToken, usedMethods, selectedMethod, t])
 
     // ─── WebAuthn Challenge Helper ────────────────────────────────
 
@@ -320,6 +331,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                         onSubmit={(data) => verifyStep(AuthMethodType.NFC_DOCUMENT, { nfcData: data })}
                         loading={loading}
                         error={error}
+                        onBack={handleBackToMethodSelection}
                     />
                 )
 

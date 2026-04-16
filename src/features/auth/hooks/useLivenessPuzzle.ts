@@ -106,7 +106,8 @@ export type LivenessAction =
 
 export interface LivenessStep {
     action: LivenessAction
-    instruction: string
+    /** i18n key for the instruction text (e.g. `liveness.actions.blink`). Render with `t()`. */
+    instructionKey: string
     durationMs: number
     detected: boolean
     confidence: number
@@ -126,15 +127,19 @@ export interface LivenessPuzzleState {
     challengeId: string | null
 }
 
-const ACTION_INSTRUCTIONS: Record<string, string> = {
-    blink: 'Blink your eyes',
-    smile: 'Smile!',
-    turn_left: 'Turn your head LEFT',
-    turn_right: 'Turn your head RIGHT',
-    nod: 'Nod your head down',
-    look_up: 'Look up',
-    open_mouth: 'Open your mouth wide',
-    raise_eyebrows: 'Raise your eyebrows',
+/**
+ * i18n keys for each action instruction. Consumers should render with t().
+ * Keys live in `liveness.actions.*` in en.json + tr.json.
+ */
+const ACTION_INSTRUCTION_KEYS: Record<string, string> = {
+    blink: 'liveness.actions.blink',
+    smile: 'liveness.actions.smile',
+    turn_left: 'liveness.actions.turn_left',
+    turn_right: 'liveness.actions.turn_right',
+    nod: 'liveness.actions.nod',
+    look_up: 'liveness.actions.look_up',
+    open_mouth: 'liveness.actions.open_mouth',
+    raise_eyebrows: 'liveness.actions.raise_eyebrows',
 }
 
 /**
@@ -412,7 +417,7 @@ export function useLivenessPuzzle() {
                 const action = (s.action || s.type || 'blink') as LivenessAction
                 return {
                     action,
-                    instruction: ACTION_INSTRUCTIONS[action] || `Perform: ${action}`,
+                    instructionKey: ACTION_INSTRUCTION_KEYS[action] || 'liveness.actions.perform',
                     durationMs: (s.duration_seconds || s.durationSeconds || 5) * 1000,
                     detected: false,
                     confidence: 0,
@@ -441,7 +446,8 @@ export function useLivenessPuzzle() {
                 setState(prev => ({
                     ...prev,
                     currentStepIndex: i,
-                    message: `Step ${i + 1}/${livenessSteps.length}: ${step.instruction}`,
+                    // Non-UI diagnostic string. Render step.instructionKey via t() in the component.
+                    message: `Step ${i + 1}/${livenessSteps.length}: ${step.action}`,
                 }))
 
                 const actionResult = await waitForAction(step.action, step.durationMs, videoRef)

@@ -24,6 +24,7 @@ import '../i18n'
 import React from 'react'
 import ReactDOM from 'react-dom/client'
 import VerifyApp from './VerifyApp'
+import HostedLoginApp from './HostedLoginApp'
 
 const rootElement = document.getElementById('verify-root')
 if (!rootElement) {
@@ -32,8 +33,15 @@ if (!rootElement) {
     )
 }
 
+// Hosted-first routing: top-level /login renders the full-page OIDC surface;
+// everything else (including framed widget) renders VerifyApp.
+const path = window.location.pathname.replace(/\/+$/, '') || '/'
+const isHosted =
+    window.top === window.self &&
+    (path === '/login' || path.endsWith('/login'))
+
 ReactDOM.createRoot(rootElement).render(
     <React.StrictMode>
-        <VerifyApp />
+        {isHosted ? <HostedLoginApp /> : <VerifyApp />}
     </React.StrictMode>
 )

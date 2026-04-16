@@ -77,7 +77,7 @@ export default function MethodPickerStep({
                 {t('mfa.chooseMethodSubtitle')}
             </Typography>
 
-            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5, maxHeight: '60vh', overflowY: 'auto', pr: 0.5 }}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                 {[...availableMethods]
                 .filter((m) => !hideNonEnrolled || m.enrolled)
                 .filter((m) => !excludeMethods.includes(m.methodType))

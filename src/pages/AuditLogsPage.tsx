@@ -64,50 +64,10 @@ function getActionColor(action: string): 'success' | 'error' | 'warning' | 'info
     return 'default'
 }
 
-const ACTION_LABELS: Record<string, string> = {
-    ALL: 'All Actions',
-    // Authentication
-    USER_LOGIN: 'User Login',
-    USER_LOGOUT: 'User Logout',
-    USER_LOGIN_FAILED: 'Login Failed',
-    TOKEN_REFRESH: 'Token Refresh',
-    PASSWORD_CHANGE: 'Password Change',
-    PASSWORD_RESET_REQUEST: 'Password Reset Request',
-    PASSWORD_RESET: 'Password Reset',
-    // User management
-    USER_CREATED: 'User Created',
-    USER_UPDATED: 'User Updated',
-    USER_DELETED: 'User Deleted',
-    USER_STATUS_CHANGED: 'User Status Changed',
-    USER_ROLE_ASSIGNED: 'User Role Assigned',
-    USER_ROLE_REMOVED: 'User Role Removed',
-    // Tenant management
-    TENANT_CREATED: 'Tenant Created',
-    TENANT_UPDATED: 'Tenant Updated',
-    TENANT_DELETED: 'Tenant Deleted',
-    TENANT_STATUS_CHANGED: 'Tenant Status Changed',
-    // Role management
-    ROLE_CREATED: 'Role Created',
-    ROLE_UPDATED: 'Role Updated',
-    ROLE_DELETED: 'Role Deleted',
-    PERMISSION_ADDED: 'Permission Added',
-    PERMISSION_REMOVED: 'Permission Removed',
-    // Biometric
-    BIOMETRIC_ENROLLED: 'Biometric Enrolled',
-    BIOMETRIC_VERIFIED: 'Biometric Verified',
-    BIOMETRIC_VERIFICATION_FAILED: 'Biometric Verification Failed',
-    BIOMETRIC_DELETED: 'Biometric Deleted',
-    // Settings
-    SETTINGS_UPDATED: 'Settings Updated',
-    SECURITY_SETTINGS_UPDATED: 'Security Settings Updated',
-    NOTIFICATION_SETTINGS_UPDATED: 'Notification Settings Updated',
-    APPEARANCE_SETTINGS_UPDATED: 'Appearance Settings Updated',
-}
-
 /** Grouped action types for the filter dropdown with subheaders */
-const GROUPED_ACTION_ITEMS: Array<{ type: 'header'; label: string } | { type: 'action'; value: string }> = [
+const GROUPED_ACTION_ITEMS: Array<{ type: 'header'; labelKey: string } | { type: 'action'; value: string }> = [
     { type: 'action', value: 'ALL' },
-    { type: 'header', label: 'Authentication' },
+    { type: 'header', labelKey: 'auditLogs.groups.authentication' },
     { type: 'action', value: 'USER_LOGIN' },
     { type: 'action', value: 'USER_LOGOUT' },
     { type: 'action', value: 'USER_LOGIN_FAILED' },
@@ -115,30 +75,30 @@ const GROUPED_ACTION_ITEMS: Array<{ type: 'header'; label: string } | { type: 'a
     { type: 'action', value: 'PASSWORD_CHANGE' },
     { type: 'action', value: 'PASSWORD_RESET_REQUEST' },
     { type: 'action', value: 'PASSWORD_RESET' },
-    { type: 'header', label: 'User Management' },
+    { type: 'header', labelKey: 'auditLogs.groups.userManagement' },
     { type: 'action', value: 'USER_CREATED' },
     { type: 'action', value: 'USER_UPDATED' },
     { type: 'action', value: 'USER_DELETED' },
     { type: 'action', value: 'USER_STATUS_CHANGED' },
     { type: 'action', value: 'USER_ROLE_ASSIGNED' },
     { type: 'action', value: 'USER_ROLE_REMOVED' },
-    { type: 'header', label: 'Tenant Management' },
+    { type: 'header', labelKey: 'auditLogs.groups.tenantManagement' },
     { type: 'action', value: 'TENANT_CREATED' },
     { type: 'action', value: 'TENANT_UPDATED' },
     { type: 'action', value: 'TENANT_DELETED' },
     { type: 'action', value: 'TENANT_STATUS_CHANGED' },
-    { type: 'header', label: 'Role Management' },
+    { type: 'header', labelKey: 'auditLogs.groups.roleManagement' },
     { type: 'action', value: 'ROLE_CREATED' },
     { type: 'action', value: 'ROLE_UPDATED' },
     { type: 'action', value: 'ROLE_DELETED' },
     { type: 'action', value: 'PERMISSION_ADDED' },
     { type: 'action', value: 'PERMISSION_REMOVED' },
-    { type: 'header', label: 'Biometric' },
+    { type: 'header', labelKey: 'auditLogs.groups.biometric' },
     { type: 'action', value: 'BIOMETRIC_ENROLLED' },
     { type: 'action', value: 'BIOMETRIC_VERIFIED' },
     { type: 'action', value: 'BIOMETRIC_VERIFICATION_FAILED' },
     { type: 'action', value: 'BIOMETRIC_DELETED' },
-    { type: 'header', label: 'Settings' },
+    { type: 'header', labelKey: 'auditLogs.groups.settings' },
     { type: 'action', value: 'SETTINGS_UPDATED' },
     { type: 'action', value: 'SECURITY_SETTINGS_UPDATED' },
     { type: 'action', value: 'NOTIFICATION_SETTINGS_UPDATED' },
@@ -146,7 +106,7 @@ const GROUPED_ACTION_ITEMS: Array<{ type: 'header'; label: string } | { type: 'a
 ]
 
 export default function AuditLogsPage() {
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const [searchQuery, setSearchQuery] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
     const [actionFilter, setActionFilter] = useState<string>('ALL')
@@ -191,10 +151,10 @@ export default function AuditLogsPage() {
         <Box>
             <Box sx={{ mb: 3 }}>
                 <Typography variant="h4" gutterBottom fontWeight={600}>
-                    Audit Logs
+                    {t('auditLogs.title')}
                 </Typography>
                 <Typography variant="body1" color="text.secondary">
-                    Security audit trail and activity monitoring
+                    {t('auditLogs.subtitle')}
                 </Typography>
             </Box>
 
@@ -208,7 +168,7 @@ export default function AuditLogsPage() {
                 <Paper sx={{ p: 2, flex: 1 }}>
                     <TextField
                         fullWidth
-                        placeholder="Search by action, user ID, IP address..."
+                        placeholder={t('auditLogs.searchPlaceholder')}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
                         InputProps={{
@@ -228,16 +188,16 @@ export default function AuditLogsPage() {
                     <TextField
                         select
                         fullWidth
-                        label="Action Type"
+                        label={t('auditLogs.actionTypeLabel')}
                         value={actionFilter}
                         onChange={(e) => setActionFilter(e.target.value)}
                     >
                         {GROUPED_ACTION_ITEMS.map((item, idx) =>
                             item.type === 'header' ? (
-                                <ListSubheader key={`header-${idx}`}>{item.label}</ListSubheader>
+                                <ListSubheader key={`header-${idx}`}>{t(item.labelKey)}</ListSubheader>
                             ) : (
                                 <MenuItem key={item.value} value={item.value}>
-                                    {ACTION_LABELS[item.value] || item.value.replace(/_/g, ' ')}
+                                    {t(`auditLogs.actions.${item.value}`, item.value.replace(/_/g, ' '))}
                                 </MenuItem>
                             )
                         )}
@@ -247,7 +207,7 @@ export default function AuditLogsPage() {
 
             {loading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                    <CircularProgress aria-label="Loading audit logs" />
+                    <CircularProgress aria-label={t('auditLogs.loadingAriaLabel')} />
                 </Box>
             ) : (
                 <Paper>
@@ -255,12 +215,12 @@ export default function AuditLogsPage() {
                         <Table>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Timestamp</TableCell>
-                                    <TableCell>Action</TableCell>
-                                    <TableCell>User ID</TableCell>
-                                    <TableCell>Entity</TableCell>
-                                    <TableCell>IP Address</TableCell>
-                                    <TableCell>Details</TableCell>
+                                    <TableCell>{t('auditLogs.columnTimestamp')}</TableCell>
+                                    <TableCell>{t('auditLogs.columnAction')}</TableCell>
+                                    <TableCell>{t('auditLogs.columnUserId')}</TableCell>
+                                    <TableCell>{t('auditLogs.columnEntity')}</TableCell>
+                                    <TableCell>{t('auditLogs.columnIpAddress')}</TableCell>
+                                    <TableCell>{t('auditLogs.columnDetails')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -269,8 +229,8 @@ export default function AuditLogsPage() {
                                         <TableCell colSpan={6} align="center">
                                             <Typography color="text.secondary" py={4}>
                                                 {debouncedSearch || actionFilter !== 'ALL'
-                                                    ? 'No audit logs match your filters'
-                                                    : 'No audit logs found'}
+                                                    ? t('auditLogs.noMatchingLogs')
+                                                    : t('auditLogs.noLogsFound')}
                                             </Typography>
                                         </TableCell>
                                     </TableRow>
@@ -279,7 +239,11 @@ export default function AuditLogsPage() {
                                         <TableRow key={log.id} hover>
                                             <TableCell>
                                                 <Typography variant="body2">
-                                                    {format(new Date(log.createdAt), 'MMM dd, yyyy')}
+                                                    {new Date(log.createdAt).toLocaleDateString(i18n.language, {
+                                                        year: 'numeric',
+                                                        month: 'short',
+                                                        day: '2-digit',
+                                                    })}
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
                                                     {format(new Date(log.createdAt), 'HH:mm:ss')}
@@ -299,7 +263,7 @@ export default function AuditLogsPage() {
                                                 <Typography variant="body2">{log.entityType}</Typography>
                                                 {log.entityId && (
                                                     <Typography variant="caption" color="text.secondary">
-                                                        ID: {log.entityId}
+                                                        {t('auditLogs.entityIdPrefix', { id: log.entityId })}
                                                     </Typography>
                                                 )}
                                             </TableCell>
@@ -322,7 +286,7 @@ export default function AuditLogsPage() {
                                                             sx={{ minHeight: 0, px: 1, py: 0 }}
                                                         >
                                                             <Typography variant="caption" color="primary">
-                                                                View Details
+                                                                {t('auditLogs.viewDetails')}
                                                             </Typography>
                                                         </AccordionSummary>
                                                         <AccordionDetails sx={{ px: 1, py: 1 }}>

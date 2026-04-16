@@ -124,7 +124,7 @@ describe('EmailOtpMfaStep', () => {
 
             await waitFor(() => {
                 expect(screen.getByRole('alert')).toBeInTheDocument()
-                expect(screen.getByText('Network error')).toBeInTheDocument()
+                expect(screen.getByText('errors.networkError')).toBeInTheDocument()
             })
         })
     })
@@ -267,7 +267,7 @@ describe('EmailOtpMfaStep', () => {
             fireEvent.submit(form)
 
             await waitFor(() => {
-                expect(screen.getByText('Server error')).toBeInTheDocument()
+                expect(screen.getByText('errors.unknown')).toBeInTheDocument()
             })
         })
 

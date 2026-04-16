@@ -187,7 +187,7 @@ export default function VerifyApp() {
 
     // Handle auth completion (login mode)
     const handleLoginComplete = useCallback(
-        (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; timestamp?: number }) => {
+        (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; mfaSessionToken?: string; timestamp?: number }) => {
             sendComplete({
                 accessToken: result.accessToken,
                 refreshToken: result.refreshToken,
@@ -251,11 +251,12 @@ export default function VerifyApp() {
                         sx={{
                             minHeight: '100vh',
                             display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            overflowY: 'auto',
-                            py: { xs: 2, sm: 4 },
-                            px: { xs: 1, sm: 2 },
+                            flexDirection: 'column',
+                            alignItems: 'stretch',
+                            justifyContent: 'flex-start',
+                            pt: { xs: 2, sm: 4 },
+                            pb: { xs: 3, sm: 5 },
+                            px: { xs: 1.5, sm: 2 },
                             background: 'transparent',
                         }}
                     >
@@ -293,11 +294,12 @@ export default function VerifyApp() {
                     sx={{
                         minHeight: '100vh',
                         display: 'flex',
+                        flexDirection: 'column',
                         alignItems: 'center',
-                        justifyContent: 'center',
-                        overflowY: 'auto',
-                        py: { xs: 2, sm: 4 },
-                        px: { xs: 1, sm: 2 },
+                        justifyContent: 'flex-start',
+                        pt: { xs: 2, sm: 4 },
+                        pb: { xs: 3, sm: 5 },
+                        px: { xs: 1.5, sm: 2 },
                         background: 'transparent',
                     }}
                 >
