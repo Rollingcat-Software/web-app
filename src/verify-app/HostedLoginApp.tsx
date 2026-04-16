@@ -84,6 +84,25 @@ interface AuthorizeCompleteResponse {
 // ─── Component ───────────────────────────────────────────────────
 
 export default function HostedLoginApp() {
+    // SECURITY (B9): Frame-bust defense-in-depth behind the `frame-ancestors 'none'`
+    // CSP header. If a legacy browser honours CSP late (or ignores it), escaping the
+    // frame early ensures the hosted OIDC sign-in page never renders inside a third
+    // party's iframe (clickjacking / credential-theft defense). Runs synchronously
+    // before any React hook so no state is initialised in the framed render.
+    if (typeof window !== 'undefined' && window.top !== window.self) {
+        try {
+            // Prefer assigning to .location.href (works same-origin). For fully
+            // cross-origin parents the browser blocks this — CSP frame-ancestors
+            // 'none' is the authoritative guard; this is defense-in-depth.
+            if (window.top && window.top.location) {
+                window.top.location.href = window.location.href
+            }
+        } catch {
+            // top is cross-origin and inaccessible — CSP will still deny framing.
+        }
+        return null
+    }
+
     const { t } = useTranslation()
     const [config] = useState(parseHostedParams)
 

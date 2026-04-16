@@ -20,7 +20,16 @@ function cspPlugin(): Plugin {
         configureServer(server) {
             server.middlewares.use((req, res, next) => {
                 // SECURITY: Content Security Policy headers
-                // These headers prevent XSS, clickjacking, and other injection attacks
+                // These headers prevent XSS, clickjacking, and other injection attacks.
+                //
+                // Per-route frame-ancestors (B9) — mirrors public/.htaccess production rule:
+                //   - /login (hosted OIDC sign-in page): frame-ancestors 'none' (clickjacking defense)
+                //   - All other routes (widget / dashboard): allow *.fivucsas.com embed
+                const isHostedLogin = (req.url ?? '').split('?')[0].startsWith('/login')
+                const frameAncestors = isHostedLogin
+                    ? "frame-ancestors 'none'"
+                    : "frame-ancestors 'self' https://*.fivucsas.com"
+
                 res.setHeader(
                     'Content-Security-Policy',
                     [
@@ -30,7 +39,7 @@ function cspPlugin(): Plugin {
                         "font-src 'self' https://fonts.gstatic.com",
                         "img-src 'self' data: https:",
                         "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*",
-                        "frame-ancestors 'self' https://*.fivucsas.com",
+                        frameAncestors,
                         "base-uri 'self'",
                         "form-action 'self'",
                     ].join('; ')
