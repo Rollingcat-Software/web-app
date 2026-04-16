@@ -405,7 +405,11 @@
       "SECURITY_SETTINGS_UPDATED": "Security settings updated",
       "NOTIFICATION_SETTINGS_UPDATED": "Notification settings updated",
       "APPEARANCE_SETTINGS_UPDATED": "Appearance settings updated",
-      "FAILED_LOGIN_ATTEMPT": "Failed login attempt"
+      "FAILED_LOGIN_ATTEMPT": "Failed login attempt",
+      "MFA_STARTED": "Multi-factor authentication started",
+      "MFA_STEP_COMPLETED": "Authentication step completed",
+      "MFA_STEP_FAILED": "Authentication step failed",
+      "MFA_COMPLETE": "Multi-factor authentication completed"
     }
   },
   "nfc": {

@@ -51,7 +51,7 @@ const STORAGE_KEY_LAST_SEEN = 'fivucsas_last_notification'
 type NotificationCategory = 'login' | 'security' | 'enrollment' | 'system'
 
 function getNotificationCategory(action: string): NotificationCategory {
-    if (['USER_LOGIN', 'USER_LOGOUT', 'USER_LOGIN_FAILED', 'TOKEN_REFRESH'].includes(action)) {
+    if (['USER_LOGIN', 'USER_LOGOUT', 'USER_LOGIN_FAILED', 'TOKEN_REFRESH', 'MFA_STARTED', 'MFA_STEP_COMPLETED', 'MFA_STEP_FAILED', 'MFA_COMPLETE'].includes(action)) {
         return 'login'
     }
     if (['FAILED_LOGIN_ATTEMPT', 'PASSWORD_CHANGE', 'PASSWORD_RESET_REQUEST', 'PASSWORD_RESET', 'SECURITY_SETTINGS_UPDATED'].includes(action)) {

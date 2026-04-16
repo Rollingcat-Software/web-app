@@ -92,6 +92,11 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 const methods = result.availableMethods ?? []
                 const enrolledMethods = methods.filter((m) => m.enrolled)
                 setAvailableMethods(methods)
+                if (result.completedMethods?.length) {
+                    setUsedMethods((prev) =>
+                        Array.from(new Set([...prev, ...result.completedMethods!])),
+                    )
+                }
 
                 if (enrolledMethods.length > 1) {
                     // Multiple enrolled methods: show picker
@@ -175,8 +180,13 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 timestamp: Date.now(),
             })
         } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
-            // More steps remain — track the method just used to exclude it from step 2
-            setUsedMethods((prev) => selectedMethod && !prev.includes(selectedMethod) ? [...prev, selectedMethod] : prev)
+            // More steps remain — merge backend-authoritative completed list with local + current
+            setUsedMethods((prev) => {
+                const merged = new Set<string>(prev)
+                if (res.completedMethods?.length) res.completedMethods.forEach((m) => merged.add(m))
+                if (selectedMethod) merged.add(selectedMethod)
+                return Array.from(merged)
+            })
             if (res.mfaSessionToken) setMfaSessionToken(res.mfaSessionToken)
             if (res.currentStep) setCurrentStep(res.currentStep)
             if (res.totalSteps) setTotalSteps(res.totalSteps)

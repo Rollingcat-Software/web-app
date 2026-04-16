@@ -33,6 +33,8 @@ export interface MfaStepResponse {
     currentStep?: number
     totalSteps?: number
     availableMethods?: AvailableMfaMethod[]
+    /** Authoritative list of already-completed AuthMethodType names in this MFA session */
+    completedMethods?: string[]
     // Present when status = AUTHENTICATED
     accessToken?: string
     refreshToken?: string
@@ -54,6 +56,8 @@ export interface AuthResponse {
     mfaSessionToken?: string
     /** Available MFA methods when the user has multiple enrolled */
     availableMethods?: AvailableMfaMethod[]
+    /** Authoritative list of already-completed AuthMethodType names (after password passes) */
+    completedMethods?: string[]
 }
 
 /**

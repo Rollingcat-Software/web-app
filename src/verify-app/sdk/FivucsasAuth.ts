@@ -102,7 +102,8 @@ const OVERLAY_STYLES = `
 .fivucsas-iframe {
     display: block;
     width: 100%;
-    height: 500px;
+    min-height: 560px;
+    height: auto;
     border: none;
 }
 @keyframes fivucsas-fade-in {
@@ -218,7 +219,7 @@ export class FivucsasAuth {
             'allow',
             'camera; microphone; publickey-credentials-get; publickey-credentials-create'
         );
-        iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin allow-popups allow-modals');
+        iframe.setAttribute('sandbox', 'allow-scripts allow-forms allow-same-origin allow-popups allow-popups-to-escape-sandbox allow-modals');
         iframe.setAttribute('title', 'FIVUCSAS Identity Verification');
         container.appendChild(iframe);
         return iframe;

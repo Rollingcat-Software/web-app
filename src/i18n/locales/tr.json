@@ -405,7 +405,11 @@
       "SECURITY_SETTINGS_UPDATED": "Güvenlik ayarları güncellendi",
       "NOTIFICATION_SETTINGS_UPDATED": "Bildirim ayarları güncellendi",
       "APPEARANCE_SETTINGS_UPDATED": "Görünüm ayarları güncellendi",
-      "FAILED_LOGIN_ATTEMPT": "Başarısız giriş denemesi"
+      "FAILED_LOGIN_ATTEMPT": "Başarısız giriş denemesi",
+      "MFA_STARTED": "Çok aşamalı doğrulama başlatıldı",
+      "MFA_STEP_COMPLETED": "Doğrulama adımı tamamlandı",
+      "MFA_STEP_FAILED": "Doğrulama adımı başarısız",
+      "MFA_COMPLETE": "Çok aşamalı doğrulama tamamlandı"
     }
   },
   "nfc": {
@@ -564,7 +568,7 @@
     "platform": "FIVUCSAS Kimlik Platformu",
     "copyright": "© 2026 Marmara Üniversitesi — Bilgisayar Mühendisliği Bölümü",
     "version": "v4.0.0",
-    "terms": "Kullanım Koşullları",
+    "terms": "Kullanım Koşulları",
     "privacy": "Gizlilik Politikası"
   },
   "widgetDemo": {
