@@ -304,6 +304,7 @@ export default function VerificationFlowBuilderPage() {
                                                             size="small"
                                                             color="error"
                                                             onClick={() => setDeleteConfirmId(flow.id)}
+                                                            aria-label={t('common.aria.delete')}
                                                         >
                                                             <Delete fontSize="small" />
                                                         </IconButton>
@@ -391,6 +392,7 @@ export default function VerificationFlowBuilderPage() {
                                             size="small"
                                             onClick={() => moveStep(index, 'up')}
                                             disabled={index === 0}
+                                            aria-label={t('common.aria.previous')}
                                         >
                                             <ArrowUpward fontSize="small" />
                                         </IconButton>
@@ -398,6 +400,7 @@ export default function VerificationFlowBuilderPage() {
                                             size="small"
                                             onClick={() => moveStep(index, 'down')}
                                             disabled={index === steps.length - 1}
+                                            aria-label={t('common.aria.next')}
                                         >
                                             <ArrowDownward fontSize="small" />
                                         </IconButton>
@@ -405,6 +408,7 @@ export default function VerificationFlowBuilderPage() {
                                             size="small"
                                             color="error"
                                             onClick={() => removeStep(index)}
+                                            aria-label={t('common.aria.remove')}
                                         >
                                             <Delete fontSize="small" />
                                         </IconButton>

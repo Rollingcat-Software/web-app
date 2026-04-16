@@ -328,8 +328,14 @@ export default function AuthFlowsPage() {
                 )}
 
                 {/* Builder Dialog (Create or Edit) */}
-                <Dialog open={showBuilder} onClose={handleBuilderClose} maxWidth="lg" fullWidth>
-                    <DialogTitle>
+                <Dialog
+                    open={showBuilder}
+                    onClose={handleBuilderClose}
+                    maxWidth="lg"
+                    fullWidth
+                    aria-labelledby="auth-flow-builder-dialog-title"
+                >
+                    <DialogTitle id="auth-flow-builder-dialog-title">
                         {editingFlow ? t('authFlows.editFlow') : t('authFlows.createFlowTitle')}
                     </DialogTitle>
                     <DialogContent>

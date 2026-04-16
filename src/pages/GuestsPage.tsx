@@ -309,6 +309,7 @@ export default function GuestsPage() {
                                                                 setExtendGuestId(guest.guestUserId ?? '')
                                                                 setExtendOpen(true)
                                                             }}
+                                                            aria-label={t('guests.extendAccess')}
                                                         >
                                                             <Schedule fontSize="small" />
                                                         </IconButton>
@@ -323,6 +324,7 @@ export default function GuestsPage() {
                                                                 setRevokeOpen(true)
                                                             }}
                                                             sx={{ color: 'error.main' }}
+                                                            aria-label={t('guests.revokeAccess')}
                                                         >
                                                             <Block fontSize="small" />
                                                         </IconButton>

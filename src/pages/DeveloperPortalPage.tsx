@@ -458,6 +458,7 @@ if (code) {
                                                     <IconButton
                                                         size="small"
                                                         onClick={() => handleCopy(app.clientId, app.clientId)}
+                                                        aria-label={t('common.aria.copy')}
                                                     >
                                                         <ContentCopy sx={{ fontSize: 16 }} />
                                                     </IconButton>
@@ -486,6 +487,7 @@ if (code) {
                                                         <IconButton
                                                             size="small"
                                                             disabled
+                                                            aria-label={t('common.aria.view')}
                                                         >
                                                             {visibleSecrets[app.id] ? (
                                                                 <VisibilityOff fontSize="small" />
@@ -500,6 +502,7 @@ if (code) {
                                                         size="small"
                                                         onClick={() => setDeleteTarget(app)}
                                                         sx={{ color: 'error.main' }}
+                                                        aria-label={t('common.aria.delete')}
                                                     >
                                                         <Delete fontSize="small" />
                                                     </IconButton>
@@ -577,6 +580,7 @@ if (code) {
                                 <IconButton
                                     size="small"
                                     onClick={() => handleCopy(scriptSnippet, 'script')}
+                                    aria-label={t('common.aria.copy')}
                                     sx={{
                                         position: 'absolute',
                                         top: 8,
@@ -624,6 +628,7 @@ if (code) {
                                 <IconButton
                                     size="small"
                                     onClick={() => handleCopy(callbackSnippet, 'callback')}
+                                    aria-label={t('common.aria.copy')}
                                     sx={{
                                         position: 'absolute',
                                         top: 8,
@@ -758,6 +763,7 @@ if (code) {
                                                 onClick={() =>
                                                     handleCopy(credentialsApp.clientId, 'cred-id')
                                                 }
+                                                aria-label={t('common.aria.copy')}
                                             >
                                                 <ContentCopy sx={{ fontSize: 16 }} />
                                             </IconButton>
@@ -795,6 +801,7 @@ if (code) {
                                                 onClick={() =>
                                                     handleCopy(credentialsApp.clientSecret ?? '', 'cred-secret')
                                                 }
+                                                aria-label={t('common.aria.copy')}
                                             >
                                                 <ContentCopy sx={{ fontSize: 16 }} />
                                             </IconButton>

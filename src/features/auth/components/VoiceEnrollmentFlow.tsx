@@ -381,6 +381,7 @@ export default function VoiceEnrollmentFlow({
             <DialogContent sx={{ p: 0, position: 'relative' }}>
                 <IconButton
                     onClick={onClose}
+                    aria-label={t('common.aria.close')}
                     sx={{
                         position: 'absolute',
                         top: 8,

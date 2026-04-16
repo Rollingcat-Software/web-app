@@ -436,6 +436,7 @@ export default function WebAuthnEnrollment({
                                                     edge="end"
                                                     size="small"
                                                     onClick={() => handleDeleteCredential(cred.id)}
+                                                    aria-label={t('common.aria.delete')}
                                                 >
                                                     <Delete fontSize="small" />
                                                 </IconButton>

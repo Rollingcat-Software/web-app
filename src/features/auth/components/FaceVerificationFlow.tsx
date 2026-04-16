@@ -132,6 +132,7 @@ export default function FaceVerificationFlow({ open, onClose, onVerify }: FaceVe
             <DialogContent sx={{ p: 0, position: 'relative' }}>
                 <IconButton
                     onClick={onClose}
+                    aria-label={t('common.aria.close')}
                     sx={{
                         position: 'absolute',
                         top: 8,

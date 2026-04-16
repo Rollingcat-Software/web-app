@@ -135,6 +135,7 @@ function SessionRow({
                             size="small"
                             onClick={() => onRevoke(session.sessionId)}
                             disabled={isRevoking || revoking === 'all'}
+                            aria-label={t('sessions.revokeSession')}
                         >
                             {isRevoking ? <CircularProgress size={18} /> : <Logout />}
                         </IconButton>

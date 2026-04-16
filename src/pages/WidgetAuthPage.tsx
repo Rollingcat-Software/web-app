@@ -803,6 +803,7 @@ function WidgetAuthPageInner() {
                                             edge="end"
                                             size="small"
                                             disabled={loading}
+                                            aria-label={showPassword ? t('common.aria.hidePassword') : t('common.aria.showPassword')}
                                         >
                                             {showPassword ? (
                                                 <VisibilityOff

@@ -453,6 +453,7 @@ export default function ResetPasswordPage() {
                                                                 edge="end"
                                                                 disabled={loading}
                                                                 size="small"
+                                                                aria-label={showPassword ? t('common.aria.hidePassword') : t('common.aria.showPassword')}
                                                             >
                                                                 {showPassword ? <VisibilityOff /> : <Visibility />}
                                                             </IconButton>
@@ -500,6 +501,7 @@ export default function ResetPasswordPage() {
                                                                 edge="end"
                                                                 disabled={loading}
                                                                 size="small"
+                                                                aria-label={showConfirmPassword ? t('common.aria.hidePassword') : t('common.aria.showPassword')}
                                                             >
                                                                 {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
                                                             </IconButton>

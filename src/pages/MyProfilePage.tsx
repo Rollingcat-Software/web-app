@@ -849,7 +849,7 @@ function EnrollmentCard({
                     variant="outlined"
                     sx={{ fontSize: '0.7rem' }}
                 />
-                <IconButton size="small">
+                <IconButton size="small" aria-label={expanded ? t('common.aria.collapse') : t('common.aria.expand')}>
                     {expanded ? <ExpandLess /> : <ExpandMore />}
                 </IconButton>
             </Box>

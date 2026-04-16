@@ -149,6 +149,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                 {/* Close button */}
                 <IconButton
                     onClick={onClose}
+                    aria-label={t('common.aria.close')}
                     sx={{
                         position: 'absolute',
                         top: 8,

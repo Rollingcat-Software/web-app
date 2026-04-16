@@ -603,6 +603,7 @@ export default function EnrollmentPage() {
                     <IconButton
                         onClick={() => refetchEnrollments()}
                         disabled={loading}
+                        aria-label={t('common.aria.refresh')}
                         sx={{
                             bgcolor: 'action.hover',
                             '&:hover': { bgcolor: 'action.selected' },
@@ -865,7 +866,7 @@ export default function EnrollmentPage() {
                                     </Typography>
                                 </Box>
                             </Box>
-                            <IconButton size="small">
+                            <IconButton size="small" aria-label={nfcCardsExpanded ? t('common.aria.collapse') : t('common.aria.expand')}>
                                 {nfcCardsExpanded ? <ExpandLess /> : <ExpandMore />}
                             </IconButton>
                         </Box>
@@ -934,6 +935,7 @@ export default function EnrollmentPage() {
                                                             color="error"
                                                             onClick={() => handleDeleteNfcCard(card.cardId)}
                                                             disabled={deletingCardId === card.cardId}
+                                                            aria-label={t('common.aria.delete')}
                                                             sx={{ ml: 1 }}
                                                         >
                                                             {deletingCardId === card.cardId ? (

@@ -42,6 +42,7 @@ import {
     Settings,
 } from '@mui/icons-material'
 import { motion, AnimatePresence, Reorder, Variants } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import {
     AuthMethodType,
     type AuthMethod,
@@ -105,6 +106,7 @@ export function AuthFlowBuilder({
     initialName = 'My Authentication Flow',
     initialDescription = '',
 }: AuthFlowBuilderProps) {
+    const { t } = useTranslation()
     const [steps, setSteps] = useState<AuthFlowStep[]>(initialSteps)
     const [flowName, setFlowName] = useState(initialName)
     const [flowDescription, setFlowDescription] = useState(initialDescription)
@@ -395,7 +397,7 @@ export function AuthFlowBuilder({
 
                                                                     {/* Settings */}
                                                                     <Tooltip title="Step settings">
-                                                                        <IconButton size="small">
+                                                                        <IconButton size="small" aria-label={t('common.aria.settings')}>
                                                                             <Settings fontSize="small" />
                                                                         </IconButton>
                                                                     </Tooltip>
@@ -409,6 +411,7 @@ export function AuthFlowBuilder({
                                                                                 color: 'error.main',
                                                                                 '&:hover': { bgcolor: 'error.lighter' },
                                                                             }}
+                                                                            aria-label={t('common.aria.remove')}
                                                                         >
                                                                             <Delete fontSize="small" />
                                                                         </IconButton>

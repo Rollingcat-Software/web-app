@@ -160,6 +160,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
                                 <IconButton
                                     onClick={() => togglePasswordVisibility('current')}
                                     edge="end"
+                                    aria-label={showPasswords.current ? t('common.aria.hidePassword') : t('common.aria.showPassword')}
                                 >
                                     {showPasswords.current ? <VisibilityOff /> : <Visibility />}
                                 </IconButton>
@@ -182,6 +183,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
                                 <IconButton
                                     onClick={() => togglePasswordVisibility('new')}
                                     edge="end"
+                                    aria-label={showPasswords.new ? t('common.aria.hidePassword') : t('common.aria.showPassword')}
                                 >
                                     {showPasswords.new ? <VisibilityOff /> : <Visibility />}
                                 </IconButton>
@@ -244,6 +246,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
                                 <IconButton
                                     onClick={() => togglePasswordVisibility('confirm')}
                                     edge="end"
+                                    aria-label={showPasswords.confirm ? t('common.aria.hidePassword') : t('common.aria.showPassword')}
                                 >
                                     {showPasswords.confirm ? <VisibilityOff /> : <Visibility />}
                                 </IconButton>

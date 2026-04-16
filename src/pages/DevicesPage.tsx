@@ -19,6 +19,7 @@ import {
 } from '@mui/material'
 import { Delete, PhoneAndroid, Computer, Language, DevicesOther } from '@mui/icons-material'
 import { motion } from 'framer-motion'
+import { useTranslation } from 'react-i18next'
 import { PageTransition } from '@components/animations'
 import { TYPES } from '@core/di/types'
 import { useService } from '@app/providers/DependencyProvider'
@@ -47,6 +48,7 @@ function getPlatformIcon(platform: string) {
 }
 
 export default function DevicesPage() {
+    const { t } = useTranslation()
     const deviceRepo = useService<DeviceRepository>(TYPES.DeviceRepository)
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
@@ -165,6 +167,7 @@ export default function DevicesPage() {
                                                     size="small"
                                                     onClick={() => handleDelete(device.id)}
                                                     sx={{ color: 'error.main' }}
+                                                    aria-label={t('common.aria.remove')}
                                                 >
                                                     <Delete fontSize="small" />
                                                 </IconButton>
