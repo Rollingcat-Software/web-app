@@ -32,6 +32,7 @@ import { createVerifyContainer } from './verifyContainer'
 import LoginMfaFlow from './LoginMfaFlow'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
 
 // ─── URL Parameter Parsing ───────────────────────────────────────
 
@@ -184,6 +185,18 @@ export default function HostedLoginApp() {
                 if (!code || !redirectUri) {
                     setRedirecting(false)
                     setFinalError(t('hosted.exchangeFailed'))
+                    return
+                }
+
+                // Scheme allowlist (defense-in-depth). Backend already enforces
+                // exact-match redirect_uri against the registered client, but a
+                // compromised backend or registration bug must not become a
+                // navigable XSS sink (`javascript:`, `data:`, …).
+                try {
+                    assertSafeRedirectScheme(redirectUri)
+                } catch {
+                    setRedirecting(false)
+                    setFinalError(t('hosted.invalidRedirect'))
                     return
                 }
 

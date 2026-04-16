@@ -88,6 +88,124 @@ async function generatePkce(): Promise<{ verifier: string; challenge: string }> 
     return { verifier, challenge: base64UrlEncode(new Uint8Array(hash)) };
 }
 
+// ─── Redirect-URI scheme validation ───────────────────────────────
+//
+// Guards `window.location.*` and stored redirect URIs against open-redirect
+// injection. Allows:
+//   - https://…
+//   - http://127.0.0.1(:port)?/…  (RFC 8252 loopback)
+//   - http://[::1](:port)?/…       (RFC 8252 loopback IPv6)
+//   - custom schemes matching RFC 3986 scheme syntax (e.g. com.example://…)
+// Rejects:
+//   - http://non-loopback     (MITM / open redirect)
+//   - javascript:             (XSS sink)
+//   - data:, vbscript:, file: (other injection sinks)
+
+/** Lower-cased RFC 3986 scheme regex (anchored). */
+const RFC3986_SCHEME_RE = /^[a-z][a-z0-9+.\-]*$/;
+
+/**
+ * Validate that a redirect URI uses an allowed scheme. Throws a clear Error
+ * on rejection. Exported for tests.
+ */
+export function assertSafeRedirectScheme(uri: string): void {
+    if (!uri || typeof uri !== 'string') {
+        throw new Error('FivucsasAuth: redirect URI is empty or not a string');
+    }
+
+    let parsed: URL;
+    try {
+        parsed = new URL(uri);
+    } catch {
+        throw new Error(`FivucsasAuth: redirect URI is not a valid URL: ${uri}`);
+    }
+
+    const scheme = parsed.protocol.replace(/:$/, '').toLowerCase();
+
+    // Block well-known dangerous sinks outright, even if they would otherwise
+    // match the RFC 3986 regex.
+    const DANGEROUS = new Set(['javascript', 'data', 'vbscript', 'file', 'blob']);
+    if (DANGEROUS.has(scheme)) {
+        throw new Error(`FivucsasAuth: redirect URI scheme not allowed: ${scheme}:`);
+    }
+
+    if (scheme === 'https') {
+        return;
+    }
+
+    if (scheme === 'http') {
+        // Only RFC 8252 loopback is allowed for http://
+        const host = parsed.hostname;
+        if (host === '127.0.0.1' || host === '[::1]' || host === '::1' || host === 'localhost') {
+            return;
+        }
+        throw new Error(
+            `FivucsasAuth: redirect URI scheme not allowed: http:// is only permitted for RFC 8252 loopback (127.0.0.1, [::1], localhost), got host "${host}"`
+        );
+    }
+
+    // Non-http(s): must be a syntactically valid custom scheme (RFC 3986 §3.1).
+    if (!RFC3986_SCHEME_RE.test(scheme)) {
+        throw new Error(`FivucsasAuth: redirect URI scheme is not RFC 3986-compliant: ${scheme}:`);
+    }
+}
+
+// ─── ID token nonce validation (OIDC §3.1.3.7) ────────────────────
+//
+// Decode the JWT payload (no signature check — backend already validated)
+// and assert the `nonce` claim matches the caller-bound value we stored
+// before the redirect. Binds the token to this browser session and
+// prevents token-replay across sessions.
+
+/**
+ * Base64url-decode a JWT payload segment. Returns the parsed object.
+ * Exported for tests.
+ */
+export function decodeJwtPayload(jwt: string): Record<string, unknown> {
+    if (!jwt || typeof jwt !== 'string') {
+        throw new Error('FivucsasAuth: id_token is not a string');
+    }
+    const parts = jwt.split('.');
+    if (parts.length !== 3) {
+        throw new Error('FivucsasAuth: id_token is not a valid JWT (expected 3 segments)');
+    }
+    try {
+        // Base64url → base64 + padding
+        let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+        const pad = b64.length % 4;
+        if (pad) b64 += '='.repeat(4 - pad);
+        const json = atob(b64);
+        const parsed = JSON.parse(json);
+        if (!parsed || typeof parsed !== 'object') {
+            throw new Error('FivucsasAuth: id_token payload is not an object');
+        }
+        return parsed as Record<string, unknown>;
+    } catch (err) {
+        if (err instanceof Error && err.message.startsWith('FivucsasAuth:')) throw err;
+        throw new Error('FivucsasAuth: id_token payload could not be decoded');
+    }
+}
+
+/**
+ * Assert the id_token's `nonce` claim matches the value stored before the
+ * redirect. Throws if the expected nonce is absent or mismatched.
+ * Exported for tests.
+ */
+export function assertNonceMatches(idToken: string, expectedNonce: string | null): void {
+    if (!expectedNonce) {
+        throw new Error(
+            'FivucsasAuth: missing stored nonce — cannot validate id_token (possible session loss or replay)'
+        );
+    }
+    const payload = decodeJwtPayload(idToken);
+    const claimed = payload.nonce;
+    if (typeof claimed !== 'string' || claimed !== expectedNonce) {
+        throw new Error(
+            'FivucsasAuth: id_token nonce mismatch — possible token replay or CSRF'
+        );
+    }
+}
+
 // ─── CSS (injected once) ───────────────────────────────────────────
 
 const OVERLAY_STYLES = `
@@ -263,6 +381,12 @@ export class FivucsasAuth {
             throw new Error('FivucsasAuth: loginRedirect requires a browser with Web Crypto');
         }
 
+        // Reject unsafe schemes up front — tenant misconfiguration is a common
+        // cause of open-redirect / XSS bugs. Validated again in
+        // handleRedirectCallback because the stored value must not be trusted
+        // across a round trip.
+        assertSafeRedirectScheme(options.redirectUri);
+
         const state = options.state ?? randomUrlSafeString(32);
         const nonce = options.nonce ?? randomUrlSafeString(32);
         const { verifier, challenge } = await generatePkce();
@@ -312,6 +436,7 @@ export class FivucsasAuth {
         const state = params.get('state');
 
         const expectedState = sessionStorage.getItem(STORAGE_STATE);
+        const expectedNonce = sessionStorage.getItem(STORAGE_NONCE);
         const verifier = sessionStorage.getItem(STORAGE_PKCE);
         const redirectUri = sessionStorage.getItem(STORAGE_REDIRECT_URI);
 
@@ -326,6 +451,16 @@ export class FivucsasAuth {
         if (!verifier || !redirectUri) {
             this.clearPkceStorage();
             throw new Error('FivucsasAuth: missing PKCE verifier or redirect URI — session lost');
+        }
+
+        // Re-validate redirect URI scheme before using it. sessionStorage is
+        // low-trust (malicious script same-origin could mutate it); any bad
+        // value must not reach downstream fetch or navigation.
+        try {
+            assertSafeRedirectScheme(redirectUri);
+        } catch (err) {
+            this.clearPkceStorage();
+            throw err;
         }
 
         const body = new URLSearchParams();
@@ -361,13 +496,23 @@ export class FivucsasAuth {
         }
 
         const tokens = await response.json();
+        const idToken: string | undefined = tokens.id_token ? String(tokens.id_token) : undefined;
+
+        // B7 — OIDC §3.1.3.7 nonce validation.
+        // The backend verifies the JWT signature; here we assert the caller's
+        // `nonce` survived the round-trip, binding the ID token to this
+        // browser session and preventing replay of a stolen token.
+        if (idToken) {
+            assertNonceMatches(idToken, expectedNonce);
+        }
+
         return {
             success: true,
             sessionId: '',
             completedMethods: [],
             accessToken: tokens.access_token ? String(tokens.access_token) : undefined,
             refreshToken: tokens.refresh_token ? String(tokens.refresh_token) : undefined,
-            idToken: tokens.id_token ? String(tokens.id_token) : undefined,
+            idToken,
             tokenType: tokens.token_type ? String(tokens.token_type) : undefined,
             expiresIn: typeof tokens.expires_in === 'number' ? tokens.expires_in : undefined,
             timestamp: Date.now(),
