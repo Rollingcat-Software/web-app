@@ -71,7 +71,6 @@ export function sendToParent(msg: VerifyMessage): void {
     }
     if (parentOrigin === null) {
         if (import.meta.env?.DEV) {
-            // eslint-disable-next-line no-console
             console.warn(
                 '[fivucsas] Dropping postMessage — parent origin not yet established via fivucsas:config handshake',
                 msg.type

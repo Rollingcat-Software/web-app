@@ -102,7 +102,7 @@ async function generatePkce(): Promise<{ verifier: string; challenge: string }> 
 //   - data:, vbscript:, file: (other injection sinks)
 
 /** Lower-cased RFC 3986 scheme regex (anchored). */
-const RFC3986_SCHEME_RE = /^[a-z][a-z0-9+.\-]*$/;
+const RFC3986_SCHEME_RE = /^[a-z][a-z0-9+.-]*$/;
 
 /**
  * Validate that a redirect URI uses an allowed scheme. Throws a clear Error

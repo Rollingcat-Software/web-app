@@ -74,6 +74,52 @@ export default function TwoFactorDispatcher({
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | undefined>(undefined)
 
+    // ─── WebAuthn Challenge Helper ────────────────────────────────
+    // Hook declarations must run on every render (rules-of-hooks) — they are
+    // placed before the EMAIL_OTP early-return below so ordering stays stable.
+    const requestWebAuthnChallenge = useCallback(async (method: AuthMethodType): Promise<ChallengeResponse | null> => {
+        const res = await authRepository.verifyMfaStep(
+            mfaSessionToken, method, { action: MfaStepAction.CHALLENGE }
+        )
+        if (res.data && typeof res.data.challenge === 'string') {
+            return {
+                challenge: res.data.challenge,
+                rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
+                timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
+                allowCredentials: Array.isArray(res.data.allowCredentials) ? res.data.allowCredentials as string[] : undefined,
+            }
+        }
+        return null
+    }, [authRepository, mfaSessionToken])
+
+    const verifyStep = useCallback(async (methodType: string, data: Record<string, unknown>) => {
+        setLoading(true)
+        setError(undefined)
+        try {
+            const res = await authRepository.verifyMfaStep(mfaSessionToken, methodType, data)
+
+            if (res.status === MfaStepStatus.AUTHENTICATED) {
+                onAuthenticated(res)
+            } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
+                onAuthenticated(res)
+            } else {
+                // Backend sends English messages like "Verification failed for FACE"
+                // Always show translated message instead
+                setError(t('mfa.verificationFailed'))
+            }
+        } catch (err) {
+            // Check for rate limit (429)
+            const axiosErr = err as { response?: { status?: number } }
+            if (axiosErr.response?.status === 429) {
+                setError(t('errors.rateLimitExceeded'))
+            } else {
+                setError(t('mfa.verificationFailed'))
+            }
+        } finally {
+            setLoading(false)
+        }
+    }, [authRepository, mfaSessionToken, onAuthenticated, t])
+
     // EMAIL_OTP: use the new session-token-based OTP flow
     if (!method || method === AuthMethodType.EMAIL_OTP) {
         // Auto-send OTP on mount, then show code input
@@ -130,51 +176,6 @@ export default function TwoFactorDispatcher({
     }
 
     // Verify MFA step using the new public endpoint (no JWT needed)
-    // ─── WebAuthn Challenge Helper ────────────────────────────────
-
-    const requestWebAuthnChallenge = useCallback(async (method: AuthMethodType): Promise<ChallengeResponse | null> => {
-        const res = await authRepository.verifyMfaStep(
-            mfaSessionToken, method, { action: MfaStepAction.CHALLENGE }
-        )
-        if (res.data && typeof res.data.challenge === 'string') {
-            return {
-                challenge: res.data.challenge,
-                rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
-                timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
-                allowCredentials: Array.isArray(res.data.allowCredentials) ? res.data.allowCredentials as string[] : undefined,
-            }
-        }
-        return null
-    }, [authRepository, mfaSessionToken])
-
-    const verifyStep = useCallback(async (methodType: string, data: Record<string, unknown>) => {
-        setLoading(true)
-        setError(undefined)
-        try {
-            const res = await authRepository.verifyMfaStep(mfaSessionToken, methodType, data)
-
-            if (res.status === MfaStepStatus.AUTHENTICATED) {
-                onAuthenticated(res)
-            } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
-                onAuthenticated(res)
-            } else {
-                // Backend sends English messages like "Verification failed for FACE"
-                // Always show translated message instead
-                setError(t('mfa.verificationFailed'))
-            }
-        } catch (err) {
-            // Check for rate limit (429)
-            const axiosErr = err as { response?: { status?: number } }
-            if (axiosErr.response?.status === 429) {
-                setError(t('errors.rateLimitExceeded'))
-            } else {
-                setError(t('mfa.verificationFailed'))
-            }
-        } finally {
-            setLoading(false)
-        }
-    }, [authRepository, mfaSessionToken, onAuthenticated, t])
-
     const renderStep = () => {
         switch (method) {
             case AuthMethodType.TOTP:

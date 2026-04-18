@@ -120,7 +120,7 @@ export default function GuestsPage() {
         } finally {
             setLoading(false)
         }
-    }, [httpClient, logger, statusFilter])
+    }, [httpClient, logger, statusFilter, t])
 
     const loadCount = useCallback(async () => {
         try {

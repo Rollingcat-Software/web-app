@@ -73,7 +73,7 @@ export default function UserFormPage() {
         }
     }, [existingUser, isEditMode, reset])
 
-    const onSubmit = async (data: UserFormData) => {
+    const onSubmit = useCallback(async (data: UserFormData) => {
         setLoading(true)
         setError(null)
 
@@ -103,7 +103,7 @@ export default function UserFormPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [isEditMode, id, updateUser, createUser, navigate, t])
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {

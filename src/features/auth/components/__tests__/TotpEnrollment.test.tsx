@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
-import { render, screen, fireEvent, waitFor, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor, act as _act } from '@testing-library/react'
 import TotpEnrollment from '../TotpEnrollment'
 
 // Mock framer-motion (not used directly here but may be imported transitively)

@@ -240,7 +240,7 @@ export default function SettingsPage() {
         } finally {
             setSaving(null)
         }
-    }, [newPassword, confirmPassword, currentPassword, changePassword, validatePassword, showSuccessMessage])
+    }, [newPassword, confirmPassword, currentPassword, changePassword, validatePassword, showSuccessMessage, t])
 
     if (loading && !settings) {
         return (

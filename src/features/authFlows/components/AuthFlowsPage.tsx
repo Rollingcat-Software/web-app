@@ -82,7 +82,7 @@ export default function AuthFlowsPage() {
         } finally {
             setLoading(false)
         }
-    }, [authFlowRepo, logger, tenantId, filterType])
+    }, [authFlowRepo, logger, tenantId, filterType, t])
 
     useEffect(() => {
         loadFlows()

@@ -83,7 +83,7 @@ export default function TenantFormPage() {
         }
     }, [existingTenant, isEditMode, reset])
 
-    const onSubmit = async (data: TenantFormData) => {
+    const onSubmit = useCallback(async (data: TenantFormData) => {
         setLoading(true)
         setError(null)
 
@@ -114,7 +114,7 @@ export default function TenantFormPage() {
         } finally {
             setLoading(false)
         }
-    }
+    }, [isEditMode, id, updateTenant, createTenant, navigate])
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {

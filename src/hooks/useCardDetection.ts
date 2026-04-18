@@ -79,7 +79,7 @@ export function useCardDetection(): UseCardDetectionReturn {
         } finally {
             setDetecting(false)
         }
-    }, [])
+    }, [tokenService])
 
     const reset = useCallback(() => {
         setResult(null)

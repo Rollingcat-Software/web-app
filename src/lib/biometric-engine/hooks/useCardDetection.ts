@@ -86,7 +86,7 @@ export function useCardDetection(
         setIsDetecting(false);
       }
     },
-    [engine],
+    [engine, t],
   );
 
   return { detect, isDetecting, isModelLoaded, result, error };

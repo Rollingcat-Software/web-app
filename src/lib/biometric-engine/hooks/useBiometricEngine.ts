@@ -79,7 +79,8 @@ export function useBiometricEngine(
       }
       setIsReady(false);
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // init-once: `config` is a module-scope options object that callers pass by reference every render; re-running would re-initialise MediaPipe each render. `t` is only used inside the catch for a formatter — locale changes don't need to re-init the engine.
 
   const engine = engineRef.current;
 

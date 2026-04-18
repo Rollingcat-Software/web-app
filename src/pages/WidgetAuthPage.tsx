@@ -444,7 +444,7 @@ function WidgetAuthPageInner() {
             default:
                 return null
         }
-    }, [twoFactorMethod, stepLoading, stepError, verifyMethodStep, config, pendingAuthData])
+    }, [twoFactorMethod, stepLoading, stepError, verifyMethodStep, config, pendingAuthData, t])
 
     // ─── Success state ──────────────────────────────────────────
 

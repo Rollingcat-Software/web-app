@@ -124,7 +124,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
     } catch (err) {
       setError(formatApiError(err, translate));
     }
-  }, []);
+  }, [translate]);
 
   const stop = useCallback(async () => {
     if (!mediaRecorderRef.current || mediaRecorderRef.current.state !== 'recording') return;
@@ -154,7 +154,7 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
       recorder.stop();
     });
-  }, []);
+  }, [translate]);
 
   return { start, stop, isRecording, duration, waveform, blob, wav16k, error };
 }

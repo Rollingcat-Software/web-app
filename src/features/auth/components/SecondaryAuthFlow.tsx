@@ -166,7 +166,7 @@ export default function SecondaryAuthFlow({
         return () => {
             cancelled = true
         }
-    }, [userId, tenantId, httpClient, onSkip])
+    }, [userId, tenantId, httpClient, onSkip, t])
 
     // Launch the FIVUCSAS verify widget when auth session is ready and container is mounted
     useEffect(() => {
@@ -236,7 +236,7 @@ export default function SecondaryAuthFlow({
             try { authInstanceRef.current?.destroy() } catch { /* ignore cleanup errors */ }
             authInstanceRef.current = null
         }
-    }, [authSession, userId, onComplete, onSkip, widgetActive])
+    }, [authSession, userId, onComplete, onSkip, widgetActive, t])
 
     const handleRetry = useCallback(() => {
         setError(null)

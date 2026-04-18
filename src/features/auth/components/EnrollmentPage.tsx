@@ -468,7 +468,7 @@ export default function EnrollmentPage() {
                     setSnackbar({ open: true, message: t('enrollmentPage.notSupported', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'info' })
             }
         },
-        [createEnrollment, user?.tenantId]
+        [createEnrollment, user?.tenantId, user?.phoneNumber, t]
     )
 
     // Handle test for already-enrolled methods
@@ -510,7 +510,7 @@ export default function EnrollmentPage() {
                     break
             }
         },
-        []
+        [t]
     )
 
     // Handle face enrollment completion
@@ -550,7 +550,7 @@ export default function EnrollmentPage() {
                 setActionLoading(null)
             }
         },
-        [userId, user?.tenantId, createEnrollment]
+        [userId, user?.tenantId, createEnrollment, refetchEnrollments, t]
     )
 
     // Handle revoke
@@ -568,7 +568,7 @@ export default function EnrollmentPage() {
                 setActionLoading(null)
             }
         },
-        [revokeEnrollment]
+        [revokeEnrollment, t]
     )
 
     const loading = enrollmentsLoading || capsLoading

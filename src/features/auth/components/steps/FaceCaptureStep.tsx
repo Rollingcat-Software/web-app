@@ -169,7 +169,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
 
         setCapturedImage(cropped)
         stopCamera()
-    }, [stopCamera, detected, boundingBox, cropFace])
+    }, [stopCamera, detected, boundingBox, cropFace, t])
 
     const retakePhoto = useCallback(() => {
         setCapturedImage(null)

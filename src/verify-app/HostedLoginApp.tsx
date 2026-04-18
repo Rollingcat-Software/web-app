@@ -88,21 +88,11 @@ export default function HostedLoginApp() {
     // SECURITY (B9): Frame-bust defense-in-depth behind the `frame-ancestors 'none'`
     // CSP header. If a legacy browser honours CSP late (or ignores it), escaping the
     // frame early ensures the hosted OIDC sign-in page never renders inside a third
-    // party's iframe (clickjacking / credential-theft defense). Runs synchronously
-    // before any React hook so no state is initialised in the framed render.
-    if (typeof window !== 'undefined' && window.top !== window.self) {
-        try {
-            // Prefer assigning to .location.href (works same-origin). For fully
-            // cross-origin parents the browser blocks this — CSP frame-ancestors
-            // 'none' is the authoritative guard; this is defense-in-depth.
-            if (window.top && window.top.location) {
-                window.top.location.href = window.location.href
-            }
-        } catch {
-            // top is cross-origin and inaccessible — CSP will still deny framing.
-        }
-        return null
-    }
+    // party's iframe (clickjacking / credential-theft defense). Evaluated once at
+    // module load so the decision is stable across renders and hook ordering is
+    // preserved (see rules-of-hooks).
+    const isFramed =
+        typeof window !== 'undefined' && window.top !== window.self
 
     const { t } = useTranslation()
     const [config] = useState(parseHostedParams)
@@ -118,20 +108,42 @@ export default function HostedLoginApp() {
     const [redirecting, setRedirecting] = useState(false)
     const [finalError, setFinalError] = useState<string | null>(null)
 
+    // Frame-bust redirect (B9): runs as an effect so hook order stays stable
+    // regardless of whether the page happens to be framed. The early render
+    // return below prevents any framed content from being shown.
+    useEffect(() => {
+        if (!isFramed) return
+        try {
+            // Prefer assigning to .location.href (works same-origin). For fully
+            // cross-origin parents the browser blocks this — CSP frame-ancestors
+            // 'none' is the authoritative guard; this is defense-in-depth.
+            if (window.top && window.top.location) {
+                window.top.location.href = window.location.href
+            }
+        } catch {
+            // top is cross-origin and inaccessible — CSP will still deny framing.
+        }
+    }, [isFramed])
+
     // Set locale from URL
     useEffect(() => {
+        if (isFramed) return
         if (config.locale) {
             import('../i18n').then((mod) => {
                 mod.default.changeLanguage(config.locale)
             })
         }
-    }, [config.locale])
+    }, [config.locale, isFramed])
 
     // Validate required params up front + fetch tenant-branding metadata.
     // The fetch is bounded by a 10s abort timeout so a stalled network does
     // not leave the user on an indefinite loading spinner. On timeout or any
     // network error (≠ invalid client) we surface a retry UI.
     useEffect(() => {
+        // Skip meta fetch when framed — the frame-bust effect above will
+        // navigate the top window, and nothing gets rendered anyway.
+        if (isFramed) return
+
         if (!config.clientId || !config.redirectUri) {
             setParamError(t('hosted.missingParams'))
             setMetaLoading(false)
@@ -201,7 +213,7 @@ export default function HostedLoginApp() {
             window.clearTimeout(timeoutId)
             controller.abort()
         }
-    }, [config.clientId, config.redirectUri, container, t, metaReloadKey])
+    }, [config.clientId, config.redirectUri, container, t, metaReloadKey, isFramed])
 
     // ─── Completion handler ─────────────────────────────────────
 
@@ -294,6 +306,13 @@ export default function HostedLoginApp() {
     }, [config.redirectUri])
 
     // ─── Render ─────────────────────────────────────────────────
+
+    // If we're inside an iframe, render nothing while the frame-bust effect
+    // (above) attempts to navigate the top window out of the frame. CSP
+    // `frame-ancestors 'none'` is the authoritative guard.
+    if (isFramed) {
+        return null
+    }
 
     if (metaLoading) {
         return (

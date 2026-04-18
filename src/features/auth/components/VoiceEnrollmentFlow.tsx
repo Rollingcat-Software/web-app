@@ -240,7 +240,7 @@ export default function VoiceEnrollmentFlow({
         } catch {
             setMicError('Unable to access microphone. Please grant permissions.')
         }
-    }, [])
+    }, [t])
 
     const stopRecording = useCallback(() => {
         if (mediaRecorderRef.current?.state === 'recording') {

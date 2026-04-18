@@ -97,7 +97,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                 setError(t('nfcEnroll.scanFailed'))
             }
         }
-    }, [])
+    }, [t])
 
     const handleRegister = useCallback(async () => {
         if (!cardSerial) return
@@ -147,7 +147,7 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
         } finally {
             setLoading(false)
         }
-    }, [httpClient, userId, cardSerial, cardLabel, onSuccess])
+    }, [httpClient, userId, cardSerial, cardLabel, onSuccess, t])
 
     return (
         <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>

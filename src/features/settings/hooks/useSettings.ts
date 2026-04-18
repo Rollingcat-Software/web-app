@@ -51,7 +51,7 @@ export function useSettings(): UseSettingsReturn {
         } finally {
             setLoading(false)
         }
-    }, [settingsService, errorHandler])
+    }, [settingsService, errorHandler, t])
 
     useEffect(() => {
         fetchSettings()

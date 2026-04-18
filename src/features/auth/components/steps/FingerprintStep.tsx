@@ -147,7 +147,7 @@ export default function FingerprintStep({
                 // AbortError, TimeoutError etc. → silent
             }
         }
-    }, [challengeProp, rpIdProp, onRequestChallenge, onSubmit, t])
+    }, [challengeProp, rpIdProp, onRequestChallenge, onSubmit, t, allowCredentialsProp])
 
     const isProcessing = loading || waiting
 

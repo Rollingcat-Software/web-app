@@ -40,7 +40,7 @@ export function useLiveness(): UseLivenessReturn {
         } finally {
             setLoading(false)
         }
-    }, [service])
+    }, [service, t])
 
     const performLiveness = useCallback(
         async (captureFrame: () => Blob | null): Promise<LivenessResult | null> => {
@@ -89,7 +89,7 @@ export function useLiveness(): UseLivenessReturn {
                 setLoading(false)
             }
         },
-        [challenge, service]
+        [challenge, service, t]
     )
 
     const reset = useCallback(() => {

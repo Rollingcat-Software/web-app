@@ -81,7 +81,7 @@ export default function NfcEnrollmentPage() {
             )
             setScanning(false)
         }
-    }, [nfcSupported])
+    }, [nfcSupported, t])
 
     const doNfcAction = useCallback(async (action: 'enroll' | 'verify' | 'search') => {
         if (!serialNumber) return

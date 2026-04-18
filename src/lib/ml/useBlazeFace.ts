@@ -80,7 +80,7 @@ export function useBlazeFace(enabled = true): UseBlazeFaceReturn {
       setIsLoading(false);
       timingsRef.current = [];
     };
-  }, [enabled]);
+  }, [enabled, t]);
 
   const detect = useCallback(
     async (video: HTMLVideoElement): Promise<BlazeFaceResult | null> => {

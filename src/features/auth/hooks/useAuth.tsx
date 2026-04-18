@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                 throw error
             }
         },
-        [authService, errorHandler]
+        [authService]
     )
 
     const logout = useCallback(async () => {

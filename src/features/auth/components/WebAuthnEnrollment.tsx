@@ -238,7 +238,7 @@ export default function WebAuthnEnrollment({
         } finally {
             setLoading(false)
         }
-    }, [httpClient, userId, deviceName, isPlatform, loadCredentials, onSuccess])
+    }, [httpClient, userId, deviceName, isPlatform, loadCredentials, onSuccess, t])
 
     const handleDeleteCredential = useCallback(async (id: string) => {
         try {
@@ -247,7 +247,7 @@ export default function WebAuthnEnrollment({
         } catch {
             setError(t('webauthn.enrollment.failedToDelete'))
         }
-    }, [httpClient, loadCredentials])
+    }, [httpClient, loadCredentials, t])
 
     const handleClose = useCallback(() => {
         setActiveStep(0)
