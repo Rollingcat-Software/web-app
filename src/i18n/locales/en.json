@@ -1384,6 +1384,28 @@
     "rateLimitExceeded": "Too many requests. Please wait a moment before trying again.",
     "unknownError": "Something went wrong. Please try again."
   },
+  "reasonCodes": {
+    "INVALID_CREDENTIALS": "That email or password didn't match. Please try again.",
+    "ACCOUNT_LOCKED": "Your account is temporarily locked. Try again in {{minutes}} minutes.",
+    "RATE_LIMITED": "Too many attempts. Please wait a moment before trying again.",
+    "SESSION_EXPIRED": "Your session timed out. Please sign in again.",
+    "MFA_REQUIRED": "Additional verification is required to continue.",
+    "INVALID_OTP": "That code didn't match. Please check and re-enter.",
+    "OTP_EXPIRED": "That code has expired. Request a new one.",
+    "NETWORK_ERROR": "Connection lost. Check your network and try again.",
+    "FACE_NOT_DETECTED": "We couldn't detect a face. Please center yourself in the frame.",
+    "FACE_MATCH_FAILED": "Face verification didn't match. Please try again.",
+    "LIVENESS_FAILED": "Liveness check didn't pass. Please follow the on-screen prompts.",
+    "VOICE_NOT_RECOGNIZED": "Voice didn't match. Try speaking clearly in a quiet space.",
+    "FINGERPRINT_FAILED": "Fingerprint didn't match. Clean the sensor and try again.",
+    "NFC_READ_FAILED": "Couldn't read your document. Hold it steady near the device.",
+    "HARDWARE_KEY_FAILED": "Security key didn't respond. Re-insert and try again.",
+    "QR_CODE_EXPIRED": "This QR code has expired. Refresh to get a new one.",
+    "DOCUMENT_EXPIRED": "That document has expired. Please use a valid one.",
+    "DOCUMENT_INVALID": "Document details couldn't be verified. Try a different method.",
+    "TENANT_NOT_FOUND": "This account isn't registered with our service.",
+    "ACCOUNT_DISABLED": "Your account has been disabled. Contact your administrator."
+  },
   "faceDetection": {
     "positionFace": "Position your face in the frame",
     "noFace": "No face detected — look at the camera",

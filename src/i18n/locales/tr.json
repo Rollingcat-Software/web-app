@@ -1384,6 +1384,28 @@
     "rateLimitExceeded": "Çok fazla istek. Lütfen tekrar denemeden önce biraz bekleyin.",
     "unknownError": "Bir şeyler ters gitti. Lütfen tekrar deneyin."
   },
+  "reasonCodes": {
+    "INVALID_CREDENTIALS": "E-posta veya parola eşleşmedi. Lütfen tekrar deneyin.",
+    "ACCOUNT_LOCKED": "Hesabınız geçici olarak kilitlendi. {{minutes}} dakika sonra tekrar deneyin.",
+    "RATE_LIMITED": "Çok fazla deneme yapıldı. Lütfen biraz bekleyin.",
+    "SESSION_EXPIRED": "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.",
+    "MFA_REQUIRED": "Devam etmek için ek doğrulama gereklidir.",
+    "INVALID_OTP": "Kod eşleşmedi. Lütfen kontrol edip tekrar girin.",
+    "OTP_EXPIRED": "Bu kodun süresi doldu. Yeni bir kod isteyin.",
+    "NETWORK_ERROR": "Bağlantı kesildi. Ağınızı kontrol edip tekrar deneyin.",
+    "FACE_NOT_DETECTED": "Yüz algılanamadı. Lütfen kameraya ortalanın.",
+    "FACE_MATCH_FAILED": "Yüz doğrulaması eşleşmedi. Lütfen tekrar deneyin.",
+    "LIVENESS_FAILED": "Canlılık kontrolü geçmedi. Lütfen ekrandaki yönergeleri takip edin.",
+    "VOICE_NOT_RECOGNIZED": "Ses eşleşmedi. Sessiz bir ortamda net konuşmayı deneyin.",
+    "FINGERPRINT_FAILED": "Parmak izi eşleşmedi. Sensörü temizleyip tekrar deneyin.",
+    "NFC_READ_FAILED": "Belgeniz okunamadı. Cihazın yakınında sabit tutun.",
+    "HARDWARE_KEY_FAILED": "Güvenlik anahtarı yanıt vermedi. Tekrar takıp deneyin.",
+    "QR_CODE_EXPIRED": "QR kodunun süresi doldu. Yenilemek için tekrar deneyin.",
+    "DOCUMENT_EXPIRED": "Belgenizin süresi dolmuş. Lütfen geçerli bir belge kullanın.",
+    "DOCUMENT_INVALID": "Belge bilgileri doğrulanamadı. Farklı bir yöntem deneyin.",
+    "TENANT_NOT_FOUND": "Bu hesap servisimize kayıtlı değil.",
+    "ACCOUNT_DISABLED": "Hesabınız devre dışı bırakıldı. Yöneticinizle iletişime geçin."
+  },
   "faceDetection": {
     "positionFace": "Yüzünüzü çerçeveye yerleştirin",
     "noFace": "Yüz algılanmadı — kameraya bakın",
