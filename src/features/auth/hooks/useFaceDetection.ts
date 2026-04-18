@@ -8,7 +8,9 @@
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react'
-import { FaceDetector, FilesetResolver } from '@mediapipe/tasks-vision'
+// Type-only import — the runtime module is loaded lazily inside init() below.
+// This keeps @mediapipe/tasks-vision (~137KB uncompressed) off the eager chunk.
+import type { FaceDetector } from '@mediapipe/tasks-vision'
 import { useBlazeFace } from '../../../lib/ml/useBlazeFace'
 import { cropFaceToDataURL } from '../utils/faceCropper'
 
@@ -77,6 +79,9 @@ export function useFaceDetection(
 
         async function init() {
             try {
+                // Dynamic import defers the ~137KB @mediapipe/tasks-vision module
+                // until we actually need the MediaPipe fallback (i.e. BlazeFace failed).
+                const { FaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision')
                 const vision = await FilesetResolver.forVisionTasks(
                     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
                 )
