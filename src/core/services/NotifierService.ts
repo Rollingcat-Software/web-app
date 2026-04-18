@@ -3,12 +3,31 @@ import { enqueueSnackbar, VariantType } from 'notistack'
 import type { INotifier } from '@domain/interfaces/INotifier'
 
 /**
+ * Low-severity variants get deduped within this window so rapid-fire
+ * events ("Profile updated", "Notification settings updated",
+ * "Appearance settings updated" fired within a single save flow) don't
+ * stack four toasts on top of each other.
+ *
+ * Errors and warnings are never suppressed — user safety signal first.
+ */
+const LOW_SEVERITY_DEDUPE_WINDOW_MS = 2_500
+
+/**
  * Notifier Service
  * Provides user notifications using notistack
  * Displays toast messages for success, error, warning, and info
  */
 @injectable()
 export class NotifierService implements INotifier {
+    /**
+     * Recent low-severity toasts keyed by `${variant}:${message}`
+     * → timestamp of last emission. Used to dedupe back-to-back identical
+     * toasts fired by chatty services (Settings save fans out to 3-4
+     * success toasts; OAuth client CRUD fires info + success for the same
+     * action; etc.).
+     */
+    private readonly recentLowSeverity = new Map<string, number>()
+
     /**
      * Show success notification
      */
@@ -47,6 +66,15 @@ export class NotifierService implements INotifier {
             return
         }
 
+        if (this.shouldSuppressAsDuplicate(message, variant)) {
+            // Still leave a breadcrumb in the console so we can debug
+            // "why didn't my toast show up?" without re-instrumenting.
+            if (typeof console !== 'undefined' && typeof console.debug === 'function') {
+                console.debug('[NotifierService] Deduped low-severity toast:', { variant, message })
+            }
+            return
+        }
+
         enqueueSnackbar(message, {
             variant,
             autoHideDuration: this.getAutoHideDuration(variant),
@@ -55,6 +83,33 @@ export class NotifierService implements INotifier {
                 horizontal: 'right',
             },
         })
+    }
+
+    /**
+     * Suppress back-to-back identical low-severity toasts within the
+     * dedupe window. Errors + warnings are ALWAYS shown — those are
+     * the user's safety signal and must never be throttled.
+     */
+    private shouldSuppressAsDuplicate(message: string, variant: VariantType): boolean {
+        if (variant === 'error' || variant === 'warning') {
+            return false
+        }
+        const key = `${variant}:${message}`
+        const now = Date.now()
+        const last = this.recentLowSeverity.get(key)
+        if (last !== undefined && now - last < LOW_SEVERITY_DEDUPE_WINDOW_MS) {
+            return true
+        }
+        this.recentLowSeverity.set(key, now)
+        // Prune opportunistically so the map can't grow unbounded over a
+        // long-lived SPA session.
+        if (this.recentLowSeverity.size > 64) {
+            const cutoff = now - LOW_SEVERITY_DEDUPE_WINDOW_MS
+            for (const [k, ts] of this.recentLowSeverity) {
+                if (ts < cutoff) this.recentLowSeverity.delete(k)
+            }
+        }
+        return false
     }
 
     /**

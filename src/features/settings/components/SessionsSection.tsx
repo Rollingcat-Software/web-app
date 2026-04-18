@@ -26,6 +26,7 @@ import {
 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { useSessions } from '@features/settings/hooks/useSessions'
+import { useNow } from '@hooks/useNow'
 import type { UserSessionResponse } from '@core/repositories/AuthSessionRepository'
 
 /**
@@ -39,12 +40,19 @@ function getDeviceIcon(deviceInfo: string) {
 }
 
 /**
- * Format a date string to a human-readable relative or absolute format
+ * Format a date string to a human-readable relative or absolute format.
+ *
+ * `now` must be supplied by the caller (from `useNow`) so that the relative
+ * label ("Az önce", "5 dk önce") re-evaluates on each minute tick instead
+ * of staying frozen at its first-render value.
  */
-function formatSessionDate(dateStr: string, t: (key: string, options?: Record<string, unknown>) => string): string {
+function formatSessionDate(
+    dateStr: string,
+    t: (key: string, options?: Record<string, unknown>) => string,
+    now: Date,
+): string {
     try {
         const date = new Date(dateStr)
-        const now = new Date()
         const diffMs = now.getTime() - date.getTime()
         const diffMinutes = Math.floor(diffMs / 60000)
         const diffHours = Math.floor(diffMinutes / 60)
@@ -73,11 +81,13 @@ function SessionRow({
     revoking,
     onRevoke,
     t,
+    now,
 }: {
     session: UserSessionResponse
     revoking: string | null
     onRevoke: (sessionId: string) => void
     t: (key: string, options?: Record<string, unknown>) => string
+    now: Date
 }) {
     const isRevoking = revoking === session.sessionId
 
@@ -122,7 +132,7 @@ function SessionRow({
                     </Tooltip>
                     <Typography variant="caption" color="text.disabled">|</Typography>
                     <Typography variant="caption" color="text.secondary">
-                        {t('sessions.signedIn')}: {formatSessionDate(session.createdAt, t)}
+                        {t('sessions.signedIn')}: {formatSessionDate(session.createdAt, t, now)}
                     </Typography>
                 </Box>
             </Box>
@@ -154,6 +164,9 @@ export default function SessionsSection() {
     const { t } = useTranslation()
     const { sessions, loading, error, revoking, revokeSession, revokeAllOther } = useSessions()
     const [confirmDialogOpen, setConfirmDialogOpen] = useState(false)
+    // Re-render every minute so the "signed in" relative label stays fresh
+    // without re-fetching sessions from the backend.
+    const now = useNow(60_000)
 
     const otherSessionCount = sessions.filter((s) => !s.isCurrent).length
 
@@ -201,6 +214,7 @@ export default function SessionsSection() {
                                 revoking={revoking}
                                 onRevoke={revokeSession}
                                 t={t}
+                                now={now}
                             />
                             {index < sessions.length - 1 && <Divider />}
                         </Box>

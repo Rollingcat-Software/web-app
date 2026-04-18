@@ -40,6 +40,7 @@ import { useTranslation } from 'react-i18next'
 import { formatDistanceToNow } from 'date-fns'
 import { tr as trLocale, enUS } from 'date-fns/locale'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useNow } from '@hooks/useNow'
 
 const POLL_INTERVAL = 30_000 // 30 seconds
 const MAX_NOTIFICATIONS = 20
@@ -126,7 +127,15 @@ function getActionIcon(action: string) {
 
 // --- Time formatting ---
 
-function formatTimeAgo(date: Date, language: string): string {
+/**
+ * Format `date` as a relative label ("az önce" / "2 minutes ago").
+ *
+ * The `_now` param is unused by the formatter but is accepted so the
+ * caller (driven by `useNow(60_000)`) triggers a fresh re-render each
+ * minute — otherwise the first-render "Az önce" would stay on screen
+ * frozen for the lifetime of the component.
+ */
+function formatTimeAgo(date: Date, language: string, _now: Date): string {
     return formatDistanceToNow(date, {
         addSuffix: true,
         locale: language.startsWith('tr') ? trLocale : enUS,
@@ -185,7 +194,14 @@ function getActionDescription(action: string, t: any, details?: Record<string, u
     const key = `notifications.actions.${action}`
     const translated = t(key, { defaultValue: '' })
     if (translated && translated !== key) return translated
-    return action.replace(/_/g, ' ').toLowerCase()
+    // Fallback when a brand-new backend audit code arrives without an i18n
+    // key yet. Title-case the tokens so the UI doesn't show a debug-looking
+    // lowercase "mfa complete" string to the user.
+    return action
+        .split('_')
+        .filter(Boolean)
+        .map((token) => token.charAt(0).toUpperCase() + token.slice(1).toLowerCase())
+        .join(' ')
 }
 
 /**
@@ -208,6 +224,9 @@ export default function NotificationPanel() {
     const [loading, setLoading] = useState(false)
     const [readIds, setReadIds] = useState<Set<string>>(() => getReadIds())
     const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+    // Tick once a minute so relative timestamps ("az önce" / "2 minutes ago")
+    // update as time passes, even when the underlying audit-log list is idle.
+    const now = useNow(60_000)
 
     const unreadCount = useMemo(
         () => notifications.filter((n) => !readIds.has(n.id)).length,
@@ -452,7 +471,7 @@ export default function NotificationPanel() {
                                                     }
                                                     secondary={
                                                         <Typography variant="caption" color="text.secondary">
-                                                            {formatTimeAgo(log.createdAt, i18n.language)}
+                                                            {formatTimeAgo(log.createdAt, i18n.language, now)}
                                                             {log.ipAddress && ` \u00B7 ${log.ipAddress}`}
                                                         </Typography>
                                                     }
