@@ -1,25 +1,16 @@
 import { useState, useCallback } from 'react'
 import {
-    Alert,
     Box,
-    Button,
     CircularProgress,
     Typography,
 } from '@mui/material'
-import { Key, ArrowForward, UsbOutlined } from '@mui/icons-material'
-import { motion, Variants } from 'framer-motion'
+import { Key, UsbOutlined } from '@mui/icons-material'
+import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { WEBAUTHN, EASE_OUT, ANIMATION } from '../../constants'
+import { WEBAUTHN } from '../../constants'
 import { type ChallengeResponse, arrayBufferToBase64, resolveChallenge, mapWebAuthnError } from '../../webauthn-utils'
-
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: ANIMATION.ITEM_ENTER, ease: EASE_OUT },
-    },
-}
+import StepLayout from './StepLayout'
+import { stepItemVariants as itemVariants } from './stepMotion'
 
 interface HardwareKeyStepProps {
     challenge?: string
@@ -87,54 +78,20 @@ export default function HardwareKeyStep({
     const isProcessing = loading || waiting
 
     return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                    opacity: 1,
-                    transition: { staggerChildren: ANIMATION.STAGGER_CHILDREN },
-                },
+        <StepLayout
+            title={t('mfa.hardwareKey.title')}
+            subtitle={t('mfa.hardwareKey.description')}
+            icon={<Key sx={{ fontSize: 28, color: 'white' }} />}
+            iconGradient="linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)"
+            iconShadow="0 8px 32px rgba(245, 158, 11, 0.3)"
+            error={error || keyError}
+            primaryAction={{
+                label: t('mfa.hardwareKey.authenticateButton'),
+                onClick: () => { void handleAuthenticate() },
+                disabled: isProcessing,
+                loading: isProcessing,
             }}
         >
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box
-                    sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mx: 'auto',
-                        mb: 2,
-                        boxShadow: '0 8px 32px rgba(245, 158, 11, 0.3)',
-                    }}
-                >
-                    <Key sx={{ fontSize: 28, color: 'white' }} />
-                </Box>
-                <Typography variant="h6" fontWeight={600}>
-                    {t('mfa.hardwareKey.title')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    {t('mfa.hardwareKey.description')}
-                </Typography>
-            </Box>
-
-            {(error || keyError) && (
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: ANIMATION.STEP_TRANSITION }}
-                >
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {error || keyError}
-                    </Alert>
-                </motion.div>
-            )}
-
             <motion.div variants={itemVariants}>
                 <Box sx={{ display: 'flex', justifyContent: 'center', my: 4 }}>
                     <motion.div
@@ -181,35 +138,6 @@ export default function HardwareKeyStep({
                     {isProcessing ? t('mfa.hardwareKey.touchKey') : t('mfa.hardwareKey.ensureInserted')}
                 </Typography>
             </motion.div>
-
-            <motion.div variants={itemVariants}>
-                <Button
-                    fullWidth
-                    variant="contained"
-                    size="large"
-                    onClick={handleAuthenticate}
-                    disabled={isProcessing}
-                    endIcon={!isProcessing && <ArrowForward />}
-                    sx={{
-                        py: 1.5,
-                        borderRadius: '12px',
-                        fontSize: '1rem',
-                        fontWeight: 600,
-                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                        boxShadow: '0 10px 40px rgba(99, 102, 241, 0.4)',
-                        '&:hover': {
-                            background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                        },
-                        transition: 'all 0.3s ease',
-                    }}
-                >
-                    {isProcessing ? (
-                        <CircularProgress size={24} sx={{ color: 'white' }} />
-                    ) : (
-                        t('mfa.hardwareKey.authenticateButton')
-                    )}
-                </Button>
-            </motion.div>
-        </motion.div>
+        </StepLayout>
     )
 }

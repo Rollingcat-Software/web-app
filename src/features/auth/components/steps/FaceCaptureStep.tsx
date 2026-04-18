@@ -17,24 +17,15 @@ import {
     WbSunny,
     BlurOn,
 } from '@mui/icons-material'
-import { motion, Variants } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useFaceDetection } from '../../hooks/useFaceDetection'
 import { useQualityAssessment } from '../../hooks/useQualityAssessment'
 import { usePerf } from '../../../../contexts/PerfContext'
 import { BiometricEngine } from '../../../../lib/biometric-engine/core/BiometricEngine'
 import { dataURLToImageData } from '../../utils/faceCropper'
-
-const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
-
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.4, ease: easeOut },
-    },
-}
+import StepLayout from './StepLayout'
+import { stepItemVariants as itemVariants } from './stepMotion'
 
 interface FaceCaptureStepProps {
     onSubmit: (image: string, clientEmbedding?: number[]) => void
@@ -212,49 +203,25 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const captureReady = detected && centered
 
     return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.1 },
-                },
-            }}
+        <StepLayout
+            title={t('mfa.face.title')}
+            subtitle={t('mfa.face.description')}
+            icon={<Face sx={{ fontSize: 28, color: 'white' }} />}
+            iconGradient="linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)"
+            iconShadow="0 8px 32px rgba(139, 92, 246, 0.3)"
         >
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box
-                    sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #8b5cf6 0%, #ec4899 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mx: 'auto',
-                        mb: 2,
-                        boxShadow: '0 8px 32px rgba(139, 92, 246, 0.3)',
-                    }}
-                >
-                    <Face sx={{ fontSize: 28, color: 'white' }} />
-                </Box>
-                <Typography variant="h6" fontWeight={600}>
-                    {t('mfa.face.title')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    {t('mfa.face.description')}
-                </Typography>
-            </Box>
-
             {(error || cameraError) && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
                     transition={{ duration: 0.3 }}
                 >
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+                    <Alert
+                        severity="error"
+                        role="alert"
+                        aria-live="polite"
+                        sx={{ mb: 2, borderRadius: '12px' }}
+                    >
                         <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
                             {error || cameraError}
                         </Typography>
@@ -590,6 +557,6 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     </Box>
                 )}
             </motion.div>
-        </motion.div>
+        </StepLayout>
     )
 }

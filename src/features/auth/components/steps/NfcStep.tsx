@@ -4,23 +4,13 @@ import {
     Box,
     Button,
     CircularProgress,
-    Stack,
     Typography,
 } from '@mui/material'
 import { Nfc, Contactless, OpenInNew } from '@mui/icons-material'
-import { motion, Variants } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-
-const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
-
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.4, ease: easeOut },
-    },
-}
+import StepLayout from './StepLayout'
+import { stepItemVariants as itemVariants } from './stepMotion'
 
 interface NfcStepProps {
     onSubmit?: (data: string) => void
@@ -103,40 +93,14 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
 
     if (isFramed && isNfcSupported) {
         return (
-            <motion.div
-                initial="hidden"
-                animate="visible"
-                variants={{
-                    hidden: { opacity: 0 },
-                    visible: { opacity: 1, transition: { staggerChildren: 0.1 } },
-                }}
+            <StepLayout
+                title={t('mfa.nfc.framedTitle')}
+                subtitle={t('mfa.nfc.framedBody')}
+                icon={<OpenInNew sx={{ fontSize: 28, color: 'white' }} />}
+                iconGradient="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+                iconShadow="0 8px 32px rgba(245, 158, 11, 0.3)"
             >
-                <Box sx={{ textAlign: 'center', mb: 3 }}>
-                    <Box
-                        sx={{
-                            width: 56,
-                            height: 56,
-                            borderRadius: '14px',
-                            background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            mx: 'auto',
-                            mb: 2,
-                            boxShadow: '0 8px 32px rgba(245, 158, 11, 0.3)',
-                        }}
-                    >
-                        <OpenInNew sx={{ fontSize: 28, color: 'white' }} />
-                    </Box>
-                    <Typography variant="h6" fontWeight={600}>
-                        {t('mfa.nfc.framedTitle')}
-                    </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                        {t('mfa.nfc.framedBody')}
-                    </Typography>
-                </Box>
-
-                <Stack spacing={1.5}>
+                <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                     <Button
                         fullWidth
                         variant="contained"
@@ -172,60 +136,36 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
                             {t('mfa.nfc.framedSecondary')}
                         </Button>
                     )}
-                </Stack>
-            </motion.div>
+                </Box>
+            </StepLayout>
         )
     }
 
     return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.1 },
-                },
-            }}
-        >
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
+        <StepLayout
+            title={t('mfa.nfc.title')}
+            subtitle={t('mfa.nfc.subtitle')}
+            icon={<Nfc sx={{ fontSize: 28, color: 'white' }} />}
+            iconGradient="linear-gradient(135deg, #f59e0b 0%, #d97706 100%)"
+            iconShadow="0 8px 32px rgba(245, 158, 11, 0.3)"
+            error={error || scanError}
+            help={
                 <Box
                     sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #f59e0b 0%, #d97706 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mx: 'auto',
-                        mb: 2,
-                        boxShadow: '0 8px 32px rgba(245, 158, 11, 0.3)',
+                        mt: 3,
+                        p: 2,
+                        bgcolor: 'rgba(245, 158, 11, 0.06)',
+                        borderRadius: '12px',
+                        border: '1px solid',
+                        borderColor: 'divider',
                     }}
                 >
-                    <Nfc sx={{ fontSize: 28, color: 'white' }} />
+                    <Typography variant="caption" color="text.secondary" display="block">
+                        {t('mfa.nfc.hint')}
+                    </Typography>
                 </Box>
-                <Typography variant="h6" fontWeight={600}>
-                    {t('mfa.nfc.title')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    {t('mfa.nfc.subtitle')}
-                </Typography>
-            </Box>
-
-            {(error || scanError) && (
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                >
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {error || scanError}
-                    </Alert>
-                </motion.div>
-            )}
-
+            }
+        >
             {scanResult && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
@@ -299,23 +239,6 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
                     </Alert>
                 )}
             </motion.div>
-
-            <motion.div variants={itemVariants}>
-                <Box
-                    sx={{
-                        mt: 3,
-                        p: 2,
-                        bgcolor: 'rgba(245, 158, 11, 0.06)',
-                        borderRadius: '12px',
-                        border: '1px solid',
-                        borderColor: 'divider',
-                    }}
-                >
-                    <Typography variant="caption" color="text.secondary" display="block">
-                        {t('mfa.nfc.hint')}
-                    </Typography>
-                </Box>
-            </motion.div>
-        </motion.div>
+        </StepLayout>
     )
 }

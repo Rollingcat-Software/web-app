@@ -1,26 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import {
-    Alert,
     Box,
-    Button,
     CircularProgress,
     TextField,
     Typography,
 } from '@mui/material'
-import { PhonelinkLock, ArrowForward } from '@mui/icons-material'
-import { motion, Variants } from 'framer-motion'
+import { PhonelinkLock } from '@mui/icons-material'
+import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-
-const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
-
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.4, ease: easeOut },
-    },
-}
+import StepLayout from './StepLayout'
+import { stepItemVariants as itemVariants } from './stepMotion'
 
 interface TotpStepProps {
     onSubmit: (code: string) => void
@@ -64,54 +53,37 @@ export default function TotpStep({ onSubmit, loading, error }: TotpStepProps) {
     )
 
     return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.1 },
+        <StepLayout
+            title={t('mfa.totp.title')}
+            subtitle={t('mfa.totp.subtitle')}
+            icon={<PhonelinkLock sx={{ fontSize: 28, color: 'white' }} />}
+            iconGradient="linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)"
+            iconShadow="0 8px 32px rgba(59, 130, 246, 0.3)"
+            error={error}
+            primaryAction={{
+                label: t('mfa.verify'),
+                onClick: () => {
+                    if (code.length === 6) onSubmit(code)
                 },
+                disabled: loading || code.length !== 6,
             }}
-        >
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
+            help={
                 <Box
                     sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mx: 'auto',
-                        mb: 2,
-                        boxShadow: '0 8px 32px rgba(59, 130, 246, 0.3)',
+                        mt: 3,
+                        p: 2,
+                        bgcolor: 'rgba(99, 102, 241, 0.06)',
+                        borderRadius: '12px',
+                        border: '1px solid',
+                        borderColor: 'divider',
                     }}
                 >
-                    <PhonelinkLock sx={{ fontSize: 28, color: 'white' }} />
+                    <Typography variant="caption" color="text.secondary" display="block">
+                        {t('mfa.totp.hint')}
+                    </Typography>
                 </Box>
-                <Typography variant="h6" fontWeight={600}>
-                    {t('mfa.totp.title')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    {t('mfa.totp.subtitle')}
-                </Typography>
-            </Box>
-
-            {error && (
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                >
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {error}
-                    </Alert>
-                </motion.div>
-            )}
-
+            }
+        >
             <form onSubmit={handleSubmit}>
                 <motion.div variants={itemVariants}>
                     <TextField
@@ -154,50 +126,11 @@ export default function TotpStep({ onSubmit, loading, error }: TotpStepProps) {
                         </Box>
                     </motion.div>
                 )}
-
-                <motion.div variants={itemVariants}>
-                    <Button
-                        type="submit"
-                        fullWidth
-                        variant="contained"
-                        size="large"
-                        disabled={loading || code.length !== 6}
-                        endIcon={!loading && <ArrowForward />}
-                        sx={{
-                            mt: 3,
-                            py: 1.5,
-                            borderRadius: '12px',
-                            fontSize: '1rem',
-                            fontWeight: 600,
-                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
-                            boxShadow: '0 10px 40px rgba(99, 102, 241, 0.4)',
-                            '&:hover': {
-                                background: 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)',
-                            },
-                            transition: 'all 0.3s ease',
-                        }}
-                    >
-                        {t('mfa.verify')}
-                    </Button>
-                </motion.div>
-
-                <motion.div variants={itemVariants}>
-                    <Box
-                        sx={{
-                            mt: 3,
-                            p: 2,
-                            bgcolor: 'rgba(99, 102, 241, 0.06)',
-                            borderRadius: '12px',
-                            border: '1px solid',
-                            borderColor: 'divider',
-                        }}
-                    >
-                        <Typography variant="caption" color="text.secondary" display="block">
-                            {t('mfa.totp.hint')}
-                        </Typography>
-                    </Box>
-                </motion.div>
+                {/* Submit button is rendered by StepLayout via primaryAction. The
+                    hidden submit input below keeps Enter-to-submit working inside
+                    the form without duplicating the visible button. */}
+                <button type="submit" style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />
             </form>
-        </motion.div>
+        </StepLayout>
     )
 }

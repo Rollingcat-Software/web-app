@@ -1,26 +1,15 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
-    Alert,
     Box,
     Button,
     CircularProgress,
     TextField,
-    Typography,
 } from '@mui/material'
 import { Email, ArrowForward, Refresh } from '@mui/icons-material'
-import { motion, Variants } from 'framer-motion'
-
-const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
-
-const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: {
-        opacity: 1,
-        y: 0,
-        transition: { duration: 0.4, ease: easeOut },
-    },
-}
+import { motion } from 'framer-motion'
+import StepLayout from './StepLayout'
+import { stepItemVariants as itemVariants } from './stepMotion'
 
 const COUNTDOWN_SECONDS = 60
 
@@ -69,56 +58,14 @@ export default function EmailOtpStep({ onSubmit, onSendOtp, loading, error }: Em
     }, [])
 
     return (
-        <motion.div
-            initial="hidden"
-            animate="visible"
-            variants={{
-                hidden: { opacity: 0 },
-                visible: {
-                    opacity: 1,
-                    transition: { staggerChildren: 0.1 },
-                },
-            }}
+        <StepLayout
+            title={t('auth.emailVerification')}
+            subtitle={otpSent ? t('auth.enterOtpCode') : t('auth.willSendOtp')}
+            icon={<Email sx={{ fontSize: 28, color: 'white' }} />}
+            iconGradient="linear-gradient(135deg, #10b981 0%, #3b82f6 100%)"
+            iconShadow="0 8px 32px rgba(16, 185, 129, 0.3)"
+            error={error}
         >
-            <Box sx={{ textAlign: 'center', mb: 3 }}>
-                <Box
-                    sx={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: '14px',
-                        background: 'linear-gradient(135deg, #10b981 0%, #3b82f6 100%)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        mx: 'auto',
-                        mb: 2,
-                        boxShadow: '0 8px 32px rgba(16, 185, 129, 0.3)',
-                    }}
-                >
-                    <Email sx={{ fontSize: 28, color: 'white' }} />
-                </Box>
-                <Typography variant="h6" fontWeight={600}>
-                    {t('auth.emailVerification')}
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                    {otpSent
-                        ? t('auth.enterOtpCode')
-                        : t('auth.willSendOtp')}
-                </Typography>
-            </Box>
-
-            {error && (
-                <motion.div
-                    initial={{ opacity: 0, scale: 0.95 }}
-                    animate={{ opacity: 1, scale: 1 }}
-                    transition={{ duration: 0.3 }}
-                >
-                    <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {error}
-                    </Alert>
-                </motion.div>
-            )}
-
             {!otpSent ? (
                 <motion.div variants={itemVariants}>
                     <Button
@@ -232,6 +179,6 @@ export default function EmailOtpStep({ onSubmit, onSendOtp, loading, error }: Em
                     </motion.div>
                 </form>
             )}
-        </motion.div>
+        </StepLayout>
     )
 }
