@@ -407,6 +407,13 @@ export class FivucsasAuth {
         url.searchParams.set('code_challenge_method', 'S256');
         url.searchParams.set('display', options.display ?? 'page');
 
+        // OIDC Core §3.1.2.1 `ui_locales` — requests the hosted sign-in UI
+        // render in the tenant's preferred language. Forwarded to the hosted
+        // page via the authorize endpoint redirect (backend pass-through).
+        if (this.config.locale) {
+            url.searchParams.set('ui_locales', this.config.locale);
+        }
+
         window.location.assign(url.toString());
     }
 
@@ -497,6 +504,7 @@ export class FivucsasAuth {
 
         const tokens = await response.json();
         const idToken: string | undefined = tokens.id_token ? String(tokens.id_token) : undefined;
+        const accessToken: string | undefined = tokens.access_token ? String(tokens.access_token) : undefined;
 
         // B7 — OIDC §3.1.3.7 nonce validation.
         // The backend verifies the JWT signature; here we assert the caller's
@@ -506,11 +514,66 @@ export class FivucsasAuth {
             assertNonceMatches(idToken, expectedNonce);
         }
 
+        // Decode id_token payload for profile claims the token endpoint does
+        // NOT return in the response body (OIDC Core §3.1.3.3 only mandates
+        // access_token / token_type / expires_in / id_token). The tenant-facing
+        // callback needs sub/email/amr to render the "you are signed in as X"
+        // state — empty fields on a success screen are a UX regression.
+        // Signature has already been validated by the backend; we only read.
+        let userId: string | undefined;
+        let email: string | undefined;
+        let displayName: string | undefined;
+        let completedMethods: string[] = [];
+        if (idToken) {
+            try {
+                const claims = decodeJwtPayload(idToken);
+                if (typeof claims.sub === 'string') userId = claims.sub;
+                if (typeof claims.email === 'string') email = claims.email;
+                if (typeof claims.name === 'string') displayName = claims.name;
+                if (Array.isArray(claims.amr)) {
+                    completedMethods = (claims.amr as unknown[])
+                        .filter((v): v is string => typeof v === 'string');
+                }
+            } catch {
+                // Non-fatal: id_token may be opaque to the SDK in future migrations;
+                // userinfo fallback below still covers sub/email.
+            }
+        }
+
+        // Enrichment fallback: call /oauth2/userinfo if critical fields are
+        // still missing after id_token decode. Swallows errors — a failed
+        // userinfo call must not break a successful sign-in.
+        if (accessToken && (!userId || !email)) {
+            try {
+                const userinfoResponse = await fetch(`${this.apiBase()}/oauth2/userinfo`, {
+                    method: 'GET',
+                    headers: { Authorization: `Bearer ${accessToken}` },
+                });
+                if (userinfoResponse.ok) {
+                    const info = await userinfoResponse.json();
+                    if (!userId && typeof info.sub === 'string') userId = info.sub;
+                    if (!email && typeof info.email === 'string') email = info.email;
+                    if (!displayName && typeof info.name === 'string') displayName = info.name;
+                    if (completedMethods.length === 0 && Array.isArray(info.amr)) {
+                        completedMethods = (info.amr as unknown[])
+                            .filter((v): v is string => typeof v === 'string');
+                    }
+                }
+            } catch {
+                // Swallow — enrichment is best-effort.
+            }
+        }
+
         return {
             success: true,
-            sessionId: '',
-            completedMethods: [],
-            accessToken: tokens.access_token ? String(tokens.access_token) : undefined,
+            // Synthesize a stable sessionId from the authorization code so the
+            // caller has a non-empty correlation handle for logs/analytics.
+            sessionId: `oauth-${code.slice(0, 12)}-${Date.now()}`,
+            userId,
+            email,
+            displayName,
+            completedMethods,
+            accessToken,
             refreshToken: tokens.refresh_token ? String(tokens.refresh_token) : undefined,
             idToken,
             tokenType: tokens.token_type ? String(tokens.token_type) : undefined,

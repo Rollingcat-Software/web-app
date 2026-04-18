@@ -1173,7 +1173,7 @@
       "title": "Yüz Doğrulama",
       "subtitle": "Kameranızla doğrulayın",
       "description": "Yüzünüzü çerçeve içine yerleştirin ve fotoğraf çekin",
-      "cameraError": "Kameraya erişilemiyor. Lütfen kamera iznini verin ve tekrar deneyin.",
+      "cameraError": "Kameraya erişilemedi. Lütfen tarayıcınızda kamera iznini verip tekrar deneyin.",
       "cameraOff": "Kamera kapalı",
       "quality": "{{label}} %{{score}}",
       "blur": "Bulanıklık %{{score}}",
@@ -1183,7 +1183,12 @@
       "capturePhoto": "Fotoğraf Çek",
       "retake": "Tekrar Çek",
       "submit": "Gönder",
-      "noFaceDetected": "Yüz algılanamadı — yüzünüzü çerçeve içine konumlandırın ve tekrar deneyin"
+      "noFaceDetected": "Yüz algılanamadı — yüzünüzü çerçeve içine konumlandırın ve tekrar deneyin",
+      "capturedAlt": "Gönderime hazır çekilmiş fotoğrafınız",
+      "lastAttemptAlt": "Son deneme — fotoğrafı yeniden çekip tekrar deneyin",
+      "retryTipLighting": "Yüzünüz eşit aydınlansın diye bir pencereye veya lambaya dönün",
+      "retryTipFraming": "Kamerayı göz hizasında tutun ve yüzünüzü ortalayın",
+      "retryTipGlasses": "Mümkünse gözlük veya yüz örtüsünü çıkarın"
     },
     "voice": {
       "title": "Ses Doğrulama",
@@ -1325,21 +1330,21 @@
   "widget": {
     "verifyIdentity": "Kimliğinizi Doğrulayın",
     "cancel": "İptal",
-    "authComplete": "Kimlik Doğrulama Tamamlandı",
+    "authComplete": "Giriş yapıldı",
     "allStepsCompleted": "Tüm doğrulama adımları başarıyla tamamlandı.",
-    "noStepsRemaining": "Kalan kimlik doğrulama adımı yok.",
-    "unknownMethod": "Bilinmeyen kimlik doğrulama yöntemi: {{method}}",
+    "noStepsRemaining": "Kalan doğrulama adımı yok — her şey tamam.",
+    "unknownMethod": "Bilinmeyen kimlik doğrulama yöntemi: {{method}}. Lütfen yöneticinize başvurun.",
     "skipStep": "Bu adımı atla",
     "stepOfTotal": "Adım {{current}} / {{total}}",
-    "verificationFailed": "Doğrulama başarısız. Lütfen tekrar deneyin.",
-    "unexpectedError": "Beklenmeyen bir hata oluştu.",
-    "skipFailed": "Adım atlanamadı.",
+    "verificationFailed": "Doğrulama yapılamadı. Lütfen tekrar deneyin.",
+    "unexpectedError": "Bir sorun oluştu. Lütfen biraz sonra tekrar deneyin.",
+    "skipFailed": "Bu adım atlanamadı. Lütfen tekrar deneyin.",
     "verificationError": "Doğrulama Hatası",
     "loginTitle": "Giriş Yap",
     "loginSubtitle": "Devam etmek için kimlik bilgilerinizi girin.",
-    "mfaRequired": "Ek doğrulama gereklidir.",
-    "loginFailed": "Giriş başarısız. Lütfen bilgilerinizi kontrol edin.",
-    "missingParams": "Gerekli parametreler eksik (session_id veya client_id)."
+    "mfaRequired": "Bir adım daha — ek doğrulama gerekli.",
+    "loginFailed": "E-posta ya da şifre eşleşmedi. Lütfen tekrar deneyin.",
+    "missingParams": "Bu giriş bağlantısı eksik. Lütfen geldiğiniz siteye dönüp yeniden başlayın."
   },
   "hosted": {
     "loadingApp": "Yükleniyor…",

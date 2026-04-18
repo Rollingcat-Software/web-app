@@ -37,6 +37,7 @@ import FingerprintStep from '@features/auth/components/steps/FingerprintStep'
 import QrCodeStep from '@features/auth/components/steps/QrCodeStep'
 import HardwareKeyStep from '@features/auth/components/steps/HardwareKeyStep'
 import NfcStep from '@features/auth/components/steps/NfcStep'
+import StepProgress from './StepProgress'
 
 type FlowPhase = 'password' | 'method-picker' | 'mfa-step' | 'complete'
 
@@ -365,6 +366,19 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 }}
             >
                 <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                    {/* Top-of-flow progress indicator — shown on every step, not just NFC. */}
+                    {(() => {
+                        // totalSteps defaults to 1 until the backend returns the real count
+                        // (after password submit). We derive a sensible displayTotal so the
+                        // password step can also show context: if the user clicked a button
+                        // and we're waiting on the backend, total=2 (pwd + >=1 MFA). Once the
+                        // backend returns totalSteps we use that authoritative value.
+                        const displayTotal = totalSteps > 1 ? totalSteps : (phase === 'password' ? 0 : 2)
+                        let displayCurrent = currentStep
+                        if (phase === 'password') displayCurrent = 1
+                        return <StepProgress current={displayCurrent} total={displayTotal} />
+                    })()}
+
                     {/* Header */}
                     <Box
                         sx={{
@@ -462,20 +476,8 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                         </motion.div>
                     </AnimatePresence>
 
-                    {/* Step counter for MFA */}
-                    {(phase === 'mfa-step' || phase === 'method-picker') && totalSteps > 1 && (
-                        <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{
-                                display: 'block',
-                                textAlign: 'center',
-                                mt: 3,
-                            }}
-                        >
-                            {t('widget.stepOfTotal', { current: currentStep, total: totalSteps })}
-                        </Typography>
-                    )}
+                    {/* Bottom step counter removed — StepProgress at the top is the
+                        single authoritative indicator per Fix 4 (2026-04-18c). */}
                 </CardContent>
             </Card>
         </motion.div>

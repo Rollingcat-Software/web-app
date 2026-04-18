@@ -49,6 +49,33 @@ interface HostedParams {
     apiBaseUrl: string
 }
 
+/**
+ * Resolve the UI locale for the hosted login page with the following priority:
+ *   1. `ui_locales` (OIDC Core §3.1.2.1 — space-separated BCP47 tags; first match wins)
+ *   2. `locale` (legacy SDK param kept for backward compat)
+ *   3. `navigator.language` (browser preference)
+ *   4. `'en'` (default)
+ *
+ * Only 'en' and 'tr' are currently supported — unknown tags fall through.
+ */
+function resolveLocale(params: URLSearchParams): 'en' | 'tr' {
+    const SUPPORTED: ReadonlyArray<'en' | 'tr'> = ['en', 'tr']
+    const match = (tag: string | null | undefined): 'en' | 'tr' | null => {
+        if (!tag) return null
+        // Take the primary subtag of the first preference (e.g. "tr-TR" -> "tr").
+        const primary = tag.trim().split(/\s+/)[0]?.split('-')[0]?.toLowerCase()
+        return (SUPPORTED as ReadonlyArray<string>).includes(primary ?? '')
+            ? (primary as 'en' | 'tr')
+            : null
+    }
+    return (
+        match(params.get('ui_locales')) ||
+        match(params.get('locale')) ||
+        match(typeof navigator !== 'undefined' ? navigator.language : null) ||
+        'en'
+    )
+}
+
 function parseHostedParams(): HostedParams {
     const params = new URLSearchParams(window.location.search)
     return {
@@ -59,7 +86,7 @@ function parseHostedParams(): HostedParams {
         nonce: params.get('nonce') ?? '',
         codeChallenge: params.get('code_challenge') ?? '',
         codeChallengeMethod: params.get('code_challenge_method') ?? 'S256',
-        locale: (params.get('locale') as 'en' | 'tr') || 'en',
+        locale: resolveLocale(params),
         theme: (params.get('theme') as 'light' | 'dark') || 'light',
         apiBaseUrl:
             params.get('api_base_url') ||
@@ -125,10 +152,15 @@ export default function HostedLoginApp() {
         }
     }, [isFramed])
 
-    // Set locale from URL
+    // Set locale from URL (ui_locales, legacy locale, or browser fallback)
+    // BEFORE any t()-driven render — we wait on metaLoading so the CircularProgress
+    // label is already localized. The i18n bundle is tiny so the await is cheap.
     useEffect(() => {
         if (isFramed) return
         if (config.locale) {
+            if (typeof document !== 'undefined') {
+                document.documentElement.lang = config.locale
+            }
             import('../i18n').then((mod) => {
                 mod.default.changeLanguage(config.locale)
             })

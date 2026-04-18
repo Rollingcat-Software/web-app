@@ -272,6 +272,70 @@ describe('FivucsasAuth.handleRedirectCallback — B7 nonce + scheme', () => {
         expect(sessionStorage.getItem('fivucsas:nonce')).toBeNull()
     })
 
+    it('decodes id_token claims into userId/email/completedMethods (Fix 3)', async () => {
+        setCallbackQuery({ code: 'code-xyz-123', state: 'state-abc' })
+        primeSession()
+
+        const idToken = fakeJwt({
+            nonce: 'nonce-xyz',
+            sub: 'user-42',
+            email: 'alice@example.com',
+            name: 'Alice Example',
+            amr: ['pwd', 'otp', 'face'],
+        })
+        global.fetch = vi.fn().mockResolvedValue({
+            ok: true,
+            json: async () => ({
+                access_token: 'at',
+                id_token: idToken,
+                token_type: 'Bearer',
+                expires_in: 3600,
+            }),
+        }) as unknown as typeof fetch
+
+        const auth = new FivucsasAuth({ clientId: 'c1' })
+        const result = await auth.handleRedirectCallback()
+
+        expect(result.userId).toBe('user-42')
+        expect(result.email).toBe('alice@example.com')
+        expect(result.displayName).toBe('Alice Example')
+        expect(result.completedMethods).toEqual(['pwd', 'otp', 'face'])
+        expect(result.sessionId).toMatch(/^oauth-code-xyz-123-\d+$/)
+    })
+
+    it('falls back to /oauth2/userinfo when id_token lacks sub/email (Fix 3)', async () => {
+        setCallbackQuery({ code: 'c2', state: 'state-abc' })
+        primeSession()
+
+        // id_token with only nonce — no sub/email/amr
+        const idToken = fakeJwt({ nonce: 'nonce-xyz' })
+        const fetchMock = vi.fn()
+            // First call: /oauth2/token
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ access_token: 'at-2', id_token: idToken }),
+            })
+            // Second call: /oauth2/userinfo
+            .mockResolvedValueOnce({
+                ok: true,
+                json: async () => ({ sub: 'user-99', email: 'bob@example.com', amr: ['pwd'] }),
+            })
+        global.fetch = fetchMock as unknown as typeof fetch
+
+        const auth = new FivucsasAuth({ clientId: 'c1' })
+        const result = await auth.handleRedirectCallback()
+
+        expect(result.userId).toBe('user-99')
+        expect(result.email).toBe('bob@example.com')
+        expect(result.completedMethods).toEqual(['pwd'])
+        // Verify userinfo was actually called with the bearer token
+        const userinfoCall = fetchMock.mock.calls.find((c) =>
+            String(c[0]).includes('/oauth2/userinfo')
+        )
+        expect(userinfoCall).toBeTruthy()
+        expect(userinfoCall![1].headers.Authorization).toBe('Bearer at-2')
+    })
+
     it('throws on nonce mismatch', async () => {
         setCallbackQuery({ code: 'code-1', state: 'state-abc' })
         primeSession({ nonce: 'expected' })

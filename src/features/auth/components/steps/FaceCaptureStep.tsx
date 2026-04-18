@@ -255,7 +255,19 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     transition={{ duration: 0.3 }}
                 >
                     <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                        {error || cameraError}
+                        <Typography variant="body2" fontWeight={600} sx={{ mb: 0.5 }}>
+                            {error || cameraError}
+                        </Typography>
+                        {/* Retry guidance — lighting / framing tips shown when the server
+                            rejects the capture. Keeps the user oriented instead of showing
+                            just a bare "Verification failed" with the last frame preview. */}
+                        {error && (
+                            <Typography variant="caption" component="div" sx={{ mt: 0.5 }}>
+                                • {t('mfa.face.retryTipLighting')}<br />
+                                • {t('mfa.face.retryTipFraming')}<br />
+                                • {t('mfa.face.retryTipGlasses')}
+                            </Typography>
+                        )}
                     </Alert>
                 </motion.div>
             )}
@@ -288,11 +300,22 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         <Box
                             component="img"
                             src={capturedImage}
-                            alt="Captured face"
+                            // Alt text swaps to a retry-oriented label when the
+                            // server rejected the capture, so screen-readers do
+                            // not announce the same "captured face" label that
+                            // conflicts with the "Verification failed" alert.
+                            alt={
+                                error
+                                    ? t('mfa.face.lastAttemptAlt')
+                                    : t('mfa.face.capturedAlt')
+                            }
                             sx={{
                                 width: '100%',
                                 height: '100%',
                                 objectFit: 'cover',
+                                // Subtle grayscale on failure to visually signal
+                                // "this attempt didn't pass — try again".
+                                filter: error ? 'grayscale(0.35)' : 'none',
                             }}
                         />
                     ) : cameraActive ? (

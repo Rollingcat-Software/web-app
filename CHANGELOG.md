@@ -1,5 +1,48 @@
 # Changelog - FIVUCSAS Web App
 
+## [2026-04-18c] — Hosted-login UX recovery: callback data, stepper, locale, face retry, copy audit
+
+### Fixed
+- **Callback fields populated (Fix 3)** — `sdk/FivucsasAuth.ts` `handleRedirectCallback()`
+  now decodes the id_token (`sub` → `userId`, `email`, `name` → `displayName`, `amr`
+  → `completedMethods`) and falls back to `GET /oauth2/userinfo` with the bearer
+  access token when any field is missing. Synthesized `sessionId` now derives
+  from the auth code prefix instead of returning `''`. Tenants' callback pages
+  (e.g. `bys-demo/callback.html`) no longer render `—` for Kullanıcı ID,
+  E-posta, Doğrulama Yöntemleri.
+- **Hosted login locale honoured (Fix 5)** — `sdk/FivucsasAuth.ts#loginRedirect`
+  appends OIDC `ui_locales` on the authorize URL. `HostedLoginApp.tsx` resolves
+  locale from `ui_locales` → legacy `locale` → `navigator.language` → `'en'`,
+  sets `document.documentElement.lang`, and switches i18next before render.
+- **Face failure UX (Fix 1)** — `FaceCaptureStep.tsx` swaps the captured-image
+  alt text to `mfa.face.lastAttemptAlt` and applies a subtle grayscale filter
+  when the server rejects a capture. Error alerts gain three retry tips
+  (lighting, framing, glasses) instead of the bare "Verification failed." copy.
+  No biometric threshold or model change.
+
+### Added
+- **`<StepProgress>` component (Fix 4)** — `verify-app/StepProgress.tsx`. Compact
+  top-of-flow counter + determinate progress bar, ARIA-labeled, hidden when
+  `total <= 1`. Mounted above the header in `LoginMfaFlow.tsx`; the redundant
+  bottom "Step N of M" caption has been removed so every method (Face, TOTP,
+  Email OTP, NFC, picker) renders a consistent indicator instead of the
+  NFC-only inline text.
+- **Copy audit (Fix 6)** — `widget.*` and `mfa.face.*` keys in `en.json` +
+  `tr.json` rewritten to the "what happened + what to do" pattern:
+  `loginFailed`, `verificationFailed`, `unexpectedError`, `missingParams`,
+  `skipFailed`, `mfaRequired`, `cameraError`, plus three new
+  `mfa.face.retryTip*` strings and `capturedAlt` / `lastAttemptAlt`.
+
+### Tests
+- **Vitest** — 599 / 599 passing (was 597). Two new SDK tests:
+  id_token claim extraction, userinfo fallback.
+
+### Deployed
+- SDK rebuilt (`dist-sdk/fivucsas-auth.js` — SRI
+  `sha384-LLegFtvECu4lDPINAMXGPM3C5lo3SCnj9jaqBAi1LDvxGILTG8Bm86Db5TIkP1G6`)
+  and copied to `verify-widget/html/` alongside the new verify-app bundle;
+  Docker widget recreated; web-app dist rsync'd to Hostinger.
+
 ## [2026-04-18] — CI on ubuntu-latest, Dependabot sweep, lint green, MobileFaceNet removed
 
 ### Changed
