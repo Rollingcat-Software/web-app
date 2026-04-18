@@ -342,9 +342,9 @@ export interface FaceMetrics {
  * @see demo_local_fast.py line 966 (embedding threshold)
  */
 export interface Embedding {
-  /** Embedding vector (128-dim or 512-dim) */
+  /** Embedding vector (512-dim, landmark-geometry) */
   vector: Float32Array;
-  /** Model identifier, e.g. 'mobilefacenet-128' or 'geometry' */
+  /** Model identifier, e.g. 'geometry-512' (landmark-geometry is the sole client path per D2). */
   model: string;
 }
 

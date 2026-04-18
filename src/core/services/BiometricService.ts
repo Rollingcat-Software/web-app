@@ -71,8 +71,8 @@ export class BiometricService {
      *
      * @param imageBase64      Single or multiple base64 JPEG data-URLs (224×224 client crop).
      * @param tenantId         Optional tenant scope.
-     * @param clientEmbeddings Optional per-image MobileFaceNet embeddings computed client-side.
-     *                         Server ignores this field if it does not recognize it (additive).
+     * @param clientEmbeddings Optional per-image 512-dim landmark-geometry embeddings computed client-side.
+     *                         Log-only telemetry per D2; server stores for offline analysis (never auth).
      */
     async enrollFace(
         userId: string,
@@ -117,9 +117,9 @@ export class BiometricService {
     /**
      * Enroll using multiple images with quality-weighted fusion.
      *
-     * @param clientEmbeddings Optional per-image MobileFaceNet embeddings (128-dim).
+     * @param clientEmbeddings Optional per-image 512-dim landmark-geometry embeddings.
      *                         Serialized as JSON array in FormData field "client_embeddings".
-     *                         Server ignores this field if it does not recognize it (additive).
+     *                         Log-only telemetry per D2; server stores for offline analysis.
      */
     private async enrollFaceMulti(
         userId: string,

@@ -523,8 +523,9 @@ export default function EnrollmentPage() {
                 const biometric = getBiometricService()
                 // Send all captured images — enrollFace will use /enroll/multi
                 // for 2+ images (quality-weighted template fusion).
-                // clientEmbeddings are MobileFaceNet 128-dim vectors computed in-browser
-                // via EmbeddingComputer (ONNX/WebGL). Server ignores this field if not recognized.
+                // clientEmbeddings are 512-dim landmark-geometry vectors computed in-browser
+                // via EmbeddingComputer (MediaPipe, log-only per D2). Server stores them for
+                // offline analysis only — never used for auth decisions.
                 await biometric.enrollFace(userId, images, user?.tenantId, clientEmbeddings)
 
                 // Create enrollment record and explicitly complete it (FACE is ASYNC_ENROLLMENT_TYPE)

@@ -1,13 +1,7 @@
 {
-  "version": "2026.04.14",
+  "version": "2026.04.18",
   "base_url_default": "https://app.fivucsas.com/models",
   "files": [
-    {
-      "name": "mobilefacenet.onnx",
-      "sha256": null,
-      "bytes": 4915200,
-      "purpose": "Face embedding (MobileFaceNet 128-dim INT8) — client-side log-only per D2. PENDING: InsightFace release requires auth; user must download and upload manually. Without it, client gracefully falls back (server ignores client_embedding per D2, so auth still works)."
-    },
     {
       "name": "yolo-card-nano.onnx",
       "sha256": "1b0db1183de768b1f0a7ab3d280b79ad84b653c433cc6a7ee55ac9c73e0b1863",

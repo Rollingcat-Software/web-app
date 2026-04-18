@@ -423,13 +423,14 @@ export class BiometricEngineBuilder {
       this.config.voiceVAD = voiceVAD;
     }
 
-    // P2 optional: EmbeddingComputer — loads MobileFaceNet ONNX model asynchronously.
-    // Does not block engine startup; model unavailability is handled gracefully.
+    // EmbeddingComputer — landmark-geometry only (MobileFaceNet deprecated 2026-04-18).
+    // No ONNX model to load; client embedding is 512-dim log-only telemetry per D2.
     if (!this.config.embeddingComputer) {
       const embeddingComputer = new EmbeddingComputer();
-      embeddingComputer
-        .initialize('/models/mobilefacenet.onnx')
-        .catch(e => console.warn('[BiometricEngine] Embedding computer not available:', e));
+      // initialize() is a no-op for geometry mode but we await it for symmetry.
+      embeddingComputer.initialize().catch(() => {
+        /* geometry mode cannot fail; keep catch for interface parity */
+      });
       this.config.embeddingComputer = embeddingComputer;
     }
 

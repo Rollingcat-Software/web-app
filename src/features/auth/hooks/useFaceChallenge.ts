@@ -27,7 +27,7 @@ export interface ChallengeState {
     stageProgress: number      // 0-1, current stage hold progress
     instruction: string
     captures: string[]         // base64 images captured at each stage
-    clientEmbeddings: (number[] | null)[]  // MobileFaceNet 128-dim embedding per capture (null if not available)
+    clientEmbeddings: (number[] | null)[]  // 512-dim landmark-geometry embedding per capture (null if landmarks unavailable); log-only per D2
 }
 
 export interface VerificationState {
@@ -190,9 +190,10 @@ export function useFaceChallenge() {
                 if (capturedImage) {
                     capturesRef.current = [...capturesRef.current, capturedImage]
 
-                    // Async: extract client-side embedding via MobileFaceNet (ONNX).
+                    // Async: extract client-side landmark-geometry embedding (log-only per D2).
+                    // Returns null when landmarks are unavailable; server ignores the field.
                     // Push null immediately so the array index lines up with captures[],
-                    // then replace with the real embedding once inference completes.
+                    // then replace with the real embedding once extraction completes.
                     const captureIdx = capturesRef.current.length - 1
                     clientEmbeddingsRef.current = [...clientEmbeddingsRef.current, null]
                     ;(async () => {

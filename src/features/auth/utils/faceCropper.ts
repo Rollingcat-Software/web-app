@@ -107,9 +107,9 @@ export function cropFaceToDataURL(
 /**
  * Convert a base64 JPEG data-URL to an ImageData object.
  *
- * Used to feed a captured face crop into EmbeddingComputer.extract().
- * The image is drawn at its native resolution; EmbeddingComputer will
- * internally resize to 112×112 for MobileFaceNet inference.
+ * Retained for generic image-to-pixel-data conversion. Note that as of
+ * 2026-04-18 the client embedding path uses landmark geometry (not pixel
+ * data), so EmbeddingComputer.extract() no longer consumes ImageData.
  *
  * @param dataURL  Base64 JPEG data-URL (e.g. from cropFaceToDataURL).
  * @returns        ImageData, or null if the canvas context fails.

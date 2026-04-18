@@ -44,6 +44,7 @@
 - [ ] **OIDC discovery** — `.well-known/openid-configuration` endpoint exists but needs verification against conformance suite (code + id_token + PKCE S256 + JWKS reachable).
 - [ ] **`.gitignore`** verify-widget/html/assets/*.js — bundle artifacts currently tracked. Purge from history after adding ignore.
 - [ ] **Lazy-load ONNX Runtime + BlazeFace** via dynamic `import()` so the face capture bundle (~8MB) doesn't hit the critical path for users who never use face auth.
+- [x] **MobileFaceNet deprecated (2026-04-18)** — `mobilefacenet.onnx` removed from manifest + fetch-models + dist. Client embedding is now 512-dim landmark-geometry only (MediaPipe, log-only per D2). Eliminates the 4.9 MB download + ONNX Runtime startup overhead for zero functional loss (server DeepFace Facenet512 stays authoritative).
 - [ ] **`oauth2_clients.tenant_id` index** — query plan shows seq scan on tenant lookup; hot path during `/authorize`.
 - [ ] **CI speed** — Maven `<parallel>` + Vitest `--pool=threads --poolOptions.threads.maxThreads=4` to halve CI wall-clock.
 - [ ] **Stuck Deploy-to-Hetzner run** — self-hosted runner queued 8h+; clear queue, investigate runner registration.

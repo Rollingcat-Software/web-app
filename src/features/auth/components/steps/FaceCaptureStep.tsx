@@ -179,11 +179,11 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const handleSubmit = useCallback(async () => {
         if (!capturedImage) return
 
-        // Attempt client-side MobileFaceNet embedding extraction (non-blocking).
-        // If the ONNX model is loaded (via BiometricEngine), extract a 128-dim
-        // embedding in browser WebGL before submitting to the server.
-        // The embedding is passed as clientEmbedding to onSubmit — callers
-        // include it in the auth step payload; server ignores it if not recognized.
+        // Attempt client-side landmark-geometry embedding extraction (non-blocking).
+        // Produces a 512-dim vector from MediaPipe landmarks (log-only per D2).
+        // Returns null when landmarks are unavailable; server computes its own
+        // trusted embedding regardless. The field is passed as clientEmbedding
+        // to onSubmit — server stores it for offline analysis only.
         let clientEmbedding: number[] | undefined
         try {
             const engine = BiometricEngine.getInstance()
