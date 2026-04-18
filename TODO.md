@@ -4,7 +4,64 @@
 
 **Current branch:** `main`
 **Target PR:** PR-1 (Wave 1) — ✅ **MERGED 2026-04-16** (identity-core-api#16 + web-app#22)
-**Last updated:** 2026-04-16
+**Last updated:** 2026-04-18
+
+---
+
+## Open — 2026-04-18 (Phase A–H restructure)
+
+> Authoritative list per `/home/deploy/.claude/plans/rustling-pondering-wind.md`. Items below supersede the Audit-surfaced / Wave 0 / Wave 2-4 sections further down when they overlap.
+
+### Phase A — Green the PR CI (in flight — blocks Dependabot)
+- [ ] **A1.** Refactor `src/verify-app/HostedLoginApp.tsx` — move all hook calls above the `if (!authParams)` early return; gate internal side-effects on `authParams` truthy (15 `react-hooks/rules-of-hooks` errors).
+- [ ] **A2.** Misc lint errors: `src/verify-app/sdk/FivucsasAuth.ts:105` useless `\-` regex escape; `src/verify-app/postMessageBridge.ts:74` stale eslint-disable; test-file `no-unused-vars` (`act`, `afterEach`, `waitFor`, `userEvent`) — prefix `_` or remove.
+- [ ] **A3.** Exhaustive-deps warnings (63) in `GuestsPage`, `NfcEnrollmentPage`, `SettingsPage`, `WidgetAuthPage`, `TenantFormPage`, `UserFormPage`, `useBlazeFace`. Intentional stale closures get inline `// eslint-disable-next-line react-hooks/exhaustive-deps` + one-line WHY.
+- [ ] **A4.** `npm test -- --run` — 597 passing before push. Update `HostedLoginApp.test.tsx` if hook-order change breaks it.
+- [ ] Ship as one commit: `fix(lint): unblock ubuntu-latest CI — hooks rules-of-hooks + unused vars`.
+
+### Phase B — Dependabot merges (gated on A green)
+- [ ] **B1.** `@dependabot rebase` web-app #23 protobufjs (CRITICAL) + #21 follow-redirects (MODERATE).
+- [ ] **B2.** `gh pr merge --squash --delete-branch` each.
+- [ ] **B3.** FIVUCSAS parent #8 Vite (MODERATE) — verify transitive vs direct; bump if direct.
+- [ ] **B4.** Rsync rebuilt `dist/` to Hostinger post-protobufjs (TF.js runtime dep).
+
+### Phase C — Wave 0 ops hardening (frontend-adjacent only)
+- [ ] **C3.** Web-app `git filter-repo --path .env.prod --invert-paths`; force-push after team sync.
+- [ ] **C5.** Enable GitHub push-protection on `Rollingcat-Software/web-app` + add `gitleaks` to PR workflow.
+
+### Phase D — Security depth (frontend surfaces)
+- [ ] **D1.** DNN liveness detection — evaluate DeepPixBiS / MiniFASNet / Silent-Face-v2 ONNX; target <8 MB, >15 FPS mid-phone; wire as 3rd pre-filter in `BiometricEngine.ts`, log-only per D2 rule.
+- [ ] **D2.** Voice replay detection — spectral cosine > 0.95 reject (client-side pre-filter, log-only first).
+- [ ] **D3.** Voice STT verification per `docs/plans/VOICE_STT_PLAN.md` (Whisper.cpp tiny.en WASM + server confirm). 2 weeks.
+- [ ] **D4.** OIDC discovery conformance-suite run against `https://api.fivucsas.com/.well-known/openid-configuration`; fix reported deviations.
+- [ ] **D5.** Front-end PKCE failure audit logging — surface `clientId` + `failureReason` on callback errors so backend can log them.
+
+### Phase E — Performance (bundle + CI)
+- [ ] **E1.** Recharts route-level lazy-load via `React.lazy()` on `AnalyticsPage` + `DashboardPage` — `PieChart-*.js` 397 KB + `container-*.js` 398 KB off critical path.
+- [ ] **E2.** MUI vendor chunk split in `vite.config.ts` `manualChunks` — `mui-core` (Button/TextField/Box/Typography, loaded everywhere) vs `mui-data` (DataGrid/AutoComplete/DatePicker, form pages only). 548 KB → ~300 KB + ~250 KB.
+- [ ] **E3.** Vitest `--pool=threads --poolOptions.threads.maxThreads=4` (halves CI wall-clock).
+- [ ] **E5.** `size-limit` dev dep + CI step failing if any chunk grows >10 % from baseline — chart bundle-budget gate.
+
+### Phase F — Compliance & observability
+- [ ] **F2.** Backup restore verification cron — weekly unzip latest `/opt/projects/backups/`, restore to throwaway DB, `SELECT COUNT(*) FROM users`, alert on mismatch.
+- [ ] **F3.** Loki + Grafana log aggregation sidecar; ship Traefik + identity-core-api + biometric-processor logs; `grafana.fivucsas.com` behind admin-whitelist.
+
+### Phase G — Features
+- [ ] **G1.** YubiKey hardware testing (needs purchase — YubiKey Security Key C NFC ~2,200 TRY).
+- [ ] **G2.** Mobile QR scanner (Phase 2.1) — implement in `client-apps/` (mlkit-barcode-scanning).
+- [ ] **G4.** Native-app SDK integration docs — `docs/guides/integration/{ios-appauth.md, android-customtabs.md, electron-loopback.md, cli-loopback.md}`.
+- [ ] **G7.** `<fivucsas-verify>` + `<fivucsas-button>` Web Components with CSS Custom Properties theming.
+
+---
+
+## Completed — 2026-04-18
+
+- [x] **MobileFaceNet deprecated** (commit `9e15cdd`) — `mobilefacenet.onnx` removed from manifest + fetch-models + dist. Client embedding is now 512-dim landmark-geometry (MediaPipe, log-only). 4.9 MB download + ONNX startup overhead eliminated; server DeepFace Facenet512 stays authoritative.
+- [x] **`oauth2_clients.tenant_id` index** — present since V24 migration; V37 reaffirmed explicitly after audit. Not a seq-scan.
+- [x] **GDPR backend** `GET /users/{id}/export` + `SoftDeletePurgeJob` + `PurgeAdminController` — shipped 2026-04-16b.
+- [x] **Front-end GDPR export wire-up** — `MyProfilePage` export button wired to backend (commit `52f2fe1`, 2026-04-18).
+- [x] **bys-demo `loginRedirect()` + `callback.html`** — shipped pre-today in the hosted-first rollout; `marmara-bys-demo` OAuth2 client registered 2026-04-18.
+- [x] **Lazy-load ORT + BlazeFace** — already dynamic imports (commit `91064ed`); verified today by bundle audit. Off critical path; actual hotspots are MUI vendor 548 KB + Recharts chunks.
 
 ---
 
@@ -40,18 +97,20 @@
 
 > Not PR-1-merge-blocking but called out by the 5-agent audit (docs/AUDIT_REPORT_2026-04-16.md). Grades: **hygiene B+ / security A- / compliance B-**.
 
-- [ ] **Compliance — GDPR/KVKK export + soft-delete purge**: UI exists (`ProfilePage.tsx` → export button), backend endpoint `/users/{id}/export` does NOT. Soft-delete purge job (30-day retention) missing entirely. *Matrix row: GDPR Art. 17/20 = GAP.*
-- [ ] **OIDC discovery** — `.well-known/openid-configuration` endpoint exists but needs verification against conformance suite (code + id_token + PKCE S256 + JWKS reachable).
-- [ ] **`.gitignore`** verify-widget/html/assets/*.js — bundle artifacts currently tracked. Purge from history after adding ignore.
-- [ ] **Lazy-load ONNX Runtime + BlazeFace** via dynamic `import()` so the face capture bundle (~8MB) doesn't hit the critical path for users who never use face auth.
-- [x] **MobileFaceNet deprecated (2026-04-18)** — `mobilefacenet.onnx` removed from manifest + fetch-models + dist. Client embedding is now 512-dim landmark-geometry only (MediaPipe, log-only per D2). Eliminates the 4.9 MB download + ONNX Runtime startup overhead for zero functional loss (server DeepFace Facenet512 stays authoritative).
-- [ ] **`oauth2_clients.tenant_id` index** — query plan shows seq scan on tenant lookup; hot path during `/authorize`.
-- [ ] **CI speed** — Maven `<parallel>` + Vitest `--pool=threads --poolOptions.threads.maxThreads=4` to halve CI wall-clock.
+- [x] **Compliance — GDPR/KVKK export + soft-delete purge** — backend `/users/{id}/export` + `SoftDeletePurgeJob` shipped 2026-04-16b; front-end `MyProfilePage` export wire-up shipped 2026-04-18 (commit `52f2fe1`).
+- [ ] **OIDC discovery** — `.well-known/openid-configuration` endpoint exists but needs verification against conformance suite (code + id_token + PKCE S256 + JWKS reachable). *Tracked as Phase D4.*
+- [ ] **`.gitignore`** verify-widget/html/assets/*.js — bundle artifacts currently tracked. Purge from history after adding ignore. *(partial — `fcf91e1` stopped tracking generated assets; history-purge still pending.)*
+- [x] **Lazy-load ONNX Runtime + BlazeFace** — already dynamic imports (commit `91064ed`). Bundle audit 2026-04-18 confirms they are off the critical path; actual hotspots are `mui-vendor` 548 KB + Recharts `container` 398 KB + `PieChart` 397 KB.
+- [x] **MobileFaceNet deprecated (2026-04-18)** — `mobilefacenet.onnx` removed from manifest + fetch-models + dist (commit `9e15cdd`). Client embedding is now 512-dim landmark-geometry only (MediaPipe, log-only per D2). Eliminates the 4.9 MB download + ONNX Runtime startup overhead for zero functional loss (server DeepFace Facenet512 stays authoritative).
+- [x] **`oauth2_clients.tenant_id` index** — present since V24; V37 reaffirms explicitly (commit `06a9f78`). Audit item was stale.
+- [ ] **CI speed** — Maven `-T 2C` + Vitest `--pool=threads --poolOptions.threads.maxThreads=4` to halve CI wall-clock. *Tracked as Phase E3.*
 - [ ] **Stuck Deploy-to-Hetzner run** — self-hosted runner queued 8h+; clear queue, investigate runner registration.
 
 ---
 
 ## Wave 0 — Immediate ops (awaiting user go-ahead)
+
+> Superseded by the Phase C block at the top of this file (2026-04-18 restructure). Retained here for cross-reference during the maintenance-window scheduling conversation.
 
 - [ ] **Rotate all production secrets** (DB password, Redis password, JWT secret, Twilio auth token, biometric API key)
 - [ ] **Purge secrets from git history** via `git filter-repo` on identity-core-api, biometric-processor, web-app
@@ -85,7 +144,7 @@
 - [x] `NotificationPanel.tsx:53-64` MFA codes mapped to 'login' category
 - [ ] Audit sweep — grep backend `saveAuditLog("<CODE>"` and cross-check all codes have i18n keys in both locales
 
-### Part B — Hosted login V1 (primary new surface) — ✅ shipped in PR-1
+### Part B — Hosted login V1 (primary new surface) — ✅ shipped in PR-1 (bys-demo integration finalized 2026-04-18 with `marmara-bys-demo` client registration)
 
 #### B.1 Backend — OAuth2 content negotiation — done
 - [x] `OAuth2Controller.authorize` `display=page` branch → 302 to `verify.fivucsas.com/login`
@@ -107,11 +166,12 @@
 - [x] 32-byte crypto-random base64url state generator
 - [x] `verify()` preserved for step-up use case
 
-#### B.4 Demo + tenant docs — partial
-- [ ] `bys-demo/index.html` flip primary CTA to `loginRedirect()` (demo still uses widget)
-- [ ] `bys-demo/callback.html` NEW — calls `handleRedirectCallback()`
+#### B.4 Demo + tenant docs — ✅ DONE
+- [x] `bys-demo/index.html` flip primary CTA to `loginRedirect()` — shipped pre-2026-04-18
+- [x] `bys-demo/callback.html` NEW — `handleRedirectCallback()` wired, shipped pre-2026-04-18
 - [ ] `bys-demo/dashboard.html` brand rename
 - [x] `docs/plans/HOSTED_LOGIN_INTEGRATION.md` NEW — tenant integration recipe shipped
+- [x] `marmara-bys-demo` OAuth2 client registered 2026-04-18 for `demo.fivucsas.com`
 
 ### Part C — Widget repositioning (light touch)
 
