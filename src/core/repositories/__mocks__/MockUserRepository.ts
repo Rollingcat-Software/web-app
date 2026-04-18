@@ -1,5 +1,10 @@
 import { injectable } from 'inversify'
-import type { CreateUserData, IUserRepository, UpdateUserData } from '@domain/interfaces/IUserRepository'
+import type {
+    CreateUserData,
+    IUserRepository,
+    UpdateUserData,
+    UserDataExport,
+} from '@domain/interfaces/IUserRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
 import { User, UserRole, UserStatus } from '@domain/models/User'
 
@@ -160,6 +165,18 @@ export class MockUserRepository implements IUserRepository {
             page: 0,
             pageSize: filtered.length || 20,
             totalPages: 1,
+        }
+    }
+
+    async exportData(id: string): Promise<UserDataExport> {
+        const user = this.users.get(id)
+        const bundle = {
+            exportDate: new Date().toISOString(),
+            user: user ? { id: user.id, email: user.email } : null,
+        }
+        return {
+            blob: new Blob([JSON.stringify(bundle, null, 2)], { type: 'application/json' }),
+            filename: `fivucsas-export-${id}.json`,
         }
     }
 }

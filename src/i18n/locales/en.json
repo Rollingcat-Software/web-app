@@ -1008,6 +1008,7 @@
     "exportData": "Export My Data",
     "exportSuccess": "Data exported successfully.",
     "exportError": "Failed to export data.",
+    "exportRateLimit": "Export limit reached. Try again in {{seconds}} seconds.",
     "deleteAllBiometric": "Delete All Biometric Data",
     "deleteAllBiometricTitle": "Delete All Biometric Data",
     "deleteAllBiometricConfirm": "This will permanently delete all your biometric enrollments (face, voice, fingerprint, etc.). You will need to re-enroll to use biometric authentication. This action cannot be undone.",

@@ -67,6 +67,7 @@ import { format } from 'date-fns'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { IUserRepository } from '@domain/interfaces/IUserRepository'
 import type { Enrollment } from '@domain/models/Enrollment'
 
 /** Map auth method type to icon */
@@ -300,28 +301,45 @@ export default function MyProfilePage() {
         }
     }
 
-    // Export data handler
+    // Export data handler — calls backend GDPR endpoint (/users/{id}/export)
+    // so the bundle includes audit logs, biometric metadata, voice
+    // enrollments, etc. that the client does not have access to.
     const handleExportData = async () => {
+        if (!userId) return
         setExportLoading(true)
         try {
-            const exportData = {
-                exportDate: new Date().toISOString(),
-                profile: user?.toJSON() ?? {},
-                enrollments: enrollments.map((e) => e.toJSON()),
-                recentActivity: activityLogs,
-            }
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' })
+            const userRepository = container.get<IUserRepository>(TYPES.UserRepository)
+            const { blob, filename } = await userRepository.exportData(userId)
+
+            const downloadName =
+                filename ?? `fivucsas-export-${userId}-${format(new Date(), 'yyyy-MM-dd')}.json`
+
             const url = URL.createObjectURL(blob)
             const a = document.createElement('a')
             a.href = url
-            a.download = `fivucsas-profile-export-${format(new Date(), 'yyyy-MM-dd')}.json`
+            a.download = downloadName
             document.body.appendChild(a)
             a.click()
             document.body.removeChild(a)
             URL.revokeObjectURL(url)
             setSnackbar({ open: true, message: t('myProfile.exportSuccess'), severity: 'success' })
-        } catch {
-            setSnackbar({ open: true, message: t('myProfile.exportError'), severity: 'error' })
+        } catch (err: unknown) {
+            const axiosErr = err as {
+                response?: { status?: number; headers?: Record<string, string> }
+            }
+            if (axiosErr?.response?.status === 429) {
+                // Prefer Retry-After header (blob responseType prevents JSON body parsing)
+                const retryAfterRaw =
+                    axiosErr.response.headers?.['retry-after'] ??
+                    axiosErr.response.headers?.['Retry-After']
+                const seconds = retryAfterRaw ? parseInt(retryAfterRaw, 10) : NaN
+                const message = Number.isFinite(seconds) && seconds > 0
+                    ? t('myProfile.exportRateLimit', { seconds })
+                    : t('myProfile.exportError')
+                setSnackbar({ open: true, message, severity: 'error' })
+            } else {
+                setSnackbar({ open: true, message: t('myProfile.exportError'), severity: 'error' })
+            }
         } finally {
             setExportLoading(false)
         }

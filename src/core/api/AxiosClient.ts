@@ -312,6 +312,7 @@ export class AxiosClient implements IHttpClient {
             params: config.params,
             headers: config.headers,
             timeout: config.timeout,
+            responseType: config.responseType,
         }
     }
 

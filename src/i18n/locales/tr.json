@@ -1008,6 +1008,7 @@
     "exportData": "Verilerimi İndir",
     "exportSuccess": "Veriler başarıyla indirildi.",
     "exportError": "Veriler indirilemedi.",
+    "exportRateLimit": "Dışa aktarma sınırına ulaşıldı. {{seconds}} saniye sonra tekrar deneyin.",
     "deleteAllBiometric": "Tüm Biyometrik Verileri Sil",
     "deleteAllBiometricTitle": "Tüm Biyometrik Verileri Sil",
     "deleteAllBiometricConfirm": "Bu işlem tüm biyometrik kayıtlarınızı (yüz, ses, parmak izi vb.) kalıcı olarak silecektir. Biyometrik kimlik doğrulama kullanmak için yeniden kayıt olmanız gerekecektir. Bu işlem geri alınamaz.",

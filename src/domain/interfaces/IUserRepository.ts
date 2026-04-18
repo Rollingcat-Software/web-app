@@ -65,4 +65,23 @@ export interface IUserRepository {
      * Search users by query string (name, email, etc.)
      */
     search(query: string): Promise<PaginatedResult<User>>
+
+    /**
+     * Export a user's personal data (GDPR Art. 20 / KVKK data portability).
+     * Returns the blob plus the filename the server suggested via
+     * Content-Disposition (or null if the header was unavailable).
+     *
+     * Backend enforces self/tenant-admin/ROOT authorization and a
+     * 1-per-hour rate limit; callers should handle HTTP 429 (Retry-After)
+     * for a user-friendly message.
+     */
+    exportData(id: string): Promise<UserDataExport>
+}
+
+/**
+ * Result of a GDPR data-export call.
+ */
+export interface UserDataExport {
+    blob: Blob
+    filename: string | null
 }

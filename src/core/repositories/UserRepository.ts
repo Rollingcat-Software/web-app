@@ -6,9 +6,37 @@ import type {
     IUserRepository,
     CreateUserData,
     UpdateUserData,
+    UserDataExport,
 } from '@domain/interfaces/IUserRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
 import { User, UserJSON } from '@domain/models/User'
+
+/**
+ * Parse a filename out of a Content-Disposition header. Handles both the
+ * plain `filename="foo.json"` form and RFC 5987 `filename*=UTF-8''foo.json`.
+ * Returns null when the header is missing or unparseable so callers can
+ * fall back to a client-side default.
+ */
+export function parseContentDispositionFilename(header: string | undefined | null): string | null {
+    if (!header) return null
+
+    // RFC 5987 extended form takes precedence (supports non-ASCII)
+    const extendedMatch = /filename\*\s*=\s*(?:UTF-8'[^']*')?([^;]+)/i.exec(header)
+    if (extendedMatch?.[1]) {
+        try {
+            return decodeURIComponent(extendedMatch[1].trim().replace(/^"|"$/g, ''))
+        } catch {
+            // fall through to plain form
+        }
+    }
+
+    const plainMatch = /filename\s*=\s*("([^"]+)"|([^;]+))/i.exec(header)
+    if (plainMatch) {
+        return (plainMatch[2] ?? plainMatch[3] ?? '').trim() || null
+    }
+
+    return null
+}
 
 /**
  * User Repository
@@ -172,6 +200,34 @@ export class UserRepository implements IUserRepository {
             this.logger.info('User deleted successfully', { userId: id })
         } catch (error) {
             this.logger.error(`Failed to delete user ${id}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Export a user's personal data (GDPR Art. 20 / KVKK).
+     * Calls GET /users/{id}/export and returns the response as a Blob
+     * with the server-suggested filename (from Content-Disposition).
+     */
+    async exportData(id: string): Promise<UserDataExport> {
+        try {
+            this.logger.info(`Exporting user data for ${id}`)
+
+            const response = await this.httpClient.get<Blob>(`/users/${id}/export`, {
+                responseType: 'blob',
+            })
+
+            const filename = parseContentDispositionFilename(
+                response.headers['content-disposition'] ??
+                    response.headers['Content-Disposition']
+            )
+
+            return {
+                blob: response.data,
+                filename,
+            }
+        } catch (error) {
+            this.logger.error(`Failed to export user data for ${id}`, error)
             throw error
         }
     }

@@ -28,4 +28,10 @@ export interface RequestConfig {
     params?: Record<string, unknown>
     headers?: Record<string, string>
     timeout?: number
+    /**
+     * Response body type. Default is 'json'. Use 'blob' for binary
+     * downloads (e.g. file attachments), so the underlying HTTP
+     * client returns a Blob instead of parsing as JSON.
+     */
+    responseType?: 'json' | 'blob' | 'text' | 'arraybuffer'
 }
