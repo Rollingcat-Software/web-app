@@ -1,5 +1,47 @@
 # Changelog - FIVUCSAS Web App
 
+## [2026-04-18] — CI on ubuntu-latest, Dependabot sweep, lint green, MobileFaceNet removed
+
+### Changed
+- **CI workflow** — both `build-and-test` and `code-quality` jobs moved from
+  the self-hosted `hetzner-cx43` runner to `ubuntu-latest`. The runner group
+  had `allows_public_repositories: false`, silently refusing to dispatch
+  jobs for this public repo for several days. GitHub-hosted runners are the
+  industry standard for public OSS projects.
+- **`.npmrc`** added with `legacy-peer-deps=true` — `vite-plugin-pwa@1.2.0`
+  declares a peer range that caps at Vite 7, while the project already uses
+  Vite 8. The flag unblocks `npm ci` on ubuntu-latest without downgrading.
+- **Face embedding** — stripped MobileFaceNet entirely (was blocked on an
+  authenticated download). `EmbeddingComputer.ts` is now landmark-geometry
+  only (`geometry-512`, 512-D vector from MediaPipe FaceLandmarker). The
+  server remains authoritative via log-only client embedding observations
+  (Alembic 0004), so the pre-filter → geometry fallback has no auth impact.
+  `public/models/manifest.json` no longer lists the missing ONNX entry.
+
+### Fixed
+- **Lint green on public-repo CI** — 23 errors + 63 warnings → 0 errors / 33
+  warnings (below the `--max-warnings 45` gate). The self-hosted runner had
+  been skipping these PRs for ~5 days, hiding pre-existing debt.
+  - 17 × `react-hooks/rules-of-hooks`: `HostedLoginApp.tsx` moved hooks above
+    the early `return null` frame-bust; `TwoFactorDispatcher.tsx` promoted
+    two `useCallback`s above the EMAIL_OTP early return. No behavior change
+    (effects still gated on `isFramed` / method presence).
+  - 1 × `no-useless-escape` in `sdk/FivucsasAuth.ts:105` regex.
+  - 1 × stale `eslint-disable-next-line no-console` in `postMessageBridge.ts:74`.
+  - 4 × unused test imports (`act` / `afterEach` / `waitFor` / `userEvent`).
+  - 30 × `react-hooks/exhaustive-deps` — mostly adding the stable
+    `useTranslation` `t` dep; `TenantFormPage`/`UserFormPage` got `onSubmit`
+    wrapped in `useCallback` to stabilize `handleKeyDown`.
+
+### Security
+- **Dependabot merges** — 0 remaining vulnerabilities after:
+  - `protobufjs` 7.5.4 → 7.5.5 (CRITICAL, PR #23)
+  - `follow-redirects` 1.15.11 → 1.16.0 (MODERATE, PR #21)
+
+### Deployed
+- Production bundle rebuilt and rsync'd to Hostinger
+  (`app.fivucsas.com/public_html/`) after the Dependabot merges.
+
 ## [2026-04-16] — PR-1 Hosted-first V1 + PR-1 review blockers
 
 ### Added
