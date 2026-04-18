@@ -85,8 +85,6 @@ export class BlazeFaceDetector {
 
       this.ready = true;
       this.initError = null;
-      // eslint-disable-next-line no-console
-      console.info('[BlazeFace] Model loaded successfully. Backend:', tf.getBackend());
     } catch (error: unknown) {
       this.ready = false;
       this.initError =

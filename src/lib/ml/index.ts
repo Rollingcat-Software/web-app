@@ -13,3 +13,5 @@ export type {
 
 export { useBlazeFace } from './useBlazeFace';
 export type { UseBlazeFaceReturn } from './useBlazeFace';
+
+export { getBlazeFace } from './blazeFaceSingleton';

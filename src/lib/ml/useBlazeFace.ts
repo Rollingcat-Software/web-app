@@ -1,8 +1,9 @@
 /**
  * useBlazeFace — React hook for lazy-loading and running BlazeFace face detection.
  *
- * Loads the TensorFlow.js model on first use and caches it for the component lifetime.
- * Falls back gracefully if the model fails to load (e.g., no WebGL support).
+ * Uses a module-level singleton so the TensorFlow.js model is loaded exactly
+ * once per tab regardless of component mount/unmount cycles, React StrictMode
+ * double-invoke, or useEffect dependency changes.
  *
  * @see CLIENT_SIDE_ML_PLAN.md Phase 4.2.1
  */
@@ -10,7 +11,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { formatApiError } from '@utils/formatApiError';
-import { BlazeFaceDetector, type BlazeFaceResult } from './BlazeFaceDetector';
+import type { BlazeFaceDetector, BlazeFaceResult } from './BlazeFaceDetector';
+import { getBlazeFace } from './blazeFaceSingleton';
 
 export interface UseBlazeFaceReturn {
   /** Run face detection on a video element. Returns null if model not ready. */
@@ -25,14 +27,8 @@ export interface UseBlazeFaceReturn {
   avgInferenceMs: number;
 }
 
-/** Number of inference time samples to average. */
 const TIMING_WINDOW = 30;
 
-/**
- * Hook that lazily initializes BlazeFace on mount and provides a detect function.
- *
- * @param enabled - Set to false to skip initialization (e.g., when using MediaPipe instead).
- */
 export function useBlazeFace(enabled = true): UseBlazeFaceReturn {
   const { t } = useTranslation();
   const detectorRef = useRef<BlazeFaceDetector | null>(null);
@@ -40,29 +36,21 @@ export function useBlazeFace(enabled = true): UseBlazeFaceReturn {
   const [isReady, setIsReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Rolling window of inference times for performance monitoring
   const timingsRef = useRef<number[]>([]);
   const [avgInferenceMs, setAvgInferenceMs] = useState(0);
 
-  // Initialize the model
   useEffect(() => {
     if (!enabled) return;
 
     let cancelled = false;
-    const detector = new BlazeFaceDetector();
-    detectorRef.current = detector;
 
     setIsLoading(true);
     setError(null);
-    setIsReady(false);
 
-    detector
-      .initialize()
-      .then(() => {
-        if (cancelled) {
-          detector.dispose();
-          return;
-        }
+    getBlazeFace()
+      .then((detector) => {
+        if (cancelled) return;
+        detectorRef.current = detector;
         setIsReady(true);
         setIsLoading(false);
       })
@@ -74,10 +62,7 @@ export function useBlazeFace(enabled = true): UseBlazeFaceReturn {
 
     return () => {
       cancelled = true;
-      detector.dispose();
       detectorRef.current = null;
-      setIsReady(false);
-      setIsLoading(false);
       timingsRef.current = [];
     };
   }, [enabled, t]);
@@ -89,7 +74,6 @@ export function useBlazeFace(enabled = true): UseBlazeFaceReturn {
 
       const result = await detector.detect(video);
 
-      // Update rolling timing window
       const timings = timingsRef.current;
       timings.push(result.inferenceTimeMs);
       if (timings.length > TIMING_WINDOW) {

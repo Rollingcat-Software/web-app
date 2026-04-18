@@ -20,7 +20,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import path from 'path'
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
     plugins: [react()],
     root: path.resolve(__dirname, 'src/verify-app'),
     resolve: {
@@ -53,10 +53,14 @@ export default defineConfig({
     build: {
         outDir: path.resolve(__dirname, 'dist-verify'),
         emptyOutDir: true,
+        minify: 'oxc',
         sourcemap: false,
         chunkSizeWarningLimit: 400,
         rollupOptions: {
             output: {
+                minify: mode === 'production'
+                    ? { compress: { dropConsole: true } }
+                    : undefined,
                 manualChunks(id: string) {
                     if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/')) {
                         return 'react-vendor';
@@ -68,4 +72,4 @@ export default defineConfig({
             },
         },
     },
-})
+}))

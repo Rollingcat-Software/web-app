@@ -95,21 +95,7 @@ export default function FingerprintStep({
                 ...(allowCredentials.length > 0 && { allowCredentials }),
             }
 
-            console.log('[FingerprintStep] WebAuthn get() called', {
-                rpId: publicKeyOptions.rpId,
-                credentialCount: allowCredentials.length,
-                credentialIds: rawIds,
-                timeout: publicKeyOptions.timeout,
-                timestamp: new Date().toISOString(),
-            })
-
             const credential = await navigator.credentials.get({ publicKey: publicKeyOptions })
-
-            console.log('[FingerprintStep] WebAuthn get() resolved', {
-                hasCredential: !!credential,
-                credentialId: credential?.id,
-                timestamp: new Date().toISOString(),
-            })
 
             if (credential && 'response' in credential) {
                 const assertionResponse = credential.response as AuthenticatorAssertionResponse

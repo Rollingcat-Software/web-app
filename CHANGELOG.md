@@ -1,5 +1,37 @@
 # Changelog - FIVUCSAS Web App
 
+## [2026-04-18d] — Prod bug fixes: BlazeFace re-init, console noise, i18n debug
+
+### Fixed
+- **BlazeFace initialised four times** (React StrictMode + `useEffect` dep re-runs).
+  `src/lib/ml/useBlazeFace.ts` no longer constructs a new `BlazeFaceDetector`
+  per effect; it awaits a module-level singleton (`src/lib/ml/blazeFaceSingleton.ts`)
+  that loads the model exactly once per tab and survives every remount /
+  StrictMode double-invoke. The per-component dispose that was tearing down
+  the shared model has been removed.
+- **Console noise in production.** `vite.config.ts` + `vite.verify.config.ts`
+  now configure `build.rollupOptions.output.minify.compress.dropConsole = true`
+  for `mode === 'production'` so oxc's minifier strips every `console.log /
+  .info / .debug` call from emitted code. `console.warn` and `console.error`
+  are retained. Removed stray `console.log` / `.info` / `.debug` statements
+  from `BlazeFaceDetector.ts`, `useFaceDetection.ts`, and `FingerprintStep.tsx`
+  (hot-path offenders).
+- **i18next debug banner.** `src/i18n/index.ts` pins `debug: false` explicitly.
+
+### Tests
+- Vitest: **599 / 599** passing.
+- Lint: 0 errors.
+
+### Verified
+- `https://verify.fivucsas.com/assets/ort.min-CSPs-wzd.js` → HTTP 200 after
+  widget container rebuild + new `sync-assets.sh` pre-stage script.
+- `grep -c "console\.log\|console\.info\|console\.debug"` returns 0 across
+  every bundle produced from our source (third-party `ort.min.js` ships
+  pre-minified and still contains its own `console.log`; out of scope).
+- CORS preflight `OPTIONS https://api.fivucsas.com/api/v1/auth/mfa/step`
+  with `Origin: https://verify.fivucsas.com` → 200 + correct
+  `Access-Control-Allow-*` headers. No backend change needed.
+
 ## [2026-04-18c] — Hosted-login UX recovery: callback data, stepper, locale, face retry, copy audit
 
 ### Fixed

@@ -146,6 +146,7 @@ export default defineConfig(({ mode }) => ({
     },
     build: {
         outDir: 'dist',
+        minify: 'oxc',
         // SECURITY: Disable sourcemaps in production to prevent source code exposure
         sourcemap: false,
         // Show compressed sizes in build output for bundle analysis
@@ -154,6 +155,9 @@ export default defineConfig(({ mode }) => ({
         rollupOptions: {
             external: ['@tensorflow/tfjs-converter'],
             output: {
+                minify: mode === 'production'
+                    ? { compress: { dropConsole: true } }
+                    : undefined,
                 manualChunks(id: string) {
                     if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) {
                         return 'react-vendor';

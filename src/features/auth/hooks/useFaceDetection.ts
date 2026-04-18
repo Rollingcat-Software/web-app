@@ -61,8 +61,6 @@ export function useFaceDetection(
         if (blazeFace.isReady && active) {
             setBackend('blazeface')
             setInitialized(true)
-            // eslint-disable-next-line no-console
-            console.info('[FaceDetection] Using BlazeFace backend (on-device TF.js)')
         }
     }, [blazeFace.isReady, active])
 
@@ -103,8 +101,6 @@ export function useFaceDetection(
                 mpDetectorRef.current = detector
                 setBackend('mediapipe')
                 setInitialized(true)
-                // eslint-disable-next-line no-console
-                console.info('[FaceDetection] Using MediaPipe backend (CDN fallback)')
             } catch (e) {
                 console.warn('[FaceDetection] MediaPipe init also failed', e)
                 setInitFailed(true)
@@ -174,12 +170,7 @@ export function useFaceDetection(
                 // Record timing for dev perf overlay
                 recordOperation?.('face-detect', result.inferenceTimeMs)
 
-                // Performance logging: log every 60 frames (~2 seconds)
                 perfLogCountRef.current++
-                if (perfLogCountRef.current % 60 === 0) {
-                    // eslint-disable-next-line no-console
-                    console.debug(`[FaceDetection] BlazeFace avg: ${blazeFace.avgInferenceMs}ms | last: ${result.inferenceTimeMs.toFixed(1)}ms | faces: ${result.faces.length}`)
-                }
             }
         } catch {
             // Detection frame error, continue loop
@@ -260,13 +251,7 @@ export function useFaceDetection(
             // Record timing for dev perf overlay
             recordOperation?.('face-detect', inferenceMs)
 
-            // Performance logging
             perfLogCountRef.current++
-            if (perfLogCountRef.current % 60 === 0) {
-                const avg = mpTimings.reduce((s, t) => s + t, 0) / mpTimings.length
-                // eslint-disable-next-line no-console
-                console.debug(`[FaceDetection] MediaPipe avg: ${avg.toFixed(1)}ms | last: ${inferenceMs.toFixed(1)}ms`)
-            }
         } catch {
             // Detection frame error, continue loop
         }
