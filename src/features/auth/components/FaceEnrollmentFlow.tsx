@@ -43,17 +43,27 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
     const [cameraActive, setCameraActive] = useState(false)
     const [cameraError, setCameraError] = useState<string | null>(null)
     const [started, setStarted] = useState(false)
+    const [submitting, setSubmitting] = useState(false)
+    const cancelledRef = useRef(false)
 
     const detection = useFaceDetection(videoRef, cameraActive)
     const { initialized: detectorReady, initFailed: detectorFailed } = detection
+    const detectionRef = useRef(detection)
+    detectionRef.current = detection
     const { challengeState, updateChallenge, resetChallenge } = useFaceChallenge()
 
     const startCamera = useCallback(async () => {
         try {
             setCameraError(null)
+            cancelledRef.current = false
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
             })
+            // Guard against late resolution after dialog was closed/retried.
+            if (cancelledRef.current) {
+                stream.getTracks().forEach(tr => tr.stop())
+                return
+            }
             streamRef.current = stream
             if (videoRef.current) {
                 try {
@@ -61,7 +71,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                     await videoRef.current.play()
                 } catch {
                     setCameraError(t('enrollment.face.cameraPreviewError'))
-                    stream.getTracks().forEach(t => t.stop())
+                    stream.getTracks().forEach(tr => tr.stop())
                     streamRef.current = null
                     return
                 }
@@ -73,9 +83,13 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
     }, [t])
 
     const stopCamera = useCallback(() => {
+        cancelledRef.current = true
         if (streamRef.current) {
-            streamRef.current.getTracks().forEach(t => t.stop())
+            streamRef.current.getTracks().forEach(tr => tr.stop())
             streamRef.current = null
+        }
+        if (videoRef.current) {
+            videoRef.current.srcObject = null
         }
         setCameraActive(false)
     }, [])
@@ -86,7 +100,8 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
 
         const loop = () => {
             try {
-                updateChallenge(detection, detection.cropFace, canvasRef)
+                const d = detectionRef.current
+                updateChallenge(d, d.cropFace, canvasRef)
             } catch {
                 // Silently ignore individual frame errors to keep the loop running
             }
@@ -97,7 +112,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
         return () => {
             if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current)
         }
-    }, [cameraActive, started, detection, updateChallenge, challengeState.stage])
+    }, [cameraActive, started, updateChallenge, challengeState.stage])
 
     // Auto-start camera when dialog opens
     useEffect(() => {
@@ -107,6 +122,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
         return () => {
             stopCamera()
             setStarted(false)
+            setSubmitting(false)
             resetChallenge()
         }
     }, [open, startCamera, stopCamera, resetChallenge])
@@ -119,14 +135,18 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
     }, [challengeState.stage, challengeState.captures.length, stopCamera])
 
     const handleSubmit = () => {
+        if (submitting) return
+        setSubmitting(true)
         // Don't close here — the parent (EnrollmentPage) will close the dialog
         // after the biometric API call completes (success or failure)
         onComplete(challengeState.captures, challengeState.clientEmbeddings)
     }
 
     const handleRetry = () => {
+        stopCamera()
         resetChallenge()
         setStarted(false)
+        setSubmitting(false)
         startCamera()
     }
 
@@ -315,7 +335,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                 </Box>
 
                 {/* Instruction */}
-                <Box sx={{ textAlign: 'center', px: 3, py: 1.5 }}>
+                <Box sx={{ textAlign: 'center', px: 3, py: 1.5 }} aria-live="polite" aria-atomic="true">
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={challengeState.stage}
@@ -431,6 +451,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                 variant="outlined"
                                 size="large"
                                 onClick={handleRetry}
+                                disabled={submitting}
                                 startIcon={<Replay />}
                                 sx={{
                                     flex: 1,
@@ -448,6 +469,8 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                 variant="contained"
                                 size="large"
                                 onClick={handleSubmit}
+                                disabled={submitting}
+                                startIcon={submitting ? <CircularProgress size={18} color="inherit" /> : undefined}
                                 sx={{
                                     flex: 2,
                                     py: 1.5,
