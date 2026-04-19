@@ -385,15 +385,25 @@ export default function NotificationPanel() {
                 </Box>
                 <Divider />
 
+                {/* a11y FE-H4: notification list is a polite live region so
+                    screen readers announce new audit-log entries as they arrive. */}
                 {notifications.length === 0 ? (
-                    <Box sx={{ p: 4, textAlign: 'center' }}>
+                    <Box
+                        sx={{ p: 4, textAlign: 'center' }}
+                        role="status"
+                        aria-live="polite"
+                    >
                         <Notifications sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
                         <Typography variant="body2" color="text.secondary">
                             {t('notifications.empty')}
                         </Typography>
                     </Box>
                 ) : (
-                    <Box sx={{ maxHeight: 420, overflow: 'auto' }}>
+                    <Box
+                        sx={{ maxHeight: 420, overflow: 'auto' }}
+                        role="status"
+                        aria-live="polite"
+                    >
                         {groupedNotifications.map(({ group, items }) => (
                             <Box key={group}>
                                 {/* Date group header */}

@@ -1,5 +1,75 @@
 # Changelog - FIVUCSAS Web App
 
+## [2026-04-19] Frontend audit remediation
+
+Addresses FE-H1, FE-H2, FE-H3, FE-H4, FE-M3 from `/opt/projects/fivucsas/docs/audits/AUDIT_2026-04-19.md` Audit 3.
+
+### Added
+- **Page smoke tests (FE-H1)** — new `src/pages/__tests__/` with render-only
+  smoke tests for LoginPage, DashboardPage, UsersListPage, TenantsListPage,
+  MyProfilePage. Each mounts the page under `MemoryRouter` with the required
+  hooks mocked and asserts the primary heading is in the document. Raises
+  total Vitest count 599 → 604.
+- **Skip-to-main link (FE-H4)** — `DashboardLayout.tsx` now renders a
+  visually-hidden-until-focused skip link as the first focusable element,
+  targeting the `<main id="main-content">` container. `common.skipToContent`
+  key added to both en.json and tr.json (parity preserved: 1296/1296).
+- **Notification live region (FE-H4)** — `NotificationPanel.tsx` list
+  surface now carries `role="status"` + `aria-live="polite"` so screen
+  readers announce new audit-log entries as they arrive.
+- **ESLint rule (FE-H2 complement)** — `.eslintrc.cjs` adds a
+  `no-restricted-syntax` override forbidding `err.message` member access in
+  `src/**/*.{ts,tsx}` (ignores `src/utils/formatApiError.ts` + tests).
+  Message: "Use formatApiError(err, t) instead of raw err.message — see
+  CLAUDE.md." Starts as `warn`; `--max-warnings` bumped 45 → 90 to absorb
+  the 41 existing offenders without blocking CI. Flip to `error` once the
+  codemod sweep lands.
+
+### Changed
+- **Per-route CSP (FE-H3)** — `public/.htaccess` CSP rewritten:
+  - Dashboard / admin routes (default): now `script-src 'self'` only —
+    NO `'unsafe-eval'`, NO `'wasm-unsafe-eval'`.
+  - `/verify*`, `/enroll*`, `/biometric*`: keep the relaxed CSP with
+    `'unsafe-eval'` + `'wasm-unsafe-eval'` (onnxruntime-web + @tensorflow/tfjs
+    require them).
+  - `/login`: strict `script-src` AND `frame-ancestors 'none'` (clickjacking
+    defense on the top-level OIDC sign-in page).
+  Outer quoting stays double-quoted with bare `'self'` tokens inside (same
+  style as the shipping B9 rule — avoids the Hostinger `\"` backslash leak).
+  `vite.config.ts` gains a comment documenting that dev CSP is permissive by
+  design and prod tightens per route via `.htaccess`.
+- **Lazy chunks (FE-M3)** — `vite.config.ts` `manualChunks` extended:
+  - `recharts-vendor` (splits Recharts + d3-*; 416 KB) — only loaded when
+    a route that imports Recharts is navigated to (Analytics /
+    VerificationDashboard are already `React.lazy`'d at the router level).
+  - `onnx-vendor` (splits onnxruntime-web; 532 KB) — same idea for
+    biometric routes.
+  - `mui-x-vendor` reservation for future `@mui/x-*` additions.
+  Build output confirms the new chunk names.
+- **`UserFormPage.tsx` a11y (FE-H4)** — role-selection `Select` now carries
+  `aria-describedby="roles-multi-select-helper"` pointing at the
+  `<FormHelperText id="roles-multi-select-helper">`. Other RHF forms use
+  MUI `<TextField helperText=…>`, which auto-wires `aria-describedby` — no
+  manual fix needed.
+
+### Not done / punted
+- **Per-chart `React.lazy` inside AnalyticsPage / VerificationDashboardPage**
+  would require extracting the chart regions into separate files; pragmatic
+  benefit is small because those pages are already `React.lazy`'d at the
+  router level, and the new `recharts-vendor` chunk now isolates the 416 KB
+  cost. Listed as optional follow-up.
+- **Migrating the 41 existing `err.message` call sites** is out of scope for
+  this audit-remediation pass; the ESLint rule surfaces them as warnings for
+  a subsequent codemod sweep.
+
+### Verification
+- `npm run lint` → 0 errors (73 warnings, under the new 90 cap).
+- `npm run test` → 604/604 passing (was 599/599).
+- `npm run build` → green; `recharts-vendor-*.js` and `onnx-vendor-*.js`
+  appear as separate chunks in `dist/assets/`.
+- i18n parity: `jq '[paths(scalars)] | length'` returns 1296 for both
+  `en.json` and `tr.json`.
+
 ## [2026-04-19] — UX review fixes: MFA selector, face enrollment, copy, step counter
 
 ### Fixed

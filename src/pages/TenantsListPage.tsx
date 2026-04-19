@@ -29,6 +29,7 @@ import {useTenants} from '@features/tenants'
 import {TenantStatus} from '@domain/models/Tenant'
 import {format} from 'date-fns'
 import {Trans, useTranslation} from 'react-i18next'
+import {formatApiError} from '@/utils/formatApiError'
 
 function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
     switch (status) {
@@ -71,7 +72,8 @@ export default function TenantsListPage() {
                 await deleteTenant(deletingId)
                 setDeleteError(null)
             } catch (err) {
-                setDeleteError(err instanceof Error ? err.message : t('tenants.deleteFailed'))
+                console.warn('Tenant delete failed', err)
+                setDeleteError(formatApiError(err, t))
             }
         }
         setDeleteDialogOpen(false)

@@ -13,6 +13,15 @@ import { VitePWA } from 'vite-plugin-pwa'
  * - Prevents inline script execution (XSS mitigation)
  * - Blocks unsafe-eval and unsafe-inline
  * - Enforces HTTPS for external resources
+ *
+ * NOTE (FE-H3): the dev CSP below is permissive by design
+ * ('unsafe-inline' + 'unsafe-eval') so Vite HMR + hot-reloaded ONNX/TFJS
+ * modules work out of the box. Production tightens per-route via
+ * public/.htaccess — dashboard routes get strict `script-src 'self'`
+ * (no 'unsafe-eval', no 'wasm-unsafe-eval'), while `/verify*`, `/enroll*`
+ * and `/biometric*` keep the relaxed CSP that onnxruntime-web and
+ * @tensorflow/tfjs actually need. Keep the two configs in sync when
+ * a new CDN origin is added.
  */
 function cspPlugin(): Plugin {
     return {
@@ -165,8 +174,24 @@ export default defineConfig(({ mode }) => ({
                     if (id.includes('node_modules/@mui/material') || id.includes('node_modules/@mui/icons-material')) {
                         return 'mui-vendor';
                     }
+                    // FE-M3: split @mui/x-* into its own chunk if ever added
+                    if (id.includes('node_modules/@mui/x-')) {
+                        return 'mui-x-vendor';
+                    }
                     if (id.includes('node_modules/@reduxjs/toolkit') || id.includes('node_modules/react-redux') || id.includes('node_modules/redux-persist')) {
                         return 'redux-vendor';
+                    }
+                    // FE-M3: Recharts lives in its own chunk so dashboard
+                    // routes don't pay the 395 KB cost until an analytics
+                    // page is actually opened (Recharts is React.lazy'd there).
+                    if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
+                        return 'recharts-vendor';
+                    }
+                    // FE-M3: onnxruntime-web (~520 KB) only loads on
+                    // /verify, /enroll, /biometric — isolate its chunk so
+                    // the dashboard bundle doesn't carry it.
+                    if (id.includes('node_modules/onnxruntime-web')) {
+                        return 'onnx-vendor';
                     }
                 },
             },

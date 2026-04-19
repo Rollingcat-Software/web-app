@@ -26,20 +26,36 @@ RewriteRule . /index.html [L]
 <IfModule mod_headers.c>
     # Content Security Policy (frame-ancestors MUST be in HTTP header, not meta tag)
     #
-    # Per-route CSP (B9):
-    #   - Widget routes (/ and /verify/*): frame-ancestors allows *.fivucsas.com so
-    #     tenant demos / BYS can embed the step-up MFA widget via iframe.
-    #   - Hosted login (/login): frame-ancestors 'none' — the top-level OIDC sign-in
-    #     page must NEVER be framable (clickjacking defense). A JS frame-bust in
-    #     HostedLoginApp.tsx provides defense-in-depth.
+    # Per-route CSP (FE-H3, tightens the earlier B9 work):
+    #   - DEFAULT (dashboard / admin routes): strict `script-src 'self'` with
+    #     NO 'unsafe-eval' and NO 'wasm-unsafe-eval'. Dashboard pages don't run
+    #     ONNX / TFJS — only /verify, /enroll, /biometric do.
+    #   - /verify*, /enroll*, /biometric*: relaxed CSP that keeps
+    #     'unsafe-eval' + 'wasm-unsafe-eval' (onnxruntime-web + tfjs need them).
+    #   - /login: frame-ancestors 'none' (top-level OIDC sign-in page must NEVER
+    #     be framable — clickjacking defense; JS frame-bust in HostedLoginApp.tsx
+    #     for defense-in-depth).
     #
-    # Apache evaluates the <If> block before the default Header set, and the last
-    # matching Header set wins — so we set the widget default first, then override
-    # for /login.
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
+    # Apache evaluates <If> blocks after the default Header set and the LAST
+    # matching Header set wins, so the <If> overrides below replace the default.
+    #
+    # Hostinger quoting rule (per project memory): the Apache <If> directive
+    # uses a double-quoted regex delimiter, but the Header set VALUE uses
+    # double-quotes with bare 'self' tokens inside (no backslash escapes) —
+    # Hostinger's mod_headers leaks literal \" sequences otherwise. This is
+    # the same quoting style as the earlier B9 rule that is known to ship
+    # clean headers.
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
 
+    # Biometric / verification / enrollment routes need 'unsafe-eval' +
+    # 'wasm-unsafe-eval' for onnxruntime-web and @tensorflow/tfjs.
+    <If "%{REQUEST_URI} =~ m#^/(verify|enroll|biometric)#">
+        Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
+    </If>
+
+    # Hosted login: strict script-src AND non-framable.
     <If "%{REQUEST_URI} =~ m#^/login#">
-        Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+        Header set Content-Security-Policy "default-src 'self'; script-src 'self' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
     </If>
 
     # X-Frame-Options removed: CSP frame-ancestors supersedes it and supports wildcard subdomains

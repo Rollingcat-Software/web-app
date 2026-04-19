@@ -74,11 +74,8 @@ export default function NfcEnrollmentPage() {
                 setScanning(false)
             })
         } catch (err) {
-            setScanError(
-                err instanceof Error
-                    ? err.message
-                    : 'NFC scan failed. Make sure NFC is enabled.'
-            )
+            console.warn('NFC scan error', err)
+            setScanError(t('nfc.scanFailed', 'NFC scan failed. Make sure NFC is enabled.'))
             setScanning(false)
         }
     }, [nfcSupported, t])

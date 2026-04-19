@@ -22,6 +22,7 @@ import { Cancel, Save } from '@mui/icons-material'
 import { useRoles } from '@features/roles'
 import { Permission } from '@domain/models/Permission'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@/utils/formatApiError'
 
 export default function RoleFormPage() {
     const navigate = useNavigate()
@@ -105,9 +106,8 @@ export default function RoleFormPage() {
             }
             navigate('/roles')
         } catch (err) {
-            const fallback = isEditMode ? t('roleForm.updateFailed') : t('roleForm.createFailed')
-            const message = err instanceof Error ? err.message : fallback
-            setError(message)
+            console.warn('Role save failed', err)
+            setError(formatApiError(err, t))
         } finally {
             setSaving(false)
         }

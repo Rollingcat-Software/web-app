@@ -7,6 +7,8 @@ import {Alert, Box, Button, CircularProgress, Paper, TextField, Typography,} fro
 import {Cancel, Save} from '@mui/icons-material'
 import {useTenants, useTenant} from '@features/tenants'
 import TenantAuthMethods from '@features/tenants/components/TenantAuthMethods'
+import {useTranslation} from 'react-i18next'
+import {formatApiError} from '@/utils/formatApiError'
 
 const tenantSchema = z.object({
     name: z.string().min(2, 'Name must be at least 2 characters'),
@@ -32,6 +34,7 @@ function slugify(text: string): string {
 
 export default function TenantFormPage() {
     const navigate = useNavigate()
+    const {t} = useTranslation()
     const {id} = useParams<{ id: string }>()
     const isEditMode = Boolean(id)
 
@@ -109,8 +112,8 @@ export default function TenantFormPage() {
             }
             navigate('/tenants')
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'create'} tenant`
-            setError(message)
+            console.warn('Tenant save failed', err)
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }

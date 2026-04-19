@@ -4,6 +4,7 @@ import {Controller, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import {z} from 'zod'
 import {useTranslation} from 'react-i18next'
+import {formatApiError} from '@/utils/formatApiError'
 import {
     Alert, Box, Button, Checkbox, Chip, CircularProgress, FormControl, FormHelperText,
     InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, TextField, Typography,
@@ -98,8 +99,8 @@ export default function UserFormPage() {
             }
             navigate('/users')
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : `Failed to ${isEditMode ? 'update' : 'create'} user`
-            setError(message)
+            console.warn('User save failed', err)
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }
@@ -284,6 +285,7 @@ export default function UserFormPage() {
                                 multiple
                                 value={selectedRoleIds}
                                 onChange={handleRoleSelectionChange}
+                                aria-describedby="roles-multi-select-helper"
                                 input={<OutlinedInput label="Assigned Roles"/>}
                                 renderValue={(selected) => (
                                     <Box sx={{display: 'flex', flexWrap: 'wrap', gap: 0.5}}>
@@ -310,7 +312,7 @@ export default function UserFormPage() {
                                     </MenuItem>
                                 ))}
                             </Select>
-                            <FormHelperText>
+                            <FormHelperText id="roles-multi-select-helper">
                                 {rolesLoading
                                     ? 'Loading roles...'
                                     : 'Select one or more roles to assign to this user'}

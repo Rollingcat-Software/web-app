@@ -90,6 +90,29 @@ export default function DashboardLayout() {
 
     return (
         <Box sx={{display: 'flex', minHeight: '100vh'}}>
+            {/* Skip to main content link (a11y FE-H4).
+                Visually hidden until focused — first focusable element so
+                keyboard / screen-reader users can bypass the nav. */}
+            <Box
+                component="a"
+                href="#main-content"
+                sx={{
+                    position: 'absolute',
+                    left: -9999,
+                    top: 8,
+                    zIndex: 2000,
+                    padding: '8px 16px',
+                    backgroundColor: 'primary.main',
+                    color: 'primary.contrastText',
+                    textDecoration: 'none',
+                    borderRadius: 1,
+                    fontWeight: 600,
+                    '&:focus': { left: 8 },
+                }}
+            >
+                {t('common.skipToContent')}
+            </Box>
+
             {/* Top Bar */}
             <TopBar
                 drawerWidth={DRAWER_WIDTH}
@@ -107,6 +130,8 @@ export default function DashboardLayout() {
             {/* Main Content */}
             <Box
                 component="main"
+                id="main-content"
+                tabIndex={-1}
                 sx={{
                     flexGrow: 1,
                     display: 'flex',

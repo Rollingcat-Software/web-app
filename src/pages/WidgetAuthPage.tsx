@@ -35,6 +35,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@/utils/formatApiError'
 
 import TotpStep from '@/features/auth/components/steps/TotpStep'
 import SmsOtpStep from '@/features/auth/components/steps/SmsOtpStep'
@@ -255,8 +256,8 @@ function WidgetAuthPageInner() {
                     completeAuth(authData, data.email)
                 }
             } catch (err) {
-                const message =
-                    err instanceof Error ? err.message : t('widgetAuth.authFailed')
+                console.warn('Widget auth failed', err)
+                const message = formatApiError(err, t)
                 setError(message)
                 sendToParent({
                     type: 'fivucsas:error',
@@ -302,9 +303,8 @@ function WidgetAuthPageInner() {
             // 2FA verified — complete auth
             completeAuth(pendingAuthData, pendingEmail)
         } catch (err) {
-            const message =
-                err instanceof Error ? err.message : t('widgetAuth.verificationFailed')
-            setError(message)
+            console.warn('Widget 2FA verify failed', err)
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }
@@ -334,7 +334,8 @@ function WidgetAuthPageInner() {
                 }
                 completeAuth(pendingAuthData, pendingEmail)
             } catch (err) {
-                setStepError(err instanceof Error ? err.message : t('widgetAuth.verificationFailed'))
+                console.warn('Widget method verify failed', err)
+                setStepError(formatApiError(err, t))
             } finally {
                 setStepLoading(false)
             }
