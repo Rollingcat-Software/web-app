@@ -1,5 +1,48 @@
 # Changelog - FIVUCSAS Web App
 
+## [2026-04-19] — UX review fixes: MFA selector, face enrollment, copy, step counter
+
+### Fixed
+- **MFA selector layout overflow** — "Hazır/Kayıtlı değil" chip was rendering in
+  the normal text flow and splitting descriptions mid-sentence (e.g.
+  "E-postanıza gönderilen [Hazır] kodu girin"). `MethodPickerStep.tsx` now
+  absolutely positions the chip and reserves `pr: 10` on the CardActionArea.
+- **MFA selector English method names** — "Authenticator App", "Face Recognition",
+  etc. appeared in English on a Turkish UI. Now resolved through i18n
+  (reuses existing `enrollmentPage.methods.*` keys from the enrollment page).
+- **Face enrollment modal** — 11 hardcoded English strings ("Face ID Enrollment",
+  "Step 3 of 5", "Enrollment Complete!", "Retry", "Capture N", etc.) moved into
+  `enrollment.face.*` i18n namespace. Dialog backdrop opacity raised to
+  `rgba(0,0,0,0.7)` so the modal visibly dims the page behind.
+- **Face enrollment progress math** — off-by-one: Step 5/5 plateaued at 80%
+  before completion. `useFaceChallenge.ts` formula `(idx+1)/total` instead of
+  `idx/total`; initial and reset states start at 1/5 (20%), last capture hits 100%.
+- **Face login quality tags** — `useQualityAssessment.getQualityLabel` returned
+  hardcoded `'Good' | 'Fair' | 'Poor'` which was interpolated into the quality
+  chip during MFA. Now returns a suffix key resolved via `t('mfa.face.qualityLabel.*')`.
+  Turkish: İyi / Orta / Zayıf.
+- **Step counter jumping** — hosted login showed "1/2" then jumped to "3/3"
+  because the frontend guessed `totalSteps=2` before the backend became
+  authoritative. `LoginMfaFlow.tsx` now hides the counter until the real
+  total is known and guards it with a monotonic `Math.max(prev, next)` so
+  it can never shrink.
+- **Copy / terminology** —
+  - `auth.mfaInfo` TR: "kiracınızın" → "kuruluşunuzun" (end users don't know SaaS-tenant lingo). EN: "your tenant's" → "your organization's".
+  - Page title "Biyometrik Kayıt" → "Kimlik Doğrulama Yöntemleri"
+    (page also hosts non-biometric methods). EN: "Authentication Methods".
+  - TDK grammar: `kayıt edildi` → `kaydedildi` across 6 enrollment strings.
+  - Counter: "8 yöntem kayıtlı · Bu cihazda kullanılamayan: 0".
+
+### Tests
+- Vitest: **599 / 599** passing.
+- Lint: 0 errors, 31 pre-existing warnings (unchanged).
+- Build: succeeds.
+
+### Commits
+- `e47089f` — MFA selector overflow + face enrollment i18n + copy cleanup
+- `a572c9f` — Stop step counter jumping between totals
+- `920f641` — Translate face login step labels + chips
+
 ## [2026-04-18d] — Prod bug fixes: BlazeFace re-init, console noise, i18n debug
 
 ### Fixed
