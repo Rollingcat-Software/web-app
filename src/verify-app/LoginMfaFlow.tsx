@@ -191,7 +191,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
             })
             if (res.mfaSessionToken) setMfaSessionToken(res.mfaSessionToken)
             if (res.currentStep) setCurrentStep(res.currentStep)
-            if (res.totalSteps) setTotalSteps(res.totalSteps)
+            if (res.totalSteps) setTotalSteps((prev) => Math.max(prev, res.totalSteps!))
 
             const methods = res.availableMethods ?? availableMethods
             setAvailableMethods(methods)
@@ -368,15 +368,14 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                     {/* Top-of-flow progress indicator — shown on every step, not just NFC. */}
                     {(() => {
-                        // totalSteps defaults to 1 until the backend returns the real count
-                        // (after password submit). We derive a sensible displayTotal so the
-                        // password step can also show context: if the user clicked a button
-                        // and we're waiting on the backend, total=2 (pwd + >=1 MFA). Once the
-                        // backend returns totalSteps we use that authoritative value.
-                        const displayTotal = totalSteps > 1 ? totalSteps : (phase === 'password' ? 0 : 2)
-                        let displayCurrent = currentStep
-                        if (phase === 'password') displayCurrent = 1
-                        return <StepProgress current={displayCurrent} total={displayTotal} />
+                        // Hide the counter until the backend returns an authoritative
+                        // totalSteps (StepProgress renders null when total <= 1). This
+                        // avoids flashing a guessed "1/2" that later jumps to "N/M".
+                        if (phase === 'password' || totalSteps <= 1) {
+                            return <StepProgress current={1} total={0} />
+                        }
+                        const displayTotal = Math.max(totalSteps, currentStep)
+                        return <StepProgress current={currentStep} total={displayTotal} />
                     })()}
 
                     {/* Header */}
