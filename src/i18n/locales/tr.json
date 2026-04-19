@@ -1195,6 +1195,11 @@
       "cameraError": "Kameraya erişilemedi. Lütfen tarayıcınızda kamera iznini verip tekrar deneyin.",
       "cameraOff": "Kamera kapalı",
       "quality": "{{label}} %{{score}}",
+      "qualityLabel": {
+        "good": "İyi",
+        "fair": "Orta",
+        "poor": "Zayıf"
+      },
       "blur": "Bulanıklık %{{score}}",
       "light": "Işık %{{score}}",
       "size": "Boyut %{{score}}",

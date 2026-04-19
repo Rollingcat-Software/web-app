@@ -1195,6 +1195,11 @@
       "cameraError": "We couldn't access your camera. Please allow camera permission in your browser and try again.",
       "cameraOff": "Camera off",
       "quality": "{{label}} {{score}}%",
+      "qualityLabel": {
+        "good": "Good",
+        "fair": "Fair",
+        "poor": "Poor"
+      },
       "blur": "Blur {{score}}%",
       "light": "Light {{score}}%",
       "size": "Size {{score}}%",

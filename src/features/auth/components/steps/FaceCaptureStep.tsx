@@ -405,7 +405,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     >
                         <Chip
                             icon={<Visibility sx={{ fontSize: 14 }} />}
-                            label={t('mfa.face.quality', { label: getQualityLabel(quality.overall), score: quality.overall })}
+                            label={t('mfa.face.quality', { label: t(`mfa.face.qualityLabel.${getQualityLabel(quality.overall)}`), score: quality.overall })}
                             size="small"
                             color={getScoreColor(quality.overall)}
                             variant="outlined"

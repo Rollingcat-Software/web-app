@@ -183,12 +183,14 @@ export function useQualityAssessment() {
     }, [])
 
     /**
-     * Get label for overall quality
+     * Get i18n key suffix for overall quality. Callers translate via
+     * `t('mfa.face.qualityLabel.<key>')` so Turkish users see Turkish labels
+     * on the face-login quality chip instead of hardcoded English.
      */
-    const getQualityLabel = useCallback((score: number): string => {
-        if (score > 70) return 'Good'
-        if (score >= 40) return 'Fair'
-        return 'Poor'
+    const getQualityLabel = useCallback((score: number): 'good' | 'fair' | 'poor' => {
+        if (score > 70) return 'good'
+        if (score >= 40) return 'fair'
+        return 'poor'
     }, [])
 
     return { quality, updateQuality, resetQuality, getScoreColor, getQualityLabel }
