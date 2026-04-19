@@ -60,7 +60,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                     videoRef.current.srcObject = stream
                     await videoRef.current.play()
                 } catch {
-                    setCameraError('Unable to start camera preview. Please try again.')
+                    setCameraError(t('enrollment.face.cameraPreviewError'))
                     stream.getTracks().forEach(t => t.stop())
                     streamRef.current = null
                     return
@@ -68,9 +68,9 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
             }
             setCameraActive(true)
         } catch {
-            setCameraError('Unable to access camera. Please grant camera permissions and try again.')
+            setCameraError(t('enrollment.face.cameraAccessError'))
         }
-    }, [])
+    }, [t])
 
     const stopCamera = useCallback(() => {
         if (streamRef.current) {
@@ -136,6 +136,11 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
             onClose={onClose}
             maxWidth="sm"
             fullWidth
+            slotProps={{
+                backdrop: {
+                    sx: { backgroundColor: 'rgba(0, 0, 0, 0.7)' },
+                },
+            }}
             PaperProps={{
                 sx: {
                     borderRadius: '20px',
@@ -180,10 +185,10 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                         <Face sx={{ fontSize: 26, color: 'white' }} />
                     </Box>
                     <Typography variant="h6" fontWeight={700}>
-                        Face ID Enrollment
+                        {t('enrollment.face.title')}
                     </Typography>
                     <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>
-                        Follow the steps to register your face
+                        {t('enrollment.face.subtitle')}
                     </Typography>
                 </Box>
 
@@ -191,7 +196,10 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                 <Box sx={{ px: 3, py: 1 }}>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 0.5 }}>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                            Step {Math.min(challengeState.stageIndex + 1, challengeState.totalStages)} of {challengeState.totalStages}
+                            {t('enrollment.face.stepLabel', {
+                                current: Math.min(challengeState.stageIndex + 1, challengeState.totalStages),
+                                total: challengeState.totalStages,
+                            })}
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
                             {Math.round(challengeState.progress * 100)}%
@@ -251,10 +259,10 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                     <CheckCircle sx={{ fontSize: 72, color: '#22c55e' }} />
                                 </motion.div>
                                 <Typography variant="h6" sx={{ mt: 2, fontWeight: 600 }}>
-                                    Enrollment Complete!
+                                    {t('enrollment.face.complete')}
                                 </Typography>
                                 <Typography variant="body2" sx={{ color: 'rgba(255,255,255,0.5)', mt: 0.5 }}>
-                                    {challengeState.captures.length} images captured
+                                    {t('enrollment.face.capturedCount', { count: challengeState.captures.length })}
                                 </Typography>
 
                                 {/* Thumbnails */}
@@ -264,7 +272,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                             key={i}
                                             component="img"
                                             src={img}
-                                            alt={`Capture ${i + 1}`}
+                                            alt={t('enrollment.face.captureAlt', { n: i + 1 })}
                                             sx={{
                                                 width: 48,
                                                 height: 48,
@@ -350,7 +358,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                 display: 'block',
                             }}
                         >
-                            Follow the instruction above. It will auto-advance if needed.
+                            {t('enrollment.face.autoAdvanceHint')}
                         </Typography>
                     )}
 
@@ -359,7 +367,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1, mt: 1 }}>
                             <CircularProgress size={14} sx={{ color: 'rgba(255,255,255,0.5)' }} />
                             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                                Loading face detection...
+                                {t('enrollment.face.loadingDetection')}
                             </Typography>
                         </Box>
                     )}
@@ -381,8 +389,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                         >
                             <Warning sx={{ fontSize: 18, color: '#facc15', mt: 0.2 }} />
                             <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.7)', textAlign: 'left' }}>
-                                Face detection unavailable on this device. Timer-based capture will be used
-                                — hold steady and follow the instructions.
+                                {t('enrollment.face.detectionUnavailable')}
                             </Typography>
                         </Box>
                     )}
@@ -414,7 +421,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                 },
                             }}
                         >
-                            {!cameraActive ? 'Starting Camera...' : 'Begin Enrollment'}
+                            {!cameraActive ? t('enrollment.face.startingCamera') : t('enrollment.face.beginEnrollment')}
                         </Button>
                     )}
 
@@ -435,7 +442,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                     '&:hover': { borderColor: 'rgba(255,255,255,0.4)' },
                                 }}
                             >
-                                Retry
+                                {t('enrollment.face.retry')}
                             </Button>
                             <Button
                                 variant="contained"
@@ -452,7 +459,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                                     },
                                 }}
                             >
-                                Confirm & Save
+                                {t('enrollment.face.confirmSave')}
                             </Button>
                         </>
                     )}

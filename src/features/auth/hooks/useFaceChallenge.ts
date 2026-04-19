@@ -53,7 +53,7 @@ export function useFaceChallenge() {
         stage: 'position',
         stageIndex: 0,
         totalStages: ENROLLMENT_STAGES.length,
-        progress: 0,
+        progress: 1 / ENROLLMENT_STAGES.length,
         stageProgress: 0,
         instruction: ENROLLMENT_STAGES[0].instructionKey,
         captures: [],
@@ -80,7 +80,7 @@ export function useFaceChallenge() {
             stage: 'position',
             stageIndex: 0,
             totalStages: ENROLLMENT_STAGES.length,
-            progress: 0,
+            progress: 1 / ENROLLMENT_STAGES.length,
             stageProgress: 0,
             instruction: ENROLLMENT_STAGES[0].instructionKey,
             captures: [],
@@ -241,7 +241,7 @@ export function useFaceChallenge() {
                         stage: ENROLLMENT_STAGES[nextIdx].stage,
                         stageIndex: nextIdx,
                         totalStages: ENROLLMENT_STAGES.length,
-                        progress: nextIdx / ENROLLMENT_STAGES.length,
+                        progress: (nextIdx + 1) / ENROLLMENT_STAGES.length,
                         stageProgress: 0,
                         instruction: ENROLLMENT_STAGES[nextIdx].instructionKey,
                         captures: capturesRef.current,
@@ -252,7 +252,7 @@ export function useFaceChallenge() {
                 setChallengeState(prev => ({
                     ...prev,
                     stageProgress,
-                    progress: (idx + stageProgress) / ENROLLMENT_STAGES.length,
+                    progress: (idx + 1) / ENROLLMENT_STAGES.length,
                 }))
             }
         } else {
@@ -261,7 +261,7 @@ export function useFaceChallenge() {
             setChallengeState(prev => ({
                 ...prev,
                 stageProgress: 0,
-                progress: idx / ENROLLMENT_STAGES.length,
+                progress: (idx + 1) / ENROLLMENT_STAGES.length,
             }))
         }
     }, [checkStageCondition])

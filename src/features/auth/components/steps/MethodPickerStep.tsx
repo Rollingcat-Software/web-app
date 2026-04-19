@@ -87,6 +87,9 @@ export default function MethodPickerStep({
                     const icon = METHOD_ICONS[iconKey]
                     const i18nKey = METHOD_I18N_KEYS[method.methodType]
                     const description = i18nKey ? t(i18nKey) : method.name
+                    const labelKey = `enrollmentPage.methods.${method.methodType}.label`
+                    const translatedLabel = t(labelKey)
+                    const displayName = translatedLabel === labelKey ? method.name : translatedLabel
                     const disabled = !method.enrolled
 
                     return (
@@ -98,6 +101,7 @@ export default function MethodPickerStep({
                                 opacity: disabled ? 0.5 : 1,
                                 transition: 'all 0.2s ease',
                                 flexShrink: 0,
+                                position: 'relative',
                                 border: method.preferred ? '2px solid' : '1px solid',
                                 borderColor: method.preferred
                                     ? 'primary.main'
@@ -114,7 +118,7 @@ export default function MethodPickerStep({
                             <CardActionArea
                                 disabled={disabled}
                                 onClick={() => onMethodSelected(method.methodType)}
-                                sx={{ p: 2 }}
+                                sx={{ p: 2, pr: 10 }}
                             >
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
                                     {/* Icon */}
@@ -140,7 +144,7 @@ export default function MethodPickerStep({
                                                 variant="subtitle2"
                                                 sx={{ fontWeight: 600 }}
                                             >
-                                                {method.name}
+                                                {displayName}
                                             </Typography>
                                             {method.preferred && (
                                                 <Star
@@ -159,19 +163,27 @@ export default function MethodPickerStep({
                                         </Typography>
                                     </Box>
 
-                                    {/* Status chip */}
-                                    <Chip
-                                        label={
-                                            method.enrolled
-                                                ? t('mfa.enrolled')
-                                                : t('mfa.notEnrolled')
-                                        }
-                                        size="small"
-                                        color={method.enrolled ? 'success' : 'default'}
-                                        variant={method.enrolled ? 'filled' : 'outlined'}
-                                        sx={{ borderRadius: '8px', fontWeight: 500, flexShrink: 0 }}
-                                    />
                                 </Box>
+
+                                {/* Status chip — absolutely positioned so it can't wrap into the description text */}
+                                <Chip
+                                    label={
+                                        method.enrolled
+                                            ? t('mfa.enrolled')
+                                            : t('mfa.notEnrolled')
+                                    }
+                                    size="small"
+                                    color={method.enrolled ? 'success' : 'default'}
+                                    variant={method.enrolled ? 'filled' : 'outlined'}
+                                    sx={{
+                                        position: 'absolute',
+                                        top: 12,
+                                        right: 12,
+                                        borderRadius: '8px',
+                                        fontWeight: 500,
+                                        flexShrink: 0,
+                                    }}
+                                />
 
                                 {/* Setup hint for non-enrolled methods */}
                                 {disabled && (

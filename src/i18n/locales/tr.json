@@ -86,7 +86,7 @@
     "devices": "Cihazlar",
     "enrollments": "Kayıtlar",
     "userEnrollment": "Kimlik Kaydı",
-    "biometricEnrollment": "Biyometrik Kayıt",
+    "biometricEnrollment": "Kimlik Doğrulama Yöntemleri",
     "cardDetection": "Kart Algılama",
     "faceSearch": "Yüz Arama",
     "voiceSearch": "Ses Arama",
@@ -330,7 +330,7 @@
     "forgotPasswordQuestion": "Şifremi Unuttum?",
     "noAccountQuestion": "Hesabınız yok mu?",
     "register": "Kayıt Ol",
-    "mfaInfo": "Giriş yaptıktan sonra, kiracınızın güvenlik politikasına bağlı olarak ek doğrulama (yüz, parmak izi, TOTP vb.) istenebilir.",
+    "mfaInfo": "Giriş yaptıktan sonra, kuruluşunuzun güvenlik politikasına bağlı olarak ek doğrulama (yüz, parmak izi, TOTP vb.) istenebilir.",
     "noMatchingFace": "Eşleşen yüz bulunamadı. Lütfen tekrar deneyin veya şifre ile giriş yapın.",
     "faceVerificationFailed": "Yüz doğrulama başarısız",
     "resetCodeSentSuccess": "E-posta adresinize şifre sıfırlama kodu gönderildi.",
@@ -1016,12 +1016,31 @@
     "allBiometricDeleted": "Tüm biyometrik veriler başarıyla silindi.",
     "deleteBiometricError": "Biyometrik veriler silinemedi."
   },
+  "enrollment": {
+    "face": {
+      "title": "Yüz Kimliği Kaydı",
+      "subtitle": "Yüzünüzü kaydetmek için adımları izleyin",
+      "stepLabel": "Adım {{current}}/{{total}}",
+      "complete": "Kayıt Tamamlandı!",
+      "capturedCount": "{{count}} görüntü yakalandı",
+      "retry": "Tekrar Dene",
+      "captureAlt": "Yakalama {{n}}",
+      "autoAdvanceHint": "Yukarıdaki talimatı izleyin. Gerekirse otomatik olarak ilerleyecektir.",
+      "startingCamera": "Kamera Başlatılıyor...",
+      "beginEnrollment": "Kayda Başla",
+      "confirmSave": "Onayla ve Kaydet",
+      "loadingDetection": "Yüz algılama yükleniyor...",
+      "detectionUnavailable": "Bu cihazda yüz algılama kullanılamıyor. Zamanlayıcı tabanlı yakalama kullanılacak — sabit durun ve talimatları izleyin.",
+      "cameraPreviewError": "Kamera önizlemesi başlatılamıyor. Lütfen tekrar deneyin.",
+      "cameraAccessError": "Kameraya erişilemiyor. Lütfen kamera izinlerini verin ve tekrar deneyin."
+    }
+  },
   "enrollmentPage": {
-    "title": "Biyometrik Kayıt",
+    "title": "Kimlik Doğrulama Yöntemleri",
     "subtitle": "Kimlik doğrulama yöntemlerinizi ve biyometrik kayıtlarınızı yönetin",
     "refreshTooltip": "Kayıt durumunu yenile",
-    "enrolledCount": "{{count}} kayıtlı",
-    "unavailableCount": "{{count}} bu cihazda kullanılamıyor",
+    "enrolledCount": "{{count}} yöntem kayıtlı",
+    "unavailableCount": "Bu cihazda kullanılamayan: {{count}}",
     "statusEnrolled": "Kayıtlı",
     "statusUnavailable": "Kullanılamıyor",
     "statusNotEnrolled": "Kayıtlı değil",
@@ -1032,9 +1051,9 @@
     "loginRequired": "Kayıtlarınızı yönetmek için lütfen giriş yapın.",
     "notSupported": "{{method}} kaydı henüz tarayıcıda desteklenmiyor.",
     "testHint": "{{method}} test etmek için giriş sırasında kimlik doğrulama yöntemi olarak kullanın.",
-    "faceEnrolled": "Yüz Tanıma başarıyla kayıt edildi",
+    "faceEnrolled": "Yüz Tanıma başarıyla kaydedildi",
     "faceEnrollFailed": "Yüz kaydı başarısız. Lütfen tekrar deneyin.",
-    "voiceEnrolled": "Ses Tanıma başarıyla kayıt edildi",
+    "voiceEnrolled": "Ses Tanıma başarıyla kaydedildi",
     "revokeSuccess": "{{method}} kaydı iptal edildi",
     "revokeFailed": "{{method}} iptal edilemedi",
     "phoneError": "Telefon numarası kaydedilemedi",
@@ -1084,10 +1103,10 @@
       "helper": "Ülke kodu dahil girin (örn. Türkiye için +90)",
       "saveAndEnroll": "Kaydet ve Kayıt Ol",
       "saving": "Kaydediliyor...",
-      "successMessage": "Telefon numarası kaydedildi ve SMS OTP başarıyla kayıt edildi"
+      "successMessage": "Telefon numarası kaydedildi ve SMS OTP başarıyla kaydedildi"
     },
-    "enrolledSuccess": "{{method}} başarıyla kayıt edildi",
-    "enrollError": "{{method}} kayıt edilemedi",
+    "enrolledSuccess": "{{method}} başarıyla kaydedildi",
+    "enrollError": "{{method}} kaydedilemedi",
     "nfcCards": {
       "title": "Kayıtlı NFC Kartları",
       "subtitle": "{{count}} kart kayıtlı",
@@ -1130,7 +1149,7 @@
     "scanDifferent": "Farklı bir kart tara",
     "infoHint": "Telefon ayarlarınızda NFC'nin etkin olduğundan emin olun. Kartı telefonunuzun arkasına NFC anteni yakınına (genellikle üst-orta) düz bir şekilde tutun. Not: TC Kimlik kartları ve pasaportlar şifreli NFC çipleri kullanır ve tarayıcılar tarafından okunamaz — yalnızca öğrenci kartları, erişim kartları ve diğer NDEF uyumlu NFC kartları desteklenir.",
     "registered": "NFC Kartı Kaydedildi!",
-    "registeredDescription": "NFC kartınız kayıt edildi. Artık kimlik doğrulama için kullanabilirsiniz.",
+    "registeredDescription": "NFC kartınız kaydedildi. Artık kimlik doğrulama için kullanabilirsiniz.",
     "done": "Tamam"
   },
   "mfa": {

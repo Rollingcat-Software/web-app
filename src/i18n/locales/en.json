@@ -86,7 +86,7 @@
     "devices": "Devices",
     "enrollments": "Enrollments",
     "userEnrollment": "Identity Enrollment",
-    "biometricEnrollment": "Biometric Enrollment",
+    "biometricEnrollment": "Authentication Methods",
     "cardDetection": "Card Detection",
     "faceSearch": "Face Search",
     "voiceSearch": "Voice Search",
@@ -330,7 +330,7 @@
     "forgotPasswordQuestion": "Forgot Password?",
     "noAccountQuestion": "Don't have an account?",
     "register": "Register",
-    "mfaInfo": "After signing in, you may be asked for additional verification (face, fingerprint, TOTP, etc.) depending on your tenant's security policy.",
+    "mfaInfo": "After signing in, you may be asked for additional verification (face, fingerprint, TOTP, etc.) depending on your organization's security policy.",
     "noMatchingFace": "No matching face found. Please try again or use password login.",
     "faceVerificationFailed": "Face verification failed",
     "resetCodeSentSuccess": "A password reset code has been sent to your email.",
@@ -1016,8 +1016,27 @@
     "allBiometricDeleted": "All biometric data deleted successfully.",
     "deleteBiometricError": "Failed to delete biometric data."
   },
+  "enrollment": {
+    "face": {
+      "title": "Face ID Enrollment",
+      "subtitle": "Follow the steps to register your face",
+      "stepLabel": "Step {{current}}/{{total}}",
+      "complete": "Enrollment Complete!",
+      "capturedCount": "{{count}} images captured",
+      "retry": "Retry",
+      "captureAlt": "Capture {{n}}",
+      "autoAdvanceHint": "Follow the instruction above. It will auto-advance if needed.",
+      "startingCamera": "Starting Camera...",
+      "beginEnrollment": "Begin Enrollment",
+      "confirmSave": "Confirm & Save",
+      "loadingDetection": "Loading face detection...",
+      "detectionUnavailable": "Face detection unavailable on this device. Timer-based capture will be used — hold steady and follow the instructions.",
+      "cameraPreviewError": "Unable to start camera preview. Please try again.",
+      "cameraAccessError": "Unable to access camera. Please grant camera permissions and try again."
+    }
+  },
   "enrollmentPage": {
-    "title": "Biometric Enrollment",
+    "title": "Authentication Methods",
     "subtitle": "Manage your authentication methods and biometric enrollments",
     "refreshTooltip": "Refresh enrollment status",
     "enrolledCount": "{{count}} enrolled",
