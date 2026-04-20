@@ -225,7 +225,7 @@
 - [ ] `docs/06-deployment/FEATURE_FLAGS.md` NEW
 - [ ] Align `package.json` version with README
 - [ ] `console.log` purge in auth paths (`VoiceStep`, `FingerprintStep`)
-- [ ] `aria-describedby` sweep on form pages
+- [x] `aria-describedby` sweep on form pages (FE-H4) — 2026-04-20: wired on UserFormPage, TenantFormPage, ForgotPasswordPage, ResetPasswordPage + 4 a11y tests
 - [ ] Mobile table responsive breakpoints (`AuditLogs`, `Roles`, `Tenants`)
 - [ ] Magic-number style tokens → theme
 - [ ] Request timeouts on `fetch()` in `useLivenessPuzzle.ts`, `VoiceEnrollmentFlow.tsx`, `useBankEnrollment.ts`

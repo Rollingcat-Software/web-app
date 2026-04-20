@@ -1,5 +1,26 @@
 # Changelog - FIVUCSAS Web App
 
+## [Unreleased]
+
+### Accessibility
+- **FE-H4 a11y sweep (2026-04-20)** — every Zod-validated `TextField` in
+  `UserFormPage`, `TenantFormPage`, `ForgotPasswordPage`, and
+  `ResetPasswordPage` now declares an explicit `id` + matching
+  `FormHelperTextProps.id` and passes `aria-describedby="${fieldId}-helper"`
+  via `inputProps` (or `SelectProps` for `select` variants). Screen readers
+  now announce validation / hint copy alongside each field label.
+  `RoleFormPage`, `MyProfilePage`, `NfcEnrollmentPage` skipped: none use
+  Zod + `helperText`, so no wiring invented.
+- **Tests** — added 4 Testing Library specs
+  (`UserFormPage.a11y.test.tsx`, `TenantFormPage.a11y.test.tsx`,
+  `ForgotPasswordPage.a11y.test.tsx`, `ResetPasswordPage.a11y.test.tsx`)
+  asserting each field declares `aria-describedby` with the expected helper
+  id. Raises Vitest count 604 → 608; `npm run test` and `npm run lint`
+  both green.
+- Previously-landed skip-to-main link (`DashboardLayout`) and
+  `role="status" aria-live="polite"` on `NotificationPanel` verified in
+  place.
+
 ## [2026-04-19] Frontend audit remediation
 
 Addresses FE-H1, FE-H2, FE-H3, FE-H4, FE-M3 from `/opt/projects/fivucsas/docs/audits/AUDIT_2026-04-19.md` Audit 3.

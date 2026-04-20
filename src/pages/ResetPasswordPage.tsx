@@ -433,11 +433,13 @@ export default function ResetPasswordPage() {
                                         render={({ field }) => (
                                             <TextField
                                                 {...field}
+                                                id="reset-password-newPassword"
                                                 fullWidth
                                                 label={t('auth.newPasswordLabel')}
                                                 type={showPassword ? 'text' : 'password'}
                                                 error={!!errors.newPassword}
                                                 helperText={errors.newPassword?.message}
+                                                FormHelperTextProps={{ id: 'reset-password-newPassword-helper' }}
                                                 margin="normal"
                                                 disabled={loading}
                                                 InputProps={{
@@ -460,6 +462,7 @@ export default function ResetPasswordPage() {
                                                         </InputAdornment>
                                                     ),
                                                 }}
+                                                inputProps={{ 'aria-describedby': 'reset-password-newPassword-helper' }}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: '12px',
@@ -481,11 +484,13 @@ export default function ResetPasswordPage() {
                                         render={({ field }) => (
                                             <TextField
                                                 {...field}
+                                                id="reset-password-confirmPassword"
                                                 fullWidth
                                                 label={t('auth.confirmPasswordLabel')}
                                                 type={showConfirmPassword ? 'text' : 'password'}
                                                 error={!!errors.confirmPassword}
                                                 helperText={errors.confirmPassword?.message}
+                                                FormHelperTextProps={{ id: 'reset-password-confirmPassword-helper' }}
                                                 margin="normal"
                                                 disabled={loading}
                                                 InputProps={{
@@ -508,6 +513,7 @@ export default function ResetPasswordPage() {
                                                         </InputAdornment>
                                                     ),
                                                 }}
+                                                inputProps={{ 'aria-describedby': 'reset-password-confirmPassword-helper' }}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: '12px',

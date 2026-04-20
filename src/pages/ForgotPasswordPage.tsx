@@ -258,11 +258,13 @@ export default function ForgotPasswordPage() {
                                         render={({ field }) => (
                                             <TextField
                                                 {...field}
+                                                id="forgot-password-email"
                                                 fullWidth
                                                 label={t('auth.emailLabel')}
                                                 type="email"
                                                 error={!!errors.email}
                                                 helperText={errors.email?.message}
+                                                FormHelperTextProps={{ id: 'forgot-password-email-helper' }}
                                                 margin="normal"
                                                 autoFocus
                                                 disabled={loading}
@@ -273,6 +275,7 @@ export default function ForgotPasswordPage() {
                                                         </InputAdornment>
                                                     ),
                                                 }}
+                                                inputProps={{ 'aria-describedby': 'forgot-password-email-helper' }}
                                                 sx={{
                                                     '& .MuiOutlinedInput-root': {
                                                         borderRadius: '12px',

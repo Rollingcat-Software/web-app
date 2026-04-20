@@ -271,6 +271,17 @@ npm run preview
 
 The build includes code splitting for optimal loading performance.
 
+## Accessibility
+
+The dashboard targets WCAG 2.1 AA. `DashboardLayout` renders a
+visually-hidden-until-focused skip-to-main link as the first focusable
+element, `NotificationPanel` carries `role="status" aria-live="polite"`
+for live audit announcements, and every Zod-validated form field
+(`UserFormPage`, `TenantFormPage`, `ForgotPasswordPage`,
+`ResetPasswordPage`) explicitly wires its helper/error copy to the input
+via `aria-describedby`. See `src/pages/__tests__/*.a11y.test.tsx` for
+assertions.
+
 ## CI/CD
 
 This project includes GitHub Actions for automated testing and builds. See `.github/workflows/ci.yml`.

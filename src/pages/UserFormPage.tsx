@@ -150,12 +150,15 @@ export default function UserFormPage() {
                             render={({field}) => (
                                 <TextField
                                     {...field}
+                                    id="user-form-email"
                                     label="Email Address"
                                     type="email"
                                     fullWidth
                                     required
                                     error={!!errors.email}
                                     helperText={errors.email?.message}
+                                    FormHelperTextProps={{id: 'user-form-email-helper'}}
+                                    inputProps={{'aria-describedby': 'user-form-email-helper'}}
                                     disabled={isEditMode}
                                 />
                             )}
@@ -168,11 +171,14 @@ export default function UserFormPage() {
                                 render={({field}) => (
                                     <TextField
                                         {...field}
+                                        id="user-form-firstName"
                                         label="First Name"
                                         fullWidth
                                         required
                                         error={!!errors.firstName}
                                         helperText={errors.firstName?.message}
+                                        FormHelperTextProps={{id: 'user-form-firstName-helper'}}
+                                        inputProps={{'aria-describedby': 'user-form-firstName-helper'}}
                                     />
                                 )}
                             />
@@ -183,11 +189,14 @@ export default function UserFormPage() {
                                 render={({field}) => (
                                     <TextField
                                         {...field}
+                                        id="user-form-lastName"
                                         label="Last Name"
                                         fullWidth
                                         required
                                         error={!!errors.lastName}
                                         helperText={errors.lastName?.message}
+                                        FormHelperTextProps={{id: 'user-form-lastName-helper'}}
+                                        inputProps={{'aria-describedby': 'user-form-lastName-helper'}}
                                     />
                                 )}
                             />
@@ -200,12 +209,15 @@ export default function UserFormPage() {
                                 render={({field}) => (
                                     <TextField
                                         {...field}
+                                        id="user-form-password"
                                         label="Password"
                                         type="password"
                                         fullWidth
                                         required
                                         error={!!errors.password}
                                         helperText={errors.password?.message}
+                                        FormHelperTextProps={{id: 'user-form-password-helper'}}
+                                        inputProps={{'aria-describedby': 'user-form-password-helper'}}
                                     />
                                 )}
                             />
@@ -217,12 +229,15 @@ export default function UserFormPage() {
                             render={({field}) => (
                                 <TextField
                                     {...field}
+                                    id="user-form-role"
                                     label="Role"
                                     select
                                     fullWidth
                                     required
                                     error={!!errors.role}
                                     helperText={errors.role?.message}
+                                    FormHelperTextProps={{id: 'user-form-role-helper'}}
+                                    SelectProps={{'aria-describedby': 'user-form-role-helper'}}
                                 >
                                     <MenuItem value={UserRole.USER}>User</MenuItem>
                                     <MenuItem value={UserRole.TENANT_ADMIN}>Tenant Admin</MenuItem>
@@ -239,11 +254,14 @@ export default function UserFormPage() {
                                 render={({field}) => (
                                     <TextField
                                         {...field}
+                                        id="user-form-status"
                                         label="Status"
                                         select
                                         fullWidth
                                         error={!!errors.status}
                                         helperText={errors.status?.message}
+                                        FormHelperTextProps={{id: 'user-form-status-helper'}}
+                                        SelectProps={{'aria-describedby': 'user-form-status-helper'}}
                                     >
                                         <MenuItem value={UserStatus.PENDING_ENROLLMENT}>Pending Enrollment</MenuItem>
                                         <MenuItem value={UserStatus.ACTIVE}>Active</MenuItem>
@@ -260,12 +278,15 @@ export default function UserFormPage() {
                             render={({field}) => (
                                 <TextField
                                     {...field}
+                                    id="user-form-tenantId"
                                     label="Tenant"
                                     select
                                     fullWidth
                                     required
                                     error={!!errors.tenantId}
                                     helperText={errors.tenantId?.message || 'Select the tenant this user belongs to'}
+                                    FormHelperTextProps={{id: 'user-form-tenantId-helper'}}
+                                    SelectProps={{'aria-describedby': 'user-form-tenantId-helper'}}
                                     disabled={isEditMode || tenantsLoading}
                                 >
                                     {tenants.map((tenant) => (

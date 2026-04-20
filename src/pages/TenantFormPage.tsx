@@ -158,11 +158,14 @@ export default function TenantFormPage() {
                             render={({field}) => (
                                 <TextField
                                     {...field}
+                                    id="tenant-form-name"
                                     label="Organization Name"
                                     fullWidth
                                     required
                                     error={!!errors.name}
                                     helperText={errors.name?.message}
+                                    FormHelperTextProps={{id: 'tenant-form-name-helper'}}
+                                    inputProps={{'aria-describedby': 'tenant-form-name-helper'}}
                                     placeholder="e.g. Marmara University"
                                 />
                             )}
@@ -174,11 +177,14 @@ export default function TenantFormPage() {
                             render={({field}) => (
                                 <TextField
                                     {...field}
+                                    id="tenant-form-slug"
                                     label="Slug"
                                     fullWidth
                                     required
                                     error={!!errors.slug}
                                     helperText={errors.slug?.message || 'URL-friendly identifier (auto-generated from name)'}
+                                    FormHelperTextProps={{id: 'tenant-form-slug-helper'}}
+                                    inputProps={{'aria-describedby': 'tenant-form-slug-helper'}}
                                     placeholder="e.g. marmara-university"
                                     onChange={(e) => {
                                         field.onChange(e)
@@ -194,12 +200,15 @@ export default function TenantFormPage() {
                             render={({field}) => (
                                 <TextField
                                     {...field}
+                                    id="tenant-form-description"
                                     label="Description"
                                     fullWidth
                                     multiline
                                     rows={3}
                                     error={!!errors.description}
                                     helperText={errors.description?.message}
+                                    FormHelperTextProps={{id: 'tenant-form-description-helper'}}
+                                    inputProps={{'aria-describedby': 'tenant-form-description-helper'}}
                                     placeholder="Brief description of the organization"
                                 />
                             )}
@@ -212,11 +221,14 @@ export default function TenantFormPage() {
                                 render={({field}) => (
                                     <TextField
                                         {...field}
+                                        id="tenant-form-contactEmail"
                                         label="Contact Email"
                                         type="email"
                                         fullWidth
                                         error={!!errors.contactEmail}
                                         helperText={errors.contactEmail?.message}
+                                        FormHelperTextProps={{id: 'tenant-form-contactEmail-helper'}}
+                                        inputProps={{'aria-describedby': 'tenant-form-contactEmail-helper'}}
                                         placeholder="admin@example.com"
                                     />
                                 )}
@@ -228,10 +240,13 @@ export default function TenantFormPage() {
                                 render={({field}) => (
                                     <TextField
                                         {...field}
+                                        id="tenant-form-contactPhone"
                                         label="Contact Phone"
                                         fullWidth
                                         error={!!errors.contactPhone}
                                         helperText={errors.contactPhone?.message}
+                                        FormHelperTextProps={{id: 'tenant-form-contactPhone-helper'}}
+                                        inputProps={{'aria-describedby': 'tenant-form-contactPhone-helper'}}
                                         placeholder="+90 212 123 4567"
                                     />
                                 )}
@@ -244,13 +259,15 @@ export default function TenantFormPage() {
                             render={({field}) => (
                                 <TextField
                                     {...field}
+                                    id="tenant-form-maxUsers"
                                     label="Max Users"
                                     type="number"
                                     fullWidth
                                     required
                                     error={!!errors.maxUsers}
                                     helperText={errors.maxUsers?.message || 'Maximum number of users allowed'}
-                                    inputProps={{min: 1, max: 100000}}
+                                    FormHelperTextProps={{id: 'tenant-form-maxUsers-helper'}}
+                                    inputProps={{min: 1, max: 100000, 'aria-describedby': 'tenant-form-maxUsers-helper'}}
                                 />
                             )}
                         />
