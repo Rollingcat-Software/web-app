@@ -1,7 +1,7 @@
 # Hosted Login Integration Guide
 
 **Audience:** Tenant applications integrating FIVUCSAS identity as their sign-in provider.
-**Status:** PR-1 shipping (2026-04-16). Hosted-first is the recommended primary integration mode.
+**Status:** PR-1 merged to `main` 2026-04-16. Polished 2026-04-20 (step-up MFA section expanded; troubleshooting refreshed post CSP / permissionsPolicy / postMessage-origin fixes). Hosted-first is the recommended primary integration mode.
 
 ---
 
@@ -180,30 +180,67 @@ scheme, host, and path must match exactly.
 
 ---
 
-## 6. Using the iframe widget instead (step-up MFA)
+## 6. Step-up MFA (iframe widget mode)
 
-For sensitive actions inside an already-authenticated session —
-approving a high-value transaction, changing security settings, reading
-KVKK-protected data — the iframe widget provides a lighter-weight
-step-up experience without leaving the host page.
+### When to use widget vs redirect
+
+| Scenario | Use |
+|---|---|
+| Primary sign-in / first session | **Redirect** (`loginRedirect()`) |
+| Native mobile / desktop app sign-in | **Redirect** (Custom Tabs / ASWebAuthenticationSession / RFC 8252 loopback) |
+| Web-NFC, WebAuthn, password-manager autofill | **Redirect** (iframes cannot reliably do these) |
+| Sensitive-action re-auth inside an authed session (approve transaction, change security settings, read KVKK data) | **Widget** |
+| Transaction signing with a short-lived proof (`sessionId`) | **Widget** |
+| Inline checkout confirmation | **Widget** |
+
+### Step-up example
 
 ```js
+const auth = new FivucsasAuth({
+    clientId: 'acme-portal',
+    apiBaseUrl: 'https://api.fivucsas.com/api/v1'
+});
+
 const result = await auth.verify({
     flow: 'step-up',
-    userId: currentUser.id
+    userId: currentUser.id,
+    // optional: pin a single method, otherwise tenant's step-up policy applies
+    preferredMethod: 'TOTP'
 });
+
 if (result.success) {
-    await api.post('/transactions/approve', { id, proof: result.sessionId });
+    await api.post('/transactions/approve', {
+        id,
+        proof: result.sessionId  // short-lived MfaSession proof — server re-validates
+    });
 }
 ```
 
-**Known limitation:** Web NFC does not work inside iframes. The widget's
-NFC step detects the framed context and offers a "Continue in new tab"
-fallback that opens the hosted page to complete the NFC read.
+The widget iframe is served from `https://verify.fivucsas.com/widget` and
+communicates with the host page via `postMessage`. Events emitted to the
+parent: `ready`, `step-change`, `resize`, `complete` (with `sessionId`),
+`error`.
+
+### Known limitations (widget mode)
+
+- **Web NFC does not work inside iframes.** The NFC step detects the framed
+  context and offers a "Continue in new tab" fallback that opens the hosted
+  page at `verify.fivucsas.com/login?display=page&...` to complete the read
+  and returns via the OAuth code flow.
+- **WebAuthn cross-origin** edge cases on Safari + older Firefox — the
+  widget passes `rpId = verify.fivucsas.com` and relies on CORS-permissive
+  headers; if your tenant has strict `COOP`/`COEP` these must allowlist
+  `verify.fivucsas.com`.
+- **Third-party cookies** are not used (auth state lives in an ephemeral
+  MfaSession keyed by `sessionId`, not a cookie), so Safari ITP / Chrome
+  3P-cookie deprecation do not break the widget. The redirect flow is
+  still preferred for primary sign-in.
 
 ---
 
 ## 7. Troubleshooting
+
+### OAuth / redirect issues
 
 | Symptom | Cause | Fix |
 |---|---|---|
@@ -213,6 +250,32 @@ fallback that opens the hosted page to complete the NFC read.
 | `state mismatch` from SDK | Two tabs opened sign-in concurrently | Each `loginRedirect()` overwrites stored state; use one tab |
 | Hosted page blank after login | `/oauth2/authorize/complete` 4xx — check Network tab | MFA session likely expired; retry |
 | Tenant admin can't register custom URL scheme | DB check constraint blocks non-http(s) | None — custom schemes are explicitly supported |
+
+### Widget / iframe issues
+
+| Symptom | Cause | Fix |
+|---|---|---|
+| Widget loads then CSP blocks `/widget.js` in console | Host page `Content-Security-Policy` does not allow `verify.fivucsas.com` | Add `https://verify.fivucsas.com` to `script-src`, `frame-src`, and `connect-src` directives |
+| `Refused to frame … violates the Content Security Policy` | Host page `frame-src` / `frame-ancestors` too tight | Add `frame-src https://verify.fivucsas.com` on host page. Widget's own CSP already permits embedding by tenants. |
+| Camera or microphone step stuck on "Requesting permission…" and silently fails | Host page omits `Permissions-Policy` for the iframe OR Traefik response lacked `camera=*, microphone=*` | Parent `<iframe>` needs `allow="camera; microphone; publickey-credentials-get; publickey-credentials-create"`. Recent fix (2026-04-19) loosened Traefik `permissionsPolicy` so `verify.fivucsas.com` responds with permissive camera/mic — deploy parent app without `Permissions-Policy: camera=()` overrides. |
+| `postMessage` events never fire on parent | Listener registered before iframe mounted OR origin check rejecting | Listen on `window.addEventListener('message', …)` **before** creating the widget; accept only `event.origin === 'https://verify.fivucsas.com'` — do not use wildcard. SDK already validates this; custom integrations must too. |
+| Widget flashes then goes blank | `X-Frame-Options: DENY` leaking from a CDN / reverse proxy in front of `verify.fivucsas.com` | Remove the XFO override — the verify surface intentionally omits it in favor of CSP `frame-ancestors` |
+| WebAuthn step throws `NotAllowedError` inside widget | iframe missing `publickey-credentials-get` / `-create` in `allow=` | Add both tokens to the parent `<iframe allow="…">` — see row above |
+| `sessionId` proof rejected by tenant backend | MfaSession consumed twice (V35 guard) or cross-client replay (V36 guard binds to `client_id`) | Use `sessionId` exactly once; pass the same `clientId` that minted it |
+
+### CSP quickstart (copy-paste for host pages using the widget)
+
+```
+Content-Security-Policy:
+  default-src 'self';
+  script-src 'self' https://verify.fivucsas.com;
+  frame-src  https://verify.fivucsas.com;
+  connect-src 'self' https://api.fivucsas.com https://verify.fivucsas.com;
+  style-src  'self' 'unsafe-inline';
+```
+
+The SDK uses `connect-src` to post to `/oauth2/token` and may talk to
+`verify.fivucsas.com` for widget-mode token exchange.
 
 ---
 
