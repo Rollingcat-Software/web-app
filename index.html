@@ -35,11 +35,13 @@
     <meta name="twitter:description" content="Multi-factor biometric identity — face, voice, fingerprint, NFC, TOTP, hardware keys, QR. Hosted-first OAuth 2.0 / OIDC."/>
     <meta name="twitter:image" content="https://fivucsas.com/og-image.png"/>
 
-    <!-- Canonical + hreflang: same-URL bilingual SPA -->
+    <!-- Canonical only. No hreflang alternates: this SPA does not expose
+         distinct language-specific URLs (locale toggles client-side via
+         localStorage + i18n), so hreflang en/tr pointing at the same URL
+         would be invalid per Google's guidance and may trigger Search
+         Console warnings. `og:locale:alternate` + the `lang` attribute
+         carry the bilingual signal adequately. -->
     <link rel="canonical" href="https://app.fivucsas.com/"/>
-    <link rel="alternate" hreflang="x-default" href="https://app.fivucsas.com/"/>
-    <link rel="alternate" hreflang="en" href="https://app.fivucsas.com/"/>
-    <link rel="alternate" hreflang="tr" href="https://app.fivucsas.com/"/>
 
     <!-- JSON-LD Organization: brand entity for the sign-in surface. -->
     <script type="application/ld+json">

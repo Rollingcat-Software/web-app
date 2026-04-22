@@ -1,43 +1,56 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <!--
+    hreflang alternates intentionally omitted: this SPA does not expose
+    distinct language-specific URLs (locale is a client-side toggle), so
+    same-URL hreflang would be invalid per Google's guidance. Canonical
+    URL is the single authoritative address.
+
+    lastmod is deploy-date: refresh per deploy via CI step or manually.
+  -->
   <url>
     <loc>https://app.fivucsas.com/</loc>
-    <lastmod>2026-04-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
-    <xhtml:link rel="alternate" hreflang="en" href="https://app.fivucsas.com/" />
-    <xhtml:link rel="alternate" hreflang="tr" href="https://app.fivucsas.com/" />
-    <xhtml:link rel="alternate" hreflang="x-default" href="https://app.fivucsas.com/" />
   </url>
   <url>
     <loc>https://app.fivucsas.com/login</loc>
-    <lastmod>2026-04-22</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
     <loc>https://app.fivucsas.com/register</loc>
-    <lastmod>2026-04-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
     <loc>https://app.fivucsas.com/forgot-password</loc>
-    <lastmod>2026-04-22</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.3</priority>
   </url>
   <url>
+    <loc>https://app.fivucsas.com/reset-password</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.2</priority>
+  </url>
+  <url>
     <loc>https://app.fivucsas.com/terms</loc>
-    <lastmod>2026-04-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
   </url>
   <url>
     <loc>https://app.fivucsas.com/privacy</loc>
-    <lastmod>2026-04-22</lastmod>
     <changefreq>yearly</changefreq>
     <priority>0.4</priority>
+  </url>
+  <url>
+    <loc>https://app.fivucsas.com/widget-demo</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.5</priority>
+  </url>
+  <url>
+    <loc>https://app.fivucsas.com/developer-portal</loc>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
   </url>
 </urlset>
