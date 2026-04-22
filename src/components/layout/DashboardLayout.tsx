@@ -1,6 +1,14 @@
 import {useState} from 'react'
 import {Link as RouterLink, Outlet, useLocation} from 'react-router-dom'
-import {Box, Breadcrumbs, Link, Typography, useMediaQuery, useTheme} from '@mui/material'
+import {
+    alpha,
+    Box,
+    Breadcrumbs,
+    Link,
+    Typography,
+    useMediaQuery,
+    useTheme,
+} from '@mui/material'
 import {NavigateNext} from '@mui/icons-material'
 import {useTranslation} from 'react-i18next'
 import Sidebar from './Sidebar'
@@ -8,6 +16,7 @@ import TopBar from './TopBar'
 
 const DRAWER_WIDTH = 260
 
+// PRESERVED: breadcrumb map (do not change keys — used by every deep route).
 const BREADCRUMB_I18N_MAP: Record<string, string> = {
     users: 'nav.users',
     tenants: 'nav.tenants',
@@ -44,11 +53,24 @@ function PageBreadcrumbs() {
 
     return (
         <Breadcrumbs
-            separator={<NavigateNext fontSize="small" />}
-            sx={{ mb: 2 }}
+            separator={<NavigateNext fontSize="small" sx={{ color: 'text.disabled' }}/>}
+            sx={{
+                mb: 2.5,
+                '& .MuiBreadcrumbs-ol': { flexWrap: 'wrap' },
+            }}
             aria-label="breadcrumb"
         >
-            <Link component={RouterLink} to="/" underline="hover" color="inherit">
+            <Link
+                component={RouterLink}
+                to="/"
+                underline="hover"
+                color="text.secondary"
+                sx={{
+                    fontSize: '0.8125rem',
+                    fontWeight: 500,
+                    '&:hover': { color: 'primary.main' },
+                }}
+            >
                 {t('nav.dashboard')}
             </Link>
             {pathSegments.map((segment, index) => {
@@ -62,14 +84,29 @@ function PageBreadcrumbs() {
 
                 if (isLast) {
                     return (
-                        <Typography key={path} color="text.primary" fontWeight={500}>
+                        <Typography
+                            key={path}
+                            color="text.primary"
+                            sx={{ fontSize: '0.8125rem', fontWeight: 600 }}
+                        >
                             {label}
                         </Typography>
                     )
                 }
 
                 return (
-                    <Link key={path} component={RouterLink} to={path} underline="hover" color="inherit">
+                    <Link
+                        key={path}
+                        component={RouterLink}
+                        to={path}
+                        underline="hover"
+                        color="text.secondary"
+                        sx={{
+                            fontSize: '0.8125rem',
+                            fontWeight: 500,
+                            '&:hover': { color: 'primary.main' },
+                        }}
+                    >
                         {label}
                     </Link>
                 )
@@ -83,16 +120,25 @@ export default function DashboardLayout() {
     const isMobile = useMediaQuery(theme.breakpoints.down('md'))
     const [mobileOpen, setMobileOpen] = useState(false)
     const {t} = useTranslation()
+    const isDark = theme.palette.mode === 'dark'
 
     const handleDrawerToggle = () => {
         setMobileOpen(prev => !prev)
     }
 
     return (
-        <Box sx={{display: 'flex', minHeight: '100vh'}}>
-            {/* Skip to main content link (a11y FE-H4).
-                Visually hidden until focused — first focusable element so
-                keyboard / screen-reader users can bypass the nav. */}
+        <Box
+            sx={{
+                display: 'flex',
+                minHeight: '100vh',
+                // Subtle ambient background
+                background: isDark
+                    ? 'radial-gradient(1200px 600px at 20% -10%, rgba(99,102,241,0.08), transparent 60%), radial-gradient(900px 500px at 90% 10%, rgba(139,92,246,0.06), transparent 55%), #0f1220'
+                    : 'radial-gradient(1200px 600px at 20% -10%, rgba(99,102,241,0.06), transparent 60%), radial-gradient(900px 500px at 90% 10%, rgba(139,92,246,0.04), transparent 55%), #f8fafc',
+            }}
+        >
+            {/* Skip to main content (a11y FE-H4).
+                Visually hidden until focused. */}
             <Box
                 component="a"
                 href="#main-content"
@@ -101,12 +147,14 @@ export default function DashboardLayout() {
                     left: -9999,
                     top: 8,
                     zIndex: 2000,
-                    padding: '8px 16px',
+                    padding: '10px 18px',
                     backgroundColor: 'primary.main',
                     color: 'primary.contrastText',
                     textDecoration: 'none',
-                    borderRadius: 1,
-                    fontWeight: 600,
+                    borderRadius: '10px',
+                    fontWeight: 700,
+                    fontSize: '0.875rem',
+                    boxShadow: '0 8px 20px -6px rgba(99,102,241,0.55)',
                     '&:focus': { left: 8 },
                 }}
             >
@@ -136,13 +184,12 @@ export default function DashboardLayout() {
                     flexGrow: 1,
                     display: 'flex',
                     flexDirection: 'column',
-                    p: { xs: 1.5, sm: 3 },
+                    p: { xs: 1.75, sm: 3, md: 4 },
                     width: {xs: '100%', md: `calc(100% - ${DRAWER_WIDTH}px)`},
                     maxWidth: '100vw',
                     overflowX: 'hidden',
                     boxSizing: 'border-box',
                     mt: {xs: '56px', sm: '64px'},
-                    backgroundColor: 'background.default',
                     minHeight: {xs: 'calc(100vh - 56px)', sm: 'calc(100vh - 64px)'},
                 }}
             >
@@ -153,29 +200,47 @@ export default function DashboardLayout() {
                 <Box
                     component="footer"
                     sx={{
-                        mt: 4,
-                        pt: 2,
-                        pb: 1,
+                        mt: 6,
+                        pt: 3,
+                        pb: 1.5,
                         textAlign: 'center',
-                        borderTop: '1px solid',
-                        borderColor: 'divider',
+                        borderTop: `1px solid ${alpha(theme.palette.divider, 0.6)}`,
                     }}
                 >
-                    <Typography variant="caption" color="text.disabled" display="block">
+                    <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        display="block"
+                        sx={{ fontWeight: 600, letterSpacing: '0.01em' }}
+                    >
                         {t('footer.platform')}
                     </Typography>
-                    <Box sx={{ mt: 0.5, display: 'flex', justifyContent: 'center', gap: 2 }}>
-                        <Link component={RouterLink} to="/terms" variant="caption" color="text.disabled" underline="hover">
+                    <Box sx={{ mt: 0.75, display: 'flex', justifyContent: 'center', gap: 2.5 }}>
+                        <Link
+                            component={RouterLink}
+                            to="/terms"
+                            variant="caption"
+                            color="text.secondary"
+                            underline="hover"
+                            sx={{ fontWeight: 500, '&:hover': { color: 'primary.main' } }}
+                        >
                             {t('footer.terms')}
                         </Link>
-                        <Link component={RouterLink} to="/privacy" variant="caption" color="text.disabled" underline="hover">
+                        <Link
+                            component={RouterLink}
+                            to="/privacy"
+                            variant="caption"
+                            color="text.secondary"
+                            underline="hover"
+                            sx={{ fontWeight: 500, '&:hover': { color: 'primary.main' } }}
+                        >
                             {t('footer.privacy')}
                         </Link>
                     </Box>
-                    <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25 }}>
+                    <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.5 }}>
                         {t('footer.copyright')}
                     </Typography>
-                    <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25, opacity: 0.7 }}>
+                    <Typography variant="caption" color="text.disabled" display="block" sx={{ mt: 0.25, opacity: 0.65, fontFamily: '"JetBrains Mono", ui-monospace, monospace', fontSize: '0.7rem' }}>
                         {t('footer.version')}
                     </Typography>
                 </Box>
