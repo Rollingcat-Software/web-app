@@ -1,4 +1,4 @@
-import { createTheme, alpha } from '@mui/material/styles'
+import { createTheme, alpha, type Shadows } from '@mui/material/styles'
 
 // Fonts — latin + latin-ext only (Turkish needs latin-ext for ğ, ş, ı, ö, ü, ç)
 import '@fontsource/inter/latin-300.css'
@@ -84,7 +84,7 @@ export function createAppTheme(mode: 'light' | 'dark' = 'light') {
     const ink = isDark ? INK.dark : INK.light
 
     // Surfaces
-    const bgDefault  = isDark ? ink[50] : ink[50]
+    const bgDefault  = ink[50]
     const bgPaper    = isDark ? ink[100] : '#ffffff'
     const textPrimary   = isDark ? ink[900] : INK.light[900]
     const textSecondary = isDark ? INK.dark[700] : INK.light[500]
@@ -220,7 +220,8 @@ export function createAppTheme(mode: 'light' | 'dark' = 'light') {
         },
 
         /* Elevation system: layered, calibrated for both light and dark.
-         * 24 slots required by MUI; we use a graduated ramp in the first 8 then plateau. */
+         * MUI expects 25 shadow slots (indices 0-24); we use a graduated ramp
+         * in the first 8 then plateau. */
         shadows: (() => {
             const light = [
                 'none',
@@ -244,7 +245,7 @@ export function createAppTheme(mode: 'light' | 'dark' = 'light') {
             ]
             const ramp = isDark ? dark : light
             const plateau = ramp[7]
-            return [...ramp, ...Array(17).fill(plateau)] as unknown as any
+            return [...ramp, ...Array(17).fill(plateau)] as Shadows
         })(),
 
         components: {
