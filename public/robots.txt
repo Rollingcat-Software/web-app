@@ -1,2 +1,30 @@
+# app.fivucsas.com — platform-wide user dashboard + sign-in
+# The public sign-in page is indexable so users can discover the platform.
+# Authenticated routes serve the same SPA shell to crawlers (no session →
+# no content), so they naturally degrade to the indexable sign-in page.
+
 User-agent: *
-Disallow: /
+Allow: /
+Disallow: /users
+Disallow: /tenants
+Disallow: /roles
+Disallow: /auth-flows
+Disallow: /auth-sessions
+Disallow: /devices
+Disallow: /enrollments
+Disallow: /enrollment
+Disallow: /biometric-tools
+Disallow: /audit-logs
+Disallow: /analytics
+Disallow: /verification-flows
+Disallow: /verification-dashboard
+Disallow: /verification-sessions
+Disallow: /guests
+Disallow: /my-profile
+Disallow: /settings
+Disallow: /widget-auth
+Disallow: /widget-demo
+Disallow: /developer-portal
+Disallow: /models/
+
+Sitemap: https://app.fivucsas.com/sitemap.xml

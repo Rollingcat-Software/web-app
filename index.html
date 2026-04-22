@@ -1,29 +1,83 @@
 <!doctype html>
-<html lang="tr">
+<html lang="en">
 <head>
     <meta charset="UTF-8"/>
     <link href="/favicon.svg" rel="icon" type="image/svg+xml"/>
     <link rel="apple-touch-icon" href="/favicon.svg"/>
     <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-    <meta name="description" content="FIVUCSAS — Çok faktörlü biyometrik kimlik doğrulama platformu. Yüz tanıma, parmak izi, ses ve 10 farklı doğrulama yöntemi.">
-    <meta name="keywords" content="biyometrik doğrulama, yüz tanıma, kimlik doğrulama, çok faktörlü, MFA, FIVUCSAS">
-    <meta name="author" content="Ahmet Abdullah Gultekin">
-    <meta name="theme-color" content="#1976d2"/>
-    <meta property="og:title" content="FIVUCSAS — Kimlik Doğrulama Platformu">
-    <meta property="og:description" content="Güvenli biyometrik kimlik doğrulama. 10 farklı yöntem, çok kiracılı mimari.">
-    <meta property="og:url" content="https://app.fivucsas.com">
-    <meta property="og:type" content="website">
+    <title>FIVUCSAS — Sign in · Biometric Identity Verification Platform</title>
+    <meta name="description" content="FIVUCSAS platform sign-in. Multi-factor biometric identity verification: face, voice, fingerprint, NFC, TOTP, hardware keys, QR, and more. For tenants, users, and administrators.">
+    <meta name="keywords" content="FIVUCSAS, biometric authentication, identity verification, MFA, multi-factor, OAuth 2.0, OIDC, login, sign in, biyometrik kimlik doğrulama">
+    <meta name="author" content="FIVUCSAS — RollingCat Software"/>
+    <meta name="theme-color" content="#6366f1"/>
+    <meta name="color-scheme" content="light dark"/>
+    <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1"/>
+    <meta name="googlebot" content="index, follow"/>
+    <meta name="referrer" content="strict-origin-when-cross-origin"/>
+    <meta name="format-detection" content="telephone=no"/>
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="FIVUCSAS — Biometric Identity Verification Platform"/>
+    <meta property="og:description" content="Multi-factor biometric identity verification — face, voice, fingerprint, NFC, TOTP, hardware keys, QR, and more. Hosted-first OAuth 2.0 / OIDC."/>
+    <meta property="og:url" content="https://app.fivucsas.com/"/>
+    <meta property="og:type" content="website"/>
     <meta property="og:site_name" content="FIVUCSAS"/>
+    <meta property="og:locale" content="en_US"/>
+    <meta property="og:locale:alternate" content="tr_TR"/>
     <meta property="og:image" content="https://fivucsas.com/og-image.png"/>
     <meta property="og:image:width" content="1200"/>
     <meta property="og:image:height" content="630"/>
+    <meta property="og:image:alt" content="FIVUCSAS — Biometric Identity Verification Platform"/>
+
+    <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image"/>
-    <meta name="twitter:title" content="FIVUCSAS — Kimlik Doğrulama Platformu"/>
-    <meta name="twitter:description" content="Güvenli biyometrik kimlik doğrulama. 10 farklı yöntem, çok kiracılı mimari."/>
+    <meta name="twitter:title" content="FIVUCSAS — Biometric Identity Verification"/>
+    <meta name="twitter:description" content="Multi-factor biometric identity — face, voice, fingerprint, NFC, TOTP, hardware keys, QR. Hosted-first OAuth 2.0 / OIDC."/>
     <meta name="twitter:image" content="https://fivucsas.com/og-image.png"/>
-    <meta name="robots" content="noindex, nofollow">
-    <link rel="canonical" href="https://app.fivucsas.com"/>
-    <title>FIVUCSAS — Kimlik Doğrulama Platformu</title>
+
+    <!-- Canonical + hreflang: same-URL bilingual SPA -->
+    <link rel="canonical" href="https://app.fivucsas.com/"/>
+    <link rel="alternate" hreflang="x-default" href="https://app.fivucsas.com/"/>
+    <link rel="alternate" hreflang="en" href="https://app.fivucsas.com/"/>
+    <link rel="alternate" hreflang="tr" href="https://app.fivucsas.com/"/>
+
+    <!-- JSON-LD Organization: brand entity for the sign-in surface. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      "name": "FIVUCSAS",
+      "url": "https://fivucsas.com/",
+      "logo": "https://fivucsas.com/og-image.png",
+      "sameAs": [
+        "https://github.com/Rollingcat-Software/FIVUCSAS",
+        "https://rollingcatsoftware.com/"
+      ],
+      "parentOrganization": {
+        "@type": "Organization",
+        "name": "RollingCat Software",
+        "url": "https://rollingcatsoftware.com/"
+      }
+    }
+    </script>
+
+    <!-- JSON-LD WebPage: the sign-in page itself. -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebPage",
+      "name": "FIVUCSAS Sign In",
+      "description": "Sign-in entry point for FIVUCSAS — the multi-factor biometric identity verification platform. For tenants, end-users, and administrators.",
+      "url": "https://app.fivucsas.com/",
+      "inLanguage": ["en", "tr"],
+      "isPartOf": {
+        "@type": "WebSite",
+        "name": "FIVUCSAS",
+        "url": "https://fivucsas.com/"
+      },
+      "primaryImageOfPage": "https://fivucsas.com/og-image.png"
+    }
+    </script>
 </head>
 <body>
 <div id="root"></div>
