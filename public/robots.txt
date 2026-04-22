@@ -1,2 +1,42 @@
+# app.fivucsas.com — platform-wide user dashboard + sign-in
+#
+# Routes that are not intended for indexing — the authenticated dashboard
+# surfaces — are disallowed below. Public pages (/, /login, /register,
+# /forgot-password, /reset-password, /terms, /privacy, /widget-demo,
+# /developer-portal, /widget-auth) serve the same SPA shell and ARE
+# indexable. X-Robots-Tag in .htaccess adds defense-in-depth for the
+# disallowed paths since a single SPA shell carries one robots meta.
+
 User-agent: *
-Disallow: /
+Allow: /
+
+# Authenticated dashboard areas (require session; crawler gets the
+# sign-in shell regardless, but we disallow discovery to keep SERPs
+# focused on truly public entry points).
+Disallow: /users
+Disallow: /tenants
+Disallow: /roles
+Disallow: /auth-flows
+Disallow: /auth-sessions
+Disallow: /devices
+Disallow: /enrollments
+Disallow: /enrollment
+Disallow: /user-enrollment
+Disallow: /biometric-tools
+Disallow: /card-detection
+Disallow: /face-search
+Disallow: /voice-search
+Disallow: /nfc-enrollment
+Disallow: /audit-logs
+Disallow: /analytics
+Disallow: /verification-flows
+Disallow: /verification-dashboard
+Disallow: /verification-sessions
+Disallow: /guests
+Disallow: /my-profile
+Disallow: /settings
+
+# ONNX model bucket (binary assets, not HTML content)
+Disallow: /models/
+
+Sitemap: https://app.fivucsas.com/sitemap.xml

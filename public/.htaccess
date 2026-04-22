@@ -75,4 +75,14 @@ RewriteRule . /index.html [L]
 
     # Strict Transport Security (HTTPS only)
     Header set Strict-Transport-Security "max-age=31536000; includeSubDomains"
+
+    # Per-route X-Robots-Tag (addresses Copilot #27 concern):
+    # The SPA serves the same index.html for every route, so the <meta name="robots">
+    # inside that file applies to authenticated routes too — even though robots.txt
+    # disallows crawling them, Google can still "index without crawling" and list
+    # them as discovered URLs. An HTTP-level X-Robots-Tag overrides the meta for
+    # those paths and is the standard defence-in-depth signal.
+    <If "%{REQUEST_URI} =~ m#^/(users|tenants|roles|auth-flows|auth-sessions|devices|enrollments|enrollment|user-enrollment|biometric-tools|card-detection|face-search|voice-search|nfc-enrollment|audit-logs|analytics|verification-flows|verification-dashboard|verification-sessions|guests|my-profile|settings|models)#">
+        Header set X-Robots-Tag "noindex, nofollow"
+    </If>
 </IfModule>
