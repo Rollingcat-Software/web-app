@@ -2,6 +2,75 @@
 
 ## [Unreleased]
 
+### Design system refresh — 2026-04-22b (Scope B: verify-app chrome)
+
+Zero functional change. The hosted login (`verify.fivucsas.com/login`) and
+the iframe widget (`verify.fivucsas.com/?session_id=…`) both pick up the
+new theme tokens from Scope A plus targeted visual polish on three shell
+files. Every handler, OAuth param parse, `/oauth2/authorize/complete`
+call, postMessage event (`fivucsas:ready`, `fivucsas:step-change`,
+`fivucsas:complete`, `fivucsas:cancel`, `fivucsas:error`, `fivucsas:config`),
+frame-bust effect, `assertSafeRedirectScheme` guard, CSP meta,
+`Permissions-Policy` delegation, all 10 step components, and the SDK
+(`fivucsas-auth.js` + `.esm.js`) are **untouched**. Integrators' SRI
+hashes remain valid.
+
+**`src/verify-app/HostedLoginApp.tsx`**
+- `HostedFrame` layout rebuilt: ambient radial gradient canvas (light +
+  dark aware), gradient brand-mark above the card, refined Paper border
+  + elevation tuned for both modes, `verify.fivucsas.com` microcopy
+  footer under the card.
+- Tenant header now leads with a small "Secured by FIVUCSAS" pill
+  (`hosted.securedBy` key unchanged) using `VerifiedUserOutlined` icon +
+  mono-width overline, and a Poppins display title for
+  `hosted.signingInTo`.
+- Loading / error / meta-load-failed render branches keep identical
+  logic and i18n keys; only spinner size, stack spacing, Alert copy
+  weight tuned.
+- All handlers (`handleLoginComplete`, `handleCancel`), all `useEffect`
+  blocks (frame-bust, locale change, tenant meta fetch with
+  AbortController + 10s timeout), and all param parsing (`parseHostedParams`,
+  `resolveLocale`) preserved byte-for-byte.
+
+**`src/verify-app/VerifyApp.tsx`**
+- Iframe body wrapper (`Box` in login + session mode) keeps a
+  transparent background so the parent page styling shows through the
+  widget — only padding tokens + `boxSizing` comment refined.
+- Every state (`config`, `themeMode`, `session`, `loading`, `error`),
+  every `useEffect` (postMessage listener, locale setter, session fetch),
+  every handler (`handleSessionComplete`, `handleLoginComplete`,
+  `handleCancel`, `handleStepChangeTracking`), and every postMessage
+  emission preserved.
+
+**`src/verify-app/LoginMfaFlow.tsx`**
+- Card chrome: `borderRadius` 24 → 20, shadow tuned to a mode-aware
+  soft-ground elevation (removes the theme-default hover lift, because
+  an MFA card should feel grounded, not interactive).
+- Header: title now uses the display font family with tighter tracking;
+  cancel button gains a compact close icon and better flex alignment so
+  the gradient title can wrap cleanly on narrow widgets.
+- `phase` state machine, every step component (`PasswordStep`,
+  `MethodPickerStep`, `TotpStep`, `SmsOtpStep`, `EmailOtpMfaStep`,
+  `FaceCaptureStep`, `VoiceStep`, `FingerprintStep`, `QrCodeStep`,
+  `HardwareKeyStep`, `NfcStep`), every API call (login / verifyMfaStep /
+  WebAuthn challenge / QR generate / SMS send), every callback
+  (`handlePasswordSubmit`, `handleMfaResult`, `handleMethodSelected`,
+  `handleBackToMethodSelection`, `handleBackToPassword`, `verifyStep`,
+  `requestWebAuthnChallenge`), and all i18n keys unchanged.
+
+### Deploy verification (2026-04-22b)
+- `npm run build:verify` clean.
+- `npm test --run src/verify-app` → 56 / 56 green (HostedLoginApp +
+  postMessageBridge + FivucsasAuth).
+- `npm test --run` (full suite) → 608 / 608 green.
+- `./sync-assets.sh` staged the new bundle into `verify-widget/html/`
+  without touching any SDK file.
+- `docker compose -f docker-compose.prod.yml up -d --build verify-widget`
+  rebuilt the nginx image; container is healthy.
+- `sha384sum` on `/fivucsas-auth.js` (live) = local staged copy — SRI
+  hash on `bys-demo/index.html` + `bys-demo/callback.html` is still valid.
+- `verify.fivucsas.com/` and `verify.fivucsas.com/login` both 200.
+
 ### Design system refresh — 2026-04-22 (Scope A: theme + app shell)
 
 Zero functional change. Every route, handler, test id, i18n key, `aria-*`

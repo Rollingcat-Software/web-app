@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+    alpha,
     Alert,
     Box,
     Button,
@@ -25,6 +26,7 @@ import {
     ThemeProvider,
     Typography,
 } from '@mui/material'
+import { VerifiedUserOutlined } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { createAppTheme } from '../theme'
 import { DependencyProvider } from '@app/providers/DependencyProvider'
@@ -351,9 +353,9 @@ export default function HostedLoginApp() {
             <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <HostedFrame>
-                    <Stack alignItems="center" spacing={2} sx={{ py: 8 }}>
-                        <CircularProgress />
-                        <Typography variant="body2" color="text.secondary">
+                    <Stack alignItems="center" spacing={2.5} sx={{ py: 6 }}>
+                        <CircularProgress size={32} thickness={4} />
+                        <Typography variant="body2" color="text.secondary" fontWeight={500}>
                             {t('hosted.loadingApp')}
                         </Typography>
                     </Stack>
@@ -368,10 +370,10 @@ export default function HostedLoginApp() {
                 <CssBaseline />
                 <HostedFrame>
                     <Alert severity="error" sx={{ borderRadius: 2 }}>
-                        <Typography variant="subtitle2" fontWeight={600}>
+                        <Typography variant="subtitle2" fontWeight={700}>
                             {t('widget.verificationError')}
                         </Typography>
-                        <Typography variant="body2">{paramError}</Typography>
+                        <Typography variant="body2" sx={{ mt: 0.5 }}>{paramError}</Typography>
                     </Alert>
                 </HostedFrame>
             </ThemeProvider>
@@ -383,12 +385,12 @@ export default function HostedLoginApp() {
             <ThemeProvider theme={theme}>
                 <CssBaseline />
                 <HostedFrame>
-                    <Stack spacing={2}>
+                    <Stack spacing={2.5}>
                         <Alert severity="error" sx={{ borderRadius: 2 }}>
-                            <Typography variant="subtitle2" fontWeight={600}>
+                            <Typography variant="subtitle2" fontWeight={700}>
                                 {t('hosted.loadError.title')}
                             </Typography>
-                            <Typography variant="body2">
+                            <Typography variant="body2" sx={{ mt: 0.5 }}>
                                 {t('hosted.loadError.body')}
                             </Typography>
                         </Alert>
@@ -414,22 +416,51 @@ export default function HostedLoginApp() {
                 <HostedFrame>
                     <Stack spacing={3}>
                         <Box>
-                            <Typography
-                                variant="overline"
-                                color="text.secondary"
-                                sx={{ letterSpacing: 1 }}
+                            <Box
+                                sx={{
+                                    display: 'inline-flex',
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    px: 1.25,
+                                    py: 0.5,
+                                    mb: 1.25,
+                                    borderRadius: 999,
+                                    border: (th) => `1px solid ${alpha(th.palette.primary.main, 0.25)}`,
+                                    backgroundColor: (th) => alpha(th.palette.primary.main, 0.08),
+                                    color: 'primary.main',
+                                }}
                             >
-                                {t('hosted.securedBy')}
-                            </Typography>
-                            <Typography variant="h5" fontWeight={600}>
+                                <VerifiedUserOutlined sx={{ fontSize: 14 }} />
+                                <Typography
+                                    variant="caption"
+                                    sx={{
+                                        fontWeight: 700,
+                                        letterSpacing: '0.08em',
+                                        textTransform: 'uppercase',
+                                        fontSize: '0.68rem',
+                                        fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                                    }}
+                                >
+                                    {t('hosted.securedBy')}
+                                </Typography>
+                            </Box>
+                            <Typography
+                                variant="h5"
+                                sx={{
+                                    fontFamily: '"Poppins", "Inter", sans-serif',
+                                    fontWeight: 700,
+                                    letterSpacing: '-0.018em',
+                                    lineHeight: 1.25,
+                                }}
+                            >
                                 {t('hosted.signingInTo', { tenant: clientLabel })}
                             </Typography>
                         </Box>
 
                         {redirecting ? (
-                            <Stack alignItems="center" spacing={2} sx={{ py: 6 }}>
-                                <CircularProgress />
-                                <Typography variant="body2" color="text.secondary">
+                            <Stack alignItems="center" spacing={2.5} sx={{ py: 5 }}>
+                                <CircularProgress size={32} thickness={4} />
+                                <Typography variant="body2" color="text.secondary" fontWeight={500}>
                                     {t('hosted.redirecting', { client: clientLabel })}
                                 </Typography>
                             </Stack>
@@ -467,12 +498,38 @@ function HostedFrame({ children }: { children: React.ReactNode }) {
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'flex-start',
-                pt: { xs: 3, sm: 6 },
-                pb: { xs: 4, sm: 8 },
+                pt: { xs: 3, sm: 7 },
+                pb: { xs: 4, sm: 9 },
                 px: { xs: 2, sm: 3 },
-                bgcolor: 'background.default',
+                position: 'relative',
+                overflow: 'hidden',
+                // Ambient gradient canvas; works in both light and dark themes.
+                background: (th) => th.palette.mode === 'dark'
+                    ? 'radial-gradient(900px 450px at 50% -10%, rgba(99,102,241,0.14), transparent 60%), radial-gradient(700px 350px at 80% 90%, rgba(139,92,246,0.10), transparent 60%), #0f1220'
+                    : 'radial-gradient(900px 450px at 50% -10%, rgba(99,102,241,0.10), transparent 60%), radial-gradient(700px 350px at 80% 90%, rgba(139,92,246,0.07), transparent 60%), #f8fafc',
             }}
         >
+            {/* Brand mark — purely decorative, sits above the card. Mirrors the
+                FIVUCSAS gradient shield used in the main dashboard shell so
+                hosted login carries the same visual identity. */}
+            <Box
+                sx={{
+                    width: 44,
+                    height: 44,
+                    mb: 2.5,
+                    borderRadius: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                    boxShadow: '0 10px 28px -10px rgba(99,102,241,0.55)',
+                    color: '#ffffff',
+                }}
+                aria-hidden
+            >
+                <VerifiedUserOutlined sx={{ fontSize: 24 }} />
+            </Box>
+
             <Paper
                 elevation={0}
                 sx={{
@@ -480,12 +537,29 @@ function HostedFrame({ children }: { children: React.ReactNode }) {
                     maxWidth: 480,
                     p: { xs: 3, sm: 4 },
                     borderRadius: 3,
-                    border: '1px solid',
-                    borderColor: 'divider',
+                    border: (th) => `1px solid ${th.palette.divider}`,
+                    backgroundImage: 'none',
+                    boxShadow: (th) => th.palette.mode === 'dark'
+                        ? '0 24px 48px -12px rgba(0,0,0,0.6)'
+                        : '0 24px 48px -12px rgba(15,23,42,0.14), 0 8px 16px -6px rgba(15,23,42,0.08)',
                 }}
             >
                 {children}
             </Paper>
+
+            {/* Microcopy footer. Conveys that the origin is fivucsas.com without
+                being intrusive. Static text, not user-configurable. */}
+            <Typography
+                variant="caption"
+                sx={{
+                    mt: 2.5,
+                    color: 'text.disabled',
+                    fontSize: '0.72rem',
+                    letterSpacing: '0.02em',
+                }}
+            >
+                verify.fivucsas.com
+            </Typography>
         </Box>
     )
 }

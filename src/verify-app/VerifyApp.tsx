@@ -249,15 +249,19 @@ export default function VerifyApp() {
                 <DependencyProvider container={container}>
                     <Box
                         sx={{
+                            // Iframe embeds: keep the body transparent so the
+                            // parent page's background shows through. Only the
+                            // inner Card (inside LoginMfaFlow) renders chrome.
                             minHeight: '100vh',
                             display: 'flex',
                             flexDirection: 'column',
                             alignItems: 'stretch',
                             justifyContent: 'flex-start',
-                            pt: { xs: 2, sm: 4 },
-                            pb: { xs: 3, sm: 5 },
+                            pt: { xs: 2, sm: 3 },
+                            pb: { xs: 3, sm: 4 },
                             px: { xs: 1.5, sm: 2 },
                             background: 'transparent',
+                            boxSizing: 'border-box',
                         }}
                     >
                         <LoginMfaFlow
@@ -292,15 +296,19 @@ export default function VerifyApp() {
             <DependencyProvider container={container}>
                 <Box
                     sx={{
+                        // Session mode is also iframe-embedded: transparent bg
+                        // so parent styling bleeds through; chrome lives in the
+                        // step card itself.
                         minHeight: '100vh',
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'flex-start',
-                        pt: { xs: 2, sm: 4 },
-                        pb: { xs: 3, sm: 5 },
+                        pt: { xs: 2, sm: 3 },
+                        pb: { xs: 3, sm: 4 },
                         px: { xs: 1.5, sm: 2 },
                         background: 'transparent',
+                        boxSizing: 'border-box',
                     }}
                 >
                     <MultiStepAuthFlow
