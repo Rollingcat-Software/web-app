@@ -354,26 +354,28 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
             transition={{ duration: 0.45, ease: EASE_OUT }}
         >
             <Card
-                sx={{
-                    maxWidth: 520,
-                    width: '100%',
-                    mx: 'auto',
-                    borderRadius: '20px',
-                    border: '1px solid',
-                    borderColor: 'divider',
-                    overflow: 'visible',
+                sx={(th) => {
                     // Softer, mode-aware elevation. The default MuiCard hover lift
                     // is overridden because MFA flow cards should feel grounded,
-                    // not interactive-on-hover.
-                    boxShadow: (th) => th.palette.mode === 'dark'
+                    // not interactive-on-hover — so the same shadow is used on
+                    // base and :hover. Defined once here to prevent drift.
+                    const groundedShadow = th.palette.mode === 'dark'
                         ? '0 8px 24px -8px rgba(0,0,0,0.5)'
-                        : '0 8px 24px -8px rgba(15,23,42,0.12), 0 2px 6px -2px rgba(15,23,42,0.06)',
-                    '&:hover': {
-                        boxShadow: (th) => th.palette.mode === 'dark'
-                            ? '0 8px 24px -8px rgba(0,0,0,0.5)'
-                            : '0 8px 24px -8px rgba(15,23,42,0.12), 0 2px 6px -2px rgba(15,23,42,0.06)',
-                        transform: 'none',
-                    },
+                        : '0 8px 24px -8px rgba(15,23,42,0.12), 0 2px 6px -2px rgba(15,23,42,0.06)'
+                    return {
+                        maxWidth: 520,
+                        width: '100%',
+                        mx: 'auto',
+                        borderRadius: '20px',
+                        border: '1px solid',
+                        borderColor: 'divider',
+                        overflow: 'visible',
+                        boxShadow: groundedShadow,
+                        '&:hover': {
+                            boxShadow: groundedShadow,
+                            transform: 'none',
+                        },
+                    }
                 }}
             >
                 <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
