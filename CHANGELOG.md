@@ -11,7 +11,8 @@ files. Every handler, OAuth param parse, `/oauth2/authorize/complete`
 call, postMessage event (`fivucsas:ready`, `fivucsas:step-change`,
 `fivucsas:complete`, `fivucsas:cancel`, `fivucsas:error`, `fivucsas:config`),
 frame-bust effect, `assertSafeRedirectScheme` guard, CSP meta,
-`Permissions-Policy` delegation, all 10 step components, and the SDK
+`Permissions-Policy` delegation, all 11 step components
+(10 auth methods + `MethodPickerStep`), and the SDK
 (`fivucsas-auth.js` + `.esm.js`) are **untouched**. Integrators' SRI
 hashes remain valid.
 
@@ -49,14 +50,15 @@ hashes remain valid.
 - Header: title now uses the display font family with tighter tracking;
   cancel button gains a compact close icon and better flex alignment so
   the gradient title can wrap cleanly on narrow widgets.
-- `phase` state machine, every step component (`PasswordStep`,
-  `MethodPickerStep`, `TotpStep`, `SmsOtpStep`, `EmailOtpMfaStep`,
-  `FaceCaptureStep`, `VoiceStep`, `FingerprintStep`, `QrCodeStep`,
-  `HardwareKeyStep`, `NfcStep`), every API call (login / verifyMfaStep /
-  WebAuthn challenge / QR generate / SMS send), every callback
-  (`handlePasswordSubmit`, `handleMfaResult`, `handleMethodSelected`,
-  `handleBackToMethodSelection`, `handleBackToPassword`, `verifyStep`,
-  `requestWebAuthnChallenge`), and all i18n keys unchanged.
+- `phase` state machine, every one of the 11 step components
+  (`PasswordStep`, `MethodPickerStep`, `TotpStep`, `SmsOtpStep`,
+  `EmailOtpMfaStep`, `FaceCaptureStep`, `VoiceStep`, `FingerprintStep`,
+  `QrCodeStep`, `HardwareKeyStep`, `NfcStep`), every API call (login /
+  verifyMfaStep / WebAuthn challenge / QR generate / SMS send), every
+  callback (`handlePasswordSubmit`, `handleMfaResult`,
+  `handleMethodSelected`, `handleBackToMethodSelection`,
+  `handleBackToPassword`, `verifyStep`, `requestWebAuthnChallenge`), and
+  all i18n keys unchanged.
 
 ### Deploy verification (2026-04-22b)
 - `npm run build:verify` clean.
