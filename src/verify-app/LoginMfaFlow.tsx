@@ -349,20 +349,31 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
 
     return (
         <motion.div
-            initial={{ opacity: 0, y: 20 }}
+            initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, ease: EASE_OUT }}
+            transition={{ duration: 0.45, ease: EASE_OUT }}
         >
             <Card
                 sx={{
                     maxWidth: 520,
                     width: '100%',
                     mx: 'auto',
-                    borderRadius: '24px',
-                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.15)',
+                    borderRadius: '20px',
                     border: '1px solid',
                     borderColor: 'divider',
                     overflow: 'visible',
+                    // Softer, mode-aware elevation. The default MuiCard hover lift
+                    // is overridden because MFA flow cards should feel grounded,
+                    // not interactive-on-hover.
+                    boxShadow: (th) => th.palette.mode === 'dark'
+                        ? '0 8px 24px -8px rgba(0,0,0,0.5)'
+                        : '0 8px 24px -8px rgba(15,23,42,0.12), 0 2px 6px -2px rgba(15,23,42,0.06)',
+                    '&:hover': {
+                        boxShadow: (th) => th.palette.mode === 'dark'
+                            ? '0 8px 24px -8px rgba(0,0,0,0.5)'
+                            : '0 8px 24px -8px rgba(15,23,42,0.12), 0 2px 6px -2px rgba(15,23,42,0.06)',
+                        transform: 'none',
+                    },
                 }}
             >
                 <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
@@ -383,14 +394,20 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                         sx={{
                             display: 'flex',
                             justifyContent: 'space-between',
-                            alignItems: 'center',
+                            alignItems: 'flex-start',
+                            gap: 1.5,
                             mb: 3,
                         }}
                     >
                         <Typography
                             variant="h5"
                             sx={{
+                                fontFamily: '"Poppins", "Inter", sans-serif',
                                 fontWeight: 700,
+                                letterSpacing: '-0.02em',
+                                lineHeight: 1.2,
+                                flexGrow: 1,
+                                minWidth: 0,
                                 background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                                 backgroundClip: 'text',
                                 WebkitBackgroundClip: 'text',
@@ -404,8 +421,14 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                             size="small"
                             onClick={onCancel}
                             disabled={loading}
-                            startIcon={<Close />}
-                            sx={{ color: 'text.secondary', minWidth: 'auto' }}
+                            startIcon={<Close fontSize="small" />}
+                            sx={{
+                                color: 'text.secondary',
+                                flexShrink: 0,
+                                minWidth: 'auto',
+                                fontWeight: 500,
+                                px: 1.25,
+                            }}
                         >
                             {t('widget.cancel')}
                         </Button>
