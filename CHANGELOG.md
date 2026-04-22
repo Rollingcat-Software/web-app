@@ -2,6 +2,86 @@
 
 ## [Unreleased]
 
+### Design system refresh — 2026-04-22 (Scope A: theme + app shell)
+
+Zero functional change. Every route, handler, test id, i18n key, `aria-*`
+attribute, and component API is preserved. All 608 Vitest tests stay
+green, lint 0 errors, `npm run build` clean.
+
+**`src/theme.ts`** — full rewrite.
+- Calibrated **ink scale** (light + dark) with surface / paper / border /
+  divider tokens tuned for contrast and depth parity across modes.
+- **Palette**: primary `#6366f1` → `#8b5cf6` gradient retained for brand
+  continuity; secondary / success / warning / error / info hues refreshed
+  with matched `lighter` ramps for dark + light.
+- **Typography**: Poppins display hierarchy (h1–h6) with tighter letter
+  spacing and optical-rhythm line-heights; Inter for body and UI; tabular
+  numerics; `ss01 / ss02 / cv01 / cv09` feature settings enabled.
+- **Shadow ramp**: 8-tier graduated system tuned for both modes
+  (plateau above tier 8 per MUI's 24-slot requirement).
+- **Component overrides** refined: `MuiButton` (gradient primary, focus-ring,
+  micro-lift on hover), `MuiCard` (soft border + layered hover elevation),
+  `MuiTextField` (focus ring at 3px alpha + border widen), `MuiTableCell`
+  (compact uppercase heads), `MuiChip`, `MuiAlert` (tinted background +
+  matched border), `MuiDialog` (18px radius + no elevation gradient),
+  `MuiAppBar` (glass backdrop), `MuiMenu`/`MuiMenuItem`, `MuiListItemButton`,
+  `MuiTabs`, `MuiLinearProgress`, `MuiCircularProgress`, `MuiSkeleton`.
+- Global `*:focus-visible` ring and refined scrollbar styling on `body`.
+- CSS variables (`--app-radius-*`) exposed at `:root` for consumers.
+
+**`src/components/layout/Sidebar.tsx`** — visual refresh.
+- Nav now **grouped** into Overview / Access / Security / Biometrics /
+  Personal (all via existing `menuItems`; no route or label changes).
+- Active item shows a gradient left-edge bar + tinted background + bold
+  weight; `aria-current="page"` emitted for the active item.
+- Admin-only items carry a small `nav.badgeAdmin` chip.
+- Brand mark uses gradient block + "Identity · Verified" micro-caption.
+- Footer tile: animated green status dot + `status.fivucsas.com` pointer
+  (copy via new `sidebar.systemStatus` key).
+- **Preserved**: `<Box component="nav">` (so `role="navigation"` resolves),
+  MUI `ListItemButton` (so `role="button"` resolves with translated
+  accessible name), full `menuItems` array (labelKey / icon / path /
+  adminOnly), `user?.isAdmin()` filter. E2E `navigation.spec.ts`
+  selectors unchanged.
+
+**`src/components/layout/TopBar.tsx`** — visual refresh.
+- Glass AppBar with blur-saturate backdrop, Poppins page title, tighter
+  right cluster (language toggle / theme toggle / `NotificationPanel` /
+  divider / user menu), gradient avatar with ring-on-hover.
+- User menu redrawn with avatar + name + email + role chip.
+- **Preserved**: `getPageTitle()` path→i18n-key mapping, every `onClick`
+  handler (`toggleLanguage`, `toggleMode`, `handleLogout`, `handleSettings`),
+  every tooltip + `aria-label` + `aria-haspopup` attribute, `NotificationPanel`
+  untouched.
+
+**`src/components/layout/DashboardLayout.tsx`** — visual refresh.
+- Ambient gradient canvas (radial glows) behind content; refined
+  breadcrumb styling; elevated footer typography.
+- **Preserved**: `BREADCRUMB_I18N_MAP` (all keys, all routes),
+  `#main-content` id + `tabIndex={-1}` (skip-link target), `Outlet`
+  placement, footer `terms` / `privacy` route links, mobile drawer
+  toggle wiring.
+
+**`src/components/layout/PublicLayout.tsx`** — visual refresh.
+- Glass AppBar with gradient logo mark + FIVUCSAS wordmark; CTA promoted
+  to `variant="contained"` for unauthenticated users.
+- **Preserved**: routing targets (`/`, `/login`, `/terms`, `/privacy`),
+  i18n keys (`publicLayout.backToDashboard`, `publicLayout.signIn`,
+  `footer.*`), `Outlet` container.
+
+**`src/i18n/locales/en.json` + `tr.json`** — additive only.
+- Added `nav.group.{overview,access,security,biometrics,personal}`,
+  `nav.badgeAdmin`, `nav.primary`, `sidebar.systemStatus`.
+- No existing keys renamed or removed; parity preserved across both
+  locales.
+
+### Out of scope
+- No feature pages touched; every page inherits the new tokens via MUI
+  theming.
+- No changes to `verify-app/` (hosted login + widget) — planned separately.
+- No SDK changes — `fivucsas-auth.js` SRI hash on integrators remains
+  valid.
+
 ### Accessibility
 - **FE-H4 a11y sweep (2026-04-20)** — every Zod-validated `TextField` in
   `UserFormPage`, `TenantFormPage`, `ForgotPasswordPage`, and

@@ -101,7 +101,16 @@
     "widgetDemo": "Auth Widget",
     "developerPortal": "Developer Portal",
     "settings": "Settings",
-    "myProfile": "My Profile"
+    "myProfile": "My Profile",
+    "group": {
+      "overview": "Overview",
+      "access": "Access & Tenancy",
+      "security": "Security",
+      "biometrics": "Biometrics",
+      "personal": "Personal"
+    },
+    "badgeAdmin": "Admin",
+    "primary": "Primary navigation"
   },
   "topbar": {
     "darkMode": "Switch to dark mode",
@@ -1480,5 +1489,8 @@
     "emailLabel": "Email Address",
     "passwordLabel": "Password",
     "verify": "Verify"
+  },
+  "sidebar": {
+    "systemStatus": "All systems operational"
   }
 }

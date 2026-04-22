@@ -101,7 +101,16 @@
     "widgetDemo": "Kimlik Bileşeni",
     "developerPortal": "Geliştirici Portalı",
     "settings": "Ayarlar",
-    "myProfile": "Profilim"
+    "myProfile": "Profilim",
+    "group": {
+      "overview": "Genel Bakış",
+      "access": "Erişim & Kiracılık",
+      "security": "Güvenlik",
+      "biometrics": "Biyometri",
+      "personal": "Kişisel"
+    },
+    "badgeAdmin": "Yönetici",
+    "primary": "Birincil gezinme"
   },
   "topbar": {
     "darkMode": "Karanlık moda geç",
@@ -1480,5 +1489,8 @@
     "emailLabel": "E-posta Adresi",
     "passwordLabel": "Şifre",
     "verify": "Doğrula"
+  },
+  "sidebar": {
+    "systemStatus": "Tüm sistemler çalışıyor"
   }
 }
