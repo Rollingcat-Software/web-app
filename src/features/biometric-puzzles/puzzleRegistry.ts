@@ -1,48 +1,55 @@
 /**
- * puzzleRegistry
+ * puzzleRegistry — catalog of biometric micro-challenges.
  *
- * Single source of truth for the Biometric Puzzle playground. Each entry maps
- * an AuthMethodType to a stub-capable wrapper around the existing step
- * component. The landing website will later consume the same registry via a
- * shared package.
+ * A biometric puzzle is a small active-liveness challenge performed with the
+ * camera: "blink", "smile", "turn head left", "wave", "show 3 fingers", etc.
+ * NOT auth methods like EMAIL_OTP / SMS / TOTP / QR / HARDWARE_KEY (those are
+ * code-based factors, not biometric signals).
  *
- * We deliberately DO NOT duplicate the step components — each puzzle wrapper
- * lives next to this file (see `./puzzles/*Puzzle.tsx`) and simply bridges
- * the step's `onSubmit`/`onAuthenticated` callbacks to the unified
- * `PuzzleProps` contract (`onSuccess`, `onError`, `onClose`).
+ * The catalog mirrors the two ported libraries:
+ *   - 14 face challenges from `src/lib/biometric-engine/core/BiometricPuzzle.ts`
+ *     (itself a port of `practice-and-test/demo_local_fast.py`).
+ *   - 9 hand/gesture challenges from `practice-and-test/GestureAnalysis/`.
+ *
+ * Each registry entry maps a `BiometricPuzzleId` to:
+ *   - a component that runs the challenge in the playground,
+ *   - an icon + i18n key root for the card,
+ *   - difficulty + platform-support metadata.
+ *
+ * Components today:
+ *   - Face puzzles → `FacePuzzle` (wraps `FaceCaptureStep`; challenge-specific
+ *     targeting lands with the next pass).
+ *   - Hand puzzles → `HandGesturePlaceholderPuzzle` — a visual stub that
+ *     simulates detection until the `@mediapipe/tasks-vision` integration from
+ *     PR #31 (`feat/gesture-phase2-web`) lands.
  */
 import type { ComponentType } from 'react'
 import type { SvgIconComponent } from '@mui/icons-material'
 import {
-    Email,
+    EmojiEmotions,
     Face,
-    Fingerprint,
-    Key,
-    Nfc,
-    PhonelinkLock,
-    QrCode2,
-    RecordVoiceOver,
-    Sms,
+    HighlightOff,
+    MenuBook,
+    MoodBad,
+    PanTool,
+    PinchOutlined,
+    RotateLeft,
+    RotateRight,
+    SentimentSatisfiedAlt,
+    TouchApp,
+    Visibility,
+    VisibilityOff,
+    WavingHand,
+    WbSunny,
 } from '@mui/icons-material'
-import { AuthMethodType } from '@domain/models/AuthMethod'
+// `FrontHand` only exists in newer @mui/icons-material versions — alias
+// PanTool as a visual stand-in for hand challenges to keep the build on the
+// pinned icons version.
+const FrontHand = PanTool
 import FacePuzzle from './puzzles/FacePuzzle'
-import VoicePuzzle from './puzzles/VoicePuzzle'
-import FingerprintPuzzle from './puzzles/FingerprintPuzzle'
-import NfcPuzzle from './puzzles/NfcPuzzle'
-import TotpPuzzle from './puzzles/TotpPuzzle'
-import SmsPuzzle from './puzzles/SmsPuzzle'
-import EmailOtpPuzzle from './puzzles/EmailOtpPuzzle'
-import QrCodePuzzle from './puzzles/QrCodePuzzle'
-import HardwareKeyPuzzle from './puzzles/HardwareKeyPuzzle'
+import { makeHandGesturePlaceholder } from './puzzles/HandGesturePlaceholderPuzzle'
+import { BiometricPuzzleId, type PuzzleModality } from './BiometricPuzzleId'
 
-/**
- * Props every puzzle component receives.
- *
- * - `onSuccess` — the stubbed challenge was completed (fires ~500ms after
- *   the underlying step component hands back its answer).
- * - `onError`  — puzzle-level error (rare in stub mode; kept for parity).
- * - `onClose`  — the user dismissed the puzzle; parent should close the modal.
- */
 export interface PuzzleProps {
     onSuccess: () => void
     onError: (message: string) => void
@@ -51,18 +58,11 @@ export interface PuzzleProps {
 
 export type PuzzlePlatform = 'web' | 'android' | 'ios' | 'desktop'
 export type PuzzleDifficulty = 'beginner' | 'intermediate' | 'advanced'
-
-/**
- * Runtime capability — puzzles can either be `stubbedOnly` (mocked inside the
- * playground, e.g. NFC on desktop) or `realCapable` (end-to-end once wired
- * into a tenant flow). The PuzzleRunnerModal always runs in stub mode
- * regardless, but admins can read this flag to set expectations.
- */
 export type PuzzleCapability = 'stubbedOnly' | 'realCapable'
 
 export interface Puzzle {
-    id: AuthMethodType
-    /** i18n key root, e.g. `biometricPuzzle.puzzles.face` */
+    id: BiometricPuzzleId
+    modality: PuzzleModality
     i18nKey: string
     component: ComponentType<PuzzleProps>
     difficulty: PuzzleDifficulty
@@ -72,116 +72,279 @@ export interface Puzzle {
     capability: PuzzleCapability
 }
 
-/**
- * Every registered puzzle — ordered so the page renders a pleasant
- * "easy to hard" reading path by default.
- *
- * Excluded by design (for now):
- * - PASSWORD — not a biometric challenge; covered elsewhere.
- * - GESTURE_LIVENESS — not yet in AuthMethodType; lands with Phase 1 backend.
- */
-export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
-    [AuthMethodType.EMAIL_OTP]: {
-        id: AuthMethodType.EMAIL_OTP,
-        i18nKey: 'biometricPuzzle.puzzles.email_otp',
-        component: EmailOtpPuzzle,
+// Shared FacePuzzle component — kept identical across all 14 face challenges
+// until per-challenge targeting lands. Rendering is the same; only the card
+// and instructional copy differ (driven by i18nKey).
+const PUZZLES: Record<BiometricPuzzleId, Puzzle> = {
+    // ─── Face (14) ───────────────────────────────────────────────────
+    [BiometricPuzzleId.FACE_BLINK]: {
+        id: BiometricPuzzleId.FACE_BLINK,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_blink',
+        component: FacePuzzle,
         difficulty: 'beginner',
         platforms: ['web', 'android', 'ios', 'desktop'],
-        icon: Email,
+        icon: VisibilityOff,
         requiresEnrollment: false,
         capability: 'realCapable',
     },
-    [AuthMethodType.SMS_OTP]: {
-        id: AuthMethodType.SMS_OTP,
-        i18nKey: 'biometricPuzzle.puzzles.sms',
-        component: SmsPuzzle,
+    [BiometricPuzzleId.FACE_CLOSE_LEFT]: {
+        id: BiometricPuzzleId.FACE_CLOSE_LEFT,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_close_left',
+        component: FacePuzzle,
         difficulty: 'beginner',
         platforms: ['web', 'android', 'ios', 'desktop'],
-        icon: Sms,
+        icon: Visibility,
         requiresEnrollment: false,
         capability: 'realCapable',
     },
-    [AuthMethodType.TOTP]: {
-        id: AuthMethodType.TOTP,
-        i18nKey: 'biometricPuzzle.puzzles.totp',
-        component: TotpPuzzle,
+    [BiometricPuzzleId.FACE_CLOSE_RIGHT]: {
+        id: BiometricPuzzleId.FACE_CLOSE_RIGHT,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_close_right',
+        component: FacePuzzle,
         difficulty: 'beginner',
         platforms: ['web', 'android', 'ios', 'desktop'],
-        icon: PhonelinkLock,
-        requiresEnrollment: true,
+        icon: Visibility,
+        requiresEnrollment: false,
         capability: 'realCapable',
     },
-    [AuthMethodType.QR_CODE]: {
-        id: AuthMethodType.QR_CODE,
-        i18nKey: 'biometricPuzzle.puzzles.qr',
-        component: QrCodePuzzle,
+    [BiometricPuzzleId.FACE_SMILE]: {
+        id: BiometricPuzzleId.FACE_SMILE,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_smile',
+        component: FacePuzzle,
+        difficulty: 'beginner',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: SentimentSatisfiedAlt,
+        requiresEnrollment: false,
+        capability: 'realCapable',
+    },
+    [BiometricPuzzleId.FACE_OPEN_MOUTH]: {
+        id: BiometricPuzzleId.FACE_OPEN_MOUTH,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_open_mouth',
+        component: FacePuzzle,
+        difficulty: 'beginner',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: MoodBad,
+        requiresEnrollment: false,
+        capability: 'realCapable',
+    },
+    [BiometricPuzzleId.FACE_TURN_LEFT]: {
+        id: BiometricPuzzleId.FACE_TURN_LEFT,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_turn_left',
+        component: FacePuzzle,
         difficulty: 'intermediate',
         platforms: ['web', 'android', 'ios', 'desktop'],
-        icon: QrCode2,
+        icon: RotateLeft,
         requiresEnrollment: false,
         capability: 'realCapable',
     },
-    [AuthMethodType.FACE]: {
-        id: AuthMethodType.FACE,
-        i18nKey: 'biometricPuzzle.puzzles.face',
+    [BiometricPuzzleId.FACE_TURN_RIGHT]: {
+        id: BiometricPuzzleId.FACE_TURN_RIGHT,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_turn_right',
+        component: FacePuzzle,
+        difficulty: 'intermediate',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: RotateRight,
+        requiresEnrollment: false,
+        capability: 'realCapable',
+    },
+    [BiometricPuzzleId.FACE_LOOK_UP]: {
+        id: BiometricPuzzleId.FACE_LOOK_UP,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_look_up',
+        component: FacePuzzle,
+        difficulty: 'intermediate',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: WbSunny,
+        requiresEnrollment: false,
+        capability: 'realCapable',
+    },
+    [BiometricPuzzleId.FACE_LOOK_DOWN]: {
+        id: BiometricPuzzleId.FACE_LOOK_DOWN,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_look_down',
+        component: FacePuzzle,
+        difficulty: 'intermediate',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: MenuBook,
+        requiresEnrollment: false,
+        capability: 'realCapable',
+    },
+    [BiometricPuzzleId.FACE_RAISE_BOTH_BROWS]: {
+        id: BiometricPuzzleId.FACE_RAISE_BOTH_BROWS,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_raise_both_brows',
+        component: FacePuzzle,
+        difficulty: 'intermediate',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: EmojiEmotions,
+        requiresEnrollment: false,
+        capability: 'realCapable',
+    },
+    [BiometricPuzzleId.FACE_RAISE_LEFT_BROW]: {
+        id: BiometricPuzzleId.FACE_RAISE_LEFT_BROW,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_raise_left_brow',
+        component: FacePuzzle,
+        difficulty: 'advanced',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: EmojiEmotions,
+        requiresEnrollment: false,
+        capability: 'realCapable',
+    },
+    [BiometricPuzzleId.FACE_RAISE_RIGHT_BROW]: {
+        id: BiometricPuzzleId.FACE_RAISE_RIGHT_BROW,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_raise_right_brow',
+        component: FacePuzzle,
+        difficulty: 'advanced',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: EmojiEmotions,
+        requiresEnrollment: false,
+        capability: 'realCapable',
+    },
+    [BiometricPuzzleId.FACE_NOD]: {
+        id: BiometricPuzzleId.FACE_NOD,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_nod',
         component: FacePuzzle,
         difficulty: 'intermediate',
         platforms: ['web', 'android', 'ios', 'desktop'],
         icon: Face,
-        requiresEnrollment: true,
+        requiresEnrollment: false,
         capability: 'realCapable',
     },
-    [AuthMethodType.VOICE]: {
-        id: AuthMethodType.VOICE,
-        i18nKey: 'biometricPuzzle.puzzles.voice',
-        component: VoicePuzzle,
+    [BiometricPuzzleId.FACE_SHAKE_HEAD]: {
+        id: BiometricPuzzleId.FACE_SHAKE_HEAD,
+        modality: 'face',
+        i18nKey: 'biometricPuzzle.puzzles.face_shake_head',
+        component: FacePuzzle,
         difficulty: 'intermediate',
         platforms: ['web', 'android', 'ios', 'desktop'],
-        icon: RecordVoiceOver,
-        requiresEnrollment: true,
+        icon: HighlightOff,
+        requiresEnrollment: false,
         capability: 'realCapable',
     },
-    [AuthMethodType.FINGERPRINT]: {
-        id: AuthMethodType.FINGERPRINT,
-        i18nKey: 'biometricPuzzle.puzzles.fingerprint',
-        component: FingerprintPuzzle,
-        difficulty: 'advanced',
-        platforms: ['android', 'ios', 'desktop'],
-        icon: Fingerprint,
-        requiresEnrollment: true,
-        capability: 'realCapable',
-    },
-    [AuthMethodType.NFC_DOCUMENT]: {
-        id: AuthMethodType.NFC_DOCUMENT,
-        i18nKey: 'biometricPuzzle.puzzles.nfc',
-        component: NfcPuzzle,
-        difficulty: 'advanced',
-        platforms: ['web', 'android'],
-        icon: Nfc,
+
+    // ─── Hand / gesture (9) ──────────────────────────────────────────
+    // All use the placeholder until PR #31 (gesture Phase 2 web) merges.
+    // The placeholder reads i18nKey from registry to render the right copy.
+    [BiometricPuzzleId.HAND_FINGER_COUNT]: {
+        id: BiometricPuzzleId.HAND_FINGER_COUNT,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_finger_count',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_finger_count'),
+        difficulty: 'beginner',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: FrontHand,
         requiresEnrollment: false,
         capability: 'stubbedOnly',
     },
-    [AuthMethodType.HARDWARE_KEY]: {
-        id: AuthMethodType.HARDWARE_KEY,
-        i18nKey: 'biometricPuzzle.puzzles.hardware_key',
-        component: HardwareKeyPuzzle,
+    [BiometricPuzzleId.HAND_WAVE]: {
+        id: BiometricPuzzleId.HAND_WAVE,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_wave',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_wave'),
+        difficulty: 'beginner',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: WavingHand,
+        requiresEnrollment: false,
+        capability: 'stubbedOnly',
+    },
+    [BiometricPuzzleId.HAND_FLIP]: {
+        id: BiometricPuzzleId.HAND_FLIP,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_flip',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_flip'),
+        difficulty: 'beginner',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: PanTool,
+        requiresEnrollment: false,
+        capability: 'stubbedOnly',
+    },
+    [BiometricPuzzleId.HAND_FINGER_TAP]: {
+        id: BiometricPuzzleId.HAND_FINGER_TAP,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_finger_tap',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_finger_tap'),
+        difficulty: 'intermediate',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: TouchApp,
+        requiresEnrollment: false,
+        capability: 'stubbedOnly',
+    },
+    [BiometricPuzzleId.HAND_PINCH]: {
+        id: BiometricPuzzleId.HAND_PINCH,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_pinch',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_pinch'),
+        difficulty: 'intermediate',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: PinchOutlined,
+        requiresEnrollment: false,
+        capability: 'stubbedOnly',
+    },
+    [BiometricPuzzleId.HAND_PEEK_A_BOO]: {
+        id: BiometricPuzzleId.HAND_PEEK_A_BOO,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_peek_a_boo',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_peek_a_boo'),
+        difficulty: 'intermediate',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: Visibility,
+        requiresEnrollment: false,
+        capability: 'stubbedOnly',
+    },
+    [BiometricPuzzleId.HAND_SHAPE_TRACE]: {
+        id: BiometricPuzzleId.HAND_SHAPE_TRACE,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_shape_trace',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_shape_trace'),
         difficulty: 'advanced',
-        platforms: ['web', 'desktop'],
-        icon: Key,
-        requiresEnrollment: true,
-        capability: 'realCapable',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: FrontHand,
+        requiresEnrollment: false,
+        capability: 'stubbedOnly',
+    },
+    [BiometricPuzzleId.HAND_TRACE_TEMPLATE]: {
+        id: BiometricPuzzleId.HAND_TRACE_TEMPLATE,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_trace_template',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_trace_template'),
+        difficulty: 'advanced',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: FrontHand,
+        requiresEnrollment: false,
+        capability: 'stubbedOnly',
+    },
+    [BiometricPuzzleId.HAND_MATH]: {
+        id: BiometricPuzzleId.HAND_MATH,
+        modality: 'hand',
+        i18nKey: 'biometricPuzzle.puzzles.hand_math',
+        component: makeHandGesturePlaceholder('biometricPuzzle.puzzles.hand_math'),
+        difficulty: 'advanced',
+        platforms: ['web', 'android', 'ios', 'desktop'],
+        icon: FrontHand,
+        requiresEnrollment: false,
+        capability: 'stubbedOnly',
     },
 }
 
-/**
- * Iteration helper — returns registry entries in insertion order.
- */
+export const PUZZLE_REGISTRY: Readonly<Record<BiometricPuzzleId, Puzzle>> = PUZZLES
+
 export function listPuzzles(): Puzzle[] {
-    return Object.values(PUZZLE_REGISTRY).filter(
-        (p): p is Puzzle => p !== undefined,
-    )
+    return Object.values(PUZZLES)
 }
 
-export function getPuzzle(id: AuthMethodType): Puzzle | undefined {
-    return PUZZLE_REGISTRY[id]
+export function getPuzzle(id: BiometricPuzzleId): Puzzle | undefined {
+    return PUZZLES[id]
 }
+
+export { BiometricPuzzleId } from './BiometricPuzzleId'
+export type { PuzzleModality } from './BiometricPuzzleId'

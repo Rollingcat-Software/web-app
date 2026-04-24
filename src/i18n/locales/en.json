@@ -1553,7 +1553,102 @@
       "hardware_key": {
         "title": "Hardware Security Key",
         "description": "Use a FIDO2 or WebAuthn key (YubiKey, Titan, platform authenticator) to approve the challenge."
+      },
+      "face_blink": {
+        "title": "Blink Both Eyes",
+        "description": "Close both eyes simultaneously for a moment, then open them."
+      },
+      "face_close_left": {
+        "title": "Close Your Left Eye",
+        "description": "Wink with the left side of your face."
+      },
+      "face_close_right": {
+        "title": "Close Your Right Eye",
+        "description": "Wink with the right side of your face."
+      },
+      "face_smile": {
+        "title": "Smile (Show Teeth)",
+        "description": "Give a wide smile — show some teeth."
+      },
+      "face_open_mouth": {
+        "title": "Open Mouth Wide",
+        "description": "Open your mouth clearly, then close it."
+      },
+      "face_turn_left": {
+        "title": "Turn Head Left",
+        "description": "Rotate your head to your left."
+      },
+      "face_turn_right": {
+        "title": "Turn Head Right",
+        "description": "Rotate your head to your right."
+      },
+      "face_look_up": {
+        "title": "Look Up",
+        "description": "Lift your chin — look up at the ceiling."
+      },
+      "face_look_down": {
+        "title": "Look Down",
+        "description": "Tuck your chin — look toward the floor."
+      },
+      "face_raise_both_brows": {
+        "title": "Raise Both Eyebrows",
+        "description": "Lift both eyebrows at the same time."
+      },
+      "face_raise_left_brow": {
+        "title": "Raise Your Left Eyebrow",
+        "description": "Lift only the left eyebrow."
+      },
+      "face_raise_right_brow": {
+        "title": "Raise Your Right Eyebrow",
+        "description": "Lift only the right eyebrow."
+      },
+      "face_nod": {
+        "title": "Nod",
+        "description": "Nod your head — up then down."
+      },
+      "face_shake_head": {
+        "title": "Shake Head",
+        "description": "Shake your head — left then right."
+      },
+      "hand_finger_count": {
+        "title": "Show N Fingers",
+        "description": "Hold up the number of fingers shown on screen."
+      },
+      "hand_wave": {
+        "title": "Wave Your Hand",
+        "description": "Wave your open hand left and right."
+      },
+      "hand_flip": {
+        "title": "Flip Your Hand",
+        "description": "Show palm, then back of hand, then palm."
+      },
+      "hand_finger_tap": {
+        "title": "Finger Tap",
+        "description": "Tap your thumb and index finger together repeatedly."
+      },
+      "hand_pinch": {
+        "title": "Pinch",
+        "description": "Pinch thumb and index finger together."
+      },
+      "hand_peek_a_boo": {
+        "title": "Peek-a-Boo",
+        "description": "Cover your eyes with your open hand, then reveal them."
+      },
+      "hand_shape_trace": {
+        "title": "Trace a Shape",
+        "description": "Trace the outlined shape with your fingertip."
+      },
+      "hand_trace_template": {
+        "title": "Trace a Letter",
+        "description": "Trace the highlighted letter template."
+      },
+      "hand_math": {
+        "title": "Hand Math",
+        "description": "Answer the arithmetic question by holding up fingers."
       }
-    }
+    },
+    "handComingSoon": "Hand gesture detection is still being wired up. The real MediaPipe HandLandmarker lands with the next release — this screen simulates a successful detection for the demo.",
+    "simulatingDetection": "Simulating detection…",
+    "skipDemo": "Skip demo"
   }
 }

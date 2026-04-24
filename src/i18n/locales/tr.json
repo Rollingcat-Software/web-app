@@ -1553,7 +1553,102 @@
       "hardware_key": {
         "title": "Donanım Güvenlik Anahtarı",
         "description": "Sorgulamayı onaylamak için bir FIDO2 veya WebAuthn anahtarı (YubiKey, Titan, platform kimlik doğrulayıcısı) kullanın."
+      },
+      "face_blink": {
+        "title": "İki Gözünü Kırp",
+        "description": "Her iki gözünü aynı anda kısa bir an için kapat ve sonra aç."
+      },
+      "face_close_left": {
+        "title": "Sol Gözünü Kapat",
+        "description": "Yüzünün sol tarafıyla göz kırp."
+      },
+      "face_close_right": {
+        "title": "Sağ Gözünü Kapat",
+        "description": "Yüzünün sağ tarafıyla göz kırp."
+      },
+      "face_smile": {
+        "title": "Gülümse (Dişleri Göster)",
+        "description": "Dişlerin görünecek şekilde geniş gülümse."
+      },
+      "face_open_mouth": {
+        "title": "Ağzını Aç",
+        "description": "Ağzını net şekilde aç ve sonra kapat."
+      },
+      "face_turn_left": {
+        "title": "Başını Sola Çevir",
+        "description": "Başını sola döndür."
+      },
+      "face_turn_right": {
+        "title": "Başını Sağa Çevir",
+        "description": "Başını sağa döndür."
+      },
+      "face_look_up": {
+        "title": "Yukarı Bak",
+        "description": "Çeneni yukarı kaldırarak tavana doğru bak."
+      },
+      "face_look_down": {
+        "title": "Aşağı Bak",
+        "description": "Çeneni göğsüne yaklaştırarak aşağı bak."
+      },
+      "face_raise_both_brows": {
+        "title": "İki Kaşını Kaldır",
+        "description": "Aynı anda her iki kaşını yukarı kaldır."
+      },
+      "face_raise_left_brow": {
+        "title": "Sol Kaşını Kaldır",
+        "description": "Yalnızca sol kaşını yukarı kaldır."
+      },
+      "face_raise_right_brow": {
+        "title": "Sağ Kaşını Kaldır",
+        "description": "Yalnızca sağ kaşını yukarı kaldır."
+      },
+      "face_nod": {
+        "title": "Başını Salla (Yukarı/Aşağı)",
+        "description": "Başını evet anlamında salla — yukarı-aşağı."
+      },
+      "face_shake_head": {
+        "title": "Başını Salla (Sağa/Sola)",
+        "description": "Başını hayır anlamında salla — sağa-sola."
+      },
+      "hand_finger_count": {
+        "title": "N Parmak Göster",
+        "description": "Ekranda gösterilen sayı kadar parmak kaldır."
+      },
+      "hand_wave": {
+        "title": "Elini Salla",
+        "description": "Açık elini sağa-sola sallayarak selam ver."
+      },
+      "hand_flip": {
+        "title": "Elini Çevir",
+        "description": "Önce avucunu, sonra elinin arkasını, sonra tekrar avucunu göster."
+      },
+      "hand_finger_tap": {
+        "title": "Parmağını Tıklat",
+        "description": "Baş parmağın ile işaret parmağını birkaç kez birbirine vur."
+      },
+      "hand_pinch": {
+        "title": "Parmaklarını Birleştir",
+        "description": "Baş parmakla işaret parmağını birleştir."
+      },
+      "hand_peek_a_boo": {
+        "title": "Cee Oyunu",
+        "description": "Açık elinle gözlerini kapat ve sonra aç."
+      },
+      "hand_shape_trace": {
+        "title": "Şekli Takip Et",
+        "description": "Ekrandaki şekli parmak ucunla takip et."
+      },
+      "hand_trace_template": {
+        "title": "Harfi Takip Et",
+        "description": "Ekrandaki harf şablonunu parmak ucunla çiz."
+      },
+      "hand_math": {
+        "title": "Parmak Matematiği",
+        "description": "Sorulan işlemin cevabını parmaklarınla göster."
       }
-    }
+    },
+    "handComingSoon": "El hareketi algılaması hâlâ geliştiriliyor. Gerçek MediaPipe HandLandmarker bir sonraki sürümde eklenecek — bu ekran demo için başarılı algılamayı simüle ediyor.",
+    "simulatingDetection": "Algılama simüle ediliyor…",
+    "skipDemo": "Demoyu atla"
   }
 }
