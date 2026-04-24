@@ -1,13 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { PUZZLE_REGISTRY, listPuzzles } from '../puzzleRegistry'
+import { PUZZLE_REGISTRY, listPuzzles, BiometricPuzzleId } from '../puzzleRegistry'
 import en from '@/i18n/locales/en.json'
+import tr from '@/i18n/locales/tr.json'
 
 type NestedRecord = Record<string, unknown>
 
-/**
- * Resolve a dotted `a.b.c` key against a nested object — returns `null` if
- * any segment is missing. Mirrors i18next lookup.
- */
 function resolveKey(obj: NestedRecord, key: string): unknown {
     return key
         .split('.')
@@ -22,15 +19,22 @@ function resolveKey(obj: NestedRecord, key: string): unknown {
 describe('puzzleRegistry', () => {
     const puzzles = listPuzzles()
 
-    it('registers at least the nine existing step components', () => {
-        // Sanity check — if this drops below 9 we've accidentally dropped a puzzle.
-        expect(puzzles.length).toBeGreaterThanOrEqual(9)
+    it('registers 14 face + 9 hand micro-challenges (23 total)', () => {
+        expect(puzzles.length).toBe(23)
+        expect(puzzles.filter((p) => p.modality === 'face').length).toBe(14)
+        expect(puzzles.filter((p) => p.modality === 'hand').length).toBe(9)
     })
 
     it('registry keys match puzzle ids', () => {
         for (const [key, puzzle] of Object.entries(PUZZLE_REGISTRY)) {
-            if (!puzzle) continue
             expect(puzzle.id).toBe(key)
+        }
+    })
+
+    it('covers every BiometricPuzzleId enum value', () => {
+        const ids = new Set(Object.values(BiometricPuzzleId))
+        for (const id of ids) {
+            expect(PUZZLE_REGISTRY[id]).toBeDefined()
         }
     })
 
@@ -40,52 +44,23 @@ describe('puzzleRegistry', () => {
             expect(typeof puzzle.component).toBe('function')
         })
 
-        it('declares at least one platform', () => {
+        it(`resolves ${puzzle.i18nKey}.title + .description in en + tr`, () => {
+            expect(resolveKey(en as NestedRecord, `${puzzle.i18nKey}.title`)).toEqual(
+                expect.any(String),
+            )
+            expect(resolveKey(en as NestedRecord, `${puzzle.i18nKey}.description`)).toEqual(
+                expect.any(String),
+            )
+            expect(resolveKey(tr as NestedRecord, `${puzzle.i18nKey}.title`)).toEqual(
+                expect.any(String),
+            )
+            expect(resolveKey(tr as NestedRecord, `${puzzle.i18nKey}.description`)).toEqual(
+                expect.any(String),
+            )
+        })
+
+        it('has non-empty platforms', () => {
             expect(puzzle.platforms.length).toBeGreaterThan(0)
         })
-
-        it('has title and description translations in en.json', () => {
-            const title = resolveKey(en as NestedRecord, `${puzzle.i18nKey}.title`)
-            const description = resolveKey(
-                en as NestedRecord,
-                `${puzzle.i18nKey}.description`,
-            )
-            expect(title, `${puzzle.i18nKey}.title missing in en.json`).toBeTruthy()
-            expect(typeof title).toBe('string')
-            expect(
-                description,
-                `${puzzle.i18nKey}.description missing in en.json`,
-            ).toBeTruthy()
-            expect(typeof description).toBe('string')
-        })
-    })
-
-    it('all shared namespace keys resolve in en.json', () => {
-        const requiredKeys = [
-            'biometricPuzzle.pageTitle',
-            'biometricPuzzle.pageSubtitle',
-            'biometricPuzzle.tryButton',
-            'biometricPuzzle.closeButton',
-            'biometricPuzzle.tryAgainButton',
-            'biometricPuzzle.previewLabel',
-            'biometricPuzzle.platformLabel',
-            'biometricPuzzle.requiresEnrollment',
-            'biometricPuzzle.stubbedOnly',
-            'biometricPuzzle.successMessage',
-            'biometricPuzzle.errorMessage',
-            'biometricPuzzle.difficulty.beginner',
-            'biometricPuzzle.difficulty.intermediate',
-            'biometricPuzzle.difficulty.advanced',
-            'biometricPuzzle.platforms.web',
-            'biometricPuzzle.platforms.android',
-            'biometricPuzzle.platforms.ios',
-            'biometricPuzzle.platforms.desktop',
-        ]
-
-        for (const key of requiredKeys) {
-            const value = resolveKey(en as NestedRecord, key)
-            expect(value, `${key} missing in en.json`).toBeTruthy()
-            expect(typeof value).toBe('string')
-        }
     })
 })

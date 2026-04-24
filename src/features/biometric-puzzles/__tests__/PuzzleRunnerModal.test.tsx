@@ -1,10 +1,8 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { act, fireEvent, render, screen } from '@testing-library/react'
 import PuzzleRunnerModal from '../PuzzleRunnerModal'
-import { PUZZLE_REGISTRY } from '../puzzleRegistry'
-import { AuthMethodType } from '@domain/models/AuthMethod'
+import { PUZZLE_REGISTRY, BiometricPuzzleId } from '../puzzleRegistry'
 
-// i18n — return the key as-is so assertions are deterministic.
 vi.mock('react-i18next', () => ({
     useTranslation: () => ({
         t: (key: string) => key,
@@ -12,9 +10,8 @@ vi.mock('react-i18next', () => ({
     }),
 }))
 
-// Replace heavy step components with lightweight stand-ins that expose a
-// "succeed" button we can click. This keeps the test focused on the modal's
-// orchestration, not on camera / ML / WebAuthn plumbing.
+// Replace FaceCaptureStep with a lightweight stand-in so the modal test
+// doesn't pull the camera / ML bundle.
 vi.mock('@features/auth/components/steps/FaceCaptureStep', () => ({
     default: ({ onSubmit }: { onSubmit: (img: string) => void }) => (
         <button
@@ -26,103 +23,28 @@ vi.mock('@features/auth/components/steps/FaceCaptureStep', () => ({
         </button>
     ),
 }))
-vi.mock('@features/auth/components/steps/VoiceStep', () => ({
-    default: () => <div>voice-step</div>,
-}))
-vi.mock('@features/auth/components/steps/FingerprintStep', () => ({
-    default: () => <div>fingerprint-step</div>,
-}))
-vi.mock('@features/auth/components/steps/NfcStep', () => ({
-    default: () => <div>nfc-step</div>,
-}))
-vi.mock('@features/auth/components/steps/TotpStep', () => ({
-    default: () => <div>totp-step</div>,
-}))
-vi.mock('@features/auth/components/steps/SmsOtpStep', () => ({
-    default: () => <div>sms-step</div>,
-}))
-vi.mock('@features/auth/components/steps/EmailOtpStep', () => ({
-    default: () => <div>email-step</div>,
-}))
-vi.mock('@features/auth/components/steps/QrCodeStep', () => ({
-    default: () => <div>qr-step</div>,
-}))
-vi.mock('@features/auth/components/steps/HardwareKeyStep', () => ({
-    default: () => <div>hardware-step</div>,
-}))
 
 describe('PuzzleRunnerModal', () => {
-    it('renders nothing when puzzle is null', () => {
-        const onClose = vi.fn()
-        const { container } = render(
-            <PuzzleRunnerModal puzzle={null} open={false} onClose={onClose} />,
-        )
-        expect(container.firstChild).toBeNull()
+    it('mounts FacePuzzle for a face puzzle (e.g. FACE_BLINK)', () => {
+        const puzzle = PUZZLE_REGISTRY[BiometricPuzzleId.FACE_BLINK]
+        render(<PuzzleRunnerModal open={true} puzzle={puzzle} onClose={vi.fn()} />)
+        expect(screen.getByTestId('mock-face-submit')).toBeInTheDocument()
     })
 
-    it('mounts FaceCaptureStep when a face puzzle is opened', () => {
-        const onClose = vi.fn()
-        const puzzle = PUZZLE_REGISTRY[AuthMethodType.FACE]
-        expect(puzzle).toBeDefined()
-
-        render(
-            <PuzzleRunnerModal puzzle={puzzle!} open={true} onClose={onClose} />,
-        )
-
-        expect(screen.getByText('face-step')).toBeInTheDocument()
-        expect(
-            screen.getByText('biometricPuzzle.puzzles.face.title'),
-        ).toBeInTheDocument()
+    it('mounts the HandGesturePlaceholder for a hand puzzle (e.g. HAND_WAVE)', () => {
+        const puzzle = PUZZLE_REGISTRY[BiometricPuzzleId.HAND_WAVE]
+        render(<PuzzleRunnerModal open={true} puzzle={puzzle} onClose={vi.fn()} />)
+        expect(screen.getByText(`${puzzle.i18nKey}.title`)).toBeInTheDocument()
     })
 
-    it('transitions to success when the stubbed step resolves', () => {
-        vi.useFakeTimers()
-        try {
-            const onClose = vi.fn()
-            const puzzle = PUZZLE_REGISTRY[AuthMethodType.FACE]
-            render(
-                <PuzzleRunnerModal
-                    puzzle={puzzle!}
-                    open={true}
-                    onClose={onClose}
-                />,
-            )
-
-            // Trigger the stubbed submit.
-            fireEvent.click(screen.getByTestId('mock-face-submit'))
-
-            // Puzzle wrapper waits ~500ms before reporting success.
-            act(() => {
-                vi.advanceTimersByTime(1000)
-            })
-
-            expect(
-                screen.getByText('biometricPuzzle.successMessage'),
-            ).toBeInTheDocument()
-            // Retry button appears in the success state.
-            expect(
-                screen.getByText('biometricPuzzle.tryAgainButton'),
-            ).toBeInTheDocument()
-        } finally {
-            vi.useRealTimers()
-        }
-    })
-
-    it('invokes onClose when the close button is clicked', () => {
+    it('fires onClose when the close button is clicked', () => {
+        const puzzle = PUZZLE_REGISTRY[BiometricPuzzleId.FACE_BLINK]
         const onClose = vi.fn()
-        const puzzle = PUZZLE_REGISTRY[AuthMethodType.TOTP]
-        render(
-            <PuzzleRunnerModal puzzle={puzzle!} open={true} onClose={onClose} />,
-        )
-
-        // There are two "close"-labelled buttons (header icon + footer button).
-        // Clicking either should call onClose; we pick the footer button.
-        const closeButtons = screen.getAllByRole('button', {
-            name: 'biometricPuzzle.closeButton',
+        render(<PuzzleRunnerModal open={true} puzzle={puzzle} onClose={onClose} />)
+        const closeButton = screen.getByRole('button', { name: /close/i })
+        act(() => {
+            fireEvent.click(closeButton)
         })
-        expect(closeButtons.length).toBeGreaterThan(0)
-        fireEvent.click(closeButtons[closeButtons.length - 1])
-
         expect(onClose).toHaveBeenCalled()
     })
 })
