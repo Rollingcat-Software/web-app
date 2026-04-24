@@ -66,6 +66,9 @@
       "@app/*": [
         "./src/app/*"
       ],
+      "@config/*": [
+        "./src/config/*"
+      ],
       "@test/*": [
         "./src/test/*"
       ]
