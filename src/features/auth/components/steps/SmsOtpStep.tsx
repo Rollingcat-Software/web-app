@@ -120,9 +120,12 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                             sx={{
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '12px',
-                                    backgroundColor: 'action.hover',
-                                    '&:hover': { backgroundColor: 'action.selected' },
+                                    backgroundColor: 'background.paper',
+                                    '&:hover': { backgroundColor: 'background.paper' },
                                     '&.Mui-focused': { backgroundColor: 'background.paper' },
+                                },
+                                '& .MuiOutlinedInput-input': {
+                                    color: 'text.primary',
                                 },
                             }}
                         />
