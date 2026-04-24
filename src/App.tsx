@@ -203,7 +203,7 @@ function App() {
                     <Route path="user-enrollment" element={<Navigate to="/enrollment" replace />} />
                     <Route path="enrollment" element={<ErrorBoundary><BiometricEnrollmentPage /></ErrorBoundary>} />
                     <Route path="biometric-tools" element={<ErrorBoundary><BiometricToolsPage /></ErrorBoundary>} />
-                    <Route path="biometric-puzzles" element={<AdminRoute><ErrorBoundary><BiometricPuzzlesPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="biometric-puzzles" element={<ErrorBoundary><BiometricPuzzlesPage /></ErrorBoundary>} />
                     <Route path="card-detection" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="face-search" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="voice-search" element={<Navigate to="/biometric-tools" replace />} />
