@@ -658,7 +658,12 @@ function AdminDashboardContent() {
     // Only SUPER_ADMIN sees the cross-tenant "Total Tenants" card; everyone
     // else sees "Users in your tenant" (backend already scopes the count
     // after #23 + #24, so `stats.totalUsers` is already correct).
-    const isPlatformOwner = user?.isSuperAdmin() ?? false
+    // Guard the method call — `user` in older test mocks is a plain object
+    // without User-class methods. `isSuperAdmin` also exposed on
+    // PermissionContext as a boolean, but keeping local derivation to match
+    // the existing auth lookup above.
+    const isPlatformOwner =
+        typeof user?.isSuperAdmin === 'function' ? user.isSuperAdmin() : false
 
     if (loading) {
         return (
