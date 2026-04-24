@@ -1,10 +1,10 @@
 /**
- * PuzzleRunnerModal
+ * AuthMethodRunnerModal
  *
- * Dialog container that mounts the selected puzzle's component under a
- * `PuzzleModeProvider` in `stub` mode. Tracks three UI states:
+ * Dialog container that mounts the selected auth method's component under an
+ * `AuthMethodModeProvider` in `stub` mode. Tracks three UI states:
  *
- *   - `running` — puzzle mounted, awaiting user interaction
+ *   - `running` — preview mounted, awaiting user interaction
  *   - `success` — the stubbed backend accepted the challenge
  *   - `error`   — rare in stub mode; surfaced with a retry button
  *
@@ -25,40 +25,41 @@ import {
 } from '@mui/material'
 import { CheckCircle, Close, Replay } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
-import { PuzzleModeProvider } from './PuzzleMode'
-import PuzzleTaskbar from './PuzzleTaskbar'
-import type { Puzzle } from './puzzleRegistry'
+import { AuthMethodModeProvider } from './AuthMethodMode'
+import AuthMethodTaskbar from './AuthMethodTaskbar'
+import type { AuthMethodEntry } from './authMethodRegistry'
 
 type RunnerState = 'running' | 'success' | 'error'
 
-export interface PuzzleRunnerModalProps {
-    puzzle: Puzzle | null
+export interface AuthMethodRunnerModalProps {
+    method: AuthMethodEntry | null
     open: boolean
     onClose: () => void
 }
 
-export default function PuzzleRunnerModal({
-    puzzle,
+export default function AuthMethodRunnerModal({
+    method,
     open,
     onClose,
-}: PuzzleRunnerModalProps) {
+}: AuthMethodRunnerModalProps) {
     const { t } = useTranslation()
     const theme = useTheme()
     const fullScreen = useMediaQuery(theme.breakpoints.down('sm'))
 
     const [state, setState] = useState<RunnerState>('running')
     const [errorMessage, setErrorMessage] = useState<string | null>(null)
-    // Remount the puzzle tree on retry so internal state (camera, timers, …) resets.
+    // Remount the preview tree on retry so internal state (camera, timers, …)
+    // resets cleanly.
     const [runId, setRunId] = useState(0)
 
-    // Reset when the dialog opens or the puzzle changes.
+    // Reset when the dialog opens or the method changes.
     useEffect(() => {
         if (open) {
             setState('running')
             setErrorMessage(null)
             setRunId((n) => n + 1)
         }
-    }, [open, puzzle?.id])
+    }, [open, method?.id])
 
     const handleSuccess = useCallback(() => {
         setState('success')
@@ -75,10 +76,10 @@ export default function PuzzleRunnerModal({
         setRunId((n) => n + 1)
     }, [])
 
-    if (!puzzle) return null
+    if (!method) return null
 
-    const PuzzleComponent = puzzle.component
-    const title = t(`${puzzle.i18nKey}.title`)
+    const MethodComponent = method.component
+    const title = t(`${method.i18nKey}.title`)
 
     return (
         <Dialog
@@ -87,10 +88,10 @@ export default function PuzzleRunnerModal({
             fullScreen={fullScreen}
             fullWidth
             maxWidth="sm"
-            aria-labelledby="puzzle-runner-title"
+            aria-labelledby="auth-method-runner-title"
         >
             <DialogTitle
-                id="puzzle-runner-title"
+                id="auth-method-runner-title"
                 sx={{
                     display: 'flex',
                     alignItems: 'center',
@@ -114,13 +115,13 @@ export default function PuzzleRunnerModal({
                                 letterSpacing: '0.08em',
                             }}
                         >
-                            {t('biometricPuzzle.previewLabel')}
+                            {t('authMethodsTesting.previewLabel')}
                         </Box>
                     </Box>
-                    <PuzzleTaskbar platforms={puzzle.platforms} variant="compact" />
+                    <AuthMethodTaskbar platforms={method.platforms} variant="compact" />
                 </Box>
                 <IconButton
-                    aria-label={t('biometricPuzzle.closeButton')}
+                    aria-label={t('authMethodsTesting.closeButton')}
                     onClick={onClose}
                     size="small"
                 >
@@ -135,42 +136,42 @@ export default function PuzzleRunnerModal({
                         severity="success"
                         sx={{ borderRadius: '12px' }}
                     >
-                        {t('biometricPuzzle.successMessage')}
+                        {t('authMethodsTesting.successMessage')}
                     </Alert>
                 ) : state === 'error' ? (
                     <Alert severity="error" sx={{ borderRadius: '12px' }}>
-                        {errorMessage ?? t('biometricPuzzle.errorMessage')}
+                        {errorMessage ?? t('authMethodsTesting.errorMessage')}
                     </Alert>
                 ) : (
-                    <PuzzleModeProvider mode="stub">
+                    <AuthMethodModeProvider mode="stub">
                         {/* runId key forces a fresh mount on retry */}
                         <Box key={runId}>
-                            <PuzzleComponent
+                            <MethodComponent
                                 onSuccess={handleSuccess}
                                 onError={handleError}
                                 onClose={onClose}
                             />
                         </Box>
-                    </PuzzleModeProvider>
+                    </AuthMethodModeProvider>
                 )}
             </DialogContent>
 
             <DialogActions sx={{ px: 3, py: 2 }}>
                 {state === 'running' ? (
                     <Button onClick={onClose} color="inherit">
-                        {t('biometricPuzzle.closeButton')}
+                        {t('authMethodsTesting.closeButton')}
                     </Button>
                 ) : (
                     <>
                         <Button onClick={onClose} color="inherit">
-                            {t('biometricPuzzle.closeButton')}
+                            {t('authMethodsTesting.closeButton')}
                         </Button>
                         <Button
                             onClick={handleRetry}
                             variant="contained"
                             startIcon={<Replay />}
                         >
-                            {t('biometricPuzzle.tryAgainButton')}
+                            {t('authMethodsTesting.tryAgainButton')}
                         </Button>
                     </>
                 )}

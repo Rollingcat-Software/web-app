@@ -4,11 +4,11 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import QrCodeStep from '@features/auth/components/steps/QrCodeStep'
-import type { PuzzleProps } from '../puzzleRegistry'
+import type { AuthMethodProps } from '../authMethodRegistry'
 
 const STUB_QR_EXPIRES_IN_SECONDS = 120
 
-export default function QrCodePuzzle({ onSuccess }: PuzzleProps) {
+export default function QrCodePuzzle({ onSuccess }: AuthMethodProps) {
     const [loading, setLoading] = useState(false)
     const timerRef = useRef<number | null>(null)
 

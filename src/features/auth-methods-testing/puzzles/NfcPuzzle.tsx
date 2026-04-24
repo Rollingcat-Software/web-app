@@ -1,11 +1,13 @@
 /**
- * VoicePuzzle — wraps VoiceStep for the Biometric Puzzle playground.
+ * NfcPuzzle — wraps NfcStep. Real NFC requires a physical reader and a
+ * top-level browsing context, so in puzzle mode we simply capture the
+ * serial number the user scanned (or fake-tapped) and report success.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import VoiceStep from '@features/auth/components/steps/VoiceStep'
-import type { PuzzleProps } from '../puzzleRegistry'
+import NfcStep from '@features/auth/components/steps/NfcStep'
+import type { AuthMethodProps } from '../authMethodRegistry'
 
-export default function VoicePuzzle({ onSuccess }: PuzzleProps) {
+export default function NfcPuzzle({ onSuccess, onClose }: AuthMethodProps) {
     const [loading, setLoading] = useState(false)
     const timerRef = useRef<number | null>(null)
 
@@ -25,5 +27,5 @@ export default function VoicePuzzle({ onSuccess }: PuzzleProps) {
         }, 500)
     }, [onSuccess])
 
-    return <VoiceStep onSubmit={handleSubmit} loading={loading} />
+    return <NfcStep onSubmit={handleSubmit} loading={loading} onBack={onClose} />
 }

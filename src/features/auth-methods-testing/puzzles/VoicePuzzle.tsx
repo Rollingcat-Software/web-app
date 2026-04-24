@@ -1,11 +1,11 @@
 /**
- * TotpPuzzle — wraps TotpStep. Any 6-digit code is accepted in stub mode.
+ * VoicePuzzle — wraps VoiceStep for the Biometric Puzzle playground.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import TotpStep from '@features/auth/components/steps/TotpStep'
-import type { PuzzleProps } from '../puzzleRegistry'
+import VoiceStep from '@features/auth/components/steps/VoiceStep'
+import type { AuthMethodProps } from '../authMethodRegistry'
 
-export default function TotpPuzzle({ onSuccess }: PuzzleProps) {
+export default function VoicePuzzle({ onSuccess }: AuthMethodProps) {
     const [loading, setLoading] = useState(false)
     const timerRef = useRef<number | null>(null)
 
@@ -25,5 +25,5 @@ export default function TotpPuzzle({ onSuccess }: PuzzleProps) {
         }, 500)
     }, [onSuccess])
 
-    return <TotpStep onSubmit={handleSubmit} loading={loading} />
+    return <VoiceStep onSubmit={handleSubmit} loading={loading} />
 }

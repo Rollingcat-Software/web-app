@@ -7,9 +7,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import FaceCaptureStep from '@features/auth/components/steps/FaceCaptureStep'
-import type { PuzzleProps } from '../puzzleRegistry'
+import type { AuthMethodProps } from '../authMethodRegistry'
 
-export default function FacePuzzle({ onSuccess }: PuzzleProps) {
+export default function FacePuzzle({ onSuccess }: AuthMethodProps) {
     const [loading, setLoading] = useState(false)
     const timerRef = useRef<number | null>(null)
 

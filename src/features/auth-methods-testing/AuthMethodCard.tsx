@@ -1,5 +1,5 @@
 /**
- * PuzzleCard — a single puzzle tile on the BiometricPuzzlesPage.
+ * AuthMethodCard — a single auth-method tile on the AuthMethodsTestingPage.
  *
  * Visual language borrowed from MethodPickerStep so the playground feels like
  * a natural extension of the real MFA surface: 44px avatar with gradient,
@@ -16,27 +16,27 @@ import {
 } from '@mui/material'
 import { PlayArrow } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
-import PuzzleTaskbar from './PuzzleTaskbar'
-import type { Puzzle, PuzzleDifficulty } from './puzzleRegistry'
+import AuthMethodTaskbar from './AuthMethodTaskbar'
+import type { AuthMethodEntry, AuthMethodDifficulty } from './authMethodRegistry'
 
-const DIFFICULTY_COLOR: Record<PuzzleDifficulty, 'success' | 'warning' | 'error'> = {
+const DIFFICULTY_COLOR: Record<AuthMethodDifficulty, 'success' | 'warning' | 'error'> = {
     beginner: 'success',
     intermediate: 'warning',
     advanced: 'error',
 }
 
-export interface PuzzleCardProps {
-    puzzle: Puzzle
-    onLaunch: (puzzle: Puzzle) => void
+export interface AuthMethodCardProps {
+    method: AuthMethodEntry
+    onLaunch: (method: AuthMethodEntry) => void
 }
 
-export default function PuzzleCard({ puzzle, onLaunch }: PuzzleCardProps) {
+export default function AuthMethodCard({ method, onLaunch }: AuthMethodCardProps) {
     const { t } = useTranslation()
-    const Icon = puzzle.icon
+    const Icon = method.icon
 
-    const title = t(`${puzzle.i18nKey}.title`)
-    const description = t(`${puzzle.i18nKey}.description`)
-    const difficultyLabel = t(`biometricPuzzle.difficulty.${puzzle.difficulty}`)
+    const title = t(`${method.i18nKey}.title`)
+    const description = t(`${method.i18nKey}.description`)
+    const difficultyLabel = t(`authMethodsTesting.difficulty.${method.difficulty}`)
 
     return (
         <Card
@@ -85,13 +85,13 @@ export default function PuzzleCard({ puzzle, onLaunch }: PuzzleCardProps) {
                             <Chip
                                 label={difficultyLabel}
                                 size="small"
-                                color={DIFFICULTY_COLOR[puzzle.difficulty]}
+                                color={DIFFICULTY_COLOR[method.difficulty]}
                                 variant="outlined"
                                 sx={{ borderRadius: '6px', fontSize: '0.68rem', height: 20 }}
                             />
-                            {puzzle.requiresEnrollment && (
+                            {method.requiresEnrollment && (
                                 <Chip
-                                    label={t('biometricPuzzle.requiresEnrollment')}
+                                    label={t('authMethodsTesting.requiresEnrollment')}
                                     size="small"
                                     variant="outlined"
                                     sx={{
@@ -101,9 +101,9 @@ export default function PuzzleCard({ puzzle, onLaunch }: PuzzleCardProps) {
                                     }}
                                 />
                             )}
-                            {puzzle.capability === 'stubbedOnly' && (
+                            {method.capability === 'stubbedOnly' && (
                                 <Chip
-                                    label={t('biometricPuzzle.stubbedOnly')}
+                                    label={t('authMethodsTesting.stubbedOnly')}
                                     size="small"
                                     variant="outlined"
                                     sx={{
@@ -125,14 +125,14 @@ export default function PuzzleCard({ puzzle, onLaunch }: PuzzleCardProps) {
                     {description}
                 </Typography>
 
-                <PuzzleTaskbar platforms={puzzle.platforms} />
+                <AuthMethodTaskbar platforms={method.platforms} />
 
                 <Button
                     fullWidth
                     variant="contained"
                     size="medium"
                     startIcon={<PlayArrow />}
-                    onClick={() => onLaunch(puzzle)}
+                    onClick={() => onLaunch(method)}
                     sx={{
                         mt: 1,
                         py: 1,
@@ -141,7 +141,7 @@ export default function PuzzleCard({ puzzle, onLaunch }: PuzzleCardProps) {
                         fontWeight: 600,
                     }}
                 >
-                    {t('biometricPuzzle.tryButton')}
+                    {t('authMethodsTesting.tryButton')}
                 </Button>
             </CardContent>
         </Card>
