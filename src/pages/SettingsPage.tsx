@@ -11,10 +11,8 @@ import {
     DialogContent,
     DialogTitle,
     Divider,
-    FormControlLabel,
     Grid,
     Paper,
-    Switch,
     TextField,
     Typography,
 } from '@mui/material'
@@ -22,14 +20,11 @@ import {
     Fingerprint,
     Key,
     Language,
-    Notifications,
-    Palette,
     Person,
     PhonelinkLock,
     Save,
     Security,
     Lock,
-    LockOpen,
 } from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useSettings } from '@features/settings/hooks/useSettings'
@@ -50,9 +45,7 @@ export default function SettingsPage() {
         loading,
         error,
         updateProfile,
-        updateNotifications,
         updateSecurity,
-        updateAppearance,
         changePassword,
         validatePassword,
     } = useSettings()
@@ -62,19 +55,16 @@ export default function SettingsPage() {
     const [lastName, setLastName] = useState(user?.lastName || '')
     const [phoneNumber, setPhoneNumber] = useState('')
 
-    // Notification settings
-    const [emailNotifications, setEmailNotifications] = useState(true)
-    const [loginAlerts, setLoginAlerts] = useState(true)
-    const [weeklyReports, setWeeklyReports] = useState(false)
-    const [securityAlerts, setSecurityAlerts] = useState(true)
+    // NOTE (2026-04-24 trim): notification toggles (email / login alerts /
+    // weekly reports / security alerts) and appearance toggles (dark mode /
+    // compact view) were removed from this page — the backend had no
+    // storage wired for them and the compact-view switch wasn't hooked up.
+    // Dark mode lives in the top bar; language is still configurable below.
+    // Re-introduce here when the backend endpoints land.
 
     // Security settings
     const [tenantRequires2FA, setTenantRequires2FA] = useState(false)
     const [sessionTimeout, setSessionTimeout] = useState('30')
-
-    // Appearance settings
-    const [darkMode, setDarkMode] = useState(false)
-    const [compactView, setCompactView] = useState(false)
 
     // Fetch 2FA status from the user-accessible endpoint (no admin permission needed)
     const httpClient = useService<import('@domain/interfaces/IHttpClient').IHttpClient>(TYPES.HttpClient)
@@ -138,13 +128,7 @@ export default function SettingsPage() {
             setFirstName(settings.firstName || user?.firstName || '')
             setLastName(settings.lastName || user?.lastName || '')
             setPhoneNumber(settings.phoneNumber || user?.phoneNumber || '')
-            setEmailNotifications(settings.emailNotifications)
-            setLoginAlerts(settings.loginAlerts)
-            setSecurityAlerts(settings.securityAlerts)
-            setWeeklyReports(settings.weeklyReports)
             setSessionTimeout(String(settings.sessionTimeoutMinutes))
-            setDarkMode(settings.darkMode)
-            setCompactView(settings.compactView)
         }
     }, [settings, user])
 
@@ -159,23 +143,6 @@ export default function SettingsPage() {
             setSaving(null)
         }
     }, [firstName, lastName, phoneNumber, updateProfile, showSuccessMessage])
-
-    const handleSaveNotifications = useCallback(async () => {
-        try {
-            setSaving('notifications')
-            await updateNotifications({
-                emailNotifications,
-                loginAlerts,
-                weeklyReports,
-                securityAlerts,
-            })
-            showSuccessMessage('notifications')
-        } catch {
-            // Error handled by hook
-        } finally {
-            setSaving(null)
-        }
-    }, [emailNotifications, loginAlerts, weeklyReports, securityAlerts, updateNotifications, showSuccessMessage])
 
     const handleSaveSecurity = useCallback(async () => {
         const timeout = parseInt(sessionTimeout, 10)
@@ -196,18 +163,6 @@ export default function SettingsPage() {
             setSaving(null)
         }
     }, [sessionTimeout, settings, updateSecurity, showSuccessMessage, t])
-
-    const handleSaveAppearance = useCallback(async () => {
-        try {
-            setSaving('appearance')
-            await updateAppearance({ darkMode, compactView })
-            showSuccessMessage('appearance')
-        } catch {
-            // Error handled by hook
-        } finally {
-            setSaving(null)
-        }
-    }, [darkMode, compactView, updateAppearance, showSuccessMessage])
 
     const handlePasswordChange = useCallback(async () => {
         // Validate new password
@@ -374,30 +329,33 @@ export default function SettingsPage() {
                             </Typography>
                         </Box>
 
-                        <Box sx={{ mb: 3 }}>
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
-                                {tenantRequires2FA ? (
+                        {/*
+                          * 2FA status chip — only renders when the tenant actively
+                          * requires 2FA (Rule: the user's ask 2026-04-24 "when no
+                          * MFA enrolled: hide the whole section — it says 'not
+                          * required', that's noise"). The enrollment buttons
+                          * below are always shown so users can still opt in.
+                          */}
+                        {tenantRequires2FA && (
+                            <Box sx={{ mb: 3 }}>
+                                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5, flexWrap: 'wrap' }}>
                                     <Lock sx={{ color: 'success.main', fontSize: 20 }} />
-                                ) : (
-                                    <LockOpen sx={{ color: 'text.secondary', fontSize: 20 }} />
-                                )}
-                                <Typography variant="subtitle1" fontWeight={600} sx={{ mr: 'auto' }}>
-                                    {t('settings.twoFactor')}
+                                    <Typography variant="subtitle1" fontWeight={600} sx={{ mr: 'auto' }}>
+                                        {t('settings.twoFactor')}
+                                    </Typography>
+                                </Box>
+                                <Chip
+                                    label={t('settings.twoFactorRequired')}
+                                    color="success"
+                                    size="small"
+                                    variant="outlined"
+                                    sx={{ ml: 4, mb: 1 }}
+                                />
+                                <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
+                                    {t('settings.twoFactorHelper')}
                                 </Typography>
                             </Box>
-                            <Chip
-                                label={tenantRequires2FA
-                                    ? t('settings.twoFactorRequired')
-                                    : t('settings.twoFactorNotRequired')}
-                                color={tenantRequires2FA ? 'success' : 'default'}
-                                size="small"
-                                variant="outlined"
-                                sx={{ ml: 4, mb: 1 }}
-                            />
-                            <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-                                {t('settings.twoFactorHelper')}
-                            </Typography>
-                        </Box>
+                        )}
 
                         <Button
                             variant="outlined"
@@ -474,102 +432,25 @@ export default function SettingsPage() {
                     </Paper>
                 </Grid>
 
-                {/* Notification Settings */}
-                <Grid item xs={12} md={6}>
-                    <Paper sx={{ p: 3, height: '100%' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                            <Notifications sx={{ mr: 1, color: 'primary.main' }} />
-                            <Typography variant="h6" fontWeight={600}>
-                                {t('settings.notifications')}
-                            </Typography>
-                        </Box>
-
-                        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={emailNotifications}
-                                        onChange={(e) => setEmailNotifications(e.target.checked)}
-                                        disabled={saving === 'notifications'}
-                                    />
-                                }
-                                label={t('settings.emailNotifications')}
-                            />
-
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={loginAlerts}
-                                        onChange={(e) => setLoginAlerts(e.target.checked)}
-                                        disabled={saving === 'notifications'}
-                                    />
-                                }
-                                label={t('settings.loginAlerts')}
-                            />
-
-                            <FormControlLabel
-                                control={
-                                    <Switch
-                                        checked={securityAlerts}
-                                        onChange={(e) => setSecurityAlerts(e.target.checked)}
-                                        disabled={saving === 'notifications'}
-                                    />
-                                }
-                                label={t('settings.securityAlerts')}
-                            />
-
-                        </Box>
-
-                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                            <Button
-                                variant="contained"
-                                startIcon={
-                                    saving === 'notifications' ? <CircularProgress size={16} /> : <Save />
-                                }
-                                onClick={handleSaveNotifications}
-                                disabled={saving === 'notifications'}
-                            >
-                                {t('settings.saveNotifications')}
-                            </Button>
-                        </Box>
-                    </Paper>
-                </Grid>
+                {/*
+                 * Removed 2026-04-24:
+                 *   - Notifications panel (email / login alerts / security
+                 *     alerts / weekly reports): no backend persistence wired.
+                 *   - Appearance panel > Compact View switch: not hooked up.
+                 *   - Appearance panel header + dark-mode: dark mode lives in
+                 *     the TopBar; remove the redundant panel to keep Settings
+                 *     focused on Profile + Security + Sessions + Language.
+                 * Re-introduce when the backend endpoints land.
+                 */}
 
                 {/* Active Sessions */}
                 <Grid item xs={12}>
                     <SessionsSection />
                 </Grid>
 
-                {/* Appearance Settings */}
+                {/* Language selector */}
                 <Grid item xs={12}>
                     <Paper sx={{ p: 3 }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', mb: 3 }}>
-                            <Palette sx={{ mr: 1, color: 'primary.main' }} />
-                            <Typography variant="h6" fontWeight={600}>
-                                {t('settings.appearance')}
-                            </Typography>
-                        </Box>
-
-                        <Grid container spacing={3}>
-                            <Grid item xs={12} md={6}>
-                                <FormControlLabel
-                                    control={
-                                        <Switch
-                                            checked={compactView}
-                                            onChange={(e) => setCompactView(e.target.checked)}
-                                            disabled={saving === 'appearance'}
-                                        />
-                                    }
-                                    label={t('settings.compactView')}
-                                />
-                                <Typography variant="caption" color="text.secondary" display="block" sx={{ ml: 4 }}>
-                                    {t('settings.compactViewHelper')}
-                                </Typography>
-                            </Grid>
-                        </Grid>
-
-                        <Divider sx={{ my: 3 }} />
-
                         <Box sx={{ display: 'flex', alignItems: 'center', mb: 2 }}>
                             <Language sx={{ mr: 1, color: 'primary.main' }} />
                             <Typography variant="h6" fontWeight={600}>
@@ -590,17 +471,6 @@ export default function SettingsPage() {
                             <option value="en">{t('language.en')}</option>
                             <option value="tr">{t('language.tr')}</option>
                         </TextField>
-
-                        <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
-                            <Button
-                                variant="contained"
-                                startIcon={saving === 'appearance' ? <CircularProgress size={16} /> : <Save />}
-                                onClick={handleSaveAppearance}
-                                disabled={saving === 'appearance'}
-                            >
-                                {t('settings.saveAppearance')}
-                            </Button>
-                        </Box>
                     </Paper>
                 </Grid>
             </Grid>

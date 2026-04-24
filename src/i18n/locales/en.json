@@ -160,7 +160,8 @@
     "memberSince": "Member Since",
     "active": "active",
     "successfulLogin": "Successful Login",
-    "failedLogin": "Failed Login"
+    "failedLogin": "Failed Login",
+    "usersInTenant": "Users in your tenant"
   },
   "methods": {
     "face": "Face Recognition",
