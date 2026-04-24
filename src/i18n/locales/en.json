@@ -93,6 +93,7 @@
     "voiceSearch": "Voice Search",
     "nfcEnrollment": "NFC Scanner",
     "biometricTools": "Biometric Tools",
+    "biometricPuzzles": "Biometric Puzzles",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
     "verificationFlows": "Verification Flows",
@@ -1492,5 +1493,67 @@
   },
   "sidebar": {
     "systemStatus": "All systems operational"
+  },
+  "biometricPuzzle": {
+    "pageTitle": "Biometric Puzzles",
+    "pageSubtitle": "Try every biometric challenge end-to-end with a stubbed backend. Preview each puzzle before wiring it into your tenant's authentication flow.",
+    "tryButton": "Try this puzzle",
+    "closeButton": "Close",
+    "tryAgainButton": "Try again",
+    "previewLabel": "Preview",
+    "platformLabel": "Supported platforms",
+    "requiresEnrollment": "Requires enrollment",
+    "stubbedOnly": "Simulated only",
+    "successMessage": "Challenge passed. You're ready to enable this method in your auth flow.",
+    "errorMessage": "The puzzle could not be completed. Please try again.",
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "platforms": {
+      "web": "Web",
+      "android": "Android",
+      "ios": "iOS",
+      "desktop": "Desktop"
+    },
+    "puzzles": {
+      "face": {
+        "title": "Face Recognition",
+        "description": "Frame your face in the camera preview, wait for a quality lock, then capture. Uses on-device BlazeFace detection."
+      },
+      "voice": {
+        "title": "Voice Recognition",
+        "description": "Record a short phrase and let the model match your voiceprint. Great for hands-free authentication."
+      },
+      "fingerprint": {
+        "title": "Fingerprint",
+        "description": "Touch your device's fingerprint sensor. Best experience on mobile and modern laptops with a TPM."
+      },
+      "nfc": {
+        "title": "NFC Document",
+        "description": "Scan a government-issued ID chip over NFC. Simulated here; real scans require a top-level browsing context."
+      },
+      "totp": {
+        "title": "Authenticator App (TOTP)",
+        "description": "Enter the 6-digit code from Google Authenticator, 1Password, or any TOTP-compatible app."
+      },
+      "sms": {
+        "title": "SMS One-Time Code",
+        "description": "Receive a 6-digit code by SMS and type it to confirm. Delivery is simulated in the playground."
+      },
+      "email_otp": {
+        "title": "Email One-Time Code",
+        "description": "Receive a 6-digit code by email and type it to confirm. Delivery is simulated in the playground."
+      },
+      "qr": {
+        "title": "QR Code Sign-In",
+        "description": "Scan a QR code with a trusted device to complete the sign-in. The token refreshes every few minutes."
+      },
+      "hardware_key": {
+        "title": "Hardware Security Key",
+        "description": "Use a FIDO2 or WebAuthn key (YubiKey, Titan, platform authenticator) to approve the challenge."
+      }
+    }
   }
 }

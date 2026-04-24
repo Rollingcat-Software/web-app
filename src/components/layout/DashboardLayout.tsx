@@ -35,6 +35,7 @@ const BREADCRUMB_I18N_MAP: Record<string, string> = {
     analytics: 'nav.analytics',
     settings: 'nav.settings',
     'biometric-tools': 'nav.biometricTools',
+    'biometric-puzzles': 'nav.biometricPuzzles',
     'verification-flows': 'nav.verificationFlows',
     'verification-dashboard': 'nav.verificationDashboard',
     'verification-sessions': 'nav.verificationSessions',
