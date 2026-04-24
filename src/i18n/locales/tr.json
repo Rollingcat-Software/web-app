@@ -93,6 +93,7 @@
     "voiceSearch": "Ses Arama",
     "nfcEnrollment": "NFC Tarayıcı",
     "biometricTools": "Biyometrik Araçlar",
+    "biometricPuzzles": "Biyometrik Bulmacalar",
     "auditLogs": "Denetim Kayıtları",
     "analytics": "Analitik",
     "verificationFlows": "Doğrulama Akışları",
@@ -1492,5 +1493,67 @@
   },
   "sidebar": {
     "systemStatus": "Tüm sistemler çalışıyor"
+  },
+  "biometricPuzzle": {
+    "pageTitle": "Biyometrik Bulmacalar",
+    "pageSubtitle": "Her biyometrik doğrulama yöntemini sahte bir arka uçla uçtan uca deneyin. Kiracınızın kimlik doğrulama akışına entegre etmeden önce her bulmacayı önizleyin.",
+    "tryButton": "Bu bulmacayı dene",
+    "closeButton": "Kapat",
+    "tryAgainButton": "Tekrar dene",
+    "previewLabel": "Önizleme",
+    "platformLabel": "Desteklenen platformlar",
+    "requiresEnrollment": "Kayıt gerektirir",
+    "stubbedOnly": "Yalnızca simülasyon",
+    "successMessage": "Doğrulama başarılı. Bu yöntemi kimlik doğrulama akışınızda etkinleştirmeye hazırsınız.",
+    "errorMessage": "Bulmaca tamamlanamadı. Lütfen tekrar deneyin.",
+    "difficulty": {
+      "beginner": "Başlangıç",
+      "intermediate": "Orta",
+      "advanced": "İleri"
+    },
+    "platforms": {
+      "web": "Web",
+      "android": "Android",
+      "ios": "iOS",
+      "desktop": "Masaüstü"
+    },
+    "puzzles": {
+      "face": {
+        "title": "Yüz Tanıma",
+        "description": "Yüzünüzü kamera önizlemesinde çerçeveleyin, kalite onayını bekleyin ve ardından yakalayın. Cihaz içi BlazeFace tespiti kullanır."
+      },
+      "voice": {
+        "title": "Ses Tanıma",
+        "description": "Kısa bir ifade kaydedin ve model ses izinizi eşleştirsin. Eller serbest kimlik doğrulama için idealdir."
+      },
+      "fingerprint": {
+        "title": "Parmak İzi",
+        "description": "Cihazınızın parmak izi sensörüne dokunun. En iyi deneyim mobil cihazlarda ve TPM'li modern dizüstü bilgisayarlardadır."
+      },
+      "nfc": {
+        "title": "NFC Kimlik Belgesi",
+        "description": "Resmi bir kimlik kartının çipini NFC ile okutun. Burada simüle edilir; gerçek okumalar üst düzey tarayıcı bağlamı gerektirir."
+      },
+      "totp": {
+        "title": "Kimlik Doğrulayıcı Uygulama (TOTP)",
+        "description": "Google Authenticator, 1Password veya TOTP uyumlu herhangi bir uygulamadan 6 haneli kodu girin."
+      },
+      "sms": {
+        "title": "SMS Tek Kullanımlık Kod",
+        "description": "SMS ile 6 haneli bir kod alın ve doğrulamak için yazın. Teslimat bu alanda simüle edilir."
+      },
+      "email_otp": {
+        "title": "E-posta Tek Kullanımlık Kod",
+        "description": "E-posta ile 6 haneli bir kod alın ve doğrulamak için yazın. Teslimat bu alanda simüle edilir."
+      },
+      "qr": {
+        "title": "QR Kod ile Giriş",
+        "description": "Girişi tamamlamak için güvenilir bir cihazla QR kodu tarayın. Token birkaç dakikada bir yenilenir."
+      },
+      "hardware_key": {
+        "title": "Donanım Güvenlik Anahtarı",
+        "description": "Sorgulamayı onaylamak için bir FIDO2 veya WebAuthn anahtarı (YubiKey, Titan, platform kimlik doğrulayıcısı) kullanın."
+      }
+    }
   }
 }
