@@ -135,6 +135,9 @@ export class CardDetector implements ICardDetector {
       // @ts-ignore — onnxruntime-web is loaded at runtime
       const ort = await import('onnxruntime-web');
 
+      // See VoiceVAD.ts for the full note — ort.env.wasm.wasmPaths is
+      // required or Apache returns index.html for /ort-wasm-*.wasm.
+      ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
       // Use WASM backend — no GPU needed, works in all browsers
       ort.env.wasm.numThreads = 2;
 
