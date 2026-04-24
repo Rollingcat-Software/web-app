@@ -174,7 +174,12 @@ export function decodeJwtPayload(jwt: string): Record<string, unknown> {
         let b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
         const pad = b64.length % 4;
         if (pad) b64 += '='.repeat(4 - pad);
-        const json = atob(b64);
+        // `atob` returns a binary string (one char per byte); for non-ASCII
+        // claims (Turkish `ü`, Arabic, emoji…) that byte stream is UTF-8 and
+        // must be decoded as such before `JSON.parse`. Without this the
+        // display name came through as "GÃ¼ltekin" instead of "Gültekin".
+        const bytes = Uint8Array.from(atob(b64), (c) => c.charCodeAt(0));
+        const json = new TextDecoder().decode(bytes);
         const parsed = JSON.parse(json);
         if (!parsed || typeof parsed !== 'object') {
             throw new Error('FivucsasAuth: id_token payload is not an object');
