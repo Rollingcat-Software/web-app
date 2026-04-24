@@ -94,6 +94,7 @@
     "nfcEnrollment": "NFC Scanner",
     "biometricTools": "Biometric Tools",
     "biometricPuzzles": "Biometric Puzzles",
+    "authMethodsTesting": "Auth Methods Testing",
     "auditLogs": "Audit Logs",
     "analytics": "Analytics",
     "verificationFlows": "Verification Flows",
@@ -1494,10 +1495,10 @@
   "sidebar": {
     "systemStatus": "All systems operational"
   },
-  "biometricPuzzle": {
-    "pageTitle": "Biometric Puzzles",
-    "pageSubtitle": "Try every biometric challenge end-to-end with a stubbed backend. Preview each puzzle before wiring it into your tenant's authentication flow.",
-    "tryButton": "Try this puzzle",
+  "authMethodsTesting": {
+    "pageTitle": "Auth Methods Testing",
+    "pageSubtitle": "Try every auth method the platform supports with a stubbed backend. Preview each flow before wiring it into your tenant's auth configuration.",
+    "tryButton": "Try this method",
     "closeButton": "Close",
     "tryAgainButton": "Try again",
     "previewLabel": "Preview",
@@ -1505,7 +1506,7 @@
     "requiresEnrollment": "Requires enrollment",
     "stubbedOnly": "Simulated only",
     "successMessage": "Challenge passed. You're ready to enable this method in your auth flow.",
-    "errorMessage": "The puzzle could not be completed. Please try again.",
+    "errorMessage": "The preview could not be completed. Please try again.",
     "difficulty": {
       "beginner": "Beginner",
       "intermediate": "Intermediate",
@@ -1517,7 +1518,7 @@
       "ios": "iOS",
       "desktop": "Desktop"
     },
-    "puzzles": {
+    "methods": {
       "face": {
         "title": "Face Recognition",
         "description": "Frame your face in the camera preview, wait for a quality lock, then capture. Uses on-device BlazeFace detection."
@@ -1553,6 +1554,133 @@
       "hardware_key": {
         "title": "Hardware Security Key",
         "description": "Use a FIDO2 or WebAuthn key (YubiKey, Titan, platform authenticator) to approve the challenge."
+      }
+    }
+  },
+  "biometricPuzzle": {
+    "pageTitle": "Biometric Puzzles",
+    "pageSubtitle": "Preview the 23 active-liveness micro-challenges the platform supports. Face challenges run the real detector; hand gestures are simulated until the MediaPipe HandLandmarker integration lands.",
+    "sectionFace": "Face Challenges",
+    "sectionHand": "Hand Gesture Challenges",
+    "handComingSoon": "Real hand-gesture detection lands with MediaPipe HandLandmarker — this preview simulates success after a short delay.",
+    "simulatingDetection": "Simulating detection…",
+    "skipDemo": "Skip demo",
+    "tryButton": "Try this puzzle",
+    "closeButton": "Close",
+    "tryAgainButton": "Try again",
+    "previewLabel": "Preview",
+    "platformLabel": "Supported platforms",
+    "requiresEnrollment": "Requires enrollment",
+    "stubbedOnly": "Simulated only",
+    "successMessage": "Challenge passed. The detector confirmed the target gesture.",
+    "errorMessage": "The puzzle could not be completed. Please try again.",
+    "difficulty": {
+      "beginner": "Beginner",
+      "intermediate": "Intermediate",
+      "advanced": "Advanced"
+    },
+    "modality": {
+      "face": "Face",
+      "hand": "Hand"
+    },
+    "platforms": {
+      "web": "Web",
+      "android": "Android",
+      "ios": "iOS",
+      "desktop": "Desktop"
+    },
+    "puzzles": {
+      "face_blink": {
+        "title": "Blink",
+        "description": "Close both eyes for a beat, then open them. The detector tracks eye-aspect-ratio across frames."
+      },
+      "face_close_left": {
+        "title": "Wink with Left Eye",
+        "description": "Close your left eye while keeping the right open. Tests asymmetric eyelid control."
+      },
+      "face_close_right": {
+        "title": "Wink with Right Eye",
+        "description": "Close your right eye while keeping the left open. Tests asymmetric eyelid control."
+      },
+      "face_smile": {
+        "title": "Smile Wide",
+        "description": "Show a wide smile (teeth visible if you can). Measures mouth-corner spread."
+      },
+      "face_open_mouth": {
+        "title": "Open Mouth",
+        "description": "Open your mouth wide. Measures lip-to-lip distance relative to face height."
+      },
+      "face_turn_left": {
+        "title": "Turn Head Left",
+        "description": "Turn your head to your left. Tracks head-pose yaw from landmarks."
+      },
+      "face_turn_right": {
+        "title": "Turn Head Right",
+        "description": "Turn your head to your right. Tracks head-pose yaw from landmarks."
+      },
+      "face_look_up": {
+        "title": "Look Up",
+        "description": "Tilt your chin up. Tracks head-pose pitch from landmarks."
+      },
+      "face_look_down": {
+        "title": "Look Down",
+        "description": "Tilt your chin down. Tracks head-pose pitch from landmarks."
+      },
+      "face_raise_both_brows": {
+        "title": "Raise Both Eyebrows",
+        "description": "Raise both eyebrows together. Measures brow-to-eye distance change."
+      },
+      "face_raise_left_brow": {
+        "title": "Raise Left Eyebrow",
+        "description": "Raise only your left eyebrow. Tests asymmetric brow control."
+      },
+      "face_raise_right_brow": {
+        "title": "Raise Right Eyebrow",
+        "description": "Raise only your right eyebrow. Tests asymmetric brow control."
+      },
+      "face_nod": {
+        "title": "Nod",
+        "description": "Nod your head (pitch up-down-up). Tracks pitch motion over a short window."
+      },
+      "face_shake_head": {
+        "title": "Shake Head",
+        "description": "Shake your head (yaw left-right-left). Tracks yaw motion over a short window."
+      },
+      "hand_finger_count": {
+        "title": "Finger Count",
+        "description": "Hold up the requested number of fingers. Tests live hand visibility + MCP/PIP joint detection."
+      },
+      "hand_wave": {
+        "title": "Wave",
+        "description": "Wave your hand side to side in front of the camera. Detects hand-center horizontal oscillation."
+      },
+      "hand_flip": {
+        "title": "Flip Palm",
+        "description": "Show your palm, then flip to the back of your hand. Tests wrist rotation and landmark orientation."
+      },
+      "hand_finger_tap": {
+        "title": "Finger Tap",
+        "description": "Tap your thumb and index finger together a few times. Measures thumb-tip to index-tip distance."
+      },
+      "hand_pinch": {
+        "title": "Pinch",
+        "description": "Pinch thumb and index finger together and hold. Continuous pinch-distance detection."
+      },
+      "hand_peek_a_boo": {
+        "title": "Peek-a-boo",
+        "description": "Cover your eyes with your palm, then reveal your face. Combines face-occlusion + hand-presence signals."
+      },
+      "hand_shape_trace": {
+        "title": "Shape Trace",
+        "description": "Trace a displayed shape (circle, square, triangle) in the air with your index fingertip."
+      },
+      "hand_trace_template": {
+        "title": "Template Trace",
+        "description": "Trace a custom path template with your fingertip. Used for tenant-specific motion challenges."
+      },
+      "hand_math": {
+        "title": "Finger Math",
+        "description": "Show the answer to a small arithmetic prompt (e.g. 2+3) by raising fingers."
       }
     }
   }

@@ -20,6 +20,7 @@ const PAGE_TITLES: Record<string, string> = {
     '/enrollment': 'Biometric Enrollment — FIVUCSAS',
     '/biometric-tools': 'Biometric Tools — FIVUCSAS',
     '/biometric-puzzles': 'Biometric Puzzles — FIVUCSAS',
+    '/auth-methods-testing': 'Auth Methods Testing — FIVUCSAS',
     '/widget-demo': 'Auth Widget — FIVUCSAS',
     '/widget-auth': 'Widget Auth — FIVUCSAS',
     '/developer-portal': 'Developer Portal — FIVUCSAS',
@@ -82,6 +83,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const BiometricToolsPage = lazy(() => import('./pages/BiometricToolsPage'))
 const BiometricPuzzlesPage = lazy(() => import('./pages/BiometricPuzzlesPage'))
+const AuthMethodsTestingPage = lazy(() => import('./pages/AuthMethodsTestingPage'))
 const WidgetDemoPage = lazy(() => import('./pages/WidgetDemoPage'))
 const DeveloperPortalPage = lazy(() => import('./pages/DeveloperPortalPage'))
 const VerificationFlowBuilderPage = lazy(() => import('./pages/VerificationFlowBuilderPage'))
@@ -204,6 +206,7 @@ function App() {
                     <Route path="enrollment" element={<ErrorBoundary><BiometricEnrollmentPage /></ErrorBoundary>} />
                     <Route path="biometric-tools" element={<ErrorBoundary><BiometricToolsPage /></ErrorBoundary>} />
                     <Route path="biometric-puzzles" element={<ErrorBoundary><BiometricPuzzlesPage /></ErrorBoundary>} />
+                    <Route path="auth-methods-testing" element={<ErrorBoundary><AuthMethodsTestingPage /></ErrorBoundary>} />
                     <Route path="card-detection" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="face-search" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="voice-search" element={<Navigate to="/biometric-tools" replace />} />

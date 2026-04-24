@@ -66,6 +66,7 @@ const menuItems: MenuItem[] = [
     {labelKey: 'nav.biometricEnrollment',    icon: <Fingerprint/>,     path: '/enrollment',                                 group: 'biometrics'},
     {labelKey: 'nav.biometricTools',         icon: <Biotech/>,         path: '/biometric-tools',                            group: 'biometrics'},
     {labelKey: 'nav.biometricPuzzles',       icon: <Extension/>,       path: '/biometric-puzzles',                          group: 'biometrics'},
+    {labelKey: 'nav.authMethodsTesting',     icon: <Extension/>,       path: '/auth-methods-testing',                       group: 'biometrics'},
     {labelKey: 'nav.auditLogs',              icon: <Security/>,        path: '/audit-logs',               adminOnly: true, group: 'security'},
     {labelKey: 'nav.analytics',              icon: <Analytics/>,       path: '/analytics',                adminOnly: true, group: 'overview'},
     {labelKey: 'nav.verificationFlows',      icon: <VerifiedUser/>,    path: '/verification-flows',       adminOnly: true, group: 'security'},

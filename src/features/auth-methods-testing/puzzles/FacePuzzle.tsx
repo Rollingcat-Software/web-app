@@ -1,22 +1,15 @@
 /**
- * FacePuzzle (biometric-puzzles)
+ * FacePuzzle — wraps FaceCaptureStep for the Biometric Puzzle playground.
  *
- * Wraps FaceCaptureStep for the Biometric Puzzles page. Uses the real
- * biometric engine + real DependencyProvider from the app root (no stub DI)
- * so BlazeFace + MediaPipe detection actually runs during preview.
- *
- * Only the upstream HTTP verification call is stubbed: when the capture
- * succeeds we simulate a short server round-trip then report `onSuccess` to
- * the runner modal. Once the active-liveness surface lands (gesture-phase2
- * branch) this component will drive `BiometricPuzzle` from
- * `biometric-engine/core/BiometricPuzzle.ts` directly and report true
- * per-challenge pass/fail via `challengeType`.
+ * The wrapped step calls `onSubmit(image, embedding)` on capture. We map that
+ * to the puzzle-level `onSuccess`. Errors come from the step's `error` prop
+ * which we never populate in stub mode — `onError` stays silent.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import FaceCaptureStep from '@features/auth/components/steps/FaceCaptureStep'
-import type { BiometricPuzzleProps } from '../biometricPuzzleRegistry'
+import type { AuthMethodProps } from '../authMethodRegistry'
 
-export default function FacePuzzle({ onSuccess }: BiometricPuzzleProps) {
+export default function FacePuzzle({ onSuccess }: AuthMethodProps) {
     const [loading, setLoading] = useState(false)
     const timerRef = useRef<number | null>(null)
 

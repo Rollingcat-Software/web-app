@@ -1,35 +1,44 @@
 /**
  * BiometricPuzzlesPage
  *
- * Admin playground for every biometric challenge. Renders a responsive grid
- * of `PuzzleCard`s driven by PUZZLE_REGISTRY; launching a card opens the
- * shared `PuzzleRunnerModal` with stubbed dependencies.
+ * Lists the 23 real biometric micro-challenges (14 face + 9 hand) the
+ * active-liveness engine supports. Face cards use the REAL biometric
+ * engine through the app-wide `DependencyProvider` — no stub DI — so
+ * BlazeFace + MediaPipe + ONNX all load the same way they do on
+ * `/login`. Only the upstream HTTP verification call is mocked inside
+ * each puzzle wrapper.
  *
- * Future work (intentionally out of scope of this PR):
- *   - Difficulty + platform filters
- *   - "Try this puzzle" deep-link from the AuthFlow editor
- *   - Shared package so the landing-website can embed the same grid
+ * This is a separate surface from `/auth-methods-testing`, which is
+ * the 9-auth-method showcase (email OTP, SMS, TOTP, QR, Face, Voice,
+ * Fingerprint, NFC, Hardware Key). Biometric puzzles and auth methods
+ * are different concepts — see `biometricPuzzleRegistry.ts`.
  */
 import { useCallback, useMemo, useState } from 'react'
 import { Box, Grid, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import PuzzleCard from '@features/biometric-puzzles/PuzzleCard'
-import PuzzleRunnerModal from '@features/biometric-puzzles/PuzzleRunnerModal'
-import { listPuzzles, type Puzzle } from '@features/biometric-puzzles/puzzleRegistry'
+import PuzzleCard from '@features/biometric-puzzles/BiometricPuzzleCard'
+import PuzzleRunnerModal from '@features/biometric-puzzles/BiometricPuzzleRunnerModal'
+import {
+    listBiometricPuzzles,
+    type BiometricPuzzleEntry,
+} from '@features/biometric-puzzles/biometricPuzzleRegistry'
 
 export default function BiometricPuzzlesPage() {
     const { t } = useTranslation()
-    const [activePuzzle, setActivePuzzle] = useState<Puzzle | null>(null)
+    const [active, setActive] = useState<BiometricPuzzleEntry | null>(null)
 
-    const puzzles = useMemo(() => listPuzzles(), [])
+    const all = useMemo(() => listBiometricPuzzles(), [])
+    const facePuzzles = useMemo(
+        () => all.filter((p) => p.modality === 'face'),
+        [all],
+    )
+    const handPuzzles = useMemo(
+        () => all.filter((p) => p.modality === 'hand'),
+        [all],
+    )
 
-    const handleLaunch = useCallback((puzzle: Puzzle) => {
-        setActivePuzzle(puzzle)
-    }, [])
-
-    const handleClose = useCallback(() => {
-        setActivePuzzle(null)
-    }, [])
+    const handleLaunch = useCallback((p: BiometricPuzzleEntry) => setActive(p), [])
+    const handleClose = useCallback(() => setActive(null), [])
 
     return (
         <Box
@@ -40,36 +49,42 @@ export default function BiometricPuzzlesPage() {
                 boxSizing: 'border-box',
             }}
         >
-            <Typography
-                variant="h5"
-                fontWeight={700}
-                sx={{ mb: 0.5, wordBreak: 'break-word' }}
-            >
+            <Typography variant="h5" sx={{ fontWeight: 800, mb: 0.5 }}>
                 {t('biometricPuzzle.pageTitle')}
             </Typography>
-            <Typography
-                variant="body2"
-                color="text.secondary"
-                sx={{ mb: 3, wordBreak: 'break-word' }}
-            >
+            <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
                 {t('biometricPuzzle.pageSubtitle')}
             </Typography>
 
-            {/* TODO: difficulty + platform filters (post-MVP). */}
-
-            <Grid container spacing={2}>
-                {puzzles.map((puzzle) => (
-                    <Grid key={puzzle.id} item xs={12} sm={6} md={4} lg={3}>
-                        <PuzzleCard puzzle={puzzle} onLaunch={handleLaunch} />
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>
+                {t('biometricPuzzle.sectionFace')}
+            </Typography>
+            <Grid container spacing={2} sx={{ mb: 4 }}>
+                {facePuzzles.map((p) => (
+                    <Grid key={p.id} item xs={12} sm={6} md={4} lg={3}>
+                        <PuzzleCard puzzle={p} onLaunch={handleLaunch} />
                     </Grid>
                 ))}
             </Grid>
 
-            <PuzzleRunnerModal
-                puzzle={activePuzzle}
-                open={activePuzzle !== null}
-                onClose={handleClose}
-            />
+            <Typography variant="subtitle1" sx={{ fontWeight: 700, mt: 2, mb: 1 }}>
+                {t('biometricPuzzle.sectionHand')}
+            </Typography>
+            <Grid container spacing={2}>
+                {handPuzzles.map((p) => (
+                    <Grid key={p.id} item xs={12} sm={6} md={4} lg={3}>
+                        <PuzzleCard puzzle={p} onLaunch={handleLaunch} />
+                    </Grid>
+                ))}
+            </Grid>
+
+            {active && (
+                <PuzzleRunnerModal
+                    open={active !== null}
+                    puzzle={active}
+                    onClose={handleClose}
+                />
+            )}
         </Box>
     )
 }

@@ -1,11 +1,11 @@
 /**
- * FingerprintPuzzle — wraps FingerprintStep for the playground.
+ * TotpPuzzle — wraps TotpStep. Any 6-digit code is accepted in stub mode.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import FingerprintStep from '@features/auth/components/steps/FingerprintStep'
-import type { PuzzleProps } from '../puzzleRegistry'
+import TotpStep from '@features/auth/components/steps/TotpStep'
+import type { AuthMethodProps } from '../authMethodRegistry'
 
-export default function FingerprintPuzzle({ onSuccess }: PuzzleProps) {
+export default function TotpPuzzle({ onSuccess }: AuthMethodProps) {
     const [loading, setLoading] = useState(false)
     const timerRef = useRef<number | null>(null)
 
@@ -25,5 +25,5 @@ export default function FingerprintPuzzle({ onSuccess }: PuzzleProps) {
         }, 500)
     }, [onSuccess])
 
-    return <FingerprintStep onSubmit={handleSubmit} loading={loading} />
+    return <TotpStep onSubmit={handleSubmit} loading={loading} />
 }

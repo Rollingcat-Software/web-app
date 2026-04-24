@@ -6,9 +6,9 @@
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
 import EmailOtpStep from '@features/auth/components/steps/EmailOtpStep'
-import type { PuzzleProps } from '../puzzleRegistry'
+import type { AuthMethodProps } from '../authMethodRegistry'
 
-export default function EmailOtpPuzzle({ onSuccess }: PuzzleProps) {
+export default function EmailOtpPuzzle({ onSuccess }: AuthMethodProps) {
     const [loading, setLoading] = useState(false)
     const timerRef = useRef<number | null>(null)
 
