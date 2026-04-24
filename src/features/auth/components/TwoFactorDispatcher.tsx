@@ -25,6 +25,7 @@ import QrCodeStep from './steps/QrCodeStep'
 import HardwareKeyStep from './steps/HardwareKeyStep'
 import NfcStep from './steps/NfcStep'
 import EmailOtpMfaStep from './steps/EmailOtpMfaStep'
+import GestureLivenessStep from './steps/GestureLivenessStep'
 
 /**
  * Decode a `data:...;base64,...` URL into an ArrayBuffer.
@@ -300,6 +301,15 @@ export default function TwoFactorDispatcher({
                 return (
                     <NfcStep
                         onSubmit={(data) => verifyStep(AuthMethodType.NFC_DOCUMENT, { nfcData: data })}
+                        loading={loading}
+                        error={error}
+                    />
+                )
+
+            case AuthMethodType.GESTURE_LIVENESS:
+                return (
+                    <GestureLivenessStep
+                        onSubmit={(data) => verifyStep(AuthMethodType.GESTURE_LIVENESS, data)}
                         loading={loading}
                         error={error}
                     />
