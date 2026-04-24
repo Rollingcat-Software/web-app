@@ -160,7 +160,8 @@
     "active": "aktif",
     "successfulLogin": "Başarılı Giriş",
     "failedLogin": "Başarısız Giriş",
-    "noLoginHistory": "Giriş geçmişi yöneticilere açıktır. Erişim için yöneticinize başvurun."
+    "noLoginHistory": "Giriş geçmişi yöneticilere açıktır. Erişim için yöneticinize başvurun.",
+    "usersInTenant": "Kiracınızdaki kullanıcılar"
   },
   "methods": {
     "face": "Yüz Tanıma",

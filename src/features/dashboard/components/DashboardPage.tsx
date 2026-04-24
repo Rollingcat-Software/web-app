@@ -653,6 +653,12 @@ function AdminDashboardContent() {
     const { stats, loading, error } = useDashboard()
     const { auditLogs, loading: logsLoading } = useAuditLogs()
     const { t, i18n } = useTranslation()
+    const { user } = useAuth()
+    // Rule 3 (2026-04-24): counters are tenant-scoped for TENANT_ADMIN.
+    // Only SUPER_ADMIN sees the cross-tenant "Total Tenants" card; everyone
+    // else sees "Users in your tenant" (backend already scopes the count
+    // after #23 + #24, so `stats.totalUsers` is already correct).
+    const isPlatformOwner = user?.isSuperAdmin() ?? false
 
     if (loading) {
         return (
@@ -756,16 +762,16 @@ function AdminDashboardContent() {
 
                 <Grid container spacing={3}>
                     {/* Stat Cards - Row 1 */}
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12} sm={6} md={isPlatformOwner ? 4 : 6}>
                         <StatCard
-                            title={t('dashboard.totalUsers')}
+                            title={isPlatformOwner ? t('dashboard.totalUsers') : t('dashboard.usersInTenant')}
                             value={stats.totalUsers.toLocaleString(i18n.language)}
                             icon={<People sx={{ fontSize: 28 }} />}
                             color="primary"
                         />
                     </Grid>
 
-                    <Grid item xs={12} sm={6} md={4}>
+                    <Grid item xs={12} sm={6} md={isPlatformOwner ? 4 : 6}>
                         <StatCard
                             title={t('dashboard.activeUsers')}
                             value={stats.activeUsers.toLocaleString(i18n.language)}
@@ -775,14 +781,17 @@ function AdminDashboardContent() {
                         />
                     </Grid>
 
-                    <Grid item xs={12} sm={6} md={4}>
-                        <StatCard
-                            title={t('dashboard.totalTenants')}
-                            value={stats.totalTenants.toLocaleString(i18n.language)}
-                            icon={<Business sx={{ fontSize: 28 }} />}
-                            color="info"
-                        />
-                    </Grid>
+                    {/* "Total Tenants" card — cross-tenant counter, platform-owner only. */}
+                    {isPlatformOwner && (
+                        <Grid item xs={12} sm={6} md={4}>
+                            <StatCard
+                                title={t('dashboard.totalTenants')}
+                                value={stats.totalTenants.toLocaleString(i18n.language)}
+                                icon={<Business sx={{ fontSize: 28 }} />}
+                                color="info"
+                            />
+                        </Grid>
+                    )}
 
                     {/* Stat Cards - Row 2 */}
                     <Grid item xs={12} sm={6} md={4}>
