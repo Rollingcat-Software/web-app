@@ -48,28 +48,32 @@ export default function PuzzleTaskbar({
             }}
             aria-label={t('biometricPuzzle.platformLabel')}
         >
-            {platforms.map((platform) => (
-                <Chip
-                    key={platform}
-                    size="small"
-                    icon={PLATFORM_ICON[platform]}
-                    label={
-                        variant === 'compact'
-                            ? undefined
-                            : t(PLATFORM_LABEL_KEY[platform])
-                    }
-                    variant="outlined"
-                    sx={{
-                        borderRadius: '8px',
-                        fontWeight: 500,
-                        fontSize: '0.7rem',
-                        ...(variant === 'compact' && {
-                            '& .MuiChip-label': { display: 'none' },
-                            '& .MuiChip-icon': { ml: '8px', mr: '-4px' },
-                        }),
-                    }}
-                />
-            ))}
+            {platforms.map((platform) => {
+                const platformLabel = t(PLATFORM_LABEL_KEY[platform])
+                const isCompact = variant === 'compact'
+                return (
+                    <Chip
+                        key={platform}
+                        size="small"
+                        icon={PLATFORM_ICON[platform]}
+                        // In compact mode keep the visible label empty but
+                        // expose the platform name to assistive tech via
+                        // aria-label so icon-only chips stay accessible.
+                        label={isCompact ? '' : platformLabel}
+                        aria-label={isCompact ? platformLabel : undefined}
+                        variant="outlined"
+                        sx={{
+                            borderRadius: '8px',
+                            fontWeight: 500,
+                            fontSize: '0.7rem',
+                            ...(isCompact && {
+                                '& .MuiChip-label': { display: 'none' },
+                                '& .MuiChip-icon': { ml: '8px', mr: '-4px' },
+                            }),
+                        }}
+                    />
+                )
+            })}
         </Box>
     )
 }

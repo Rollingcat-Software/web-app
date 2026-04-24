@@ -3,16 +3,25 @@
  * top-level browsing context, so in puzzle mode we simply capture the
  * serial number the user scanned (or fake-tapped) and report success.
  */
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import NfcStep from '@features/auth/components/steps/NfcStep'
 import type { PuzzleProps } from '../puzzleRegistry'
 
 export default function NfcPuzzle({ onSuccess, onClose }: PuzzleProps) {
     const [loading, setLoading] = useState(false)
+    const timerRef = useRef<number | null>(null)
+
+    useEffect(() => () => {
+        if (timerRef.current != null) {
+            window.clearTimeout(timerRef.current)
+            timerRef.current = null
+        }
+    }, [])
 
     const handleSubmit = useCallback(() => {
         setLoading(true)
-        window.setTimeout(() => {
+        timerRef.current = window.setTimeout(() => {
+            timerRef.current = null
             setLoading(false)
             onSuccess()
         }, 500)

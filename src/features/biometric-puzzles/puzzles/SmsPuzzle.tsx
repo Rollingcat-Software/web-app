@@ -2,16 +2,25 @@
  * SmsPuzzle — wraps SmsOtpStep. `onSendOtp` is a no-op in stub mode; any
  * 6-digit code is accepted.
  */
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import SmsOtpStep from '@features/auth/components/steps/SmsOtpStep'
 import type { PuzzleProps } from '../puzzleRegistry'
 
 export default function SmsPuzzle({ onSuccess }: PuzzleProps) {
     const [loading, setLoading] = useState(false)
+    const timerRef = useRef<number | null>(null)
+
+    useEffect(() => () => {
+        if (timerRef.current != null) {
+            window.clearTimeout(timerRef.current)
+            timerRef.current = null
+        }
+    }, [])
 
     const handleSubmit = useCallback(() => {
         setLoading(true)
-        window.setTimeout(() => {
+        timerRef.current = window.setTimeout(() => {
+            timerRef.current = null
             setLoading(false)
             onSuccess()
         }, 500)

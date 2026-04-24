@@ -64,9 +64,10 @@ export function PuzzleModeProvider({
 }
 
 /**
- * Access the current PuzzleMode. When consumed outside a provider, defaults
- * to `real` mode with no auth repository — callers in real-auth land should
- * never rely on the repo from context and should keep resolving via DI.
+ * Access the current PuzzleMode. Throws when consumed outside a
+ * `PuzzleModeProvider` — callers that need to adapt without crashing should
+ * use `usePuzzleModeOptional()` instead and keep resolving real-auth
+ * dependencies via DI.
  */
 export function usePuzzleMode(): PuzzleModeValue {
     const ctx = useContext(PuzzleModeContext)
