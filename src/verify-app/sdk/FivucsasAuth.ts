@@ -186,6 +186,7 @@ export function decodeJwtPayload(jwt: string): Record<string, unknown> {
         }
         return parsed as Record<string, unknown>;
     } catch (err) {
+        // eslint-disable-next-line no-restricted-syntax -- runtime Error.name discriminator, not user copy
         if (err instanceof Error && err.message.startsWith('FivucsasAuth:')) throw err;
         throw new Error('FivucsasAuth: id_token payload could not be decoded');
     }

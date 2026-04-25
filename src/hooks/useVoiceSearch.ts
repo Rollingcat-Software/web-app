@@ -92,6 +92,7 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
             setResult(searchResult)
             return searchResult
         } catch (err) {
+            // eslint-disable-next-line no-restricted-syntax -- hook surface; caller wraps with formatApiError + i18n where displayed
             const msg = err instanceof Error ? err.message : 'Voice search failed'
             setError(msg)
             return null

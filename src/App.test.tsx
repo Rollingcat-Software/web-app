@@ -16,7 +16,7 @@ import './i18n'
 
 // Variable to control the mock per test
 let mockAuthReturn = {
-    user: null as any,
+    user: null as unknown,
     loading: false,
     isAuthenticated: false,
     error: null as Error | null,

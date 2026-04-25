@@ -108,6 +108,7 @@ export class FivucsasVerifyElement extends HTMLElement {
             );
             return result;
         } catch (err) {
+            // eslint-disable-next-line no-restricted-syntax -- SDK boundary; no i18n in framework-agnostic SDK, host app formats display
             const message = err instanceof Error ? err.message : String(err);
             if (message.includes('cancelled')) {
                 this.dispatchEvent(

@@ -194,7 +194,7 @@ export default function ResetPasswordPage() {
                 newPassword: data.newPassword,
             })
             setSuccess(true)
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(formatApiError(err, t))
         } finally {
             setLoading(false)

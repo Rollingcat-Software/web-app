@@ -14,6 +14,7 @@ import { useTranslation } from 'react-i18next'
 import { QRCodeSVG } from 'qrcode.react'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
+import { formatApiError } from '@utils/formatApiError'
 
 interface QrCodeStepProps {
     userId?: string
@@ -98,9 +99,7 @@ export default function QrCodeStep({
                 }
                 setIsExpired(false)
             } else {
-                const message =
-                    err instanceof Error ? err.message : 'Unable to generate QR token automatically.'
-                setGenerationError(`${message} ${t('mfa.qrCode.manualFallback')}`)
+                setGenerationError(`${formatApiError(err, t)} ${t('mfa.qrCode.manualFallback')}`)
             }
         } finally {
             setIsGenerating(false)

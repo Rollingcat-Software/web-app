@@ -73,6 +73,7 @@ export function useCardDetection(): UseCardDetectionReturn {
             return detectionResult
         } catch (err) {
             if (axios.isCancel(err)) return null
+            // eslint-disable-next-line no-restricted-syntax -- hook surface; caller wraps with formatApiError + i18n where displayed
             const msg = err instanceof Error ? err.message : 'Card detection failed'
             setError(msg)
             return null

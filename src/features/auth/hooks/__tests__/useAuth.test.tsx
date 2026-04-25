@@ -152,7 +152,7 @@ describe('useAuth', () => {
 
         it('should set loading state during login', async () => {
             mockAuthService.getCurrentUser = vi.fn().mockResolvedValue(null)
-            let loginResolver: (value: any) => void
+            let loginResolver: (value: unknown) => void
             mockAuthService.login = vi.fn().mockImplementation(
                 () =>
                     new Promise((resolve) => {
@@ -349,7 +349,7 @@ describe('useAuth', () => {
 
     describe('cleanup on unmount', () => {
         it('should not update state after unmount', async () => {
-            let resolveGetUser: (value: any) => void
+            let resolveGetUser: (value: unknown) => void
             mockAuthService.getCurrentUser = vi.fn().mockImplementation(
                 () =>
                     new Promise((resolve) => {
@@ -379,7 +379,7 @@ describe('useAuth', () => {
         it('should cleanup on unmount during login', async () => {
             mockAuthService.getCurrentUser = vi.fn().mockResolvedValue(null)
 
-            let resolveLogin: (value: any) => void
+            let resolveLogin: (value: unknown) => void
             mockAuthService.login = vi.fn().mockImplementation(
                 () =>
                     new Promise((resolve) => {

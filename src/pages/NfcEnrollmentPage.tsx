@@ -23,6 +23,7 @@ import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import { QRCodeSVG } from 'qrcode.react'
+import { formatApiError } from '@utils/formatApiError'
 
 /**
  * Check if Web NFC API is available (Chrome on Android only).
@@ -160,7 +161,7 @@ export default function NfcEnrollmentPage() {
         } catch (err) {
             setActionResult({
                 success: false,
-                message: err instanceof Error ? err.message : 'Request failed',
+                message: formatApiError(err, t),
             })
         } finally {
             setActionLoading(null)

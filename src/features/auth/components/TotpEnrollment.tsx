@@ -19,6 +19,8 @@ import { PhonelinkLock, QrCode2, CheckCircle, ContentCopy, DeleteOutline } from 
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { formatApiError } from '@utils/formatApiError'
+import type { TFunction } from 'i18next'
 
 interface TotpEnrollmentProps {
     open: boolean
@@ -50,13 +52,8 @@ interface TotpRevokeResponse {
     message: string
 }
 
-function getErrorMessage(err: unknown, fallback: string): string {
-    if (err instanceof Error) {
-        return err.message
-    }
-
-    const maybeError = err as { response?: { data?: { message?: string } } }
-    return maybeError.response?.data?.message || fallback
+function getErrorMessage(err: unknown, t: TFunction, _fallback: string): string {
+    return formatApiError(err, t)
 }
 
 export default function TotpEnrollment({ open, userId, onClose, onSuccess }: TotpEnrollmentProps) {
@@ -124,7 +121,7 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
             setTotpConfigured(false)
             setActiveStep(1)
         } catch (err) {
-            setError(getErrorMessage(err, 'Failed to setup TOTP'))
+            setError(getErrorMessage(err, t, ''))
         } finally {
             setLoading(false)
         }
@@ -156,7 +153,7 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
                 handleReset()
             }, 2000)
         } catch (err) {
-            setError(getErrorMessage(err, 'Invalid verification code'))
+            setError(getErrorMessage(err, t, ''))
         } finally {
             setLoading(false)
         }
@@ -177,11 +174,11 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
             setTotpConfigured(false)
             handleReset()
         } catch (err) {
-            setError(getErrorMessage(err, 'Failed to disable TOTP'))
+            setError(getErrorMessage(err, t, ''))
         } finally {
             setDisableLoading(false)
         }
-    }, [httpClient, userId, handleReset])
+    }, [httpClient, userId, handleReset, t])
 
     const handleClose = useCallback(() => {
         handleReset()

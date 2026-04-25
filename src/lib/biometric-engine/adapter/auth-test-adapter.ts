@@ -75,7 +75,7 @@ const FIVUCSAS = {
   __adapterVersion: '1.0.0',
 };
 
-(window as any).FIVUCSAS = FIVUCSAS;
+(window as unknown as { FIVUCSAS: typeof FIVUCSAS }).FIVUCSAS = FIVUCSAS;
 
 // Adapter loaded - no console output in production
 

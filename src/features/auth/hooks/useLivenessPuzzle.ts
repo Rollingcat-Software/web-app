@@ -537,6 +537,7 @@ export function useLivenessPuzzle() {
             setState(prev => ({
                 ...prev,
                 status: 'error',
+                // eslint-disable-next-line no-restricted-syntax -- hook stores raw message for caller; caller is responsible for formatApiError display
                 message: err instanceof Error ? err.message : 'Liveness puzzle error',
             }))
         }

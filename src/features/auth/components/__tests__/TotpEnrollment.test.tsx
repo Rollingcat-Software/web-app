@@ -174,7 +174,8 @@ describe('TotpEnrollment', () => {
         })
 
         it('should show error on setup failure', async () => {
-            mockPost.mockRejectedValue(new Error('Setup failed'))
+            // formatApiError reads response.data.message when present
+            mockPost.mockRejectedValue({ response: { status: 500, data: { message: 'Setup failed' } } })
 
             render(<TotpEnrollment {...defaultProps} />)
 
@@ -300,7 +301,7 @@ describe('TotpEnrollment', () => {
         it('should show error when verify API throws', async () => {
             await advanceToStep1()
 
-            mockPost.mockRejectedValueOnce(new Error('Server error'))
+            mockPost.mockRejectedValueOnce({ response: { status: 500, data: { message: 'Server error' } } })
 
             const input = screen.getByPlaceholderText('000000')
             fireEvent.change(input, { target: { value: '111111' } })
