@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { DeviceService } from '../DeviceService'
-import type { DeviceResponse } from '@core/repositories/DeviceRepository'
+import type { DeviceResponse, DeviceRepository } from '@core/repositories/DeviceRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 
 describe('DeviceService', () => {
@@ -39,7 +39,7 @@ describe('DeviceService', () => {
         }
 
         // Create service instance with mocks
-        deviceService = new DeviceService(mockDeviceRepository as any, mockLogger)
+        deviceService = new DeviceService(mockDeviceRepository as unknown as DeviceRepository, mockLogger)
     })
 
     describe('listDevices', () => {

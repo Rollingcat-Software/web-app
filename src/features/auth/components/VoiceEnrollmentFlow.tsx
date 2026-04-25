@@ -25,6 +25,7 @@ import {
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { encodeToWav16kMono } from '@/features/auth/utils/audioToWav16k'
+import { formatApiError } from '@utils/formatApiError'
 
 // WAV conversion is delegated to the shared helper so enrollment and
 // login paths stay in lockstep (same header layout, same resample, same
@@ -334,12 +335,12 @@ export default function VoiceEnrollmentFlow({
         } catch (err) {
             setActionResult({
                 success: false,
-                message: err instanceof Error ? err.message : 'Request failed',
+                message: formatApiError(err, t),
             })
         } finally {
             setActionLoading(null)
         }
-    }, [voiceBase64, token, apiBaseUrl, userId, onSuccess])
+    }, [voiceBase64, token, apiBaseUrl, userId, onSuccess, t])
 
     // Cleanup on close / re-init on open
     useEffect(() => {

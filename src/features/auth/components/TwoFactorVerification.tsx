@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { formatApiError } from '@utils/formatApiError'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -63,11 +64,7 @@ export default function TwoFactorVerification({
             // Focus input after code is sent
             setTimeout(() => inputRef.current?.focus(), 200)
         } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : t('twoFactor.sendFailed', 'Failed to send verification code')
-            )
+            setError(formatApiError(err, t))
         } finally {
             setSending(false)
         }
@@ -99,11 +96,7 @@ export default function TwoFactorVerification({
                 setError(res.data.message || t('twoFactor.invalidCode', 'Invalid or expired code'))
             }
         } catch (err) {
-            setError(
-                err instanceof Error
-                    ? err.message
-                    : t('twoFactor.verifyFailed', 'Verification failed')
-            )
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }

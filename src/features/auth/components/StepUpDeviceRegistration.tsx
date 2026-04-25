@@ -19,6 +19,8 @@ import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
+import type { TFunction } from 'i18next'
 
 interface StepUpDeviceRegistrationProps {
     open: boolean
@@ -43,12 +45,8 @@ interface VerifyChallengeResponse {
     message: string
 }
 
-function getErrorMessage(err: unknown, fallback: string): string {
-    if (err instanceof Error) {
-        return err.message
-    }
-    const maybeError = err as { response?: { data?: { message?: string } } }
-    return maybeError.response?.data?.message || fallback
+function getErrorMessage(err: unknown, t: TFunction, _fallback: string): string {
+    return formatApiError(err, t)
 }
 
 export default function StepUpDeviceRegistration({ open, userId, onClose, onSuccess }: StepUpDeviceRegistrationProps) {
@@ -131,7 +129,7 @@ export default function StepUpDeviceRegistration({ open, userId, onClose, onSucc
             setRegisteredDeviceId(response.data.deviceId)
             setActiveStep(1)
         } catch (err) {
-            setError(getErrorMessage(err, t('stepUp.registerFailed')))
+            setError(getErrorMessage(err, t, t('stepUp.registerFailed')))
         } finally {
             setLoading(false)
         }
@@ -156,7 +154,7 @@ export default function StepUpDeviceRegistration({ open, userId, onClose, onSucc
             setChallengeId(response.data.challengeId)
             setChallenge(response.data.challenge)
         } catch (err) {
-            setError(getErrorMessage(err, t('stepUp.challengeFailed')))
+            setError(getErrorMessage(err, t, t('stepUp.challengeFailed')))
         } finally {
             setLoading(false)
         }
@@ -188,7 +186,7 @@ export default function StepUpDeviceRegistration({ open, userId, onClose, onSucc
                 setError(response.data.message || t('stepUp.verifyFailed'))
             }
         } catch (err) {
-            setError(getErrorMessage(err, t('stepUp.verifyFailed')))
+            setError(getErrorMessage(err, t, t('stepUp.verifyFailed')))
         } finally {
             setLoading(false)
         }

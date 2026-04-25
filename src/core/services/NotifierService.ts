@@ -69,7 +69,9 @@ export class NotifierService implements INotifier {
         if (this.shouldSuppressAsDuplicate(message, variant)) {
             // Still leave a breadcrumb in the console so we can debug
             // "why didn't my toast show up?" without re-instrumenting.
+            // eslint-disable-next-line no-console -- intentional dev breadcrumb for toast dedup debugging
             if (typeof console !== 'undefined' && typeof console.debug === 'function') {
+                // eslint-disable-next-line no-console -- intentional dev breadcrumb for toast dedup debugging
                 console.debug('[NotifierService] Deduped low-severity toast:', { variant, message })
             }
             return

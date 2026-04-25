@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { AuthFlowService } from '../AuthFlowService'
 import type { AuthFlowResponse, CreateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'
+import type { AuthFlowRepository } from '@core/repositories/AuthFlowRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 
 describe('AuthFlowService', () => {
@@ -42,7 +43,7 @@ describe('AuthFlowService', () => {
         }
 
         // Create service instance with mocks
-        authFlowService = new AuthFlowService(mockAuthFlowRepository as any, mockLogger)
+        authFlowService = new AuthFlowService(mockAuthFlowRepository as unknown as AuthFlowRepository, mockLogger)
     })
 
     describe('getFlows', () => {

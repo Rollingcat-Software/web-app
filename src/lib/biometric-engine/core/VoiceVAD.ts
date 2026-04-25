@@ -110,6 +110,7 @@ export class VoiceVAD implements IVoiceVAD {
       this.initError = null;
     } catch (err) {
       this._available = false;
+      // eslint-disable-next-line no-restricted-syntax -- engine init error stored for diagnostic; UI layer formats display
       this.initError = err instanceof Error ? err.message : String(err);
       console.warn('[VoiceVAD] ONNX model not available, VAD disabled:', err);
     }

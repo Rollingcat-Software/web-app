@@ -7,6 +7,7 @@
 
 import type { TFunction } from 'i18next'
 import { WebAuthnErrorName } from './constants'
+import { formatApiError } from '@utils/formatApiError'
 
 // ─── Types ──────────────────────────────────────────────────────
 
@@ -66,7 +67,7 @@ export function bytesToBase64url(buffer: ArrayBuffer): string {
  */
 export function mapWebAuthnError(err: unknown, t: TFunction): string | undefined {
     if (!(err instanceof DOMException)) {
-        return err instanceof Error ? err.message : t('webauthn.errors.unknown')
+        return formatApiError(err, t)
     }
 
     switch (err.name) {
@@ -79,6 +80,7 @@ export function mapWebAuthnError(err: unknown, t: TFunction): string | undefined
         case WebAuthnErrorName.ABORT:
             return t('webauthn.errors.aborted')
         default:
+            // eslint-disable-next-line no-restricted-syntax -- DOMException.message used as i18n interpolation detail, not raw display
             return t('webauthn.errors.generic', { detail: err.message })
     }
 }

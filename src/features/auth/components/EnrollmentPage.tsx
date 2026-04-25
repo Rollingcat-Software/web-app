@@ -54,6 +54,7 @@ import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { ISettingsService } from '@domain/interfaces/ISettingsService'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { formatApiError } from '@utils/formatApiError'
 
 /**
  * Device capability detection results
@@ -340,7 +341,7 @@ export default function EnrollmentPage() {
         } catch (err) {
             setSnackbar({
                 open: true,
-                message: err instanceof Error ? err.message : t('enrollmentPage.nfcCards.deleteError'),
+                message: formatApiError(err, t),
                 severity: 'error',
             })
         } finally {
@@ -437,7 +438,7 @@ export default function EnrollmentPage() {
                         })
                         setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
                     } catch (err) {
-                        setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.enrollError', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'error' })
+                        setSnackbar({ open: true, message: formatApiError(err, t), severity: 'error' })
                     } finally {
                         setActionLoading(null)
                     }
@@ -452,7 +453,7 @@ export default function EnrollmentPage() {
                         })
                         setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
                     } catch (err) {
-                        setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.enrollError', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'error' })
+                        setSnackbar({ open: true, message: formatApiError(err, t), severity: 'error' })
                     } finally {
                         setActionLoading(null)
                     }
@@ -543,7 +544,7 @@ export default function EnrollmentPage() {
                 setFaceEnrollOpen(false)
                 setSnackbar({
                     open: true,
-                    message: err instanceof Error ? err.message : t('enrollmentPage.faceEnrollFailed'),
+                    message: formatApiError(err, t),
                     severity: 'error',
                 })
             } finally {
@@ -563,7 +564,7 @@ export default function EnrollmentPage() {
                 await revokeEnrollment(type)
                 setSnackbar({ open: true, message: t('enrollmentPage.revokeSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
             } catch (err) {
-                setSnackbar({ open: true, message: err instanceof Error ? err.message : t('enrollmentPage.revokeFailed', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'error' })
+                setSnackbar({ open: true, message: formatApiError(err, t), severity: 'error' })
             } finally {
                 setActionLoading(null)
             }
@@ -1120,7 +1121,7 @@ export default function EnrollmentPage() {
                             } catch (err) {
                                 setSnackbar({
                                     open: true,
-                                    message: err instanceof Error ? err.message : t('enrollmentPage.phoneError'),
+                                    message: formatApiError(err, t),
                                     severity: 'error',
                                 })
                             } finally {
