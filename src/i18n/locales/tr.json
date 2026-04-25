@@ -1575,6 +1575,13 @@
     "stubbedOnly": "Yalnızca simülasyon",
     "successMessage": "Bulmaca başarıyla tamamlandı. Dedektör hedef hareketi onayladı.",
     "errorMessage": "Bulmaca tamamlanamadı. Lütfen tekrar deneyin.",
+    "timeoutMessage": "Süre doldu — hareket algılanamadı. Lütfen tekrar deneyin.",
+    "engineLoading": "Dedektör yükleniyor…",
+    "startCamera": "Kamerayı Başlat",
+    "waitingForGesture": "İstenen hareket bekleniyor…",
+    "holding": "Tutmaya devam edin…",
+    "handFingerCountPrompt": "{{count}} parmağınızı gösterip tutun.",
+    "handMathPrompt": "{{expr}} işleminin sonucunu parmaklarınızla gösterip tutun.",
     "difficulty": {
       "beginner": "Başlangıç",
       "intermediate": "Orta",
