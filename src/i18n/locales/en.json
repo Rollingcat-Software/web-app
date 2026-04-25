@@ -1575,6 +1575,13 @@
     "stubbedOnly": "Simulated only",
     "successMessage": "Challenge passed. The detector confirmed the target gesture.",
     "errorMessage": "The puzzle could not be completed. Please try again.",
+    "timeoutMessage": "Time's up — the gesture was not detected. Please try again.",
+    "engineLoading": "Loading detector…",
+    "startCamera": "Start Camera",
+    "waitingForGesture": "Waiting for the requested gesture…",
+    "holding": "Hold it…",
+    "handFingerCountPrompt": "Show {{count}} finger(s) and hold.",
+    "handMathPrompt": "Show the answer to {{expr}} on your fingers and hold.",
     "difficulty": {
       "beginner": "Beginner",
       "intermediate": "Intermediate",

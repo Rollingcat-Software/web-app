@@ -1,23 +1,16 @@
 /**
- * FacePuzzle (biometric-puzzles)
+ * HandGesturePuzzle
  *
- * Per-challenge active liveness puzzle. Pinned to a single
- * `ChallengeType` and reports `onSuccess` only when the engine's
- * `BiometricPuzzle.checkChallenge()` confirms the gesture has been
- * held for `HOLD_DURATION` seconds.
+ * Real per-challenge hand-gesture detector for the 9 hand puzzles on
+ * `app.fivucsas.com/biometric-puzzles`. Bug history: the previous
+ * placeholder `HandGesturePlaceholderPuzzle` always succeeded after a
+ * 2-second timer, regardless of what the user did. This component
+ * uses the MediaPipe HandLandmarker (`@mediapipe/tasks-vision`) plus
+ * per-puzzle detectors in `handChallenges.ts` to require the actual
+ * gesture before reporting `onSuccess`.
  *
- * Bug history (2026-04-25): the previous implementation wrapped
- * `FaceCaptureStep` and called `onSuccess` after a fixed 500ms
- * timeout — every challenge "always succeeded" because no detection
- * was actually pinned to a challenge type. This rewrite drives the
- * real `BiometricPuzzle` engine with `challengeTypes=[challengeType]`
- * and a single-challenge session, so the user must perform the
- * specific gesture (blink, smile, look up, ...) for the puzzle to
- * pass.
- *
- * Detection runs entirely client-side via the shared MediaPipe
- * FaceLandmarker (CDN, ~5MB WASM) — no server round-trips. This
- * matches the D1-D4 ML split rule.
+ * Detection runs entirely client-side — no server calls — to satisfy
+ * the D1-D4 ML-split rule.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import {
@@ -30,39 +23,33 @@ import {
 } from '@mui/material'
 import { CameraAlt } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
-import { useBiometricEngine } from '@/lib/biometric-engine/hooks/useBiometricEngine'
-import {
-    BiometricPuzzle as BiometricPuzzleEngine,
-} from '@/lib/biometric-engine/core/BiometricPuzzle'
-import { ChallengeType } from '@/lib/biometric-engine/types'
+import { BiometricPuzzleId } from '../BiometricPuzzleId'
 import type { BiometricPuzzleProps } from '../biometricPuzzleRegistry'
+import { useHandLandmarker } from './useHandLandmarker'
+import {
+    evaluateHandPuzzle,
+    initialHandState,
+    type HandFrame,
+    type HandPuzzleState,
+} from './handChallenges'
 
 interface Props extends BiometricPuzzleProps {
-    challengeType: ChallengeType
-    /** i18n key root (e.g. `biometricPuzzle.puzzles.face_blink`). */
+    puzzleId: BiometricPuzzleId
+    /** i18n key root (e.g. `biometricPuzzle.puzzles.hand_pinch`). */
     i18nKey: string
 }
 
-/**
- * Hard timeout for any single puzzle attempt. The engine itself has no
- * deadline; we add one so users don't get stuck forever if the gesture
- * is impossible (e.g. asymmetric brow raises).
- */
-const ATTEMPT_TIMEOUT_MS = 30_000
+const ATTEMPT_TIMEOUT_MS = 45_000
 
-function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
+function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
     const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const streamRef = useRef<MediaStream | null>(null)
     const animFrameRef = useRef<number>(0)
     const startTsRef = useRef<number>(0)
     const completedRef = useRef<boolean>(false)
-
-    // Independent puzzle instance pinned to this challenge type. Sharing the
-    // engine's metricsCalculator keeps internal state (eyebrow baseline) in
-    // sync with the global biometric pipeline.
-    const { engine, isReady, isLoading, error: engineError } = useBiometricEngine()
-    const puzzleEngineRef = useRef<BiometricPuzzleEngine | null>(null)
+    const stateRef = useRef<HandPuzzleState>({})
+    const holdRef = useRef<{ detectedSince: number | null }>({ detectedSince: null })
 
     const [cameraActive, setCameraActive] = useState(false)
     const [videoReady, setVideoReady] = useState(false)
@@ -70,17 +57,9 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
     const [progress, setProgress] = useState(0)
     const [detected, setDetected] = useState(false)
     const [running, setRunning] = useState(false)
+    const [promptText, setPromptText] = useState<string | null>(null)
 
-    // Build the per-challenge puzzle instance once the engine is ready.
-    useEffect(() => {
-        if (!engine) return
-        const p = new BiometricPuzzleEngine(engine.metricsCalculator, 1)
-        p.registerAllDefaults()
-        puzzleEngineRef.current = p
-        return () => {
-            puzzleEngineRef.current = null
-        }
-    }, [engine])
+    const handLandmarker = useHandLandmarker(cameraActive)
 
     const startCamera = useCallback(async () => {
         try {
@@ -117,7 +96,6 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
         setRunning(false)
     }, [])
 
-    // Stop camera on unmount.
     useEffect(() => () => stopCamera(), [stopCamera])
 
     const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
@@ -126,26 +104,37 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
             node.srcObject = streamRef.current
             node.onloadeddata = () => setVideoReady(true)
             node.play().catch(() => {
-                /* autoplay may be deferred; user gesture already happened */
+                /* autoplay deferred */
             })
         }
     }, [])
 
-    // Detection loop: drive engine.frameProcessor.processFrame(video) and
-    // feed the resulting landmarks + headPose into our pinned puzzle.
+    // Detection loop: poll HandLandmarker, evaluate the puzzle.
     useEffect(() => {
-        if (!engine || !isReady) return
+        if (!handLandmarker.isReady) return
         if (!cameraActive || !videoReady) return
-        const puzzle = puzzleEngineRef.current
-        if (!puzzle) return
 
-        // Start a fresh single-challenge session.
-        puzzle.start([challengeType], 1)
+        // Reset puzzle state for a fresh attempt.
+        stateRef.current = initialHandState(puzzleId)
+        holdRef.current = { detectedSince: null }
         startTsRef.current = performance.now()
         completedRef.current = false
         setRunning(true)
         setProgress(0)
         setDetected(false)
+
+        // Compute the human-readable prompt for puzzles that have a random
+        // target (finger count, math expression).
+        const s = stateRef.current
+        if (puzzleId === BiometricPuzzleId.HAND_FINGER_COUNT && s.targetFingerCount) {
+            setPromptText(t('biometricPuzzle.handFingerCountPrompt', {
+                count: s.targetFingerCount,
+            }))
+        } else if (puzzleId === BiometricPuzzleId.HAND_MATH && s.mathPrompt) {
+            setPromptText(t('biometricPuzzle.handMathPrompt', { expr: s.mathPrompt }))
+        } else {
+            setPromptText(null)
+        }
 
         const loop = () => {
             const video = videoRef.current
@@ -154,7 +143,6 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 return
             }
 
-            // Hard timeout safeguard.
             if (performance.now() - startTsRef.current > ATTEMPT_TIMEOUT_MS) {
                 if (!completedRef.current) {
                     completedRef.current = true
@@ -164,27 +152,32 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 return
             }
 
-            try {
-                const frame = engine.frameProcessor.processFrame(video)
-                const face = frame.faces[0]
-                if (face?.detection.landmarks478?.length && face.headPose) {
-                    const result = puzzle.checkChallenge(
-                        face.detection.landmarks478,
-                        face.headPose.yaw,
-                        face.headPose.pitch,
-                    )
-                    setDetected(result.detected)
-                    setProgress(result.progress)
-                    if (result.completed && !completedRef.current) {
-                        completedRef.current = true
-                        setRunning(false)
-                        setProgress(100)
-                        onSuccess()
-                        return
+            const ts = performance.now()
+            const result = handLandmarker.detect(video, ts)
+            const handFrame: HandFrame | null =
+                result && result.landmarks && result.landmarks.length > 0
+                    ? {
+                        landmarks: result.landmarks[0],
+                        handedness: (result.handedness?.[0]?.[0]?.categoryName as 'Left' | 'Right' | undefined),
+                        timestamp: ts,
                     }
-                }
-            } catch {
-                // Skip frame on detection error.
+                    : null
+
+            const evalResult = evaluateHandPuzzle(
+                puzzleId,
+                { frame: handFrame, state: stateRef.current },
+                holdRef.current,
+            )
+
+            setDetected(evalResult.detected)
+            if (evalResult.progress != null) setProgress(evalResult.progress)
+
+            if (evalResult.completed && !completedRef.current) {
+                completedRef.current = true
+                setRunning(false)
+                setProgress(100)
+                onSuccess()
+                return
             }
 
             animFrameRef.current = requestAnimationFrame(loop)
@@ -197,7 +190,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 animFrameRef.current = 0
             }
         }
-    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t])
+    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t])
 
     const challengeLabel = useMemo(() => t(`${i18nKey}.title`), [t, i18nKey])
     const challengeDescription = useMemo(() => t(`${i18nKey}.description`), [t, i18nKey])
@@ -211,10 +204,15 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 <Typography variant="body2" color="text.secondary" sx={{ textAlign: 'center' }}>
                     {challengeDescription}
                 </Typography>
+                {promptText && (
+                    <Alert severity="info" sx={{ width: '100%' }}>
+                        {promptText}
+                    </Alert>
+                )}
 
-                {engineError && (
+                {handLandmarker.error && (
                     <Alert severity="error" sx={{ width: '100%' }}>
-                        {engineError}
+                        {handLandmarker.error}
                     </Alert>
                 )}
                 {cameraError && (
@@ -228,11 +226,8 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                         variant="contained"
                         startIcon={<CameraAlt />}
                         onClick={startCamera}
-                        disabled={isLoading || !isReady}
                     >
-                        {isLoading
-                            ? t('biometricPuzzle.engineLoading')
-                            : t('biometricPuzzle.startCamera')}
+                        {t('biometricPuzzle.startCamera')}
                     </Button>
                 )}
 
@@ -264,6 +259,12 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                     </Box>
                 )}
 
+                {handLandmarker.isLoading && (
+                    <Typography variant="caption" color="text.secondary">
+                        {t('biometricPuzzle.engineLoading')}
+                    </Typography>
+                )}
+
                 {running && (
                     <Stack spacing={1} sx={{ width: '100%' }}>
                         <Typography variant="caption" color="text.secondary">
@@ -284,16 +285,15 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
 }
 
 /**
- * Build a `ComponentType<BiometricPuzzleProps>` with `challengeType` +
- * `i18nKey` pre-bound so the registry can hold one component per face
- * entry without leaking extra props through the runner modal.
+ * Build a `ComponentType<BiometricPuzzleProps>` with `puzzleId` and
+ * `i18nKey` pre-bound for the registry.
  */
-export function makeFacePuzzle(challengeType: ChallengeType, i18nKey: string) {
+export function makeHandPuzzle(puzzleId: BiometricPuzzleId, i18nKey: string) {
     const Bound: React.FC<BiometricPuzzleProps> = (p) => (
-        <FacePuzzle {...p} challengeType={challengeType} i18nKey={i18nKey} />
+        <HandGesturePuzzle {...p} puzzleId={puzzleId} i18nKey={i18nKey} />
     )
-    Bound.displayName = `FacePuzzle(${challengeType})`
+    Bound.displayName = `HandGesturePuzzle(${puzzleId})`
     return Bound
 }
 
-export default FacePuzzle
+export default HandGesturePuzzle

@@ -40,8 +40,8 @@ import {
 
 import { BiometricPuzzleId, type BiometricPuzzleModality } from './BiometricPuzzleId'
 import { ChallengeType } from '@/lib/biometric-engine/types'
-import FacePuzzle from './puzzles/FacePuzzle'
-import { makeHandGesturePlaceholder } from './puzzles/HandGesturePlaceholderPuzzle'
+import { makeFacePuzzle } from './puzzles/FacePuzzle'
+import { makeHandPuzzle } from './puzzles/HandGesturePuzzle'
 
 /**
  * Props every puzzle component receives. Mirrors the auth-methods-testing
@@ -88,11 +88,15 @@ function faceEntry(
 ): BiometricPuzzleEntry {
     // The i18n key uses the enum name lower-cased: FACE_BLINK -> face_blink.
     const i18nLeaf = id.toLowerCase()
+    const i18nKey = `biometricPuzzle.puzzles.${i18nLeaf}`
     return {
         id,
         modality: 'face',
-        i18nKey: `biometricPuzzle.puzzles.${i18nLeaf}`,
-        component: FacePuzzle,
+        i18nKey,
+        // Pre-bind the challenge type + i18n key so the runner modal can stay
+        // generic. Each face card drives the real `BiometricPuzzle` engine
+        // pinned to its specific gesture (blink, smile, ...).
+        component: makeFacePuzzle(challengeType, i18nKey),
         difficulty,
         platforms: FACE_PLATFORMS,
         icon,
@@ -114,17 +118,15 @@ function handEntry(
         id,
         modality: 'hand',
         i18nKey,
-        // Pre-bind the i18n key on the component so each hand card shows
-        // its own copy (title, description, instructions) without the
-        // registry needing to leak extra props to the runner modal.
-        component: makeHandGesturePlaceholder(i18nKey),
+        // Pre-bind puzzle id + i18n key. Each hand card now drives the real
+        // MediaPipe HandLandmarker via `HandGesturePuzzle` and the per-puzzle
+        // detectors in `handChallenges.ts`.
+        component: makeHandPuzzle(id, i18nKey),
         difficulty,
         platforms: HAND_PLATFORMS,
         icon,
         requiresEnrollment: false,
-        // Hand gestures are stubbed until the MediaPipe HandLandmarker ships
-        // on the gesture-phase2 branch.
-        capability: 'stubbedOnly',
+        capability: 'realCapable',
     }
 }
 
