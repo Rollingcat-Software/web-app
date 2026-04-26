@@ -50,9 +50,10 @@ vi.mock('../verifyContainer', () => ({
 }))
 
 // DependencyProvider pass-through — we're not exercising the real DI here.
-vi.mock('@app/providers/DependencyProvider', () => ({
+vi.mock('@app/providers', () => ({
     DependencyProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
     useService: () => ({}),
+    useContainer: () => ({}),
 }))
 
 // Import HostedLoginApp AFTER the mocks are registered

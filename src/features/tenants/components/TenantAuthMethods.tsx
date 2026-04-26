@@ -9,7 +9,7 @@ import {
     Typography,
 } from '@mui/material'
 import {Security} from '@mui/icons-material'
-import {useService} from '@app/providers/DependencyProvider'
+import {useService} from '@app/providers'
 import {TYPES} from '@core/di/types'
 import type {IHttpClient} from '@domain/interfaces/IHttpClient'
 import {useTranslation} from 'react-i18next'

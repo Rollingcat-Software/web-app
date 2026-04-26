@@ -695,7 +695,12 @@
     "noOwner": "No user found for this card.",
     "scanQrTitle": "Scan with your phone",
     "qrHint": "Open the FIVUCSAS app and scan this QR code to enroll your NFC document",
-    "downloadApp": "Download FIVUCSAS App"
+    "downloadApp": "Download FIVUCSAS App",
+    "active": "Active",
+    "inactive": "Inactive",
+    "readError": "Failed to read NFC tag. Try again.",
+    "scanFailed": "NFC scan failed. Make sure NFC is enabled.",
+    "subtitleAdmin": "Scan an NFC card to enroll, verify, or search for its owner."
   },
   "faceSearch": {
     "title": "Face Search",
@@ -890,7 +895,11 @@
     "statusCancelled": "Cancelled",
     "statusLabel": "Status:",
     "codeCopied": "Copied!",
-    "codeCopy": "Copy"
+    "codeCopy": "Copy",
+    "token": "Token",
+    "user": "User",
+    "layerInternalApi": "Internal API calls",
+    "layerPostMessage": "postMessage"
   },
   "verification": {
     "flowsTitle": "Verification Flows",
@@ -1336,7 +1345,8 @@
       "enterManually": "Or enter the authentication token manually",
       "tokenLabel": "Authentication Token",
       "tokenPlaceholder": "Enter token...",
-      "verify": "Verify"
+      "verify": "Verify",
+      "rateLimited": "Too many attempts. Please try again in {{seconds}} seconds."
     },
     "nfc": {
       "title": "NFC Document Scan",

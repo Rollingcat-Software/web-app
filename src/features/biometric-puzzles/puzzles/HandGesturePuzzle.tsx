@@ -287,7 +287,11 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
 /**
  * Build a `ComponentType<BiometricPuzzleProps>` with `puzzleId` and
  * `i18nKey` pre-bound for the registry.
+ *
+ * `react-refresh/only-export-components` can't see that this returns a
+ * component; HMR is irrelevant for these dynamic factories.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function makeHandPuzzle(puzzleId: BiometricPuzzleId, i18nKey: string) {
     const Bound: React.FC<BiometricPuzzleProps> = (p) => (
         <HandGesturePuzzle {...p} puzzleId={puzzleId} i18nKey={i18nKey} />

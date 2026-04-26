@@ -1,18 +1,5 @@
-import { createContext, useCallback, useContext, useMemo, useState, ReactNode } from 'react'
-
-type ThemeMode = 'light' | 'dark'
-
-interface ThemeModeContextValue {
-    mode: ThemeMode
-    toggleMode: () => void
-    setMode: (mode: ThemeMode) => void
-}
-
-const ThemeModeContext = createContext<ThemeModeContextValue>({
-    mode: 'light',
-    toggleMode: () => {},
-    setMode: () => {},
-})
+import { useCallback, useMemo, useState, type ReactNode } from 'react'
+import { ThemeModeContext, type ThemeMode, type ThemeModeContextValue } from './ThemeModeContext'
 
 const STORAGE_KEY = 'fivucsas-theme-mode'
 
@@ -41,8 +28,4 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
     )
 
     return <ThemeModeContext.Provider value={value}>{children}</ThemeModeContext.Provider>
-}
-
-export function useThemeMode() {
-    return useContext(ThemeModeContext)
 }

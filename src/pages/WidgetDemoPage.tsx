@@ -709,7 +709,7 @@ export default function WidgetDemoPage() {
                         color="#6366f1"
                     />
                     <Box sx={{ display: 'flex', justifyContent: 'center', color: 'text.disabled' }}>
-                        <Typography variant="caption">postMessage</Typography>
+                        <Typography variant="caption">{t('widgetDemo.layerPostMessage')}</Typography>
                     </Box>
                     <ArchitectureLayer
                         title={t('widgetDemo.layer2Title')}
@@ -724,7 +724,7 @@ export default function WidgetDemoPage() {
                         color="#8b5cf6"
                     />
                     <Box sx={{ display: 'flex', justifyContent: 'center', color: 'text.disabled' }}>
-                        <Typography variant="caption">Internal API calls</Typography>
+                        <Typography variant="caption">{t('widgetDemo.layerInternalApi')}</Typography>
                     </Box>
                     <ArchitectureLayer
                         title={t('widgetDemo.layer3Title')}

@@ -3,8 +3,5 @@
  * Exports all provider components and hooks
  */
 
-export {
-    DependencyProvider,
-    useService,
-    useContainer,
-} from './DependencyProvider'
+export { DependencyProvider } from './DependencyProvider'
+export { useService, useContainer, DependencyContext } from './DependencyContext'

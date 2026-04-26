@@ -695,7 +695,12 @@
     "noOwner": "Bu kart için kullanıcı bulunamadı.",
     "scanQrTitle": "Telefonunuzla tarayın",
     "qrHint": "NFC belgenizi kaydetmek için FIVUCSAS uygulamasını açın ve bu QR kodu tarayın",
-    "downloadApp": "FIVUCSAS Uygulamasını İndir"
+    "downloadApp": "FIVUCSAS Uygulamasını İndir",
+    "active": "Aktif",
+    "inactive": "Pasif",
+    "readError": "NFC etiketi okunamadı. Lütfen tekrar deneyin.",
+    "scanFailed": "NFC taraması başarısız oldu. NFC'nin etkin olduğundan emin olun.",
+    "subtitleAdmin": "Kayıt, doğrulama veya sahip arama için bir NFC kartı tarayın."
   },
   "faceSearch": {
     "title": "Yüz Arama",
@@ -890,7 +895,11 @@
     "statusCancelled": "İptal Edildi",
     "statusLabel": "Durum:",
     "codeCopied": "Kopyalandı!",
-    "codeCopy": "Kopyala"
+    "codeCopy": "Kopyala",
+    "token": "Belirteç",
+    "user": "Kullanıcı",
+    "layerInternalApi": "Dahili API çağrıları",
+    "layerPostMessage": "postMessage"
   },
   "verification": {
     "flowsTitle": "Doğrulama Akışları",
@@ -1336,7 +1345,8 @@
       "enterManually": "Veya doğrulama jetonunu manuel olarak girin",
       "tokenLabel": "Doğrulama Jetonu",
       "tokenPlaceholder": "Jeton girin...",
-      "verify": "Doğrula"
+      "verify": "Doğrula",
+      "rateLimited": "Çok fazla deneme. {{seconds}} saniye sonra tekrar deneyin."
     },
     "nfc": {
       "title": "NFC Belge Tarama",

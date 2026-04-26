@@ -1,7 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook } from '@testing-library/react'
 import React from 'react'
-import { PermissionProvider, usePermissions } from '../PermissionContext'
+import { PermissionProvider } from '../PermissionProvider'
+import { usePermissions } from '../PermissionContext'
 import { Permission } from '@domain/models/Permission'
 
 // Mock useAuth

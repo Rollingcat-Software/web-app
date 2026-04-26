@@ -15,7 +15,7 @@ import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
 import LoginPage from '@features/auth/components/LoginPage'
 // DashboardPage import removed - unused in current tests
-import { DependencyProvider } from '@app/providers/DependencyProvider'
+import { DependencyProvider } from '@app/providers'
 
 // Mock the auth service
 const mockAuthService = {

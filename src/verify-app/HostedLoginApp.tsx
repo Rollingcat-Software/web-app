@@ -29,7 +29,7 @@ import {
 import { VerifiedUserOutlined } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { createAppTheme } from '../theme'
-import { DependencyProvider } from '@app/providers/DependencyProvider'
+import { DependencyProvider } from '@app/providers'
 import { createVerifyContainer } from './verifyContainer'
 import LoginMfaFlow from './LoginMfaFlow'
 import { TYPES } from '@core/di/types'

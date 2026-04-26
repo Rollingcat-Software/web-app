@@ -1,33 +1,15 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
+import { useState, useEffect, useCallback, useMemo, type ReactNode } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IAuthService } from '@domain/interfaces/IAuthService'
 import type { LoginCredentials } from '@domain/interfaces/IAuthRepository'
-import { User } from '@domain/models/User'
 import type { ErrorHandler } from '@core/errors'
-import type { AvailableMfaMethod } from '@domain/interfaces/IAuthRepository'
-
-interface AuthState {
-    user: User | null
-    loading: boolean
-    error: Error | null
-    isAuthenticated: boolean
-}
-
-interface LoginResult {
-    twoFactorRequired: boolean
-    twoFactorMethod?: string
-    mfaSessionToken?: string
-    availableMethods?: AvailableMfaMethod[]
-}
-
-interface AuthContextValue extends AuthState {
-    login: (credentials: LoginCredentials) => Promise<LoginResult>
-    logout: () => Promise<void>
-    refreshUser: () => Promise<void>
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
+import {
+    AuthContext,
+    type AuthContextValue,
+    type AuthState,
+    type LoginResult,
+} from './AuthContext'
 
 export function AuthProvider({ children }: { children: ReactNode }) {
     const authService = useService<IAuthService>(TYPES.AuthService)
@@ -173,16 +155,4 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             {children}
         </AuthContext.Provider>
     )
-}
-
-/**
- * Custom hook for authentication
- * Uses shared AuthContext to prevent redundant API calls
- */
-export function useAuth() {
-    const context = useContext(AuthContext)
-    if (!context) {
-        throw new Error('useAuth must be used within an AuthProvider')
-    }
-    return context
 }

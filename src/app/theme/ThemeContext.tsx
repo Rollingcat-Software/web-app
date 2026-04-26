@@ -1,29 +1,13 @@
-import React, { createContext, useContext, useState, useEffect, useMemo, useCallback } from 'react'
+import React, { useState, useEffect, useMemo, useCallback } from 'react'
 import { ThemeProvider as MuiThemeProvider } from '@mui/material/styles'
 import CssBaseline from '@mui/material/CssBaseline'
 import { lightTheme, darkTheme } from './themes'
-
-/**
- * Theme mode types
- */
-export type ThemeMode = 'light' | 'dark' | 'system'
-
-/**
- * Theme context value interface
- */
-interface ThemeContextValue {
-    mode: ThemeMode
-    effectiveMode: 'light' | 'dark'
-    setMode: (mode: ThemeMode) => void
-    toggleTheme: () => void
-}
-
-const ThemeContext = createContext<ThemeContextValue | null>(null)
-
-/**
- * Storage key for theme preference
- */
-const THEME_STORAGE_KEY = 'app-theme-mode'
+import {
+    AppThemeContext,
+    THEME_STORAGE_KEY,
+    type ThemeMode,
+    type ThemeContextValue,
+} from './AppThemeContext'
 
 /**
  * Theme Provider Props
@@ -93,7 +77,7 @@ export function AppThemeProvider({
         setMode(newMode)
     }, [effectiveMode, setMode])
 
-    const value = useMemo(
+    const value = useMemo<ThemeContextValue>(
         () => ({
             mode,
             effectiveMode,
@@ -104,24 +88,13 @@ export function AppThemeProvider({
     )
 
     return (
-        <ThemeContext.Provider value={value}>
+        <AppThemeContext.Provider value={value}>
             <MuiThemeProvider theme={theme}>
                 <CssBaseline />
                 {children}
             </MuiThemeProvider>
-        </ThemeContext.Provider>
+        </AppThemeContext.Provider>
     )
-}
-
-/**
- * Hook to access theme context
- */
-export function useAppTheme(): ThemeContextValue {
-    const context = useContext(ThemeContext)
-    if (!context) {
-        throw new Error('useAppTheme must be used within AppThemeProvider')
-    }
-    return context
 }
 
 export default AppThemeProvider

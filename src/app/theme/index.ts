@@ -3,5 +3,6 @@
  */
 
 export { lightTheme, darkTheme } from './themes'
-export { AppThemeProvider, useAppTheme } from './ThemeContext'
-export type { ThemeMode } from './ThemeContext'
+export { AppThemeProvider } from './ThemeContext'
+export { useAppTheme } from './AppThemeContext'
+export type { ThemeMode } from './AppThemeContext'

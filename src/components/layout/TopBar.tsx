@@ -18,7 +18,7 @@ import {
 } from '@mui/material'
 import {DarkMode, Language, LightMode, Logout, Menu as MenuIcon, Settings,} from '@mui/icons-material'
 import {useAuth} from '@features/auth/hooks/useAuth'
-import {useThemeMode} from '@app/providers/ThemeModeProvider'
+import {useThemeMode} from '@app/providers/ThemeModeContext'
 import {useTranslation} from 'react-i18next'
 import NotificationPanel from '@components/NotificationPanel'
 

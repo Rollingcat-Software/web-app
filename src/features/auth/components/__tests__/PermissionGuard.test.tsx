@@ -2,7 +2,7 @@ import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
 import React from 'react'
 import { PermissionGuard } from '../PermissionGuard'
-import { PermissionProvider } from '../../context/PermissionContext'
+import { PermissionProvider } from '../../context/PermissionProvider'
 import { Permission } from '@domain/models/Permission'
 
 // Mock useAuth with different roles
