@@ -75,6 +75,13 @@ export { FaceMetricsCalculator } from './core/FaceMetricsCalculator';
 export { PassiveLivenessDetector } from './core/PassiveLivenessDetector';
 export { EmbeddingComputer } from './core/EmbeddingComputer';
 export { CardDetector } from './core/CardDetector';
+export { HandGestureDetector } from './core/HandGestureDetector';
+export type {
+  GestureChallengeType,
+  HandLandmark,
+  HandDetectionResult,
+  AntiSpoofTelemetry,
+} from './core/HandGestureDetector';
 
 // ===== Challenge Detectors (Strategy Pattern) =====
 export {
@@ -215,6 +222,7 @@ export {
   useFaceEnrollment,
   useVoiceRecorder,
   useCardDetection,
+  useHandGestureDetection,
 } from './hooks';
 
 export type {
@@ -224,4 +232,5 @@ export type {
   UseFaceEnrollmentReturn,
   UseVoiceRecorderReturn,
   UseCardDetectionReturn,
+  UseHandGestureDetectionReturn,
 } from './hooks';

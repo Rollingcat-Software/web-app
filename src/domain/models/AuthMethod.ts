@@ -13,6 +13,7 @@ export enum AuthMethodType {
     EMAIL_OTP = 'EMAIL_OTP',
     VOICE = 'VOICE',
     HARDWARE_KEY = 'HARDWARE_KEY',
+    GESTURE_LIVENESS = 'GESTURE_LIVENESS',
 }
 
 /**
@@ -219,6 +220,16 @@ export const DEFAULT_AUTH_METHODS: AuthMethod[] = [
         platforms: ['web', 'desktop'],
         isActive: true,
         category: 'ENTERPRISE',
+    },
+    {
+        id: 'GESTURE_LIVENESS',
+        name: 'Gesture Liveness',
+        type: AuthMethodType.GESTURE_LIVENESS,
+        description: 'Hand-gesture-based active liveness check',
+        icon: 'PanTool',
+        platforms: ['web', 'mobile'],
+        isActive: true,
+        category: 'PREMIUM',
     },
 ]
 
