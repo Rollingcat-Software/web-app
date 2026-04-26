@@ -103,6 +103,7 @@ export default function FingerprintStep({
         } catch (err) {
             console.warn('[FingerprintStep] WebAuthn get() error', {
                 name: err instanceof DOMException ? err.name : 'unknown',
+                // eslint-disable-next-line no-restricted-syntax
                 message: err instanceof Error ? err.message : String(err),
                 timestamp: new Date().toISOString(),
             })
@@ -114,6 +115,7 @@ export default function FingerprintStep({
                     // 2. No matching passkey on device (OS shows "geçiş anahtarı yok" notification)
                     // Distinguish by checking the message — if it mentions credentials/passkey,
                     // show the re-enroll prompt; otherwise treat as user-cancelled.
+                    // eslint-disable-next-line no-restricted-syntax
                     const msg = err.message.toLowerCase()
                     if (msg.includes('credential') || msg.includes('passkey') || msg.includes('not found') || msg.includes('bulunamadı')) {
                         setLocalError(t('mfa.fingerprint.noPasskey'))

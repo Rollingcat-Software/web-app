@@ -261,30 +261,69 @@ export default function HostedLoginApp() {
             mfaSessionToken?: string
             timestamp?: number
         }) => {
-            if (!result.mfaSessionToken) {
-                setFinalError(t('hosted.sessionLost'))
-                return
-            }
-
             setRedirecting(true)
             const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
 
+            // Two completion paths:
+            //  (a) Multi-step flow → LoginMfaFlow returned an `mfaSessionToken`.
+            //      Mint the code via `/oauth2/authorize/complete` which spends
+            //      the session.
+            //  (b) Single-step flow (e.g. Marmara Simple Login — PASSWORD only)
+            //      → no mfaSessionToken exists; the user already holds a valid
+            //      access token. Mint the code by re-hitting `GET /oauth2/authorize`
+            //      with the Bearer token; the backend mints a code for the
+            //      authenticated principal (see OAuth2Controller.authorize
+            //      `authentication.isAuthenticated()` branch).
             try {
-                const response = await httpClient.post<AuthorizeCompleteResponse>(
-                    '/oauth2/authorize/complete',
-                    {
-                        mfaSessionToken: result.mfaSessionToken,
-                        clientId: config.clientId,
-                        redirectUri: config.redirectUri,
-                        scope: config.scope,
-                        state: config.state || null,
-                        nonce: config.nonce || null,
-                        codeChallenge: config.codeChallenge || null,
-                        codeChallengeMethod: config.codeChallengeMethod || null,
-                    }
-                )
+                let code: string | undefined
+                let redirectUri: string | undefined
 
-                const { code, redirect_uri: redirectUri } = response.data
+                if (result.mfaSessionToken) {
+                    const response = await httpClient.post<AuthorizeCompleteResponse>(
+                        '/oauth2/authorize/complete',
+                        {
+                            mfaSessionToken: result.mfaSessionToken,
+                            clientId: config.clientId,
+                            redirectUri: config.redirectUri,
+                            scope: config.scope,
+                            state: config.state || null,
+                            nonce: config.nonce || null,
+                            codeChallenge: config.codeChallenge || null,
+                            codeChallengeMethod: config.codeChallengeMethod || null,
+                        }
+                    )
+                    code = response.data.code
+                    redirectUri = response.data.redirect_uri
+                } else if (result.accessToken) {
+                    // Single-factor flow: the user authenticated without an MFA
+                    // session being minted. Call the authorize endpoint with the
+                    // Bearer token and let the server mint the code.
+                    const params = new URLSearchParams({
+                        client_id: config.clientId,
+                        redirect_uri: config.redirectUri,
+                        response_type: 'code',
+                        scope: config.scope || 'openid profile email',
+                    })
+                    if (config.state) params.set('state', config.state)
+                    if (config.nonce) params.set('nonce', config.nonce)
+                    if (config.codeChallenge) params.set('code_challenge', config.codeChallenge)
+                    if (config.codeChallengeMethod) {
+                        params.set('code_challenge_method', config.codeChallengeMethod)
+                    }
+                    const response = await httpClient.get<AuthorizeCompleteResponse>(
+                        `/oauth2/authorize?${params.toString()}`,
+                        {
+                            headers: { Authorization: `Bearer ${result.accessToken}` },
+                        }
+                    )
+                    code = response.data.code
+                    redirectUri = response.data.redirect_uri
+                } else {
+                    setRedirecting(false)
+                    setFinalError(t('hosted.sessionLost'))
+                    return
+                }
+
                 if (!code || !redirectUri) {
                     setRedirecting(false)
                     setFinalError(t('hosted.exchangeFailed'))

@@ -431,10 +431,8 @@ export default function WidgetDemoPage() {
                     userId: user?.id,
                     container:
                         mode === 'inline' ? (inlineContainerRef.current ?? undefined) : undefined,
-                    onStepChange: (step) => {
-                        if (import.meta.env.DEV) {
-                            console.log('[WidgetDemo] Step:', step)
-                        }
+                    onStepChange: (_step) => {
+                        // dev breadcrumb removed; use Logger for diagnostic
                     },
                     onError: (err) => {
                         setDemoError(formatApiError(err, t))
@@ -450,7 +448,9 @@ export default function WidgetDemoPage() {
             } catch (err) {
                 if (
                     err instanceof Error &&
+                    // eslint-disable-next-line no-restricted-syntax -- runtime Error.name match, not user copy
                     !err.message.includes('cancelled') &&
+                    // eslint-disable-next-line no-restricted-syntax -- runtime Error.name match, not user copy
                     !err.message.includes('destroyed')
                 ) {
                     setDemoError(formatApiError(err, t))

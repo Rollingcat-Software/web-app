@@ -12,6 +12,8 @@ import {Security} from '@mui/icons-material'
 import {useService} from '@app/providers/DependencyProvider'
 import {TYPES} from '@core/di/types'
 import type {IHttpClient} from '@domain/interfaces/IHttpClient'
+import {useTranslation} from 'react-i18next'
+import {formatApiError} from '@utils/formatApiError'
 
 interface AuthMethodResponse {
     id: string
@@ -38,6 +40,7 @@ interface TenantAuthMethodsProps {
 
 export default function TenantAuthMethods({tenantId}: TenantAuthMethodsProps) {
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
+    const {t} = useTranslation()
 
     const [allMethods, setAllMethods] = useState<AuthMethodResponse[]>([])
     const [tenantMethods, setTenantMethods] = useState<TenantAuthMethodResponse[]>([])
@@ -56,12 +59,11 @@ export default function TenantAuthMethods({tenantId}: TenantAuthMethodsProps) {
             setAllMethods(allRes.data)
             setTenantMethods(tenantRes.data)
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Failed to load auth methods'
-            setError(message)
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }
-    }, [httpClient, tenantId])
+    }, [httpClient, tenantId, t])
 
     useEffect(() => {
         fetchData()
@@ -95,8 +97,7 @@ export default function TenantAuthMethods({tenantId}: TenantAuthMethodsProps) {
                 return [...prev, res.data]
             })
         } catch (err: unknown) {
-            const message = err instanceof Error ? err.message : 'Failed to update auth method'
-            setError(message)
+            setError(formatApiError(err, t))
         } finally {
             setTogglingIds((prev) => {
                 const next = new Set(prev)

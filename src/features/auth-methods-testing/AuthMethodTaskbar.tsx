@@ -1,6 +1,6 @@
 /**
- * PuzzleTaskbar — a compact chip row showing which platforms a puzzle runs on.
- * Used inside PuzzleCard and the modal header.
+ * AuthMethodTaskbar — a compact chip row showing which platforms an auth
+ * method supports. Used inside AuthMethodCard and the modal header.
  */
 import { Box, Chip } from '@mui/material'
 import {
@@ -10,32 +10,32 @@ import {
     Language,
 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
-import type { PuzzlePlatform } from './puzzleRegistry'
+import type { AuthMethodPlatform } from './authMethodRegistry'
 
-const PLATFORM_ICON: Record<PuzzlePlatform, JSX.Element> = {
+const PLATFORM_ICON: Record<AuthMethodPlatform, JSX.Element> = {
     web: <Language fontSize="small" />,
     android: <Android fontSize="small" />,
     ios: <Apple fontSize="small" />,
     desktop: <DesktopWindows fontSize="small" />,
 }
 
-const PLATFORM_LABEL_KEY: Record<PuzzlePlatform, string> = {
-    web: 'biometricPuzzle.platforms.web',
-    android: 'biometricPuzzle.platforms.android',
-    ios: 'biometricPuzzle.platforms.ios',
-    desktop: 'biometricPuzzle.platforms.desktop',
+const PLATFORM_LABEL_KEY: Record<AuthMethodPlatform, string> = {
+    web: 'authMethodsTesting.platforms.web',
+    android: 'authMethodsTesting.platforms.android',
+    ios: 'authMethodsTesting.platforms.ios',
+    desktop: 'authMethodsTesting.platforms.desktop',
 }
 
-export interface PuzzleTaskbarProps {
-    platforms: PuzzlePlatform[]
+export interface AuthMethodTaskbarProps {
+    platforms: AuthMethodPlatform[]
     /** 'compact' hides labels and only shows icons. */
     variant?: 'default' | 'compact'
 }
 
-export default function PuzzleTaskbar({
+export default function AuthMethodTaskbar({
     platforms,
     variant = 'default',
-}: PuzzleTaskbarProps) {
+}: AuthMethodTaskbarProps) {
     const { t } = useTranslation()
 
     return (
@@ -46,7 +46,7 @@ export default function PuzzleTaskbar({
                 gap: 0.75,
                 alignItems: 'center',
             }}
-            aria-label={t('biometricPuzzle.platformLabel')}
+            aria-label={t('authMethodsTesting.platformLabel')}
         >
             {platforms.map((platform) => {
                 const platformLabel = t(PLATFORM_LABEL_KEY[platform])

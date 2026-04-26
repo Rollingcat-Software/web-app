@@ -52,6 +52,7 @@ export class AuthService implements IAuthService {
             // Map Zod errors to ValidationErrorItems
             const validationErrors = validation.errors.errors.map((err) => ({
                 field: err.path.join('.'),
+                // eslint-disable-next-line no-restricted-syntax -- ZodIssue.message, not a runtime Error; consumed by ValidationError model
                 message: err.message,
             }))
 

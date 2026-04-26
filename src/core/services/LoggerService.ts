@@ -43,6 +43,7 @@ export class LoggerService implements ILogger {
 
             // SECURITY: Only log to console in development
             if (this.isDevelopment) {
+                // eslint-disable-next-line no-console -- LoggerService is the official console boundary
                 console.debug(formattedMessage, meta || '')
             }
             // In production, send to external service only
@@ -58,6 +59,7 @@ export class LoggerService implements ILogger {
 
             // SECURITY: Only log to console in development
             if (this.isDevelopment) {
+                // eslint-disable-next-line no-console -- LoggerService is the official console boundary
                 console.info(formattedMessage, meta || '')
             }
             // In production, send to external service only

@@ -35,6 +35,12 @@ import {
 } from '@mui/icons-material'
 import {useTranslation} from 'react-i18next'
 import {useAuth} from '@features/auth/hooks/useAuth'
+import {
+    filterSidebarForRole,
+    type SidebarEntry,
+    type SidebarGroup,
+} from '@config/sidebarPermissions'
+import {PLATFORM_OWNER_ROLES} from '@config/sidebarPermissions'
 
 interface SidebarProps {
     drawerWidth: number
@@ -43,39 +49,42 @@ interface SidebarProps {
     isMobile: boolean
 }
 
-interface MenuItem {
-    labelKey: string
+interface RenderableMenuItem extends SidebarEntry {
     icon: React.ReactNode
-    path: string
-    adminOnly?: boolean
-    group: 'overview' | 'access' | 'security' | 'biometrics' | 'personal'
+    /**
+     * True when this entry is only visible to platform owners (SUPER_ADMIN).
+     * Used to render the "Admin" chip in the drawer — we still render the
+     * badge for tenant admins too since they see admin-only tenant surfaces.
+     */
+    platformOwnerOnly: boolean
 }
 
-// NOTE: labelKey + path + adminOnly must not change — E2E specs query by
-// translated label (en.json nav.*) and depend on admin visibility gating.
-const menuItems: MenuItem[] = [
-    {labelKey: 'nav.dashboard',              icon: <Dashboard/>,       path: '/',                         group: 'overview'},
-    {labelKey: 'nav.users',                  icon: <People/>,          path: '/users',                    adminOnly: true, group: 'access'},
-    {labelKey: 'nav.guests',                 icon: <PersonAdd/>,       path: '/guests',                   adminOnly: true, group: 'access'},
-    {labelKey: 'nav.tenants',                icon: <Business/>,        path: '/tenants',                  adminOnly: true, group: 'access'},
-    {labelKey: 'nav.roles',                  icon: <Shield/>,          path: '/roles',                    adminOnly: true, group: 'access'},
-    {labelKey: 'nav.authFlows',              icon: <AccountTree/>,     path: '/auth-flows',               adminOnly: true, group: 'security'},
-    {labelKey: 'nav.authSessions',           icon: <LockClock/>,       path: '/auth-sessions',            adminOnly: true, group: 'security'},
-    {labelKey: 'nav.devices',                icon: <DevicesOther/>,    path: '/devices',                  adminOnly: true, group: 'security'},
-    {labelKey: 'nav.enrollments',            icon: <Fingerprint/>,     path: '/enrollments',              adminOnly: true, group: 'biometrics'},
-    {labelKey: 'nav.biometricEnrollment',    icon: <Fingerprint/>,     path: '/enrollment',                                 group: 'biometrics'},
-    {labelKey: 'nav.biometricTools',         icon: <Biotech/>,         path: '/biometric-tools',                            group: 'biometrics'},
-    {labelKey: 'nav.biometricPuzzles',       icon: <Extension/>,       path: '/biometric-puzzles',        adminOnly: true, group: 'biometrics'},
-    {labelKey: 'nav.auditLogs',              icon: <Security/>,        path: '/audit-logs',               adminOnly: true, group: 'security'},
-    {labelKey: 'nav.analytics',              icon: <Analytics/>,       path: '/analytics',                adminOnly: true, group: 'overview'},
-    {labelKey: 'nav.verificationFlows',      icon: <VerifiedUser/>,    path: '/verification-flows',       adminOnly: true, group: 'security'},
-    {labelKey: 'nav.verificationDashboard',  icon: <Assessment/>,      path: '/verification-dashboard',   adminOnly: true, group: 'security'},
-    {labelKey: 'nav.myProfile',              icon: <PersonOutline/>,   path: '/my-profile',                                 group: 'personal'},
-    {labelKey: 'nav.settings',               icon: <Settings/>,        path: '/settings',                                   group: 'personal'},
-]
+// Icon lookup keyed by path — keeps the visual mapping out of the config
+// module (which only owns the permission matrix and stays framework-free).
+const ICON_BY_PATH: Record<string, React.ReactNode> = {
+    '/':                       <Dashboard/>,
+    '/users':                  <People/>,
+    '/guests':                 <PersonAdd/>,
+    '/tenants':                <Business/>,
+    '/roles':                  <Shield/>,
+    '/auth-flows':             <AccountTree/>,
+    '/auth-sessions':          <LockClock/>,
+    '/devices':                <DevicesOther/>,
+    '/enrollments':            <Fingerprint/>,
+    '/enrollment':             <Fingerprint/>,
+    '/biometric-tools':        <Biotech/>,
+    '/biometric-puzzles':      <Extension/>,
+    '/auth-methods-testing':   <Extension/>,
+    '/audit-logs':             <Security/>,
+    '/analytics':              <Analytics/>,
+    '/verification-flows':     <VerifiedUser/>,
+    '/verification-dashboard': <Assessment/>,
+    '/my-profile':             <PersonOutline/>,
+    '/settings':               <Settings/>,
+}
 
-const GROUP_ORDER: Array<MenuItem['group']> = ['overview', 'access', 'security', 'biometrics', 'personal']
-const GROUP_LABEL_KEY: Record<MenuItem['group'], string> = {
+const GROUP_ORDER: SidebarGroup[] = ['overview', 'access', 'security', 'biometrics', 'personal']
+const GROUP_LABEL_KEY: Record<SidebarGroup, string> = {
     overview:   'nav.group.overview',
     access:     'nav.group.access',
     security:   'nav.group.security',
@@ -96,7 +105,14 @@ export default function Sidebar({
     const {user} = useAuth()
     const isDark = theme.palette.mode === 'dark'
 
-    const visibleItems = menuItems.filter(item => !item.adminOnly || user?.isAdmin())
+    // Source of truth: src/config/sidebarPermissions.ts. We filter by role
+    // then enrich with per-path icons + the "platform owner only" flag used
+    // to render the amber "Admin" chip.
+    const visibleItems: RenderableMenuItem[] = filterSidebarForRole(user?.role).map((entry) => ({
+        ...entry,
+        icon: ICON_BY_PATH[entry.path] ?? <Security/>,
+        platformOwnerOnly: entry.visibleToRoles.every((r) => PLATFORM_OWNER_ROLES.includes(r)),
+    }))
 
     // Group items but preserve the overall flat order
     const grouped = GROUP_ORDER
@@ -253,7 +269,7 @@ export default function Sidebar({
                                                     letterSpacing: '-0.005em',
                                                 }}
                                             />
-                                            {item.adminOnly && (
+                                            {item.platformOwnerOnly && (
                                                 <Chip
                                                     label={t('nav.badgeAdmin')}
                                                     size="small"

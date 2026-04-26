@@ -6,6 +6,11 @@ import DashboardLayout from './components/layout/DashboardLayout'
 import PublicLayout from './components/layout/PublicLayout'
 import { ErrorBoundary } from './components/ErrorBoundary'
 import { CircularProgress, Box } from '@mui/material'
+import { UserRole } from './domain/models/User'
+import {
+    ADMIN_ROLES,
+    PLATFORM_OWNER_ROLES,
+} from './config/sidebarPermissions'
 
 const PAGE_TITLES: Record<string, string> = {
     '/': 'Dashboard — FIVUCSAS',
@@ -20,6 +25,7 @@ const PAGE_TITLES: Record<string, string> = {
     '/enrollment': 'Biometric Enrollment — FIVUCSAS',
     '/biometric-tools': 'Biometric Tools — FIVUCSAS',
     '/biometric-puzzles': 'Biometric Puzzles — FIVUCSAS',
+    '/auth-methods-testing': 'Auth Methods Testing — FIVUCSAS',
     '/widget-demo': 'Auth Widget — FIVUCSAS',
     '/widget-auth': 'Widget Auth — FIVUCSAS',
     '/developer-portal': 'Developer Portal — FIVUCSAS',
@@ -82,6 +88,7 @@ const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
 const BiometricToolsPage = lazy(() => import('./pages/BiometricToolsPage'))
 const BiometricPuzzlesPage = lazy(() => import('./pages/BiometricPuzzlesPage'))
+const AuthMethodsTestingPage = lazy(() => import('./pages/AuthMethodsTestingPage'))
 const WidgetDemoPage = lazy(() => import('./pages/WidgetDemoPage'))
 const DeveloperPortalPage = lazy(() => import('./pages/DeveloperPortalPage'))
 const VerificationFlowBuilderPage = lazy(() => import('./pages/VerificationFlowBuilderPage'))
@@ -144,18 +151,45 @@ const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
 }
 
 /**
- * Admin Route Component
- * Redirects non-admin users to the dashboard
+ * Role-aware route gate.
+ *
+ * Non-matching roles are redirected to `/` instead of rendering the page
+ * shell — this implements Rule 2 ("hide what's not allowed") at the routing
+ * layer so a user who types `/tenants` in the URL bar doesn't see an empty
+ * SPA frame while backend 403s fire.
+ *
+ * Keep in sync with `src/config/sidebarPermissions.ts` — the sidebar and
+ * the route guard should always agree on what a role can reach.
  */
-const AdminRoute = ({ children }: ProtectedRouteProps) => {
+interface RoleRouteProps {
+    children: React.ReactNode
+    roles: UserRole[]
+}
+
+const RoleRoute = ({ children, roles }: RoleRouteProps) => {
     const { user } = useAuth()
 
-    if (!user?.isAdmin()) {
+    if (!user) {
+        // ProtectedRoute wraps us, so this branch is belt-and-braces for
+        // the edge case where the user is unloaded mid-render.
+        return <Navigate to="/login" replace />
+    }
+
+    if (!roles.includes(user.role)) {
         return <Navigate to="/" replace />
     }
 
     return <>{children}</>
 }
+
+/**
+ * Back-compat alias — existing call-sites used `<AdminRoute>` which meant
+ * "any admin-ish role". Keep the name working but delegate to RoleRoute so
+ * there's a single gate implementation.
+ */
+const AdminRoute = ({ children }: ProtectedRouteProps) => (
+    <RoleRoute roles={ADMIN_ROLES}>{children}</RoleRoute>
+)
 
 function App() {
     return (
@@ -186,24 +220,28 @@ function App() {
                     }
                 >
                     <Route index element={<ErrorBoundary><DashboardPage /></ErrorBoundary>} />
-                    <Route path="users" element={<ErrorBoundary><UsersListPage /></ErrorBoundary>} />
-                    <Route path="users/create" element={<ErrorBoundary><UserFormPage /></ErrorBoundary>} />
-                    <Route path="users/:id" element={<ErrorBoundary><UserDetailsPage /></ErrorBoundary>} />
-                    <Route path="users/:id/edit" element={<ErrorBoundary><UserFormPage /></ErrorBoundary>} />
-                    <Route path="tenants" element={<ErrorBoundary><TenantsListPage /></ErrorBoundary>} />
-                    <Route path="tenants/create" element={<ErrorBoundary><TenantFormPage /></ErrorBoundary>} />
-                    <Route path="tenants/:id/edit" element={<ErrorBoundary><TenantFormPage /></ErrorBoundary>} />
-                    <Route path="roles" element={<ErrorBoundary><RolesListPage /></ErrorBoundary>} />
-                    <Route path="roles/create" element={<ErrorBoundary><RoleFormPage /></ErrorBoundary>} />
-                    <Route path="roles/:id/edit" element={<ErrorBoundary><RoleFormPage /></ErrorBoundary>} />
-                    <Route path="auth-flows" element={<ErrorBoundary><AuthFlowsPage /></ErrorBoundary>} />
-                    <Route path="devices" element={<ErrorBoundary><DevicesPage /></ErrorBoundary>} />
-                    <Route path="auth-sessions" element={<ErrorBoundary><AuthSessionsPage /></ErrorBoundary>} />
-                    <Route path="enrollments" element={<ErrorBoundary><EnrollmentsListPage /></ErrorBoundary>} />
+                    {/* Users — any admin role (tenant-scoped on the backend after #23/#24) */}
+                    <Route path="users" element={<AdminRoute><ErrorBoundary><UsersListPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="users/create" element={<AdminRoute><ErrorBoundary><UserFormPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="users/:id" element={<AdminRoute><ErrorBoundary><UserDetailsPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="users/:id/edit" element={<AdminRoute><ErrorBoundary><UserFormPage /></ErrorBoundary></AdminRoute>} />
+                    {/* Tenants — platform owner only (Rule 2) */}
+                    <Route path="tenants" element={<RoleRoute roles={PLATFORM_OWNER_ROLES}><ErrorBoundary><TenantsListPage /></ErrorBoundary></RoleRoute>} />
+                    <Route path="tenants/create" element={<RoleRoute roles={PLATFORM_OWNER_ROLES}><ErrorBoundary><TenantFormPage /></ErrorBoundary></RoleRoute>} />
+                    <Route path="tenants/:id/edit" element={<RoleRoute roles={PLATFORM_OWNER_ROLES}><ErrorBoundary><TenantFormPage /></ErrorBoundary></RoleRoute>} />
+                    {/* Roles / Permissions — platform owner only */}
+                    <Route path="roles" element={<RoleRoute roles={PLATFORM_OWNER_ROLES}><ErrorBoundary><RolesListPage /></ErrorBoundary></RoleRoute>} />
+                    <Route path="roles/create" element={<RoleRoute roles={PLATFORM_OWNER_ROLES}><ErrorBoundary><RoleFormPage /></ErrorBoundary></RoleRoute>} />
+                    <Route path="roles/:id/edit" element={<RoleRoute roles={PLATFORM_OWNER_ROLES}><ErrorBoundary><RoleFormPage /></ErrorBoundary></RoleRoute>} />
+                    <Route path="auth-flows" element={<AdminRoute><ErrorBoundary><AuthFlowsPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="devices" element={<AdminRoute><ErrorBoundary><DevicesPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="auth-sessions" element={<AdminRoute><ErrorBoundary><AuthSessionsPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="enrollments" element={<AdminRoute><ErrorBoundary><EnrollmentsListPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="user-enrollment" element={<Navigate to="/enrollment" replace />} />
                     <Route path="enrollment" element={<ErrorBoundary><BiometricEnrollmentPage /></ErrorBoundary>} />
                     <Route path="biometric-tools" element={<ErrorBoundary><BiometricToolsPage /></ErrorBoundary>} />
-                    <Route path="biometric-puzzles" element={<AdminRoute><ErrorBoundary><BiometricPuzzlesPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="biometric-puzzles" element={<ErrorBoundary><BiometricPuzzlesPage /></ErrorBoundary>} />
+                    <Route path="auth-methods-testing" element={<ErrorBoundary><AuthMethodsTestingPage /></ErrorBoundary>} />
                     <Route path="card-detection" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="face-search" element={<Navigate to="/biometric-tools" replace />} />
                     <Route path="voice-search" element={<Navigate to="/biometric-tools" replace />} />
@@ -211,9 +249,10 @@ function App() {
                     <Route path="verification-flows" element={<AdminRoute><ErrorBoundary><VerificationFlowBuilderPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="verification-dashboard" element={<AdminRoute><ErrorBoundary><VerificationDashboardPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="verification-sessions/:id" element={<AdminRoute><ErrorBoundary><VerificationSessionDetailPage /></ErrorBoundary></AdminRoute>} />
-                    <Route path="audit-logs" element={<ErrorBoundary><AuditLogsPage /></ErrorBoundary>} />
-                    <Route path="guests" element={<ErrorBoundary><GuestsPage /></ErrorBoundary>} />
-                    <Route path="analytics" element={<ErrorBoundary><AnalyticsPage /></ErrorBoundary>} />
+                    {/* Audit logs / Analytics — cross-tenant surfaces, platform owner only */}
+                    <Route path="audit-logs" element={<RoleRoute roles={PLATFORM_OWNER_ROLES}><ErrorBoundary><AuditLogsPage /></ErrorBoundary></RoleRoute>} />
+                    <Route path="guests" element={<AdminRoute><ErrorBoundary><GuestsPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="analytics" element={<RoleRoute roles={PLATFORM_OWNER_ROLES}><ErrorBoundary><AnalyticsPage /></ErrorBoundary></RoleRoute>} />
                     <Route path="my-profile" element={<ErrorBoundary><MyProfilePage /></ErrorBoundary>} />
                     <Route path="settings" element={<ErrorBoundary><SettingsPage /></ErrorBoundary>} />
                 </Route>

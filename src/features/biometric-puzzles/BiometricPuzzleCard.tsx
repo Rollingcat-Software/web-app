@@ -1,9 +1,9 @@
 /**
- * PuzzleCard — a single puzzle tile on the BiometricPuzzlesPage.
+ * BiometricPuzzleCard — tile on the Biometric Puzzles page.
  *
- * Visual language borrowed from MethodPickerStep so the playground feels like
- * a natural extension of the real MFA surface: 44px avatar with gradient,
- * subtitle description, secondary meta row.
+ * Structurally identical to `AuthMethodCard` (same visual language) but
+ * bound to the biometric-puzzles entry shape so the two surfaces stay
+ * separate — no accidental reuse of auth-method-only registry fields.
  */
 import {
     Avatar,
@@ -16,24 +16,32 @@ import {
 } from '@mui/material'
 import { PlayArrow } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
-import PuzzleTaskbar from './PuzzleTaskbar'
-import type { Puzzle, PuzzleDifficulty } from './puzzleRegistry'
+import BiometricPuzzleTaskbar from './BiometricPuzzleTaskbar'
+import type {
+    BiometricPuzzleDifficulty,
+    BiometricPuzzleEntry,
+} from './biometricPuzzleRegistry'
 
-const DIFFICULTY_COLOR: Record<PuzzleDifficulty, 'success' | 'warning' | 'error'> = {
+const DIFFICULTY_COLOR: Record<
+    BiometricPuzzleDifficulty,
+    'success' | 'warning' | 'error'
+> = {
     beginner: 'success',
     intermediate: 'warning',
     advanced: 'error',
 }
 
-export interface PuzzleCardProps {
-    puzzle: Puzzle
-    onLaunch: (puzzle: Puzzle) => void
+export interface BiometricPuzzleCardProps {
+    puzzle: BiometricPuzzleEntry
+    onLaunch: (puzzle: BiometricPuzzleEntry) => void
 }
 
-export default function PuzzleCard({ puzzle, onLaunch }: PuzzleCardProps) {
+export default function BiometricPuzzleCard({
+    puzzle,
+    onLaunch,
+}: BiometricPuzzleCardProps) {
     const { t } = useTranslation()
     const Icon = puzzle.icon
-
     const title = t(`${puzzle.i18nKey}.title`)
     const description = t(`${puzzle.i18nKey}.description`)
     const difficultyLabel = t(`biometricPuzzle.difficulty.${puzzle.difficulty}`)
@@ -68,7 +76,8 @@ export default function PuzzleCard({ puzzle, onLaunch }: PuzzleCardProps) {
                         sx={{
                             width: 44,
                             height: 44,
-                            background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                            background:
+                                'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                             flexShrink: 0,
                         }}
                     >
@@ -89,43 +98,23 @@ export default function PuzzleCard({ puzzle, onLaunch }: PuzzleCardProps) {
                                 variant="outlined"
                                 sx={{ borderRadius: '6px', fontSize: '0.68rem', height: 20 }}
                             />
-                            {puzzle.requiresEnrollment && (
-                                <Chip
-                                    label={t('biometricPuzzle.requiresEnrollment')}
-                                    size="small"
-                                    variant="outlined"
-                                    sx={{
-                                        borderRadius: '6px',
-                                        fontSize: '0.68rem',
-                                        height: 20,
-                                    }}
-                                />
-                            )}
                             {puzzle.capability === 'stubbedOnly' && (
                                 <Chip
                                     label={t('biometricPuzzle.stubbedOnly')}
                                     size="small"
                                     variant="outlined"
-                                    sx={{
-                                        borderRadius: '6px',
-                                        fontSize: '0.68rem',
-                                        height: 20,
-                                    }}
+                                    sx={{ borderRadius: '6px', fontSize: '0.68rem', height: 20 }}
                                 />
                             )}
                         </Box>
                     </Box>
                 </Box>
 
-                <Typography
-                    variant="body2"
-                    color="text.secondary"
-                    sx={{ flex: 1 }}
-                >
+                <Typography variant="body2" color="text.secondary" sx={{ flex: 1 }}>
                     {description}
                 </Typography>
 
-                <PuzzleTaskbar platforms={puzzle.platforms} />
+                <BiometricPuzzleTaskbar platforms={puzzle.platforms} />
 
                 <Button
                     fullWidth

@@ -11,6 +11,7 @@ import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
+import { formatApiError } from '@utils/formatApiError'
 
 interface NfcStepProps {
     onSubmit?: (data: string) => void
@@ -86,7 +87,7 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
                 }
             }, 30000)
         } catch (err) {
-            setScanError(err instanceof Error ? err.message : t('mfa.nfc.scanFailed'))
+            setScanError(formatApiError(err, t))
             setScanning(false)
         }
     }, [isNfcSupported, onSubmit, t])

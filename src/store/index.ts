@@ -12,7 +12,7 @@ import {
 import storageModule from 'redux-persist/lib/storage'
 
 // Vite 8/Rolldown CJS interop: the module may be { default: storage } or storage directly
-const storage = (storageModule as any).default || storageModule
+const storage = (storageModule as { default?: typeof storageModule }).default || storageModule
 
 /**
  * Minimal Redux store

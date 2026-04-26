@@ -72,6 +72,7 @@ export class UserService implements IUserService {
         if (!validation.success) {
             const validationErrors = validation.error.errors.map((err) => ({
                 field: err.path.join('.'),
+                // eslint-disable-next-line no-restricted-syntax -- ZodIssue.message, not a runtime Error
                 message: err.message,
             }))
             throw new ValidationError('Invalid user data', validationErrors)
@@ -107,6 +108,7 @@ export class UserService implements IUserService {
         if (!validation.success) {
             const validationErrors = validation.error.errors.map((err) => ({
                 field: err.path.join('.'),
+                // eslint-disable-next-line no-restricted-syntax -- ZodIssue.message, not a runtime Error
                 message: err.message,
             }))
             throw new ValidationError('Invalid user data', validationErrors)

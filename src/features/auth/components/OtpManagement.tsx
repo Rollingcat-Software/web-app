@@ -18,6 +18,8 @@ import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
+import type { TFunction } from 'i18next'
 
 interface OtpManagementProps {
     open: boolean
@@ -36,12 +38,8 @@ interface OtpVerifyResponse {
     message: string
 }
 
-function getErrorMessage(err: unknown, fallback: string): string {
-    if (err instanceof Error) {
-        return err.message
-    }
-    const maybeError = err as { response?: { data?: { message?: string } } }
-    return maybeError.response?.data?.message || fallback
+function getErrorMessage(err: unknown, t: TFunction, _fallback: string): string {
+    return formatApiError(err, t)
 }
 
 export default function OtpManagement({ open, userId, onClose }: OtpManagementProps) {
@@ -87,7 +85,7 @@ export default function OtpManagement({ open, userId, onClose }: OtpManagementPr
             setOtpSent(true)
             setSuccess(response.data.message || t('otp.sentSuccess', { channel }))
         } catch (err) {
-            setError(getErrorMessage(err, t('otp.sendFailed', { channel })))
+            setError(getErrorMessage(err, t, t('otp.sendFailed', { channel })))
         } finally {
             setSending(false)
         }
@@ -119,7 +117,7 @@ export default function OtpManagement({ open, userId, onClose }: OtpManagementPr
                 setError(response.data.message || t('otp.verifyFailed'))
             }
         } catch (err) {
-            setError(getErrorMessage(err, t('otp.verifyFailed')))
+            setError(getErrorMessage(err, t, t('otp.verifyFailed')))
         } finally {
             setVerifying(false)
         }

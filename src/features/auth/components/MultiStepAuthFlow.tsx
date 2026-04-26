@@ -25,6 +25,7 @@ import FingerprintStep from './steps/FingerprintStep'
 import VoiceStep from './steps/VoiceStep'
 import HardwareKeyStep from './steps/HardwareKeyStep'
 import NfcStep from './steps/NfcStep'
+import { formatApiError } from '@utils/formatApiError'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -185,9 +186,7 @@ export default function MultiStepAuthFlow({
                     processStepResult(result)
                 }
             } catch (err) {
-                const message =
-                    err instanceof Error ? err.message : t('widget.unexpectedError')
-                setError(message)
+                setError(formatApiError(err, t))
             } finally {
                 setLoading(false)
             }
@@ -208,9 +207,7 @@ export default function MultiStepAuthFlow({
             const result = await authSessionRepo.skipStep(sessionId, currentStep.stepOrder)
             processStepResult(result)
         } catch (err) {
-            const message =
-                err instanceof Error ? err.message : t('widget.skipFailed')
-            setError(message)
+            setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }

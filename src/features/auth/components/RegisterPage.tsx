@@ -208,7 +208,7 @@ export default function RegisterPage() {
                 setRegistrationToken(response.data.accessToken)
             }
             setSuccess(true)
-        } catch (err: any) {
+        } catch (err: unknown) {
             setError(formatApiError(err, t))
         } finally {
             setLoading(false)

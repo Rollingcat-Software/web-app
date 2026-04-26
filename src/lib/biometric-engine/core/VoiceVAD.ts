@@ -91,6 +91,14 @@ export class VoiceVAD implements IVoiceVAD {
       // @ts-ignore — onnxruntime-web is loaded at runtime
       const ort = await import('onnxruntime-web');
 
+      // onnxruntime-web ships its runtime WASM (ort-wasm-*.wasm) separately
+      // from the JS. Without `wasmPaths`, ort resolves it against the current
+      // origin — and Apache's SPA rewrite returns index.html for any path
+      // that doesn't exist, so the browser sees HTML instead of WASM and
+      // dies with "expected magic word 00 61 73 6d, found 3c 21 64 6f".
+      // Point ort at the pinned jsdelivr copy (CSP already allows
+      // https://cdn.jsdelivr.net in script-src + connect-src).
+      ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
       ort.env.wasm.numThreads = 2;
 
       this.session = await ort.InferenceSession.create(this.modelUrl, {
@@ -102,6 +110,7 @@ export class VoiceVAD implements IVoiceVAD {
       this.initError = null;
     } catch (err) {
       this._available = false;
+      // eslint-disable-next-line no-restricted-syntax -- engine init error stored for diagnostic; UI layer formats display
       this.initError = err instanceof Error ? err.message : String(err);
       console.warn('[VoiceVAD] ONNX model not available, VAD disabled:', err);
     }

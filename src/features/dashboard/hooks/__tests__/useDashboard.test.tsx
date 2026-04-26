@@ -210,7 +210,7 @@ describe('useDashboard', () => {
             })
 
             // Setup slow refetch
-            let resolveRefetch: (value: any) => void
+            let resolveRefetch: (value: unknown) => void
             mockDashboardService.getStats = vi.fn().mockImplementation(
                 () =>
                     new Promise((resolve) => {
@@ -437,7 +437,7 @@ describe('useDashboard', () => {
             })
 
             // Start a slow refetch
-            let resolveRefetch: (value: any) => void
+            let resolveRefetch: (value: unknown) => void
             mockDashboardService.getStats = vi.fn().mockImplementation(
                 () =>
                     new Promise((resolve) => {

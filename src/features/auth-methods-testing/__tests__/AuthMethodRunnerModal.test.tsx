@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
-import PuzzleRunnerModal from '../PuzzleRunnerModal'
-import { PUZZLE_REGISTRY } from '../puzzleRegistry'
+import AuthMethodRunnerModal from '../AuthMethodRunnerModal'
+import { AUTH_METHOD_REGISTRY } from '../authMethodRegistry'
 import { AuthMethodType } from '@domain/models/AuthMethod'
 
 // i18n — return the key as-is so assertions are deterministic.
@@ -51,27 +51,27 @@ vi.mock('@features/auth/components/steps/HardwareKeyStep', () => ({
     default: () => <div>hardware-step</div>,
 }))
 
-describe('PuzzleRunnerModal', () => {
-    it('renders nothing when puzzle is null', () => {
+describe('AuthMethodRunnerModal', () => {
+    it('renders nothing when method is null', () => {
         const onClose = vi.fn()
         const { container } = render(
-            <PuzzleRunnerModal puzzle={null} open={false} onClose={onClose} />,
+            <AuthMethodRunnerModal method={null} open={false} onClose={onClose} />,
         )
         expect(container.firstChild).toBeNull()
     })
 
-    it('mounts FaceCaptureStep when a face puzzle is opened', () => {
+    it('mounts FaceCaptureStep when the face method is opened', () => {
         const onClose = vi.fn()
-        const puzzle = PUZZLE_REGISTRY[AuthMethodType.FACE]
-        expect(puzzle).toBeDefined()
+        const method = AUTH_METHOD_REGISTRY[AuthMethodType.FACE]
+        expect(method).toBeDefined()
 
         render(
-            <PuzzleRunnerModal puzzle={puzzle!} open={true} onClose={onClose} />,
+            <AuthMethodRunnerModal method={method!} open={true} onClose={onClose} />,
         )
 
         expect(screen.getByText('face-step')).toBeInTheDocument()
         expect(
-            screen.getByText('biometricPuzzle.puzzles.face.title'),
+            screen.getByText('authMethodsTesting.methods.face.title'),
         ).toBeInTheDocument()
     })
 
@@ -79,10 +79,10 @@ describe('PuzzleRunnerModal', () => {
         vi.useFakeTimers()
         try {
             const onClose = vi.fn()
-            const puzzle = PUZZLE_REGISTRY[AuthMethodType.FACE]
+            const method = AUTH_METHOD_REGISTRY[AuthMethodType.FACE]
             render(
-                <PuzzleRunnerModal
-                    puzzle={puzzle!}
+                <AuthMethodRunnerModal
+                    method={method!}
                     open={true}
                     onClose={onClose}
                 />,
@@ -91,17 +91,17 @@ describe('PuzzleRunnerModal', () => {
             // Trigger the stubbed submit.
             fireEvent.click(screen.getByTestId('mock-face-submit'))
 
-            // Puzzle wrapper waits ~500ms before reporting success.
+            // Wrapper waits ~500ms before reporting success.
             act(() => {
                 vi.advanceTimersByTime(1000)
             })
 
             expect(
-                screen.getByText('biometricPuzzle.successMessage'),
+                screen.getByText('authMethodsTesting.successMessage'),
             ).toBeInTheDocument()
             // Retry button appears in the success state.
             expect(
-                screen.getByText('biometricPuzzle.tryAgainButton'),
+                screen.getByText('authMethodsTesting.tryAgainButton'),
             ).toBeInTheDocument()
         } finally {
             vi.useRealTimers()
@@ -110,15 +110,15 @@ describe('PuzzleRunnerModal', () => {
 
     it('invokes onClose when the close button is clicked', () => {
         const onClose = vi.fn()
-        const puzzle = PUZZLE_REGISTRY[AuthMethodType.TOTP]
+        const method = AUTH_METHOD_REGISTRY[AuthMethodType.TOTP]
         render(
-            <PuzzleRunnerModal puzzle={puzzle!} open={true} onClose={onClose} />,
+            <AuthMethodRunnerModal method={method!} open={true} onClose={onClose} />,
         )
 
         // There are two "close"-labelled buttons (header icon + footer button).
         // Clicking either should call onClose; we pick the footer button.
         const closeButtons = screen.getAllByRole('button', {
-            name: 'biometricPuzzle.closeButton',
+            name: 'authMethodsTesting.closeButton',
         })
         expect(closeButtons.length).toBeGreaterThan(0)
         fireEvent.click(closeButtons[closeButtons.length - 1])

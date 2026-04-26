@@ -336,7 +336,43 @@ describe('HostedLoginApp — B8 surface behavior', () => {
         })
     })
 
-    it('missing mfaSessionToken → sessionLost error, no API call, no redirect', async () => {
+    it('missing mfaSessionToken but has accessToken → mints code via GET /authorize, redirects', async () => {
+        // Single-factor flow (Marmara Simple Login — PASSWORD only): LoginMfaFlow
+        // calls onComplete({accessToken, ...}) with no mfaSessionToken because
+        // no MFA was needed. HostedLoginApp should re-hit GET /oauth2/authorize
+        // with the Bearer token so the backend mints a code for the authenticated
+        // principal (see OAuth2Controller.authorize authenticated branch).
+        setLocation('?client_id=c1&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb')
+        mockHttpGet.mockImplementation((url: string) => {
+            if (url.startsWith('/oauth2/clients/')) {
+                return Promise.resolve({ data: { client_id: 'c1', client_name: 'Acme' } })
+            }
+            // GET /oauth2/authorize?... with Bearer → returns code
+            return Promise.resolve({
+                data: { code: 'authcode-xyz', redirect_uri: 'https://app.example.com/cb' },
+            })
+        })
+
+        render(<HostedLoginApp />)
+        await waitFor(() => expect(stubRegistry.onComplete).toBeDefined())
+
+        await act(async () => {
+            // No mfaSessionToken in result payload; has accessToken
+            stubRegistry.onComplete!({
+                accessToken: 'at',
+                userId: 'u1',
+            })
+        })
+
+        const replace = window.location.replace as unknown as ReturnType<typeof vi.fn>
+        await waitFor(() => expect(replace).toHaveBeenCalled())
+        // POST /authorize/complete must NOT be called on the single-factor path
+        expect(mockHttpPost).not.toHaveBeenCalled()
+        const target = replace.mock.calls[0][0]
+        expect(target).toContain('code=authcode-xyz')
+    })
+
+    it('no mfaSessionToken AND no accessToken → sessionLost error', async () => {
         setLocation('?client_id=c1&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb')
         mockHttpGet.mockResolvedValue({
             data: { client_id: 'c1', client_name: 'Acme' },
@@ -346,9 +382,8 @@ describe('HostedLoginApp — B8 surface behavior', () => {
         await waitFor(() => expect(stubRegistry.onComplete).toBeDefined())
 
         await act(async () => {
-            // No mfaSessionToken in result payload
             stubRegistry.onComplete!({
-                accessToken: 'at',
+                accessToken: '',
                 userId: 'u1',
             })
         })

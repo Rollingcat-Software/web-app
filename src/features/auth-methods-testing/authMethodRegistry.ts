@@ -1,15 +1,20 @@
 /**
- * puzzleRegistry
+ * authMethodRegistry
  *
- * Single source of truth for the Biometric Puzzle playground. Each entry maps
- * an AuthMethodType to a stub-capable wrapper around the existing step
+ * Single source of truth for the Auth Methods Testing playground. Each entry
+ * maps an AuthMethodType to a stub-capable wrapper around the existing step
  * component. The landing website will later consume the same registry via a
  * shared package.
  *
- * We deliberately DO NOT duplicate the step components — each puzzle wrapper
- * lives next to this file (see `./puzzles/*Puzzle.tsx`) and simply bridges
- * the step's `onSubmit`/`onAuthenticated` callbacks to the unified
- * `PuzzleProps` contract (`onSuccess`, `onError`, `onClose`).
+ * We deliberately DO NOT duplicate the step components — each auth-method
+ * wrapper lives next to this file (see `./puzzles/*Puzzle.tsx`) and simply
+ * bridges the step's `onSubmit`/`onAuthenticated` callbacks to the unified
+ * `AuthMethodProps` contract (`onSuccess`, `onError`, `onClose`).
+ *
+ * NOTE: this registry is NOT the Biometric Puzzles registry. Biometric
+ * Puzzles (the 23 face/hand micro-challenges that feed active liveness) live
+ * under `src/features/biometric-puzzles/`. This one covers the platform's 9
+ * pluggable authentication methods end-to-end.
  */
 import type { ComponentType } from 'react'
 import type { SvgIconComponent } from '@mui/icons-material'
@@ -36,54 +41,54 @@ import QrCodePuzzle from './puzzles/QrCodePuzzle'
 import HardwareKeyPuzzle from './puzzles/HardwareKeyPuzzle'
 
 /**
- * Props every puzzle component receives.
+ * Props every auth-method preview component receives.
  *
  * - `onSuccess` — the stubbed challenge was completed (fires ~500ms after
  *   the underlying step component hands back its answer).
- * - `onError`  — puzzle-level error (rare in stub mode; kept for parity).
- * - `onClose`  — the user dismissed the puzzle; parent should close the modal.
+ * - `onError`  — preview-level error (rare in stub mode; kept for parity).
+ * - `onClose`  — the user dismissed the preview; parent should close the modal.
  */
-export interface PuzzleProps {
+export interface AuthMethodProps {
     onSuccess: () => void
     onError: (message: string) => void
     onClose: () => void
 }
 
-export type PuzzlePlatform = 'web' | 'android' | 'ios' | 'desktop'
-export type PuzzleDifficulty = 'beginner' | 'intermediate' | 'advanced'
+export type AuthMethodPlatform = 'web' | 'android' | 'ios' | 'desktop'
+export type AuthMethodDifficulty = 'beginner' | 'intermediate' | 'advanced'
 
 /**
- * Runtime capability — puzzles can either be `stubbedOnly` (mocked inside the
- * playground, e.g. NFC on desktop) or `realCapable` (end-to-end once wired
- * into a tenant flow). The PuzzleRunnerModal always runs in stub mode
+ * Runtime capability — auth methods can either be `stubbedOnly` (mocked inside
+ * the playground, e.g. NFC on desktop) or `realCapable` (end-to-end once wired
+ * into a tenant flow). The AuthMethodRunnerModal always runs in stub mode
  * regardless, but admins can read this flag to set expectations.
  */
-export type PuzzleCapability = 'stubbedOnly' | 'realCapable'
+export type AuthMethodCapability = 'stubbedOnly' | 'realCapable'
 
-export interface Puzzle {
+export interface AuthMethodEntry {
     id: AuthMethodType
-    /** i18n key root, e.g. `biometricPuzzle.puzzles.face` */
+    /** i18n key root, e.g. `authMethodsTesting.methods.face` */
     i18nKey: string
-    component: ComponentType<PuzzleProps>
-    difficulty: PuzzleDifficulty
-    platforms: PuzzlePlatform[]
+    component: ComponentType<AuthMethodProps>
+    difficulty: AuthMethodDifficulty
+    platforms: AuthMethodPlatform[]
     icon: SvgIconComponent
     requiresEnrollment: boolean
-    capability: PuzzleCapability
+    capability: AuthMethodCapability
 }
 
 /**
- * Every registered puzzle — ordered so the page renders a pleasant
+ * Every registered auth method — ordered so the page renders a pleasant
  * "easy to hard" reading path by default.
  *
  * Excluded by design (for now):
- * - PASSWORD — not a biometric challenge; covered elsewhere.
+ * - PASSWORD — covered by the login form; not a discrete second factor.
  * - GESTURE_LIVENESS — not yet in AuthMethodType; lands with Phase 1 backend.
  */
-export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
+export const AUTH_METHOD_REGISTRY: Partial<Record<AuthMethodType, AuthMethodEntry>> = {
     [AuthMethodType.EMAIL_OTP]: {
         id: AuthMethodType.EMAIL_OTP,
-        i18nKey: 'biometricPuzzle.puzzles.email_otp',
+        i18nKey: 'authMethodsTesting.methods.email_otp',
         component: EmailOtpPuzzle,
         difficulty: 'beginner',
         platforms: ['web', 'android', 'ios', 'desktop'],
@@ -93,7 +98,7 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
     },
     [AuthMethodType.SMS_OTP]: {
         id: AuthMethodType.SMS_OTP,
-        i18nKey: 'biometricPuzzle.puzzles.sms',
+        i18nKey: 'authMethodsTesting.methods.sms',
         component: SmsPuzzle,
         difficulty: 'beginner',
         platforms: ['web', 'android', 'ios', 'desktop'],
@@ -103,7 +108,7 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
     },
     [AuthMethodType.TOTP]: {
         id: AuthMethodType.TOTP,
-        i18nKey: 'biometricPuzzle.puzzles.totp',
+        i18nKey: 'authMethodsTesting.methods.totp',
         component: TotpPuzzle,
         difficulty: 'beginner',
         platforms: ['web', 'android', 'ios', 'desktop'],
@@ -113,7 +118,7 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
     },
     [AuthMethodType.QR_CODE]: {
         id: AuthMethodType.QR_CODE,
-        i18nKey: 'biometricPuzzle.puzzles.qr',
+        i18nKey: 'authMethodsTesting.methods.qr',
         component: QrCodePuzzle,
         difficulty: 'intermediate',
         platforms: ['web', 'android', 'ios', 'desktop'],
@@ -123,7 +128,7 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
     },
     [AuthMethodType.FACE]: {
         id: AuthMethodType.FACE,
-        i18nKey: 'biometricPuzzle.puzzles.face',
+        i18nKey: 'authMethodsTesting.methods.face',
         component: FacePuzzle,
         difficulty: 'intermediate',
         platforms: ['web', 'android', 'ios', 'desktop'],
@@ -133,7 +138,7 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
     },
     [AuthMethodType.VOICE]: {
         id: AuthMethodType.VOICE,
-        i18nKey: 'biometricPuzzle.puzzles.voice',
+        i18nKey: 'authMethodsTesting.methods.voice',
         component: VoicePuzzle,
         difficulty: 'intermediate',
         platforms: ['web', 'android', 'ios', 'desktop'],
@@ -143,7 +148,7 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
     },
     [AuthMethodType.FINGERPRINT]: {
         id: AuthMethodType.FINGERPRINT,
-        i18nKey: 'biometricPuzzle.puzzles.fingerprint',
+        i18nKey: 'authMethodsTesting.methods.fingerprint',
         component: FingerprintPuzzle,
         difficulty: 'advanced',
         platforms: ['android', 'ios', 'desktop'],
@@ -153,7 +158,7 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
     },
     [AuthMethodType.NFC_DOCUMENT]: {
         id: AuthMethodType.NFC_DOCUMENT,
-        i18nKey: 'biometricPuzzle.puzzles.nfc',
+        i18nKey: 'authMethodsTesting.methods.nfc',
         component: NfcPuzzle,
         difficulty: 'advanced',
         platforms: ['web', 'android'],
@@ -163,7 +168,7 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
     },
     [AuthMethodType.HARDWARE_KEY]: {
         id: AuthMethodType.HARDWARE_KEY,
-        i18nKey: 'biometricPuzzle.puzzles.hardware_key',
+        i18nKey: 'authMethodsTesting.methods.hardware_key',
         component: HardwareKeyPuzzle,
         difficulty: 'advanced',
         platforms: ['web', 'desktop'],
@@ -176,12 +181,12 @@ export const PUZZLE_REGISTRY: Partial<Record<AuthMethodType, Puzzle>> = {
 /**
  * Iteration helper — returns registry entries in insertion order.
  */
-export function listPuzzles(): Puzzle[] {
-    return Object.values(PUZZLE_REGISTRY).filter(
-        (p): p is Puzzle => p !== undefined,
+export function listAuthMethods(): AuthMethodEntry[] {
+    return Object.values(AUTH_METHOD_REGISTRY).filter(
+        (entry): entry is AuthMethodEntry => entry !== undefined,
     )
 }
 
-export function getPuzzle(id: AuthMethodType): Puzzle | undefined {
-    return PUZZLE_REGISTRY[id]
+export function getAuthMethod(id: AuthMethodType): AuthMethodEntry | undefined {
+    return AUTH_METHOD_REGISTRY[id]
 }

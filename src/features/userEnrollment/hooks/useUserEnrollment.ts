@@ -127,6 +127,7 @@ export function useUserEnrollment(): UseUserEnrollmentReturn {
             setEnrollmentStatus(result)
             setCurrentStep(EnrollmentStep.COMPLETE)
         } catch (err) {
+            // eslint-disable-next-line no-restricted-syntax -- hook surface; caller wraps with formatApiError + i18n where displayed
             const message = err instanceof Error ? err.message : 'Failed to submit enrollment'
             if (phaseRef.current === 'processing_biometrics') {
                 setError(`Biometric processing failed: ${message}`)

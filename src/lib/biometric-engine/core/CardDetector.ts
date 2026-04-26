@@ -135,6 +135,9 @@ export class CardDetector implements ICardDetector {
       // @ts-ignore — onnxruntime-web is loaded at runtime
       const ort = await import('onnxruntime-web');
 
+      // See VoiceVAD.ts for the full note — ort.env.wasm.wasmPaths is
+      // required or Apache returns index.html for /ort-wasm-*.wasm.
+      ort.env.wasm.wasmPaths = 'https://cdn.jsdelivr.net/npm/onnxruntime-web@1.18.0/dist/';
       // Use WASM backend — no GPU needed, works in all browsers
       ort.env.wasm.numThreads = 2;
 
@@ -147,6 +150,7 @@ export class CardDetector implements ICardDetector {
       this.initError = null;
     } catch (err) {
       this.ready = false;
+      // eslint-disable-next-line no-restricted-syntax -- engine init error stored for diagnostic; UI layer formats display
       this.initError = err instanceof Error ? err.message : String(err);
       console.warn('[CardDetector] ONNX model not available, detection disabled:', err);
     }

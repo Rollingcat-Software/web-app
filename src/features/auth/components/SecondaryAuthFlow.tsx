@@ -204,10 +204,8 @@ export default function SecondaryAuthFlow({
             userId,
             sessionId,
             container: containerRef.current,
-            onStepChange: (step) => {
-                if (import.meta.env.DEV) {
-                    console.log('[SecondaryAuth] Step change:', step)
-                }
+            onStepChange: (_step) => {
+                // dev breadcrumb removed; use Logger for diagnostic
             },
             onError: (err) => {
                 setError(formatApiError(err, t))
@@ -221,9 +219,11 @@ export default function SecondaryAuthFlow({
             // Verification complete
             onComplete()
         }).catch((err) => {
-            // Handle cancellation gracefully
+            // Handle cancellation gracefully — match runtime Error names, not user-facing copy
+            // eslint-disable-next-line no-restricted-syntax
             if (err instanceof Error && err.message.includes('cancelled')) {
                 onSkip()
+            // eslint-disable-next-line no-restricted-syntax
             } else if (err instanceof Error && err.message.includes('destroyed')) {
                 // Component unmounted — no action needed
             } else {

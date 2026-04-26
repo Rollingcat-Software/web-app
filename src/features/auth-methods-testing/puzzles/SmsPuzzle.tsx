@@ -1,13 +1,12 @@
 /**
- * HardwareKeyPuzzle — wraps HardwareKeyStep for the playground.
- * Real WebAuthn still runs in-browser; we just accept whatever the step
- * component hands back and report success.
+ * SmsPuzzle — wraps SmsOtpStep. `onSendOtp` is a no-op in stub mode; any
+ * 6-digit code is accepted.
  */
 import { useCallback, useEffect, useRef, useState } from 'react'
-import HardwareKeyStep from '@features/auth/components/steps/HardwareKeyStep'
-import type { PuzzleProps } from '../puzzleRegistry'
+import SmsOtpStep from '@features/auth/components/steps/SmsOtpStep'
+import type { AuthMethodProps } from '../authMethodRegistry'
 
-export default function HardwareKeyPuzzle({ onSuccess }: PuzzleProps) {
+export default function SmsPuzzle({ onSuccess }: AuthMethodProps) {
     const [loading, setLoading] = useState(false)
     const timerRef = useRef<number | null>(null)
 
@@ -27,5 +26,15 @@ export default function HardwareKeyPuzzle({ onSuccess }: PuzzleProps) {
         }, 500)
     }, [onSuccess])
 
-    return <HardwareKeyStep onSubmit={handleSubmit} loading={loading} />
+    const handleSendOtp = useCallback(() => {
+        // No-op in puzzle mode — the stub backend has nothing to mail.
+    }, [])
+
+    return (
+        <SmsOtpStep
+            onSubmit={handleSubmit}
+            onSendOtp={handleSendOtp}
+            loading={loading}
+        />
+    )
 }

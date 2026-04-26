@@ -67,6 +67,51 @@ export interface UserSessionResponse {
 }
 
 /**
+ * Auth session statuses returned by the admin list endpoint.
+ * Mirrors backend `AuthSessionStatus` enum.
+ */
+export type AuthSessionStatusValue =
+    | 'CREATED'
+    | 'IN_PROGRESS'
+    | 'COMPLETED'
+    | 'FAILED'
+    | 'EXPIRED'
+    | 'CANCELLED'
+
+/**
+ * One row in the admin auth-sessions list. Returned by
+ * GET /api/v1/auth/sessions. Backend-side: AuthSessionListItemResponse.
+ *
+ * Safe-fields only — no tokens, no MFA codes, no step payloads.
+ */
+export interface AuthSessionListItem {
+    id: string
+    userId: string | null
+    tenantId: string
+    operationType: string
+    status: AuthSessionStatusValue
+    currentStep: number
+    totalSteps: number
+    createdAt: string
+    expiresAt: string
+    completedAt: string | null
+    ipAddress: string | null
+    userAgent: string | null
+}
+
+/**
+ * Paginated response wrapper used by the admin list endpoint.
+ * Mirrors the Map<String,Object> shape produced by AuthSessionQueryService.
+ */
+export interface PageResult<T> {
+    content: T[]
+    totalElements: number
+    totalPages: number
+    page: number
+    size: number
+}
+
+/**
  * Auth Session Repository
  * Handles auth session runtime API calls
  */
@@ -229,6 +274,45 @@ export class AuthSessionRepository {
             await this.httpClient.delete<void>(`/qr/${token}`)
         } catch (error) {
             this.logger.error('Failed to invalidate QR token', error)
+            throw error
+        }
+    }
+
+    // --- Admin list (PR feat/auth-sessions-admin-list) ---
+
+    /**
+     * Admin: paginated list of auth sessions for a tenant.
+     *
+     * @param tenantId  required for SUPER_ADMIN; ignored (resolver overrides)
+     *                  for tenant-scoped callers.
+     * @param status    optional list of statuses to include — sent to backend
+     *                  as a comma-separated string (e.g. "IN_PROGRESS,CREATED").
+     * @param userId    optional, restrict to a single user.
+     * @param page      0-based page number.
+     * @param size      rows per page (backend caps at 200).
+     */
+    async listSessions(
+        tenantId: string,
+        status?: AuthSessionStatusValue[],
+        userId?: string,
+        page: number = 0,
+        size: number = 20
+    ): Promise<PageResult<AuthSessionListItem>> {
+        try {
+            const params = new URLSearchParams()
+            if (tenantId) params.set('tenantId', tenantId)
+            if (status && status.length > 0) params.set('status', status.join(','))
+            if (userId) params.set('userId', userId)
+            params.set('page', String(page))
+            params.set('size', String(size))
+
+            const url = `/auth/sessions?${params.toString()}`
+            this.logger.debug('Fetching admin auth sessions', { tenantId, status, userId, page, size })
+
+            const response = await this.httpClient.get<PageResult<AuthSessionListItem>>(url)
+            return response.data
+        } catch (error) {
+            this.logger.error('Failed to fetch admin auth sessions', error)
             throw error
         }
     }

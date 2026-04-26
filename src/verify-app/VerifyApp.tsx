@@ -36,6 +36,7 @@ import {
     setParentOrigin,
 } from './postMessageBridge'
 import { useResizeObserver } from './useResizeObserver'
+import { formatApiError } from '@utils/formatApiError'
 
 // ─── URL Parameter Parsing ───────────────────────────────────────
 
@@ -158,7 +159,7 @@ export default function VerifyApp() {
                 sendReady()
             })
             .catch((err) => {
-                const message = err instanceof Error ? err.message : 'Failed to load session'
+                const message = formatApiError(err, t)
                 setError(message)
                 setLoading(false)
                 sendError(message, 'SESSION_LOAD_FAILED')

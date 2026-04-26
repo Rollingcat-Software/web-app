@@ -15,6 +15,7 @@ import {
 import { CameraAlt, CameraswitchOutlined, Face, PersonSearch, Refresh } from '@mui/icons-material'
 import { useCamera } from '@features/userEnrollment/hooks/useCamera'
 import { useFaceSearch } from '@hooks/useFaceSearch'
+import { useAuth } from '@features/auth/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
 
 /**
@@ -28,6 +29,13 @@ export default function FaceSearchPage() {
     const { searching, result, error: searchError, searchFace, reset } = useFaceSearch()
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const { t } = useTranslation()
+    const { user } = useAuth()
+    // Backend `/api/v1/search` requires tenant_id as a REQUIRED form field
+    // (see biometric-processor/app/api/routes/search.py:27 — `min_length=1`).
+    // Omitting it produces the HTTP 422 "Unprocessable Content" the user saw.
+    // Scope every 1:N search to the caller's own tenant — no cross-tenant
+    // face identification. SUPER_ADMIN users without a tenant id fall through
+    // and will get the usual 422 which prompts a tenant picker follow-up.
 
     const handleStartCamera = async () => {
         reset()
@@ -47,7 +55,7 @@ export default function FaceSearchPage() {
         const reader = new FileReader()
         reader.onloadend = async () => {
             const base64 = reader.result as string
-            await searchFace(base64)
+            await searchFace(base64, user?.tenantId)
         }
         reader.readAsDataURL(blob)
     }

@@ -94,6 +94,7 @@
     "nfcEnrollment": "NFC Tarayıcı",
     "biometricTools": "Biyometrik Araçlar",
     "biometricPuzzles": "Biyometrik Bulmacalar",
+    "authMethodsTesting": "Kimlik Doğrulama Yöntemi Denemeleri",
     "auditLogs": "Denetim Kayıtları",
     "analytics": "Analitik",
     "verificationFlows": "Doğrulama Akışları",
@@ -159,7 +160,8 @@
     "active": "aktif",
     "successfulLogin": "Başarılı Giriş",
     "failedLogin": "Başarısız Giriş",
-    "noLoginHistory": "Giriş geçmişi yöneticilere açıktır. Erişim için yöneticinize başvurun."
+    "noLoginHistory": "Giriş geçmişi yöneticilere açıktır. Erişim için yöneticinize başvurun.",
+    "usersInTenant": "Kiracınızdaki kullanıcılar"
   },
   "methods": {
     "face": "Yüz Tanıma",
@@ -250,6 +252,39 @@
     "minutesAgo": "{{count}} dk önce",
     "hoursAgo": "{{count}} saat önce",
     "daysAgo": "{{count}} gün önce"
+  },
+  "authSessionsPage": {
+    "title": "Kimlik Doğrulama Oturumları",
+    "subtitle": "Tenant genelinde aktif ve tamamlanmış kimlik doğrulama oturumlarını izleyin",
+    "filterByStatus": "Duruma Göre Filtrele",
+    "allStatuses": "Tüm Durumlar",
+    "statusCreated": "Oluşturuldu",
+    "statusInProgress": "Devam Ediyor",
+    "statusCompleted": "Tamamlandı",
+    "statusFailed": "Başarısız",
+    "statusExpired": "Süresi Doldu",
+    "statusCancelled": "İptal Edildi",
+    "columnSessionId": "Oturum ID",
+    "columnUserId": "Kullanıcı ID",
+    "columnOperation": "İşlem",
+    "columnStatus": "Durum",
+    "columnStep": "Adım",
+    "columnIpAddress": "IP",
+    "columnAge": "Başlangıç",
+    "columnActions": "Eylemler",
+    "stepFormat": "Adım {{current}} / {{total}}",
+    "cancelButton": "İptal Et",
+    "cancelConfirm": "Bu devam eden oturum iptal edilsin mi?",
+    "cancelTitle": "Oturum iptal edilsin mi?",
+    "cancelDescription": "Kullanıcı bu kimlik doğrulama denemesini tamamlayamayacak ve baştan başlaması gerekecek.",
+    "cancelSuccess": "Oturum iptal edildi",
+    "cancelFailed": "Oturum iptal edilemedi",
+    "emptyTitle": "0 aktif oturum",
+    "emptyDescription": "Kullanıcılar çok adımlı akışlardan kimlik doğrulaması yaptığında oturumlar burada görünecektir. Tamamlanmış veya süresi dolmuş oturumları görmek için durum filtresini değiştirmeyi deneyin.",
+    "loadingAriaLabel": "Kimlik doğrulama oturumları yükleniyor",
+    "countLabel": "{{count}} oturum",
+    "tenantUnavailable": "Tenant bilgisi mevcut değil — tekrar giriş yapın.",
+    "ipUnknown": "—"
   },
   "otp": {
     "title": "OTP Yönetimi",
@@ -1494,10 +1529,10 @@
   "sidebar": {
     "systemStatus": "Tüm sistemler çalışıyor"
   },
-  "biometricPuzzle": {
-    "pageTitle": "Biyometrik Bulmacalar",
-    "pageSubtitle": "Her biyometrik doğrulama yöntemini sahte bir arka uçla uçtan uca deneyin. Kiracınızın kimlik doğrulama akışına entegre etmeden önce her bulmacayı önizleyin.",
-    "tryButton": "Bu bulmacayı dene",
+  "authMethodsTesting": {
+    "pageTitle": "Kimlik Doğrulama Yöntemi Denemeleri",
+    "pageSubtitle": "Platformun desteklediği her kimlik doğrulama yöntemini sahte bir arka uçla deneyin. Kiracınızın kimlik doğrulama yapılandırmasına entegre etmeden önce her akışı önizleyin.",
+    "tryButton": "Bu yöntemi dene",
     "closeButton": "Kapat",
     "tryAgainButton": "Tekrar dene",
     "previewLabel": "Önizleme",
@@ -1505,7 +1540,7 @@
     "requiresEnrollment": "Kayıt gerektirir",
     "stubbedOnly": "Yalnızca simülasyon",
     "successMessage": "Doğrulama başarılı. Bu yöntemi kimlik doğrulama akışınızda etkinleştirmeye hazırsınız.",
-    "errorMessage": "Bulmaca tamamlanamadı. Lütfen tekrar deneyin.",
+    "errorMessage": "Önizleme tamamlanamadı. Lütfen tekrar deneyin.",
     "difficulty": {
       "beginner": "Başlangıç",
       "intermediate": "Orta",
@@ -1517,7 +1552,7 @@
       "ios": "iOS",
       "desktop": "Masaüstü"
     },
-    "puzzles": {
+    "methods": {
       "face": {
         "title": "Yüz Tanıma",
         "description": "Yüzünüzü kamera önizlemesinde çerçeveleyin, kalite onayını bekleyin ve ardından yakalayın. Cihaz içi BlazeFace tespiti kullanır."
@@ -1553,6 +1588,140 @@
       "hardware_key": {
         "title": "Donanım Güvenlik Anahtarı",
         "description": "Sorgulamayı onaylamak için bir FIDO2 veya WebAuthn anahtarı (YubiKey, Titan, platform kimlik doğrulayıcısı) kullanın."
+      }
+    }
+  },
+  "biometricPuzzle": {
+    "pageTitle": "Biyometrik Bulmacalar",
+    "pageSubtitle": "Platformun desteklediği 23 aktif canlılık mikro-görevini önizleyin. Yüz görevleri gerçek dedektörü çalıştırır; el hareketleri MediaPipe HandLandmarker entegrasyonu gelene kadar simüle edilir.",
+    "sectionFace": "Yüz Görevleri",
+    "sectionHand": "El Hareketi Görevleri",
+    "handComingSoon": "Gerçek el hareketi tespiti MediaPipe HandLandmarker ile gelecek — bu önizleme kısa bir gecikmeden sonra başarıyı simüle eder.",
+    "simulatingDetection": "Tespit simüle ediliyor…",
+    "skipDemo": "Demoyu atla",
+    "tryButton": "Bu bulmacayı dene",
+    "closeButton": "Kapat",
+    "tryAgainButton": "Tekrar dene",
+    "previewLabel": "Önizleme",
+    "platformLabel": "Desteklenen platformlar",
+    "requiresEnrollment": "Kayıt gerektirir",
+    "stubbedOnly": "Yalnızca simülasyon",
+    "successMessage": "Bulmaca başarıyla tamamlandı. Dedektör hedef hareketi onayladı.",
+    "errorMessage": "Bulmaca tamamlanamadı. Lütfen tekrar deneyin.",
+    "timeoutMessage": "Süre doldu — hareket algılanamadı. Lütfen tekrar deneyin.",
+    "engineLoading": "Dedektör yükleniyor…",
+    "startCamera": "Kamerayı Başlat",
+    "waitingForGesture": "İstenen hareket bekleniyor…",
+    "holding": "Tutmaya devam edin…",
+    "handFingerCountPrompt": "{{count}} parmağınızı gösterip tutun.",
+    "handMathPrompt": "{{expr}} işleminin sonucunu parmaklarınızla gösterip tutun.",
+    "difficulty": {
+      "beginner": "Başlangıç",
+      "intermediate": "Orta",
+      "advanced": "İleri"
+    },
+    "modality": {
+      "face": "Yüz",
+      "hand": "El"
+    },
+    "platforms": {
+      "web": "Web",
+      "android": "Android",
+      "ios": "iOS",
+      "desktop": "Masaüstü"
+    },
+    "puzzles": {
+      "face_blink": {
+        "title": "Göz Kırp",
+        "description": "Her iki gözünüzü bir anlığına kapatıp tekrar açın. Dedektör, kareler boyunca göz en-boy oranını izler."
+      },
+      "face_close_left": {
+        "title": "Sol Gözü Kapat",
+        "description": "Sağ gözü açık tutarken sol gözünüzü kapatın. Asimetrik göz kapağı kontrolünü test eder."
+      },
+      "face_close_right": {
+        "title": "Sağ Gözü Kapat",
+        "description": "Sol gözü açık tutarken sağ gözünüzü kapatın. Asimetrik göz kapağı kontrolünü test eder."
+      },
+      "face_smile": {
+        "title": "Geniş Gülümse",
+        "description": "Geniş bir şekilde gülümseyin (dişler görünüyorsa daha iyi). Dudak köşesi açıklığını ölçer."
+      },
+      "face_open_mouth": {
+        "title": "Ağzı Aç",
+        "description": "Ağzınızı geniş bir şekilde açın. Yüz yüksekliğine göre dudak arası mesafeyi ölçer."
+      },
+      "face_turn_left": {
+        "title": "Başı Sola Çevir",
+        "description": "Başınızı solunuza çevirin. İşaret noktalarından baş-poz yaw açısını takip eder."
+      },
+      "face_turn_right": {
+        "title": "Başı Sağa Çevir",
+        "description": "Başınızı sağınıza çevirin. İşaret noktalarından baş-poz yaw açısını takip eder."
+      },
+      "face_look_up": {
+        "title": "Yukarı Bak",
+        "description": "Çenenizi yukarı kaldırın. İşaret noktalarından baş-poz pitch açısını takip eder."
+      },
+      "face_look_down": {
+        "title": "Aşağı Bak",
+        "description": "Çenenizi aşağı indirin. İşaret noktalarından baş-poz pitch açısını takip eder."
+      },
+      "face_raise_both_brows": {
+        "title": "Her İki Kaşı Kaldır",
+        "description": "Her iki kaşınızı birlikte kaldırın. Kaş-göz mesafesi değişimini ölçer."
+      },
+      "face_raise_left_brow": {
+        "title": "Sol Kaşı Kaldır",
+        "description": "Sadece sol kaşınızı kaldırın. Asimetrik kaş kontrolünü test eder."
+      },
+      "face_raise_right_brow": {
+        "title": "Sağ Kaşı Kaldır",
+        "description": "Sadece sağ kaşınızı kaldırın. Asimetrik kaş kontrolünü test eder."
+      },
+      "face_nod": {
+        "title": "Başı Salla (Evet)",
+        "description": "Başınızı yukarı-aşağı sallayın. Kısa bir pencerede pitch hareketini izler."
+      },
+      "face_shake_head": {
+        "title": "Başı Salla (Hayır)",
+        "description": "Başınızı sağa-sola sallayın. Kısa bir pencerede yaw hareketini izler."
+      },
+      "hand_finger_count": {
+        "title": "Parmak Say",
+        "description": "İstenen sayıda parmağı kaldırın. Canlı el görünürlüğünü ve MCP/PIP eklem tespitini test eder."
+      },
+      "hand_wave": {
+        "title": "El Salla",
+        "description": "Elinizi kameranın önünde yana yana sallayın. El merkezi yatay salınımını algılar."
+      },
+      "hand_flip": {
+        "title": "Avuç Çevir",
+        "description": "Avucunuzu gösterin, sonra elin arkasına çevirin. Bilek rotasyonunu ve işaret noktası yönünü test eder."
+      },
+      "hand_finger_tap": {
+        "title": "Parmak Tıklama",
+        "description": "Baş parmağınızı ve işaret parmağınızı birkaç kez birbirine değdirin. Baş parmak ucu ile işaret parmağı ucu arasındaki mesafeyi ölçer."
+      },
+      "hand_pinch": {
+        "title": "Sıkıştır",
+        "description": "Baş parmağı ve işaret parmağını sıkıştırıp tutun. Sürekli sıkıştırma mesafesi tespiti."
+      },
+      "hand_peek_a_boo": {
+        "title": "Ce-e",
+        "description": "Gözlerinizi avucunuzla kapatın, sonra yüzünüzü gösterin. Yüz kapatma ve el varlığı sinyallerini birleştirir."
+      },
+      "hand_shape_trace": {
+        "title": "Şekil Çiz",
+        "description": "Gösterilen şekli (daire, kare, üçgen) işaret parmağınızla havada çizin."
+      },
+      "hand_trace_template": {
+        "title": "Şablon Çiz",
+        "description": "Özel bir yol şablonunu parmak ucuyla çizin. Kiracıya özel hareket görevleri için kullanılır."
+      },
+      "hand_math": {
+        "title": "Parmak Matematiği",
+        "description": "Küçük bir aritmetik sorunun cevabını (örneğin 2+3) parmak kaldırarak gösterin."
       }
     }
   }
