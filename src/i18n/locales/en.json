@@ -586,6 +586,27 @@
       "open_mouth": "Open your mouth wide",
       "raise_eyebrows": "Raise your eyebrows",
       "perform": "Perform: {{action}}"
+    },
+    "gesture": {
+      "title": "Hand Gesture Liveness Check",
+      "subtitle": "Follow the on-screen prompt with your hand. We never store the video — only landmark data leaves your device.",
+      "cameraError": "Could not start the camera. Check browser permissions and try again.",
+      "cameraOff": "Camera is off",
+      "startCamera": "Start camera",
+      "starting": "Starting…",
+      "failure": "Gesture verification failed. Please try again.",
+      "failureReason": "Gesture verification failed: {{reason}}",
+      "success": "Gesture verified. Continuing…",
+      "retry": "Try again",
+      "videoAriaLabel": "Live camera preview for hand gesture detection",
+      "progressAria": "Gesture challenge progress",
+      "step": "Step {{current}} of {{total}}",
+      "status": {
+        "detectorUnavailable": "Detector unavailable",
+        "fps": "{{fps}} fps",
+        "handDetected": "Hand detected",
+        "noHand": "Show your hand"
+      }
     }
   },
   "notifications": {

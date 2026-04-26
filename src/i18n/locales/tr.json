@@ -586,6 +586,27 @@
       "open_mouth": "Ağzınızı kocaman açın",
       "raise_eyebrows": "Kaşlarınızı kaldırın",
       "perform": "Yapın: {{action}}"
+    },
+    "gesture": {
+      "title": "El Hareketi Canlılık Kontrolü",
+      "subtitle": "Ekrandaki yönergeyi elinizle takip edin. Video kaydedilmez — yalnızca işaret noktaları cihazınızdan ayrılır.",
+      "cameraError": "Kamera başlatılamadı. Tarayıcı izinlerini kontrol edip tekrar deneyin.",
+      "cameraOff": "Kamera kapalı",
+      "startCamera": "Kamerayı başlat",
+      "starting": "Başlatılıyor…",
+      "failure": "Hareket doğrulanamadı. Lütfen tekrar deneyin.",
+      "failureReason": "Hareket doğrulanamadı: {{reason}}",
+      "success": "Hareket doğrulandı. Devam ediliyor…",
+      "retry": "Tekrar dene",
+      "videoAriaLabel": "El hareketi algılama için canlı kamera önizlemesi",
+      "progressAria": "Hareket görevi ilerlemesi",
+      "step": "Adım {{current}} / {{total}}",
+      "status": {
+        "detectorUnavailable": "Algılayıcı kullanılamıyor",
+        "fps": "{{fps}} fps",
+        "handDetected": "El algılandı",
+        "noHand": "Elinizi gösterin"
+      }
     }
   },
   "notifications": {
