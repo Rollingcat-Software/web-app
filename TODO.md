@@ -49,7 +49,7 @@
 ### Phase G — Features
 - [ ] **G1.** YubiKey hardware testing (needs purchase — YubiKey Security Key C NFC ~2,200 TRY).
 - [ ] **G2.** Mobile QR scanner (Phase 2.1) — implement in `client-apps/` (mlkit-barcode-scanning).
-- [ ] **G4.** Native-app SDK integration docs — `docs/guides/integration/{ios-appauth.md, android-customtabs.md, electron-loopback.md, cli-loopback.md}`.
+- [ ] **G4.** Native-app SDK integration docs — `docs/guides/integration/{android-customtabs.md, electron-loopback.md, cli-loopback.md}`. (iOS AppAuth doc dropped 2026-04-26 — iOS/macOS permanently out of scope, no Apple hardware available.)
 - [ ] **G7.** `<fivucsas-verify>` + `<fivucsas-button>` Web Components with CSS Custom Properties theming.
 
 ---
@@ -205,7 +205,7 @@
 - [ ] Unified `ErrorResponse` DTO across OAuth + Auth controllers
 - [ ] Admin endpoint `@PreAuthorize("@rbac.isTenantAdmin()")` on `TenantController`, `RoleController`, `AdminOverviewController`
 - [ ] PKCE failure audit logging + rate limit
-- [ ] SDK `loginRedirect` → native-app docs (iOS AppAuth, Android Custom Tabs, Electron AppAuth-JS)
+- [ ] SDK `loginRedirect` → native-app docs (Android Custom Tabs, Electron AppAuth-JS). (iOS AppAuth dropped 2026-04-26 — iOS/macOS permanently out of scope.)
 - [ ] SDK `CHANGELOG.md` separated from web-app
 
 ## Wave 3 — PR-3 backlog

@@ -2,6 +2,10 @@
 
 ## [Unreleased]
 
+### Docs — 2026-04-26 (iOS / macOS scope dropped)
+
+Forward-looking iOS AppAuth integration references removed from `TODO.md` (Phase G4 + Wave 2 PR-2 backlog). iOS / iPadOS / macOS permanently out of scope — no Apple hardware available for development, signing, or testing. Apple-platform users are served via the hosted login page in their system browser.
+
 ### Design system refresh — 2026-04-22b (Scope B: verify-app chrome)
 
 Zero functional change. The hosted login (`verify.fivucsas.com/login`) and
