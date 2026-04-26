@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react'
-import { useService } from '@app/providers/DependencyProvider'
+import { useService } from '@app/providers'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { TYPES } from '@core/di/types'
 import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand, UpdateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'

@@ -32,7 +32,7 @@ import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
 import { AuthFlowBuilder } from './AuthFlowBuilder'
 import { TYPES } from '@core/di/types'
-import { useService } from '@app/providers/DependencyProvider'
+import { useService } from '@app/providers'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useAuthMethods } from '@features/authFlows/hooks/useAuthMethods'
 import {

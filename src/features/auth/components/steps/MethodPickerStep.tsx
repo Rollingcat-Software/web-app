@@ -1,7 +1,7 @@
 import { Box, Card, CardActionArea, Typography, Chip, Avatar, CircularProgress } from '@mui/material'
 import { Star } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
-import { METHOD_ICONS } from '../StepProgress'
+import { METHOD_ICONS } from '../StepProgress.helpers'
 
 /**
  * i18n keys for each MFA method type descriptions

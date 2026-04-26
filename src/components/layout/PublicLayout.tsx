@@ -12,7 +12,7 @@ import {
 } from '@mui/material'
 import { ArrowBack, Login, Security } from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
-import { useThemeMode } from '@app/providers/ThemeModeProvider'
+import { useThemeMode } from '@app/providers/ThemeModeContext'
 import { useTranslation } from 'react-i18next'
 
 /**

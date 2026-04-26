@@ -16,7 +16,7 @@ import {
 import { Visibility, VisibilityOff } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@utils/formatApiError'
-import { useService } from '@app/providers/DependencyProvider'
+import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IPasswordService } from '@domain/interfaces/IPasswordService'
 import { useAuth } from '../hooks/useAuth'

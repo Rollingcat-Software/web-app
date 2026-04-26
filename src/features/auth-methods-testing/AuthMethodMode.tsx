@@ -1,5 +1,5 @@
 /**
- * AuthMethodMode context.
+ * AuthMethodMode provider component.
  *
  * Exposes whether the surrounding tree is running in `real` authentication
  * mode (the production flow) or `stub` mode (the Auth Methods Testing
@@ -8,19 +8,19 @@
  * Step components themselves still resolve their dependencies via
  * InversifyJS; this context is the escape hatch for wrappers that want to
  * branch on mode (e.g. swap copy, skip network calls, show demo chips).
+ *
+ * NOTE: The hooks (`useAuthMethodMode`, `useAuthMethodModeOptional`) and
+ * the React context object live in `AuthMethodModeContext.ts` so
+ * react-refresh detects this file as component-only.
  */
-import { createContext, useContext, useMemo, type ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import type { IAuthRepository } from '@domain/interfaces/IAuthRepository'
 import { createStubAuthRepository } from './stubs/stubAuthRepository'
-
-export type AuthMethodModeKind = 'real' | 'stub'
-
-export interface AuthMethodModeValue {
-    mode: AuthMethodModeKind
-    authRepository: IAuthRepository
-}
-
-const AuthMethodModeContext = createContext<AuthMethodModeValue | null>(null)
+import {
+    AuthMethodModeContext,
+    type AuthMethodModeKind,
+    type AuthMethodModeValue,
+} from './AuthMethodModeContext'
 
 export interface AuthMethodModeProviderProps {
     mode: AuthMethodModeKind
@@ -61,29 +61,4 @@ export function AuthMethodModeProvider({
             {children}
         </AuthMethodModeContext.Provider>
     )
-}
-
-/**
- * Access the current AuthMethodMode. Throws when consumed outside a
- * `AuthMethodModeProvider` — callers that need to adapt without crashing
- * should use `useAuthMethodModeOptional()` instead and keep resolving
- * real-auth dependencies via DI.
- */
-export function useAuthMethodMode(): AuthMethodModeValue {
-    const ctx = useContext(AuthMethodModeContext)
-    if (!ctx) {
-        throw new Error(
-            'useAuthMethodMode must be used within AuthMethodModeProvider',
-        )
-    }
-    return ctx
-}
-
-/**
- * Soft variant — returns null when no provider is present. Useful for
- * components that want to adapt copy but shouldn't crash outside the
- * playground.
- */
-export function useAuthMethodModeOptional(): AuthMethodModeValue | null {
-    return useContext(AuthMethodModeContext)
 }

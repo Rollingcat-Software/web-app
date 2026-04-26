@@ -287,7 +287,12 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
  * Build a `ComponentType<BiometricPuzzleProps>` with `challengeType` +
  * `i18nKey` pre-bound so the registry can hold one component per face
  * entry without leaking extra props through the runner modal.
+ *
+ * `react-refresh/only-export-components` can't see that this returns a
+ * component; the registry still works fine without HMR for these
+ * dynamic factories.
  */
+// eslint-disable-next-line react-refresh/only-export-components
 export function makeFacePuzzle(challengeType: ChallengeType, i18nKey: string) {
     const Bound: React.FC<BiometricPuzzleProps> = (p) => (
         <FacePuzzle {...p} challengeType={challengeType} i18nKey={i18nKey} />

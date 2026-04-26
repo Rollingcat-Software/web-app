@@ -1,6 +1,6 @@
 import { useCallback, useRef, useState } from 'react';
 import type { VerifyOptions, VerifyResult } from '../sdk';
-import { useFivucsasAuth } from './FivucsasProvider';
+import { useFivucsasAuth } from './FivucsasContext';
 
 export interface UseVerificationReturn {
     verify: (options?: Partial<VerifyOptions>) => Promise<VerifyResult>;

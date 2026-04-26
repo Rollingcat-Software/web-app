@@ -1,13 +1,8 @@
-import { createContext, useContext, useEffect, useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import type { ReactNode } from 'react';
 import { FivucsasAuth } from '../sdk';
 import type { FivucsasTheme } from '../sdk';
-
-interface FivucsasContextValue {
-    auth: FivucsasAuth;
-}
-
-const FivucsasContext = createContext<FivucsasContextValue | null>(null);
+import { FivucsasContext } from './FivucsasContext';
 
 export interface FivucsasProviderProps {
     clientId: string;
@@ -50,12 +45,4 @@ export function FivucsasProvider({
             {children}
         </FivucsasContext.Provider>
     );
-}
-
-export function useFivucsasAuth(): FivucsasAuth {
-    const ctx = useContext(FivucsasContext);
-    if (!ctx) {
-        throw new Error('useFivucsasAuth must be used within a <FivucsasProvider>');
-    }
-    return ctx.auth;
 }

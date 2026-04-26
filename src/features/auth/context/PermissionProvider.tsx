@@ -1,21 +1,7 @@
-import React, { createContext, useContext, useMemo } from 'react'
+import React, { useMemo } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import { Permission, ROLE_PERMISSIONS, UserRole } from '@domain/models/Permission'
-
-/**
- * Permission context value interface
- */
-interface PermissionContextValue {
-    permissions: Permission[]
-    hasPermission: (permission: Permission) => boolean
-    hasAnyPermission: (permissions: Permission[]) => boolean
-    hasAllPermissions: (permissions: Permission[]) => boolean
-    role: UserRole | null
-    isSuperAdmin: boolean
-    isAdmin: boolean
-}
-
-const PermissionContext = createContext<PermissionContextValue | null>(null)
+import { PermissionContext } from './PermissionContext'
 
 /**
  * Permission Provider Props
@@ -53,15 +39,4 @@ export function PermissionProvider({ children }: PermissionProviderProps) {
             {children}
         </PermissionContext.Provider>
     )
-}
-
-/**
- * Hook to access permission context
- */
-export function usePermissions(): PermissionContextValue {
-    const context = useContext(PermissionContext)
-    if (!context) {
-        throw new Error('usePermissions must be used within PermissionProvider')
-    }
-    return context
 }

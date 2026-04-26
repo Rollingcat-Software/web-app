@@ -14,7 +14,7 @@ import { BrowserRouter } from 'react-router-dom'
 import { Provider } from 'react-redux'
 import { configureStore } from '@reduxjs/toolkit'
 import DashboardPage from '@features/dashboard/components/DashboardPage'
-import { DependencyProvider } from '@app/providers/DependencyProvider'
+import { DependencyProvider } from '@app/providers'
 
 // Mock dashboard data
 const mockDashboardStats = {
