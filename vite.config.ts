@@ -172,19 +172,34 @@ export default defineConfig(({ mode }) => ({
                     if (id.includes('node_modules/react-dom') || id.includes('node_modules/react/') || id.includes('node_modules/react-router-dom')) {
                         return 'react-vendor';
                     }
-                    if (id.includes('node_modules/@mui/material') || id.includes('node_modules/@mui/icons-material')) {
-                        return 'mui-vendor';
+                    // E2 (2026-04-26): split former 555 KB mui-vendor into
+                    // mui-icons (pictograms tree-shaken across all pages)
+                    // and mui-core (Button/Box/Typography/Card/etc. loaded
+                    // everywhere). Splitting lets the browser cache and
+                    // parse them in parallel. No @mui/x-* deps as of
+                    // 2026-04-26, but the rule below stays so any future
+                    // DataGrid / DatePickers addition lands in its own
+                    // form-pages-only chunk automatically.
+                    if (id.includes('node_modules/@mui/icons-material')) {
+                        return 'mui-icons';
                     }
-                    // FE-M3: split @mui/x-* into its own chunk if ever added
+                    if (id.includes('node_modules/@mui/material')) {
+                        return 'mui-core';
+                    }
+                    // E2: split @mui/x-* (DataGrid, DatePickers) into its
+                    // own chunk when added — only form pages need it.
                     if (id.includes('node_modules/@mui/x-')) {
-                        return 'mui-x-vendor';
+                        return 'mui-data';
                     }
                     if (id.includes('node_modules/@reduxjs/toolkit') || id.includes('node_modules/react-redux') || id.includes('node_modules/redux-persist')) {
                         return 'redux-vendor';
                     }
-                    // FE-M3: Recharts lives in its own chunk so dashboard
-                    // routes don't pay the 395 KB cost until an analytics
-                    // page is actually opened (Recharts is React.lazy'd there).
+                    // E1 / FE-M3: Recharts + d3 live in their own chunk
+                    // so dashboard routes don't pay the 395 KB cost until
+                    // an analytics page is actually opened. AnalyticsPage
+                    // and VerificationDashboardPage are already React.lazy'd
+                    // at the route level in src/App.tsx, so this chunk is
+                    // off the critical path for /, /users, /tenants, etc.
                     if (id.includes('node_modules/recharts') || id.includes('node_modules/d3-')) {
                         return 'recharts-vendor';
                     }
