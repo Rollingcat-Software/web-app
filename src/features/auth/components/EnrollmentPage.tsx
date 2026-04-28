@@ -476,18 +476,21 @@ export default function EnrollmentPage() {
                     })
                     break
                 case AuthMethodType.QR_CODE:
-                    setActionLoading(type)
-                    try {
-                        await createEnrollment({
-                            tenantId: user?.tenantId ?? 'system',
-                            methodType: type,
-                        })
-                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
-                    } catch (err) {
-                        setSnackbar({ open: true, message: formatApiError(err, t), severity: 'error' })
-                    } finally {
-                        setActionLoading(null)
-                    }
+                    // QR_CODE is not a real "enrollment": the auth flow's QR
+                    // step issues a fresh server-side session at sign-in time,
+                    // so there's no per-user secret to bind. The API auto-
+                    // creates a status=ENROLLED row in getUserEnrollments. If
+                    // the user ever lands here, refetch to surface that row
+                    // instead of calling createEnrollment (which used to
+                    // silently flip status=ENROLLED with no real verification).
+                    refetchEnrollments()
+                    setSnackbar({
+                        open: true,
+                        message: t('enrollmentPage.enrolledSuccess', {
+                            method: t('enrollmentPage.methods.QR_CODE.label'),
+                        }),
+                        severity: 'success',
+                    })
                     break
                 case AuthMethodType.NFC_DOCUMENT:
                     if ('NDEFReader' in window) {
@@ -828,13 +831,14 @@ export default function EnrollmentPage() {
                                                         >
                                                             {t('enrollmentPage.test')}
                                                         </Button>
-                                                        {/* EMAIL_OTP is bound to the user's account email at
-                                                            registration and is auto-enrolled by the API. Do
-                                                            not let the user revoke it from this page — that
-                                                            would create a stuck "not enrolled" state since
-                                                            revoking just flips the row back without removing
-                                                            the underlying email. */}
-                                                        {config.type !== AuthMethodType.EMAIL_OTP && (
+                                                        {/* EMAIL_OTP and QR_CODE are auto-bound (no per-user
+                                                            secret). The API lazily upserts ENROLLED rows for
+                                                            both in getUserEnrollments. Hiding Revoke avoids a
+                                                            stuck "not enrolled" state since revoking just
+                                                            flips the row back without removing the underlying
+                                                            session capability. */}
+                                                        {config.type !== AuthMethodType.EMAIL_OTP &&
+                                                            config.type !== AuthMethodType.QR_CODE && (
                                                         <Button
                                                             variant="outlined"
                                                             size="small"
