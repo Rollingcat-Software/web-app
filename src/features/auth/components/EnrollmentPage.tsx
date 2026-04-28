@@ -307,6 +307,13 @@ export default function EnrollmentPage() {
     const [phoneInput, setPhoneInput] = useState('')
     const [phoneSaving, setPhoneSaving] = useState(false)
 
+    // SMS OTP verification dialog (step 2 of SMS enrollment after phone is on file)
+    const [smsOtpDialogOpen, setSmsOtpDialogOpen] = useState(false)
+    const [smsOtpCode, setSmsOtpCode] = useState('')
+    const [smsOtpSending, setSmsOtpSending] = useState(false)
+    const [smsOtpVerifying, setSmsOtpVerifying] = useState(false)
+    const [smsOtpError, setSmsOtpError] = useState<string | null>(null)
+
     // Detect device capabilities on mount
     useEffect(() => {
         detectCapabilities().then((caps) => {
@@ -430,33 +437,60 @@ export default function EnrollmentPage() {
                         setPhoneDialogOpen(true)
                         return
                     }
+                    // Real verify-before-enroll: ask the API to send an OTP, then open
+                    // the verification dialog. Only after /otp/sms/verify succeeds do
+                    // we mark the enrollment complete. Backend no longer auto-completes
+                    // SMS_OTP on startEnrollment (was the source of the silent-success bug).
                     setActionLoading(type)
+                    setSmsOtpError(null)
+                    setSmsOtpCode('')
                     try {
+                        const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
                         await createEnrollment({
                             tenantId: user?.tenantId ?? 'system',
                             methodType: type,
                         })
-                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
+                        setSmsOtpSending(true)
+                        await httpClient.post(`/otp/sms/send/${userId}`, {})
+                        setSmsOtpDialogOpen(true)
                     } catch (err) {
                         setSnackbar({ open: true, message: formatApiError(err, t), severity: 'error' })
                     } finally {
                         setActionLoading(null)
+                        setSmsOtpSending(false)
                     }
                     break
                 case AuthMethodType.EMAIL_OTP:
+                    // EMAIL_OTP is not a real "enrollment": every user has an email
+                    // bound at registration. The auth-methods page should already
+                    // be showing this method as enrolled (the API auto-creates a
+                    // status=ENROLLED row in getUserEnrollments). If the user
+                    // somehow lands here, just refetch to surface the auto-row.
+                    refetchEnrollments()
+                    setSnackbar({
+                        open: true,
+                        message: t('enrollmentPage.enrolledSuccess', {
+                            method: t('enrollmentPage.methods.EMAIL_OTP.label'),
+                        }),
+                        severity: 'success',
+                    })
+                    break
                 case AuthMethodType.QR_CODE:
-                    setActionLoading(type)
-                    try {
-                        await createEnrollment({
-                            tenantId: user?.tenantId ?? 'system',
-                            methodType: type,
-                        })
-                        setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t(`enrollmentPage.methods.${type}.label`) }), severity: 'success' })
-                    } catch (err) {
-                        setSnackbar({ open: true, message: formatApiError(err, t), severity: 'error' })
-                    } finally {
-                        setActionLoading(null)
-                    }
+                    // QR_CODE is not a real "enrollment": the auth flow's QR
+                    // step issues a fresh server-side session at sign-in time,
+                    // so there's no per-user secret to bind. The API auto-
+                    // creates a status=ENROLLED row in getUserEnrollments. If
+                    // the user ever lands here, refetch to surface that row
+                    // instead of calling createEnrollment (which used to
+                    // silently flip status=ENROLLED with no real verification).
+                    refetchEnrollments()
+                    setSnackbar({
+                        open: true,
+                        message: t('enrollmentPage.enrolledSuccess', {
+                            method: t('enrollmentPage.methods.QR_CODE.label'),
+                        }),
+                        severity: 'success',
+                    })
                     break
                 case AuthMethodType.NFC_DOCUMENT:
                     if ('NDEFReader' in window) {
@@ -797,6 +831,14 @@ export default function EnrollmentPage() {
                                                         >
                                                             {t('enrollmentPage.test')}
                                                         </Button>
+                                                        {/* EMAIL_OTP and QR_CODE are auto-bound (no per-user
+                                                            secret). The API lazily upserts ENROLLED rows for
+                                                            both in getUserEnrollments. Hiding Revoke avoids a
+                                                            stuck "not enrolled" state since revoking just
+                                                            flips the row back without removing the underlying
+                                                            session capability. */}
+                                                        {config.type !== AuthMethodType.EMAIL_OTP &&
+                                                            config.type !== AuthMethodType.QR_CODE && (
                                                         <Button
                                                             variant="outlined"
                                                             size="small"
@@ -813,6 +855,7 @@ export default function EnrollmentPage() {
                                                         >
                                                             {t('enrollmentPage.revoke')}
                                                         </Button>
+                                                        )}
                                                     </>
                                                 )}
                                             </Box>
@@ -970,12 +1013,25 @@ export default function EnrollmentPage() {
                 open={totpEnrollOpen}
                 userId={userId}
                 onClose={() => setTotpEnrollOpen(false)}
-                onSuccess={() => {
-                    createEnrollment({
-                        tenantId: user?.tenantId ?? 'system',
-                        methodType: AuthMethodType.TOTP,
-                    }).catch(() => {})
+                onSuccess={async () => {
                     setTotpEnrollOpen(false)
+                    // TOTP is NOT in AUTO_COMPLETE_TYPES on the server, so startEnrollment
+                    // returns PENDING. The dialog has already verified the code and
+                    // persisted the encrypted secret on /totp/verify-setup, so we
+                    // must explicitly mark the user_enrollments row ENROLLED here —
+                    // otherwise the page keeps showing "not enrolled" even though
+                    // the secret is good and EnrollmentHealthService.hasTotpSecret
+                    // would return true.
+                    try {
+                        await createEnrollment({
+                            tenantId: user?.tenantId ?? 'system',
+                            methodType: AuthMethodType.TOTP,
+                        })
+                        const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                        await httpClient.put(`/users/${userId}/enrollments/TOTP/complete`, {})
+                    } catch {
+                        // secret is already persisted server-side; bookkeeping retry will fix it
+                    }
                     refetchEnrollments()
                     setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t('enrollmentPage.methods.TOTP.label') }), severity: 'success' })
                 }}
@@ -1110,14 +1166,22 @@ export default function EnrollmentPage() {
                                     lastName: user?.lastName ?? '',
                                     phoneNumber: phoneInput.trim(),
                                 })
-                                // Now create the SMS OTP enrollment
+                                // Phone is saved — now start the real SMS OTP enrollment
+                                // flow: create the PENDING row, request an OTP, and open
+                                // the verification dialog. The row stays PENDING until
+                                // the user enters a valid code (handleVerifySmsOtp).
+                                const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
                                 await createEnrollment({
                                     tenantId: user?.tenantId ?? 'system',
                                     methodType: AuthMethodType.SMS_OTP,
                                 })
+                                setSmsOtpError(null)
+                                setSmsOtpCode('')
+                                setSmsOtpSending(true)
+                                await httpClient.post(`/otp/sms/send/${userId}`, {})
                                 setPhoneDialogOpen(false)
                                 setPhoneInput('')
-                                setSnackbar({ open: true, message: t('enrollmentPage.phoneDialog.successMessage'), severity: 'success' })
+                                setSmsOtpDialogOpen(true)
                             } catch (err) {
                                 setSnackbar({
                                     open: true,
@@ -1126,10 +1190,132 @@ export default function EnrollmentPage() {
                                 })
                             } finally {
                                 setPhoneSaving(false)
+                                setSmsOtpSending(false)
                             }
                         }}
                     >
                         {phoneSaving ? t('enrollmentPage.phoneDialog.saving') : t('enrollmentPage.phoneDialog.saveAndEnroll')}
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
+            {/* SMS OTP verification dialog — required step before flipping the
+                user_enrollments row to ENROLLED. Until this code is verified by
+                /otp/sms/verify, the row stays PENDING and the auth-methods page
+                keeps showing "not enrolled". */}
+            <Dialog
+                open={smsOtpDialogOpen}
+                onClose={() => {
+                    if (smsOtpVerifying) return
+                    setSmsOtpDialogOpen(false)
+                    setSmsOtpCode('')
+                    setSmsOtpError(null)
+                }}
+                maxWidth="xs"
+                fullWidth
+            >
+                <DialogTitle>{t('enrollmentPage.smsOtpDialog.title')}</DialogTitle>
+                <DialogContent>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                        {t('enrollmentPage.smsOtpDialog.description', { phone: user?.phoneNumber ?? '' })}
+                    </Typography>
+                    {smsOtpError && (
+                        <Alert severity="error" sx={{ mb: 2 }}>
+                            {smsOtpError}
+                        </Alert>
+                    )}
+                    <TextField
+                        fullWidth
+                        autoFocus
+                        label={t('enrollmentPage.smsOtpDialog.codeLabel')}
+                        value={smsOtpCode}
+                        onChange={(e) => setSmsOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
+                        placeholder="000000"
+                        disabled={smsOtpVerifying}
+                        inputProps={{
+                            maxLength: 6,
+                            inputMode: 'numeric',
+                            style: {
+                                textAlign: 'center',
+                                fontSize: '1.4rem',
+                                letterSpacing: '0.4em',
+                                fontWeight: 700,
+                            },
+                        }}
+                    />
+                </DialogContent>
+                <DialogActions>
+                    <Button
+                        onClick={async () => {
+                            // Resend OTP
+                            setSmsOtpError(null)
+                            setSmsOtpSending(true)
+                            try {
+                                const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                                await httpClient.post(`/otp/sms/send/${userId}`, {})
+                                setSnackbar({
+                                    open: true,
+                                    message: t('enrollmentPage.smsOtpDialog.resentSuccess'),
+                                    severity: 'info',
+                                })
+                            } catch (err) {
+                                setSmsOtpError(formatApiError(err, t))
+                            } finally {
+                                setSmsOtpSending(false)
+                            }
+                        }}
+                        disabled={smsOtpVerifying || smsOtpSending}
+                    >
+                        {smsOtpSending ? <CircularProgress size={16} /> : t('enrollmentPage.smsOtpDialog.resend')}
+                    </Button>
+                    <Box sx={{ flex: 1 }} />
+                    <Button
+                        onClick={() => {
+                            setSmsOtpDialogOpen(false)
+                            setSmsOtpCode('')
+                            setSmsOtpError(null)
+                        }}
+                        disabled={smsOtpVerifying}
+                    >
+                        {t('enrollmentPage.cancel')}
+                    </Button>
+                    <Button
+                        variant="contained"
+                        disabled={smsOtpVerifying || smsOtpCode.length !== 6}
+                        startIcon={smsOtpVerifying ? <CircularProgress size={16} /> : null}
+                        onClick={async () => {
+                            setSmsOtpVerifying(true)
+                            setSmsOtpError(null)
+                            try {
+                                const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                                const verifyResp = await httpClient.post<{ success: boolean; message?: string }>(
+                                    `/otp/sms/verify/${userId}`,
+                                    { code: smsOtpCode },
+                                )
+                                if (!verifyResp.data?.success) {
+                                    setSmsOtpError(verifyResp.data?.message || t('enrollmentPage.smsOtpDialog.invalidCode'))
+                                    return
+                                }
+                                // Code verified — flip the user_enrollments row to ENROLLED
+                                await httpClient.put(`/users/${userId}/enrollments/SMS_OTP/complete`, {})
+                                setSmsOtpDialogOpen(false)
+                                setSmsOtpCode('')
+                                refetchEnrollments()
+                                setSnackbar({
+                                    open: true,
+                                    message: t('enrollmentPage.enrolledSuccess', {
+                                        method: t('enrollmentPage.methods.SMS_OTP.label'),
+                                    }),
+                                    severity: 'success',
+                                })
+                            } catch (err) {
+                                setSmsOtpError(formatApiError(err, t))
+                            } finally {
+                                setSmsOtpVerifying(false)
+                            }
+                        }}
+                    >
+                        {t('enrollmentPage.smsOtpDialog.verify')}
                     </Button>
                 </DialogActions>
             </Dialog>
