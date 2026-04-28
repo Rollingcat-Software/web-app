@@ -444,6 +444,20 @@ export default function EnrollmentPage() {
                     }
                     break
                 case AuthMethodType.EMAIL_OTP:
+                    // EMAIL_OTP is not a real "enrollment": every user has an email
+                    // bound at registration. The auth-methods page should already
+                    // be showing this method as enrolled (the API auto-creates a
+                    // status=ENROLLED row in getUserEnrollments). If the user
+                    // somehow lands here, just refetch to surface the auto-row.
+                    refetchEnrollments()
+                    setSnackbar({
+                        open: true,
+                        message: t('enrollmentPage.enrolledSuccess', {
+                            method: t('enrollmentPage.methods.EMAIL_OTP.label'),
+                        }),
+                        severity: 'success',
+                    })
+                    break
                 case AuthMethodType.QR_CODE:
                     setActionLoading(type)
                     try {
@@ -797,6 +811,13 @@ export default function EnrollmentPage() {
                                                         >
                                                             {t('enrollmentPage.test')}
                                                         </Button>
+                                                        {/* EMAIL_OTP is bound to the user's account email at
+                                                            registration and is auto-enrolled by the API. Do
+                                                            not let the user revoke it from this page — that
+                                                            would create a stuck "not enrolled" state since
+                                                            revoking just flips the row back without removing
+                                                            the underlying email. */}
+                                                        {config.type !== AuthMethodType.EMAIL_OTP && (
                                                         <Button
                                                             variant="outlined"
                                                             size="small"
@@ -813,6 +834,7 @@ export default function EnrollmentPage() {
                                                         >
                                                             {t('enrollmentPage.revoke')}
                                                         </Button>
+                                                        )}
                                                     </>
                                                 )}
                                             </Box>
