@@ -69,7 +69,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             recordFrame()
             if (videoRef.current && videoRef.current.readyState >= 2) {
                 const t0 = performance.now()
-                updateQuality(videoRef.current, boundingBoxRef.current)
+                updateQuality(videoRef.current, boundingBoxRef.current ?? undefined)
                 recordOperation('quality-assess', performance.now() - t0)
             }
             animFrame = requestAnimationFrame(loop)
