@@ -1178,9 +1178,18 @@
       "label": "Phone Number",
       "placeholder": "+905xxxxxxxxx",
       "helper": "Include country code (e.g. +90 for Turkey)",
-      "saveAndEnroll": "Save & Enroll",
+      "saveAndEnroll": "Save & Send Code",
       "saving": "Saving...",
       "successMessage": "Phone number saved and SMS OTP enrolled successfully"
+    },
+    "smsOtpDialog": {
+      "title": "Verify Phone Number",
+      "description": "We sent a 6-digit code to {{phone}}. Enter it below to finish SMS OTP enrollment.",
+      "codeLabel": "Verification Code",
+      "verify": "Verify & Enroll",
+      "resend": "Resend",
+      "resentSuccess": "A new code has been sent.",
+      "invalidCode": "Invalid or expired code. Please try again."
     },
     "enrolledSuccess": "{{method}} enrolled successfully",
     "enrollError": "Failed to enroll {{method}}",

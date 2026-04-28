@@ -1178,9 +1178,18 @@
       "label": "Telefon Numarası",
       "placeholder": "+905xxxxxxxxx",
       "helper": "Ülke kodu dahil girin (örn. Türkiye için +90)",
-      "saveAndEnroll": "Kaydet ve Kayıt Ol",
+      "saveAndEnroll": "Kaydet ve Kod Gönder",
       "saving": "Kaydediliyor...",
       "successMessage": "Telefon numarası kaydedildi ve SMS OTP başarıyla kaydedildi"
+    },
+    "smsOtpDialog": {
+      "title": "Telefon Numarasını Doğrula",
+      "description": "{{phone}} numarasına 6 haneli bir kod gönderdik. SMS OTP kaydını tamamlamak için kodu aşağıya girin.",
+      "codeLabel": "Doğrulama Kodu",
+      "verify": "Doğrula ve Kaydet",
+      "resend": "Yeniden Gönder",
+      "resentSuccess": "Yeni bir kod gönderildi.",
+      "invalidCode": "Geçersiz veya süresi dolmuş kod. Lütfen tekrar deneyin."
     },
     "enrolledSuccess": "{{method}} başarıyla kaydedildi",
     "enrollError": "{{method}} kaydedilemedi",
