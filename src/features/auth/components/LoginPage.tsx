@@ -303,7 +303,12 @@ export default function LoginPage() {
             if (import.meta.env.DEV) {
                 console.error('Login failed:', err)
             }
-            setLoginError(formatApiError(err, t))
+            const axiosErr = err as { response?: { status?: number } }
+            if (axiosErr?.response?.status === 401) {
+                setLoginError(t('auth.invalidCredentials'))
+            } else {
+                setLoginError(formatApiError(err, t))
+            }
         }
     }
 
