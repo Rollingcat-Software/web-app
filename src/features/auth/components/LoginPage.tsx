@@ -139,6 +139,7 @@ export default function LoginPage() {
     const [showPassword, setShowPassword] = useState(false)
     const [faceLoginOpen, setFaceLoginOpen] = useState(false)
     const [faceError, setFaceError] = useState<string | null>(null)
+    const [loginError, setLoginError] = useState<string | null>(null)
     const [pageReady, setPageReady] = useState(false)
     const [showSecondaryAuth, setShowSecondaryAuth] = useState(false)
     const [twoFactorMethod, setTwoFactorMethod] = useState<string>('EMAIL_OTP')
@@ -268,6 +269,7 @@ export default function LoginPage() {
     })
 
     const onSubmit = async (data: LoginFormData) => {
+        setLoginError(null)
         try {
             const result = await login({
                 email: data.email,
@@ -301,6 +303,7 @@ export default function LoginPage() {
             if (import.meta.env.DEV) {
                 console.error('Login failed:', err)
             }
+            setLoginError(formatApiError(err, t))
         }
     }
 
@@ -537,7 +540,7 @@ export default function LoginPage() {
                         {/* Login Form */}
                         <form onSubmit={handleSubmit(onSubmit)} aria-label={t('auth.loginFormLabel')}>
                             {/* Error Alert */}
-                            {(error || faceError) && (
+                            {(error || faceError || loginError) && (
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -555,7 +558,7 @@ export default function LoginPage() {
                                             borderRadius: '12px',
                                         }}
                                     >
-                                        {faceError || error?.message || t('auth.invalidCredentials')}
+                                        {faceError || loginError || error?.message || t('auth.invalidCredentials')}
                                     </Alert>
                                 </motion.div>
                             )}
