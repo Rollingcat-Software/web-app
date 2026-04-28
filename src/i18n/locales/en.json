@@ -1627,9 +1627,15 @@
   },
   "biometricPuzzle": {
     "pageTitle": "Biometric Puzzles",
-    "pageSubtitle": "Preview the 23 active-liveness micro-challenges the platform supports. Face challenges run the real detector; hand gestures are simulated until the MediaPipe HandLandmarker integration lands.",
+    "pageSubtitle": "Preview every active-liveness micro-challenge the platform supports. Face and hand puzzles both run real on-device detection — BlazeFace plus MediaPipe FaceLandmarker for face, MediaPipe HandLandmarker for hand. No video is uploaded; every frame is analysed in your browser.",
+    "heroEyebrow": "Active liveness library",
+    "heroChipFace": "{{count}} face puzzles",
+    "heroChipHand": "{{count}} hand puzzles",
+    "heroChipReal": "Real on-device detection",
     "sectionFace": "Face Challenges",
+    "sectionFaceSubtitle": "Pinned per gesture — blink, smile, look away. Each card runs the real BlazeFace + MediaPipe FaceLandmarker pipeline.",
     "sectionHand": "Hand Gesture Challenges",
+    "sectionHandSubtitle": "Tracked through MediaPipe HandLandmarker — finger counts, pinches, traced shapes and more.",
     "handComingSoon": "Real hand-gesture detection lands with MediaPipe HandLandmarker — this preview simulates success after a short delay.",
     "simulatingDetection": "Simulating detection…",
     "skipDemo": "Skip demo",
@@ -1640,13 +1646,21 @@
     "platformLabel": "Supported platforms",
     "requiresEnrollment": "Requires enrollment",
     "stubbedOnly": "Simulated only",
-    "successMessage": "Challenge passed. The detector confirmed the target gesture.",
+    "realDetectorBadge": "Real detector",
+    "successHeadline": "Challenge passed",
+    "successMessage": "The detector confirmed the target gesture.",
+    "errorHeadline": "Challenge not completed",
     "errorMessage": "The puzzle could not be completed. Please try again.",
+    "errorHint": "Tip: hold the gesture steady, keep good lighting on your face or hand, and move slowly.",
     "timeoutMessage": "Time's up — the gesture was not detected. Please try again.",
     "engineLoading": "Loading detector…",
     "startCamera": "Start Camera",
     "waitingForGesture": "Waiting for the requested gesture…",
     "holding": "Hold it…",
+    "statusScanning": "Scanning",
+    "statusDetected": "Detected",
+    "progressAriaLabel": "Gesture detection progress",
+    "promptLabel": "Your prompt",
     "handFingerCountPrompt": "Show {{count}} finger(s) and hold.",
     "handMathPrompt": "Show the answer to {{expr}} on your fingers and hold.",
     "difficulty": {
@@ -1667,96 +1681,224 @@
     "puzzles": {
       "face_blink": {
         "title": "Blink",
-        "description": "Close both eyes for a beat, then open them. The detector tracks eye-aspect-ratio across frames."
+        "description": "Close both eyes for a beat, then open them. The detector tracks eye-aspect-ratio across frames.",
+        "hint": "Centre your face in the frame, then deliberately blink once."
       },
       "face_close_left": {
         "title": "Wink with Left Eye",
-        "description": "Close your left eye while keeping the right open. Tests asymmetric eyelid control."
+        "description": "Close your left eye while keeping the right open. Tests asymmetric eyelid control.",
+        "hint": "Look straight at the camera and wink only with your left eye — your right eye stays wide open."
       },
       "face_close_right": {
         "title": "Wink with Right Eye",
-        "description": "Close your right eye while keeping the left open. Tests asymmetric eyelid control."
+        "description": "Close your right eye while keeping the left open. Tests asymmetric eyelid control.",
+        "hint": "Look straight at the camera and wink only with your right eye — your left eye stays wide open."
       },
       "face_smile": {
         "title": "Smile Wide",
-        "description": "Show a wide smile (teeth visible if you can). Measures mouth-corner spread."
+        "description": "Show a wide smile (teeth visible if you can). Measures mouth-corner spread.",
+        "hint": "A real wide smile works best — teeth visible, corners up."
       },
       "face_open_mouth": {
         "title": "Open Mouth",
-        "description": "Open your mouth wide. Measures lip-to-lip distance relative to face height."
+        "description": "Open your mouth wide. Measures lip-to-lip distance relative to face height.",
+        "hint": "Open your mouth like saying \"ah\" and hold for a moment."
       },
       "face_turn_left": {
         "title": "Turn Head Left",
-        "description": "Turn your head to your left. Tracks head-pose yaw from landmarks."
+        "description": "Turn your head to your left. Tracks head-pose yaw from landmarks.",
+        "hint": "Slowly turn your head to your own left until your nose points roughly 30° off-centre."
       },
       "face_turn_right": {
         "title": "Turn Head Right",
-        "description": "Turn your head to your right. Tracks head-pose yaw from landmarks."
+        "description": "Turn your head to your right. Tracks head-pose yaw from landmarks.",
+        "hint": "Slowly turn your head to your own right until your nose points roughly 30° off-centre."
       },
       "face_look_up": {
         "title": "Look Up",
-        "description": "Tilt your chin up. Tracks head-pose pitch from landmarks."
+        "description": "Tilt your chin up. Tracks head-pose pitch from landmarks.",
+        "hint": "Lift your chin slightly upward without moving your eyes off the camera."
       },
       "face_look_down": {
         "title": "Look Down",
-        "description": "Tilt your chin down. Tracks head-pose pitch from landmarks."
+        "description": "Tilt your chin down. Tracks head-pose pitch from landmarks.",
+        "hint": "Tip your chin gently toward your chest while keeping your face in frame."
       },
       "face_raise_both_brows": {
         "title": "Raise Both Eyebrows",
-        "description": "Raise both eyebrows together. Measures brow-to-eye distance change."
+        "description": "Raise both eyebrows together. Measures brow-to-eye distance change.",
+        "hint": "Lift both eyebrows like reacting to a surprise — hold for about a second."
       },
       "face_raise_left_brow": {
         "title": "Raise Left Eyebrow",
-        "description": "Raise only your left eyebrow. Tests asymmetric brow control."
+        "description": "Raise only your left eyebrow. Tests asymmetric brow control.",
+        "hint": "Try to lift only the left eyebrow. If it's hard, lifting both first and dropping the right works too."
       },
       "face_raise_right_brow": {
         "title": "Raise Right Eyebrow",
-        "description": "Raise only your right eyebrow. Tests asymmetric brow control."
+        "description": "Raise only your right eyebrow. Tests asymmetric brow control.",
+        "hint": "Try to lift only the right eyebrow. If it's hard, lifting both first and dropping the left works too."
       },
       "face_nod": {
         "title": "Nod",
-        "description": "Nod your head (pitch up-down-up). Tracks pitch motion over a short window."
+        "description": "Nod your head (pitch up-down-up). Tracks pitch motion over a short window.",
+        "hint": "Nod \"yes\" — chin up, then down, then back up. Two clear motions are enough."
       },
       "face_shake_head": {
         "title": "Shake Head",
-        "description": "Shake your head (yaw left-right-left). Tracks yaw motion over a short window."
+        "description": "Shake your head (yaw left-right-left). Tracks yaw motion over a short window.",
+        "hint": "Shake \"no\" — turn your head left, then right, then back. Keep it slow."
       },
       "hand_finger_count": {
         "title": "Finger Count",
-        "description": "Hold up the requested number of fingers. Tests live hand visibility + MCP/PIP joint detection."
+        "description": "Hold up the requested number of fingers. Tests live hand visibility + MCP/PIP joint detection.",
+        "hint": "Show your palm to the camera with exactly the requested number of fingers extended. Keep the rest curled."
       },
       "hand_wave": {
         "title": "Wave",
-        "description": "Wave your hand side to side in front of the camera. Detects hand-center horizontal oscillation."
+        "description": "Wave your hand side to side in front of the camera. Detects hand-center horizontal oscillation.",
+        "hint": "Wave your open palm left-right-left a few times — like a friendly hello."
       },
       "hand_flip": {
         "title": "Flip Palm",
-        "description": "Show your palm, then flip to the back of your hand. Tests wrist rotation and landmark orientation."
+        "description": "Show your palm, then flip to the back of your hand. Tests wrist rotation and landmark orientation.",
+        "hint": "Start palm-towards-camera, then rotate your wrist so the back of your hand faces the camera."
       },
       "hand_finger_tap": {
         "title": "Finger Tap",
-        "description": "Tap your thumb and index finger together a few times. Measures thumb-tip to index-tip distance."
+        "description": "Tap your thumb and index finger together a few times. Measures thumb-tip to index-tip distance.",
+        "hint": "Touch your thumb tip to your index fingertip, separate, repeat — like making a tiny pinching motion."
       },
       "hand_pinch": {
         "title": "Pinch",
-        "description": "Pinch thumb and index finger together and hold. Continuous pinch-distance detection."
+        "description": "Pinch thumb and index finger together and hold. Continuous pinch-distance detection.",
+        "hint": "Close your thumb and index fingertip together until they touch — and hold."
       },
       "hand_peek_a_boo": {
         "title": "Peek-a-boo",
-        "description": "Cover your eyes with your palm, then reveal your face. Combines face-occlusion + hand-presence signals."
+        "description": "Cover your eyes with your palm, then reveal your face. Combines face-occlusion + hand-presence signals.",
+        "hint": "Cover your eyes with your open palm for a moment, then move it away to reveal your face."
       },
       "hand_shape_trace": {
         "title": "Shape Trace",
-        "description": "Trace a displayed shape (circle, square, triangle) in the air with your index fingertip."
+        "description": "Trace a displayed shape (circle, square, triangle) in the air with your index fingertip.",
+        "hint": "Use only your index fingertip and trace the requested shape clearly in the air."
       },
       "hand_trace_template": {
         "title": "Template Trace",
-        "description": "Trace a custom path template with your fingertip. Used for tenant-specific motion challenges."
+        "description": "Trace a custom path template with your fingertip. Used for tenant-specific motion challenges.",
+        "hint": "Follow the on-screen path with your index fingertip, keeping the motion smooth."
       },
       "hand_math": {
         "title": "Finger Math",
-        "description": "Show the answer to a small arithmetic prompt (e.g. 2+3) by raising fingers."
+        "description": "Show the answer to a small arithmetic prompt (e.g. 2+3) by raising fingers.",
+        "hint": "Solve the prompt in your head, then hold up that many fingers — palm facing the camera."
       }
+    }
+  },
+  "face_demo": {
+    "page_title": "Face Capabilities — FIVUCSAS",
+    "nav_link": "Face Demo",
+    "hero": {
+      "eyebrow": "Live Face AI Showcase",
+      "title": "See every layer of FIVUCSAS face authentication.",
+      "subtitle": "Detection, 478-point landmarks, head pose, passive liveness, server anti-spoofing, quality scoring and embedding insight — all running in your browser, in real time.",
+      "start_camera": "Start Camera",
+      "stop_camera": "Stop Camera",
+      "camera_blocked": "Camera permission was denied. Allow camera access in your browser settings to walk through the demo.",
+      "camera_required": "Click \"Start Camera\" to begin. Nothing leaves your device for sections 1–4.",
+      "engine_loading": "Loading the on-device face engine (478-point MediaPipe FaceLandmarker)…"
+    },
+    "section_label": "Section",
+    "section_index": "{{index}} / {{total}}",
+    "powered_by_local": "Runs locally in your browser",
+    "powered_by_server": "Runs on api.fivucsas.com",
+    "detection": {
+      "title": "1. Face Detection",
+      "subtitle": "BlazeFace + MediaPipe FaceLandmarker tiered detector",
+      "description": "We start the lightweight BlazeFace TF.js model (~1 MB), then upgrade to the MediaPipe FaceLandmarker as soon as it finishes loading. The bounding box and confidence below come from whichever tier is currently active.",
+      "confidence": "Confidence",
+      "backend": "Active backend",
+      "no_face": "No face detected — center your face in the camera.",
+      "fps": "Detection FPS"
+    },
+    "landmarks": {
+      "title": "2. 478-Point Mesh",
+      "subtitle": "MediaPipe FaceLandmarker dense mesh",
+      "description": "FIVUCSAS overlays a 478-point dense mesh of your face for quality, pose and liveness checks. Toggle the overlay to compare the raw camera frame against the inferred geometry.",
+      "toggle_on": "Show mesh",
+      "toggle_off": "Hide mesh",
+      "points_drawn": "Points drawn",
+      "engine_warmup": "Mesh appears once the on-device engine finishes loading."
+    },
+    "head_pose": {
+      "title": "3. Head Pose",
+      "subtitle": "HeadPoseEstimator (yaw / pitch / roll)",
+      "description": "Yaw, pitch and roll are derived geometrically from key landmarks. Look around to see the values move — we use these signals to detect non-frontal poses during enrollment and active liveness challenges.",
+      "yaw": "Yaw",
+      "pitch": "Pitch",
+      "roll": "Roll",
+      "frontal": "Frontal",
+      "turning_left": "Turning left",
+      "turning_right": "Turning right",
+      "looking_up": "Looking up",
+      "looking_down": "Looking down"
+    },
+    "passive_liveness": {
+      "title": "4. Passive Liveness",
+      "subtitle": "Client-side 5-component scoring",
+      "description": "Texture, color, skin tone, moiré and local variance are combined into a 0–100 liveness score. This runs every ~500 ms with no network calls — useful as a first-pass filter before sending anything to the server.",
+      "overall_score": "Overall liveness",
+      "is_live": "Likely real",
+      "is_spoof": "Possible spoof",
+      "components": {
+        "texture": "Texture",
+        "color": "Color",
+        "skinTone": "Skin tone",
+        "moire": "Moiré",
+        "localVariance": "Local variance"
+      },
+      "warming_up": "Computing first sample…"
+    },
+    "server_liveness": {
+      "title": "5. Server Anti-Spoofing",
+      "subtitle": "POST /api/v1/liveness — bio.fivucsas.com",
+      "description": "Capture a still and submit it to the biometric processor for a server-side anti-spoof verdict. The server runs deeper checks than the browser can — print attacks, replay screens and 3D mask attempts.",
+      "capture": "Capture & analyze",
+      "capturing": "Sending capture…",
+      "real": "Real face",
+      "spoof": "Spoof detected",
+      "confidence": "Confidence",
+      "spoof_type": "Spoof type",
+      "auth_required": "This endpoint requires an API key. Sign in to the dashboard, generate a key in the Developer Portal, and call it from your backend. The browser demo can’t reach it anonymously.",
+      "error": "The capture could not be analyzed. {{message}}"
+    },
+    "quality": {
+      "title": "6. Quality Assessment",
+      "subtitle": "Blur, lighting & face size",
+      "description": "Live quality scoring helps users self-correct before any biometric step. Blur uses the Laplacian variance, lighting is mean luma, and face size compares the detected face against the frame.",
+      "blur": "Blur",
+      "lighting": "Lighting",
+      "face_size": "Face size",
+      "overall": "Overall",
+      "label_good": "Good",
+      "label_fair": "Fair",
+      "label_poor": "Poor",
+      "acceptable": "Capture quality is acceptable",
+      "not_acceptable": "Quality below capture threshold"
+    },
+    "embedding": {
+      "title": "7. Face Embedding",
+      "subtitle": "Educational visualization",
+      "description": "FIVUCSAS represents an enrolled face as a 512-dim vector. We visualize the first 32 components of a sample vector below — these numbers are what gets compared during recognition. No identifying photo or PII is shown.",
+      "extract": "Generate sample vector",
+      "extracting": "Computing…",
+      "vector_label": "First 32 of 512 components",
+      "auth_required": "Real embedding extraction requires authentication and a tenant API key. The visualization below uses an on-device deterministic sample so you can see the shape of an embedding."
+    },
+    "footer": {
+      "ready": "Ready to ship this in your product?",
+      "cta": "Open Developer Portal"
     }
   }
 }

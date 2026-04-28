@@ -147,6 +147,12 @@ export default function LoginPage() {
     const [_selectedMethod, setSelectedMethod] = useState<string | null>(null)
     const [_mfaSessionToken, setMfaSessionToken] = useState<string | null>(null)
     const [showMethodPicker, setShowMethodPicker] = useState(false)
+    // Track methods already completed in this MFA session so they cannot be
+    // chosen again at a later step. The server is authoritative (it returns
+    // `completedMethods` in every step response), but we mirror it locally so
+    // the picker can hide them and the dispatcher can refuse a redundant
+    // dispatch even before the round-trip.
+    const [completedMfaMethods, setCompletedMfaMethods] = useState<string[]>([])
 
     // Mark page ready after initial render
     useEffect(() => {
@@ -282,6 +288,14 @@ export default function LoginPage() {
                     setMfaSessionToken(result.mfaSessionToken)
                 }
 
+                // Seed completed-method set with the server's authoritative list
+                // (PASSWORD is always present after a successful initial login).
+                if (result.completedMethods?.length) {
+                    setCompletedMfaMethods(result.completedMethods)
+                } else {
+                    setCompletedMfaMethods(['PASSWORD'])
+                }
+
                 // Check if multiple enrolled methods are available
                 const methods = result.availableMethods ?? []
                 const enrolledMethods = methods.filter((m) => m.enrolled)
@@ -331,13 +345,26 @@ export default function LoginPage() {
             await refreshUser()
             navigate('/')
         } else if (response.status === 'STEP_COMPLETED') {
-            // More steps remain — update available methods and show picker
-            setAvailableMethods(response.availableMethods ?? [])
+            // More steps remain — update available methods and show picker.
+            //
+            // Trust the server's `completedMethods` (authoritative) for the
+            // exclusion list: it is what gates the picker so the user cannot
+            // pick a factor already cleared at an earlier step. The server
+            // also pre-filters `availableMethods` for CHOICE steps, but we
+            // double-check on the client to defend against a stale render.
+            const completed = response.completedMethods ?? completedMfaMethods
+            setCompletedMfaMethods(completed)
+            const completedSet = new Set(completed)
+            const filtered = (response.availableMethods ?? []).filter(
+                (m) => !completedSet.has(m.methodType),
+            )
+            setAvailableMethods(filtered)
             setMfaSessionToken(response.mfaSessionToken ?? _mfaSessionToken)
+            setSelectedMethod(null)
             setShowSecondaryAuth(false)
             setShowMethodPicker(true)
         }
-    }, [tokenService, refreshUser, navigate, _mfaSessionToken])
+    }, [tokenService, refreshUser, navigate, _mfaSessionToken, completedMfaMethods])
 
     const handleBackToMethodSelection = useCallback(() => {
         setShowSecondaryAuth(false)
@@ -350,6 +377,7 @@ export default function LoginPage() {
         setAvailableMethods([])
         setSelectedMethod(null)
         setMfaSessionToken(null)
+        setCompletedMfaMethods([])
         await logout()
     }, [logout])
 
@@ -398,6 +426,7 @@ export default function LoginPage() {
                         <MethodPickerStep
                             availableMethods={availableMethods}
                             onMethodSelected={handleMethodSelected}
+                            excludeMethods={completedMfaMethods}
                         />
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button

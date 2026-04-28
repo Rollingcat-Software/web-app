@@ -14,6 +14,14 @@ export interface LoginResult {
     twoFactorMethod?: string
     mfaSessionToken?: string
     availableMethods?: AvailableMfaMethod[]
+    /**
+     * Authoritative list of AuthMethodType names already cleared in this MFA
+     * session (PASSWORD is always present when twoFactorRequired is true).
+     * Mirrors the server's `completedMethods` and is what the UI uses to hide
+     * already-used factors from the picker so a user cannot satisfy two
+     * distinct steps with the same method.
+     */
+    completedMethods?: string[]
 }
 
 export interface AuthContextValue extends AuthState {

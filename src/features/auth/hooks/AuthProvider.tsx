@@ -77,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
                     twoFactorMethod: result.twoFactorMethod,
                     mfaSessionToken: result.mfaSessionToken,
                     availableMethods: result.availableMethods,
+                    completedMethods: result.completedMethods,
                 }
             } catch (error) {
                 setState((prev) => ({
