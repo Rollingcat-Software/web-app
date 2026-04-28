@@ -92,8 +92,12 @@ function assessQuality(video: HTMLVideoElement, landmarks?: Landmark[]): Quality
     const lapMean = lapSum / lapCount
     const lapVariance = (lapSumSq / lapCount) - (lapMean * lapMean)
 
+    // Phone front cameras typically produce Laplacian variance in the 80–250
+    // range due to JPEG compression and small sensors, well below the 500
+    // threshold that desktop webcams can reach. Calibrate to mobile reality
+    // so users don't see the quality chip stuck at 70 / "orta" forever.
     const BLUR_LOW = 15.0
-    const BLUR_HIGH = 500.0
+    const BLUR_HIGH = 220.0
     let blurScore: number
     if (lapVariance <= BLUR_LOW) {
         blurScore = 0
@@ -177,7 +181,7 @@ export function useQualityAssessment() {
      * Get color for a score value
      */
     const getScoreColor = useCallback((score: number): 'success' | 'warning' | 'error' => {
-        if (score > 70) return 'success'
+        if (score >= 65) return 'success'
         if (score >= 40) return 'warning'
         return 'error'
     }, [])
@@ -188,7 +192,7 @@ export function useQualityAssessment() {
      * on the face-login quality chip instead of hardcoded English.
      */
     const getQualityLabel = useCallback((score: number): 'good' | 'fair' | 'poor' => {
-        if (score > 70) return 'good'
+        if (score >= 65) return 'good'
         if (score >= 40) return 'fair'
         return 'poor'
     }, [])
