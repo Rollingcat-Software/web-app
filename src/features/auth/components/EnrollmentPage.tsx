@@ -970,12 +970,25 @@ export default function EnrollmentPage() {
                 open={totpEnrollOpen}
                 userId={userId}
                 onClose={() => setTotpEnrollOpen(false)}
-                onSuccess={() => {
-                    createEnrollment({
-                        tenantId: user?.tenantId ?? 'system',
-                        methodType: AuthMethodType.TOTP,
-                    }).catch(() => {})
+                onSuccess={async () => {
                     setTotpEnrollOpen(false)
+                    // TOTP is NOT in AUTO_COMPLETE_TYPES on the server, so startEnrollment
+                    // returns PENDING. The dialog has already verified the code and
+                    // persisted the encrypted secret on /totp/verify-setup, so we
+                    // must explicitly mark the user_enrollments row ENROLLED here —
+                    // otherwise the page keeps showing "not enrolled" even though
+                    // the secret is good and EnrollmentHealthService.hasTotpSecret
+                    // would return true.
+                    try {
+                        await createEnrollment({
+                            tenantId: user?.tenantId ?? 'system',
+                            methodType: AuthMethodType.TOTP,
+                        })
+                        const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+                        await httpClient.put(`/users/${userId}/enrollments/TOTP/complete`, {})
+                    } catch {
+                        // secret is already persisted server-side; bookkeeping retry will fix it
+                    }
                     refetchEnrollments()
                     setSnackbar({ open: true, message: t('enrollmentPage.enrolledSuccess', { method: t('enrollmentPage.methods.TOTP.label') }), severity: 'success' })
                 }}
