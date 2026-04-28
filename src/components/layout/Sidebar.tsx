@@ -119,8 +119,15 @@ export default function Sidebar({
         .map(group => ({ group, items: visibleItems.filter(i => i.group === group) }))
         .filter(g => g.items.length > 0)
 
-    const isActive = (path: string) =>
-        path === '/' ? location.pathname === '/' : location.pathname.startsWith(path)
+    // Active when the route matches exactly OR a deeper child route is open
+    // (e.g. `/users/123` keeps `/users` highlighted). The `/` boundary check
+    // prevents prefix collisions where one entry's path is a literal prefix
+    // of another — e.g. `/enrollment` must NOT also light up `/enrollments`.
+    const isActive = (path: string) => {
+        if (path === '/') return location.pathname === '/'
+        if (location.pathname === path) return true
+        return location.pathname.startsWith(`${path}/`)
+    }
 
     const handleNavigation = (path: string) => {
         navigate(path)
