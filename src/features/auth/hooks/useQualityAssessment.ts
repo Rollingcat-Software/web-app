@@ -6,6 +6,13 @@ interface Landmark {
     z?: number
 }
 
+interface BoundingBox {
+    x: number       // normalized 0-1
+    y: number       // normalized 0-1
+    width: number   // normalized 0-1
+    height: number  // normalized 0-1
+}
+
 export interface QualityResult {
     blur: number           // 0-100 sharpness score
     blurVariance: number   // raw Laplacian variance
@@ -32,7 +39,11 @@ const INITIAL_QUALITY: QualityResult = {
  * Compute quality assessment from video frame + optional face landmarks.
  * Mirrors auth-test's assessQuality() — Laplacian blur, mean brightness, face size.
  */
-function assessQuality(video: HTMLVideoElement, landmarks?: Landmark[]): QualityResult {
+function assessQuality(
+    video: HTMLVideoElement,
+    landmarks?: Landmark[],
+    bbox?: BoundingBox,
+): QualityResult {
     const w = video.videoWidth
     const h = video.videoHeight
     if (w === 0 || h === 0) return INITIAL_QUALITY
@@ -107,9 +118,13 @@ function assessQuality(video: HTMLVideoElement, landmarks?: Landmark[]): Quality
         blurScore = ((lapVariance - BLUR_LOW) / (BLUR_HIGH - BLUR_LOW)) * 100
     }
 
-    // 4. Face size
+    // 4. Face size — prefer landmarks for tightness, fall back to detector
+    // bounding box so the score isn't pinned at 0 when the BlazeFace path is
+    // active (no landmarks available). Without this fallback the weighted
+    // overall maxes out at 70 mathematically.
     let faceSizePx = 0
     let faceSizeScore = 0
+    let haveFaceSize = false
     if (landmarks && landmarks.length > 0) {
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity
         for (const lm of landmarks) {
@@ -121,6 +136,13 @@ function assessQuality(video: HTMLVideoElement, landmarks?: Landmark[]): Quality
             if (ly > maxY) maxY = ly
         }
         faceSizePx = Math.min(maxX - minX, maxY - minY)
+        haveFaceSize = true
+    } else if (bbox && bbox.width > 0 && bbox.height > 0) {
+        faceSizePx = Math.min(bbox.width * w, bbox.height * h)
+        haveFaceSize = true
+    }
+
+    if (haveFaceSize) {
         if (faceSizePx <= 80) {
             faceSizeScore = 0
         } else if (faceSizePx >= 250) {
@@ -130,8 +152,12 @@ function assessQuality(video: HTMLVideoElement, landmarks?: Landmark[]): Quality
         }
     }
 
-    // 5. Overall: weighted average
-    const overall = blurScore * 0.4 + lightingScore * 0.3 + faceSizeScore * 0.3
+    // 5. Overall: weighted average. When no face-size signal is available,
+    // redistribute that 30% weight onto blur+lighting so the overall isn't
+    // mathematically capped at 70.
+    const overall = haveFaceSize
+        ? blurScore * 0.4 + lightingScore * 0.3 + faceSizeScore * 0.3
+        : blurScore * 0.55 + lightingScore * 0.45
 
     return {
         blur: Math.round(blurScore),
@@ -162,13 +188,16 @@ export function useQualityAssessment() {
      */
     const updateQuality = useCallback((
         video: HTMLVideoElement,
-        landmarks?: Landmark[],
+        landmarksOrBbox?: Landmark[] | BoundingBox,
     ) => {
         const now = performance.now()
         if (now - lastUpdateRef.current < THROTTLE_MS) return
 
         lastUpdateRef.current = now
-        const result = assessQuality(video, landmarks)
+        const isLandmarkArray = Array.isArray(landmarksOrBbox)
+        const landmarks = isLandmarkArray ? landmarksOrBbox : undefined
+        const bbox = !isLandmarkArray ? landmarksOrBbox : undefined
+        const result = assessQuality(video, landmarks, bbox)
         setQuality(result)
     }, [])
 

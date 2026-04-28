@@ -56,6 +56,11 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
 
     const { quality, updateQuality, resetQuality, getScoreColor, getQualityLabel } = useQualityAssessment()
 
+    // Keep latest boundingBox in a ref so the animation-loop closure always
+    // sees the current value without retriggering on every detection update.
+    const boundingBoxRef = useRef(boundingBox)
+    boundingBoxRef.current = boundingBox
+
     // Run quality assessment in animation loop
     useEffect(() => {
         if (!cameraActive || capturedImage) return
@@ -64,7 +69,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             recordFrame()
             if (videoRef.current && videoRef.current.readyState >= 2) {
                 const t0 = performance.now()
-                updateQuality(videoRef.current)
+                updateQuality(videoRef.current, boundingBoxRef.current)
                 recordOperation('quality-assess', performance.now() - t0)
             }
             animFrame = requestAnimationFrame(loop)
