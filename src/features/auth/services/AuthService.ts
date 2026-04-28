@@ -94,6 +94,7 @@ export class AuthService implements IAuthService {
                 twoFactorMethod: response.twoFactorMethod ?? undefined,
                 mfaSessionToken: response.mfaSessionToken ?? undefined,
                 availableMethods: response.availableMethods ?? undefined,
+                completedMethods: response.completedMethods ?? undefined,
             }
         } catch (error) {
             // Track failed attempts

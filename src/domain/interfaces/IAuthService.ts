@@ -14,6 +14,8 @@ export interface AuthResult {
     mfaSessionToken?: string
     /** Available MFA methods when the user has multiple enrolled */
     availableMethods?: AvailableMfaMethod[]
+    /** Methods the user has already cleared in this MFA session (PASSWORD always present after a 2FA-required login) */
+    completedMethods?: string[]
 }
 
 /**

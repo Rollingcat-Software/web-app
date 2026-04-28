@@ -39,6 +39,11 @@ import {
 } from '@mui/icons-material'
 
 import { BiometricPuzzleId, type BiometricPuzzleModality } from './BiometricPuzzleId'
+
+// Re-export so consumers can import the type alongside the registry helpers
+// without reaching into ./BiometricPuzzleId. F3's polish work imports it from
+// here.
+export type { BiometricPuzzleModality } from './BiometricPuzzleId'
 import { ChallengeType } from '@/lib/biometric-engine/types'
 import { makeFacePuzzle } from './puzzles/FacePuzzle'
 import { makeHandPuzzle } from './puzzles/HandGesturePuzzle'

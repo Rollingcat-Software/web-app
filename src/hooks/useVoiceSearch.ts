@@ -1,4 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
+import { useService } from '@app/providers'
+import { TYPES } from '@core/di/types'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
 
 interface VoiceSearchMatch {
     userId: string
@@ -28,6 +31,7 @@ interface UseVoiceSearchReturn {
  * and returns matching user(s) from the enrolled voice database.
  */
 export function useVoiceSearch(): UseVoiceSearchReturn {
+    const tokenService = useService<ITokenService>(TYPES.TokenService)
     const [searching, setSearching] = useState(false)
     const [result, setResult] = useState<VoiceSearchResult | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -43,13 +47,19 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
 
         try {
             const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
-            const token = localStorage.getItem('fivucsas_token')
+            // Use TokenService for token retrieval — the legacy `fivucsas_token`
+            // localStorage key is no longer populated (cleared by clearAuthState
+            // on every login) and produced 401s on /biometric/voice/search.
+            const token = (await tokenService.getAccessToken()) || ''
+            const authHeader: Record<string, string> = token
+                ? { Authorization: `Bearer ${token}` }
+                : {}
 
             const res = await fetch(`${apiBaseUrl}/biometric/voice/search`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+                    ...authHeader,
                 },
                 body: JSON.stringify({ voiceData: audioBase64 }),
             })
@@ -71,7 +81,7 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
             await Promise.all(matches.map(async (match) => {
                 try {
                     const userRes = await fetch(`${apiBaseUrl}/users/${match.userId}`, {
-                        headers: token ? { 'Authorization': `Bearer ${token}` } : {},
+                        headers: authHeader,
                     })
                     if (userRes.ok) {
                         const user = await userRes.json()
@@ -100,7 +110,7 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
             setSearching(false)
             searchingRef.current = false
         }
-    }, [])
+    }, [tokenService])
 
     const reset = useCallback(() => {
         setResult(null)

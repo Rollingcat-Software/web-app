@@ -182,13 +182,18 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
                 timestamp: Date.now(),
             })
         } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
-            // More steps remain — merge backend-authoritative completed list with local + current
-            setUsedMethods((prev) => {
-                const merged = new Set<string>(prev)
-                if (res.completedMethods?.length) res.completedMethods.forEach((m) => merged.add(m))
-                if (selectedMethod) merged.add(selectedMethod)
-                return Array.from(merged)
-            })
+            // More steps remain — merge backend-authoritative completed list with local + current.
+            // Compute the merged set synchronously so the picker decision below cannot
+            // re-route the user back through an already-completed method (the bug:
+            // "Fingerprint succeeded — and then the SAME fingerprint step ran again").
+            // Using only `selectedMethod` for the filter was insufficient because a
+            // server-side legit-repeat could leave the just-cleared method in
+            // availableMethods AND the local closure had not yet seen the updated state.
+            const mergedUsed = new Set<string>(usedMethods)
+            if (res.completedMethods?.length) res.completedMethods.forEach((m) => mergedUsed.add(m))
+            if (selectedMethod) mergedUsed.add(selectedMethod)
+            setUsedMethods(Array.from(mergedUsed))
+
             if (res.mfaSessionToken) setMfaSessionToken(res.mfaSessionToken)
             if (res.currentStep) setCurrentStep(res.currentStep)
             if (res.totalSteps) setTotalSteps((prev) => Math.max(prev, res.totalSteps!))
@@ -196,7 +201,12 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
             const methods = res.availableMethods ?? availableMethods
             setAvailableMethods(methods)
 
-            const enrolled = methods.filter((m) => m.enrolled && m.methodType !== selectedMethod)
+            // Clear the active selection; we are between steps. A new method will be
+            // chosen below (auto-pick or via the picker) and the FingerprintStep /
+            // FaceStep / etc. component will remount because `selectedMethod` changed.
+            setSelectedMethod('')
+
+            const enrolled = methods.filter((m) => m.enrolled && !mergedUsed.has(m.methodType))
             if (enrolled.length > 1) {
                 setPhase('method-picker')
             } else if (enrolled.length === 1) {

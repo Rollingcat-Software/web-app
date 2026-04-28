@@ -1636,9 +1636,15 @@
   },
   "biometricPuzzle": {
     "pageTitle": "Biyometrik Bulmacalar",
-    "pageSubtitle": "Platformun desteklediği 23 aktif canlılık mikro-görevini önizleyin. Yüz görevleri gerçek dedektörü çalıştırır; el hareketleri MediaPipe HandLandmarker entegrasyonu gelene kadar simüle edilir.",
+    "pageSubtitle": "Platformun desteklediği tüm aktif canlılık mikro-görevlerini önizleyin. Hem yüz hem de el bulmacaları cihaz üzerinde gerçek tespit kullanır — yüz için BlazeFace ve MediaPipe FaceLandmarker, el için MediaPipe HandLandmarker. Hiçbir görüntü sunucuya yüklenmez; her kare tarayıcınızda işlenir.",
+    "heroEyebrow": "Aktif canlılık kütüphanesi",
+    "heroChipFace": "{{count}} yüz görevi",
+    "heroChipHand": "{{count}} el görevi",
+    "heroChipReal": "Cihazda gerçek tespit",
     "sectionFace": "Yüz Görevleri",
+    "sectionFaceSubtitle": "Her görev için ayrı ayarlı — göz kırpma, gülümseme, başını çevirme. Her kart gerçek BlazeFace + MediaPipe FaceLandmarker akışını çalıştırır.",
     "sectionHand": "El Hareketi Görevleri",
+    "sectionHandSubtitle": "MediaPipe HandLandmarker ile takip edilir — parmak sayısı, sıkıştırma, şekil çizimi ve fazlası.",
     "handComingSoon": "Gerçek el hareketi tespiti MediaPipe HandLandmarker ile gelecek — bu önizleme kısa bir gecikmeden sonra başarıyı simüle eder.",
     "simulatingDetection": "Tespit simüle ediliyor…",
     "skipDemo": "Demoyu atla",
@@ -1649,13 +1655,21 @@
     "platformLabel": "Desteklenen platformlar",
     "requiresEnrollment": "Kayıt gerektirir",
     "stubbedOnly": "Yalnızca simülasyon",
-    "successMessage": "Bulmaca başarıyla tamamlandı. Dedektör hedef hareketi onayladı.",
+    "realDetectorBadge": "Gerçek dedektör",
+    "successHeadline": "Görev başarılı",
+    "successMessage": "Dedektör hedeflenen hareketi onayladı.",
+    "errorHeadline": "Görev tamamlanamadı",
     "errorMessage": "Bulmaca tamamlanamadı. Lütfen tekrar deneyin.",
+    "errorHint": "İpucu: hareketi sabit tutun, yüzünüzün veya elinizin üzerinde iyi ışık olsun ve yavaş hareket edin.",
     "timeoutMessage": "Süre doldu — hareket algılanamadı. Lütfen tekrar deneyin.",
     "engineLoading": "Dedektör yükleniyor…",
     "startCamera": "Kamerayı Başlat",
     "waitingForGesture": "İstenen hareket bekleniyor…",
     "holding": "Tutmaya devam edin…",
+    "statusScanning": "Taranıyor",
+    "statusDetected": "Algılandı",
+    "progressAriaLabel": "Hareket tespiti ilerleme durumu",
+    "promptLabel": "Görev",
     "handFingerCountPrompt": "{{count}} parmağınızı gösterip tutun.",
     "handMathPrompt": "{{expr}} işleminin sonucunu parmaklarınızla gösterip tutun.",
     "difficulty": {
@@ -1766,6 +1780,111 @@
         "title": "Parmak Matematiği",
         "description": "Küçük bir aritmetik sorunun cevabını (örneğin 2+3) parmak kaldırarak gösterin."
       }
+    }
+  },
+  "face_demo": {
+    "page_title": "Yüz Yetkinlikleri — FIVUCSAS",
+    "nav_link": "Yüz Demosu",
+    "hero": {
+      "eyebrow": "Canlı Yüz YZ Vitrini",
+      "title": "FIVUCSAS yüz doğrulamasının her katmanını gör.",
+      "subtitle": "Tespit, 478 nokta ağı, kafa pozu, pasif canlılık, sunucu sahtecilik tespiti, kalite ölçümü ve embedding görselleştirmesi — hepsi tarayıcında, gerçek zamanlı.",
+      "start_camera": "Kamerayı Başlat",
+      "stop_camera": "Kamerayı Durdur",
+      "camera_blocked": "Kamera erişimi reddedildi. Demoyu görebilmek için tarayıcı ayarlarından kamera iznini ver.",
+      "camera_required": "Başlamak için \"Kamerayı Başlat\"a tıkla. 1–4. bölümlerde hiçbir veri cihazını terk etmez.",
+      "engine_loading": "Cihaz üstü yüz motoru yükleniyor (478 nokta MediaPipe FaceLandmarker)…"
+    },
+    "section_label": "Bölüm",
+    "section_index": "{{index}} / {{total}}",
+    "powered_by_local": "Tarayıcında lokal çalışır",
+    "powered_by_server": "api.fivucsas.com üzerinde çalışır",
+    "detection": {
+      "title": "1. Yüz Tespiti",
+      "subtitle": "BlazeFace + MediaPipe FaceLandmarker katmanlı tespit",
+      "description": "Önce hafif BlazeFace TF.js modelini (~1 MB) başlatıyor, ardından MediaPipe FaceLandmarker hazır olur olmaz ona geçiyoruz. Aşağıdaki sınırlayıcı kutu ve güven değeri o anda aktif olan katmanın çıktısıdır.",
+      "confidence": "Güven",
+      "backend": "Aktif arka uç",
+      "no_face": "Yüz tespit edilmedi — yüzünü kameranın ortasına al.",
+      "fps": "Tespit FPS"
+    },
+    "landmarks": {
+      "title": "2. 478 Nokta Ağı",
+      "subtitle": "MediaPipe FaceLandmarker yoğun ağ",
+      "description": "FIVUCSAS, kalite, poz ve canlılık kontrolleri için yüzünün üstüne 478 noktalık yoğun bir ağ bindiriyor. Görüntülemeyi açıp kapatarak ham çerçeve ile çıkarılan geometriyi karşılaştırabilirsin.",
+      "toggle_on": "Ağı göster",
+      "toggle_off": "Ağı gizle",
+      "points_drawn": "Çizilen nokta",
+      "engine_warmup": "Cihaz üstü motor yüklendiğinde ağ görünecek."
+    },
+    "head_pose": {
+      "title": "3. Kafa Pozu",
+      "subtitle": "HeadPoseEstimator (yaw / pitch / roll)",
+      "description": "Yaw, pitch ve roll, kilit landmark’lardan geometrik olarak hesaplanır. Etrafına bak, değerler değişsin — bu sinyalleri kayıt sırasında ve aktif canlılık görevlerinde kullanıyoruz.",
+      "yaw": "Yaw",
+      "pitch": "Pitch",
+      "roll": "Roll",
+      "frontal": "Karşıdan",
+      "turning_left": "Sola bakıyor",
+      "turning_right": "Sağa bakıyor",
+      "looking_up": "Yukarı bakıyor",
+      "looking_down": "Aşağı bakıyor"
+    },
+    "passive_liveness": {
+      "title": "4. Pasif Canlılık",
+      "subtitle": "Tarayıcı tarafında 5 bileşenli skor",
+      "description": "Doku, renk, ten tonu, moiré ve yerel varyans bileşenleri 0–100 arası bir canlılık skoruna dönüşür. Yaklaşık 500 ms’de bir, ağ çağrısı olmadan çalışır — sunucuya bir şey göndermeden önce ilk filtre olarak iş görür.",
+      "overall_score": "Genel canlılık",
+      "is_live": "Büyük olasılıkla gerçek",
+      "is_spoof": "Olası sahtelik",
+      "components": {
+        "texture": "Doku",
+        "color": "Renk",
+        "skinTone": "Ten tonu",
+        "moire": "Moiré",
+        "localVariance": "Yerel varyans"
+      },
+      "warming_up": "İlk örnek hesaplanıyor…"
+    },
+    "server_liveness": {
+      "title": "5. Sunucu Sahtecilik Tespiti",
+      "subtitle": "POST /api/v1/liveness — bio.fivucsas.com",
+      "description": "Tek bir kare yakalayıp biyometrik servisine gönder; sunucu, tarayıcının gidemediği kadar derin kontroller yapar — baskı, ekran tekrarı ve 3D maske saldırılarına karşı.",
+      "capture": "Yakala ve analiz et",
+      "capturing": "Gönderiliyor…",
+      "real": "Gerçek yüz",
+      "spoof": "Sahtelik tespit edildi",
+      "confidence": "Güven",
+      "spoof_type": "Sahtelik türü",
+      "auth_required": "Bu uç nokta API anahtarı ister. Yönetim paneline giriş yap, Developer Portal’dan anahtar üret ve kendi sunucundan çağır. Anonim tarayıcı demosundan erişilemez.",
+      "error": "Yakalama analiz edilemedi. {{message}}"
+    },
+    "quality": {
+      "title": "6. Kalite Değerlendirmesi",
+      "subtitle": "Bulanıklık, ışık ve yüz boyutu",
+      "description": "Canlı kalite skoru, kullanıcının biyometrik adımdan önce kendini düzeltmesine yardım eder. Bulanıklık Laplacian varyansından, ışık ortalama parlaklıktan, yüz boyutu da çerçeveye oranından gelir.",
+      "blur": "Bulanıklık",
+      "lighting": "Aydınlatma",
+      "face_size": "Yüz boyutu",
+      "overall": "Genel",
+      "label_good": "İyi",
+      "label_fair": "Orta",
+      "label_poor": "Zayıf",
+      "acceptable": "Yakalama kalitesi yeterli",
+      "not_acceptable": "Kalite eşik değerin altında"
+    },
+    "embedding": {
+      "title": "7. Yüz Embedding’i",
+      "subtitle": "Eğitim amaçlı görselleştirme",
+      "description": "FIVUCSAS, kayıtlı bir yüzü 512 boyutlu bir vektör olarak temsil eder. Aşağıda örnek bir vektörün ilk 32 bileşenini gösteriyoruz — tanımada karşılaştırılan değerler bunlar. Hiçbir tanımlayıcı fotoğraf veya PII gösterilmez.",
+      "extract": "Örnek vektör üret",
+      "extracting": "Hesaplanıyor…",
+      "vector_label": "512 bileşenin ilk 32 tanesi",
+      "auth_required": "Gerçek embedding çıkarımı kimlik doğrulama ve tenant API anahtarı gerektirir. Aşağıdaki görselleştirme, embedding’in şeklini görebilmen için cihaz üstünde deterministik bir örnek kullanır."
+    },
+    "footer": {
+      "ready": "Bunu kendi ürününde de kullanmaya hazır mısın?",
+      "cta": "Developer Portal’ı Aç"
     }
   }
 }
