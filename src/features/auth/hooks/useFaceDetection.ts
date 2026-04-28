@@ -1,20 +1,26 @@
 /**
  * useFaceDetection — Face detection hook for auth capture flow.
  *
- * Strategy: BlazeFace (TF.js, ~1.2MB, on-device) is preferred.
- * Falls back to MediaPipe (CDN, ~5MB WASM) if BlazeFace fails to load.
+ * Strategy:
+ *   PRIMARY   — BiometricEngine.getInstance().faceDetector (MediaPipe FaceLandmarker, 478pt)
+ *               Active once the engine has been initialized by a parent component.
+ *   SECONDARY — BlazeFace (TF.js, ~1.2MB, on-device). Used while the engine is still loading.
+ *   FALLBACK  — MediaPipe FaceDetector (CDN, blaze_face_short_range). Used if BlazeFace fails.
  *
- * @see CLIENT_SIDE_ML_PLAN.md Phase 4.2.1
+ * Head-pose hint: when FaceLandmarker is active, yaw is computed via HeadPoseEstimator.
+ * If |yaw| > 25° the user is prompted to look straight ('faceDetection.lookStraight').
+ *
+ * @see CLIENT_SIDE_ML_PLAN.md Phase F2-5
  */
 
 import { useEffect, useRef, useCallback, useState } from 'react'
 // Type-only import — the runtime module is loaded lazily inside init() below.
-// This keeps @mediapipe/tasks-vision (~137KB uncompressed) off the eager chunk.
 import type { FaceDetector } from '@mediapipe/tasks-vision'
 import { useBlazeFace } from '../../../lib/ml/useBlazeFace'
 import { cropFaceToDataURL } from '../utils/faceCropper'
+import { BiometricEngine } from '../../../lib/biometric-engine/core/BiometricEngine'
 
-export type DetectionBackend = 'blazeface' | 'mediapipe' | 'none'
+export type DetectionBackend = 'blazeface' | 'mediapipe' | 'mediapipe-landmarker' | 'none'
 
 export interface FaceDetectionState {
     detected: boolean
@@ -36,12 +42,15 @@ const INITIAL_STATE: FaceDetectionState = {
     boundingBox: null,
 }
 
+/** Yaw threshold (degrees) beyond which the user is prompted to look straight. */
+const YAW_STRAIGHT_THRESHOLD = 25
+
 export function useFaceDetection(
     videoRef: React.RefObject<HTMLVideoElement | null>,
     active: boolean,
     recordOperation?: (name: string, durationMs: number) => void,
 ) {
-    // --- MediaPipe state (fallback) ---
+    // --- MediaPipe FaceDetector fallback state ---
     const mpDetectorRef = useRef<FaceDetector | null>(null)
     const animFrameRef = useRef<number>(0)
     const [state, setState] = useState<FaceDetectionState>(INITIAL_STATE)
@@ -49,27 +58,76 @@ export function useFaceDetection(
     const [initFailed, setInitFailed] = useState(false)
     const [backend, setBackend] = useState<DetectionBackend>('none')
 
-    // --- BlazeFace (primary) ---
+    // --- BlazeFace (secondary) ---
     const blazeFace = useBlazeFace(active)
 
     // Performance logging refs
     const perfLogCountRef = useRef(0)
     const mediapipeTimingsRef = useRef<number[]>([])
 
-    // When BlazeFace is ready, mark it as the active backend
+    // ─────────────────────────────────────────────────────────────────────────
+    // Priority 1: BiometricEngine FaceLandmarker (478pt)
+    // Poll every 500ms until the engine is ready. Once ready, switch backend.
+    // ─────────────────────────────────────────────────────────────────────────
     useEffect(() => {
-        if (blazeFace.isReady && active) {
+        if (!active) return
+
+        // Check immediately in case engine was already initialized
+        const checkEngine = () => {
+            const engine = BiometricEngine.getInstance()
+            if (engine.isReady() && engine.faceDetector.isAvailable()) {
+                setBackend('mediapipe-landmarker')
+                setInitialized(true)
+                return true
+            }
+            return false
+        }
+
+        if (checkEngine()) return
+
+        // Engine not ready yet — start it and poll
+        const engine = BiometricEngine.getInstance()
+        let cancelled = false
+
+        engine.initialize().then(() => {
+            if (!cancelled && engine.isReady() && engine.faceDetector.isAvailable()) {
+                setBackend('mediapipe-landmarker')
+                setInitialized(true)
+            }
+        }).catch(() => {
+            // Engine init failed — BlazeFace / MediaPipe fallbacks will take over
+        })
+
+        return () => { cancelled = true }
+    }, [active])
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Priority 2: BlazeFace (when engine not yet ready)
+    // ─────────────────────────────────────────────────────────────────────────
+    useEffect(() => {
+        if (blazeFace.isReady && active && backend === 'none') {
             setBackend('blazeface')
             setInitialized(true)
         }
-    }, [blazeFace.isReady, active])
+    }, [blazeFace.isReady, active, backend])
 
-    // Fall back to MediaPipe if BlazeFace fails
+    // Promote to FaceLandmarker if engine becomes ready while BlazeFace is running
+    useEffect(() => {
+        if (backend !== 'blazeface' && backend !== 'mediapipe') return
+        const engine = BiometricEngine.getInstance()
+        if (engine.isReady() && engine.faceDetector.isAvailable()) {
+            setBackend('mediapipe-landmarker')
+        }
+    }, [backend])
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Priority 3: MediaPipe FaceDetector (CDN fallback if BlazeFace fails)
+    // ─────────────────────────────────────────────────────────────────────────
     useEffect(() => {
         if (!active || blazeFace.isLoading || blazeFace.isReady) return
-        if (!blazeFace.error) return // Still trying
+        if (!blazeFace.error) return
 
-        // BlazeFace failed — initialize MediaPipe as fallback
+        // BlazeFace failed — fall back to MediaPipe FaceDetector (short-range)
         console.warn('[FaceDetection] BlazeFace failed, falling back to MediaPipe:', blazeFace.error)
 
         let cancelled = false
@@ -77,15 +135,13 @@ export function useFaceDetection(
 
         async function init() {
             try {
-                // Dynamic import defers the ~137KB @mediapipe/tasks-vision module
-                // until we actually need the MediaPipe fallback (i.e. BlazeFace failed).
-                const { FaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision')
+                const { FaceDetector: MPFaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision')
                 const vision = await FilesetResolver.forVisionTasks(
                     'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
                 )
                 if (cancelled) return
 
-                const detector = await FaceDetector.createFromOptions(vision, {
+                const detector = await MPFaceDetector.createFromOptions(vision, {
                     baseOptions: {
                         modelAssetPath:
                             'https://storage.googleapis.com/mediapipe-models/face_detector/blaze_face_short_range/float16/1/blaze_face_short_range.tflite',
@@ -118,7 +174,102 @@ export function useFaceDetection(
         }
     }, [active, blazeFace.isLoading, blazeFace.isReady, blazeFace.error])
 
-    // --- BlazeFace detection loop ---
+    // ─────────────────────────────────────────────────────────────────────────
+    // Detection loop: FaceLandmarker (primary)
+    // ─────────────────────────────────────────────────────────────────────────
+    const detectWithFaceLandmarker = useCallback(() => {
+        const video = videoRef.current
+        if (!video || video.readyState < 2) {
+            animFrameRef.current = requestAnimationFrame(detectWithFaceLandmarker)
+            return
+        }
+
+        try {
+            const engine = BiometricEngine.getInstance()
+            const faceDetector = engine.faceDetector
+            const headPoseEstimator = engine.headPoseEstimator
+
+            if (!faceDetector.isAvailable()) {
+                animFrameRef.current = requestAnimationFrame(detectWithFaceLandmarker)
+                return
+            }
+
+            const t0 = performance.now()
+            const detections = faceDetector.detect(video, performance.now())
+            const inferenceMs = performance.now() - t0
+
+            if (!detections || detections.length === 0) {
+                setState({ ...INITIAL_STATE, hint: 'faceDetection.noFace' })
+            } else {
+                const face = detections[0]
+                const bb = face.boundingBox // pixel coordinates
+
+                const vw = video.videoWidth
+                const vh = video.videoHeight
+
+                // Normalize bounding box to 0-1 range for API compatibility
+                const normX = bb.x / vw
+                const normY = bb.y / vh
+                const normW = bb.width / vw
+                const normH = bb.height / vh
+
+                const faceCenterX = normX + normW / 2
+                const faceCenterY = normY + normH / 2
+
+                const centered =
+                    Math.abs(faceCenterX - 0.5) < 0.2 &&
+                    Math.abs(faceCenterY - 0.5) < 0.25
+
+                const tooClose = normW > 0.65
+                const tooFar = normW < 0.15
+
+                // Head pose from 478-point landmarks
+                let hint = 'faceDetection.perfect'
+                if (tooFar) {
+                    hint = 'faceDetection.moveCloser'
+                } else if (tooClose) {
+                    hint = 'faceDetection.moveFurther'
+                } else if (!centered) {
+                    hint = 'faceDetection.centerFace'
+                } else if (face.pixelLandmarks && face.pixelLandmarks.length >= 468 && headPoseEstimator?.isAvailable()) {
+                    // Use HeadPoseEstimator to detect non-frontal head pose
+                    const pose = headPoseEstimator.estimate(
+                        face.pixelLandmarks,
+                        { width: vw, height: vh },
+                    )
+                    if (Math.abs(pose.yaw) > YAW_STRAIGHT_THRESHOLD) {
+                        hint = 'faceChallenge.lookStraight'
+                    }
+                }
+
+                setState({
+                    detected: true,
+                    centered,
+                    tooClose,
+                    tooFar,
+                    hint,
+                    confidence: face.confidence,
+                    boundingBox: {
+                        x: normX,
+                        y: normY,
+                        width: normW,
+                        height: normH,
+                    },
+                })
+
+                recordOperation?.('face-detect', inferenceMs)
+                perfLogCountRef.current++
+            }
+        } catch {
+            // Detection frame error, continue loop
+        }
+
+        animFrameRef.current = requestAnimationFrame(detectWithFaceLandmarker)
+    }, [videoRef, recordOperation])
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Detection loop: BlazeFace (secondary)
+    // ─────────────────────────────────────────────────────────────────────────
     const detectWithBlazeFace = useCallback(async () => {
         const video = videoRef.current
         if (!video || video.readyState < 2) {
@@ -167,9 +318,7 @@ export function useFaceDetection(
                     },
                 })
 
-                // Record timing for dev perf overlay
                 recordOperation?.('face-detect', result.inferenceTimeMs)
-
                 perfLogCountRef.current++
             }
         } catch {
@@ -179,7 +328,9 @@ export function useFaceDetection(
         animFrameRef.current = requestAnimationFrame(detectWithBlazeFace)
     }, [videoRef, blazeFace, recordOperation])
 
-    // --- MediaPipe detection loop (fallback) ---
+    // ─────────────────────────────────────────────────────────────────────────
+    // Detection loop: MediaPipe FaceDetector fallback
+    // ─────────────────────────────────────────────────────────────────────────
     const detectWithMediaPipe = useCallback(() => {
         const video = videoRef.current
         const detector = mpDetectorRef.current
@@ -195,7 +346,6 @@ export function useFaceDetection(
             const inferenceMs = performance.now() - t0
             const detections = result.detections
 
-            // Track MediaPipe timings for comparison
             const mpTimings = mediapipeTimingsRef.current
             mpTimings.push(inferenceMs)
             if (mpTimings.length > 30) mpTimings.shift()
@@ -248,9 +398,7 @@ export function useFaceDetection(
                 }
             }
 
-            // Record timing for dev perf overlay
             recordOperation?.('face-detect', inferenceMs)
-
             perfLogCountRef.current++
         } catch {
             // Detection frame error, continue loop
@@ -259,13 +407,17 @@ export function useFaceDetection(
         animFrameRef.current = requestAnimationFrame(detectWithMediaPipe)
     }, [videoRef, recordOperation])
 
-    // --- Start the appropriate detection loop ---
+    // ─────────────────────────────────────────────────────────────────────────
+    // Start the appropriate detection loop when backend/initialized changes
+    // ─────────────────────────────────────────────────────────────────────────
     useEffect(() => {
         if (!active || !initialized) return
 
         perfLogCountRef.current = 0
 
-        if (backend === 'blazeface') {
+        if (backend === 'mediapipe-landmarker') {
+            animFrameRef.current = requestAnimationFrame(detectWithFaceLandmarker)
+        } else if (backend === 'blazeface') {
             animFrameRef.current = requestAnimationFrame(detectWithBlazeFace)
         } else if (backend === 'mediapipe' && mpDetectorRef.current) {
             animFrameRef.current = requestAnimationFrame(detectWithMediaPipe)
@@ -276,9 +428,9 @@ export function useFaceDetection(
                 cancelAnimationFrame(animFrameRef.current)
             }
         }
-    }, [active, initialized, backend, detectWithBlazeFace, detectWithMediaPipe])
+    }, [active, initialized, backend, detectWithFaceLandmarker, detectWithBlazeFace, detectWithMediaPipe])
 
-    // --- Cleanup on unmount ---
+    // Cleanup on unmount
     useEffect(() => {
         return () => {
             if (mpDetectorRef.current) {
@@ -290,12 +442,7 @@ export function useFaceDetection(
 
     /**
      * Always-client-crop: crops the current face bounding box to a 224×224 JPEG.
-     * This eliminates the 200-730ms server-side face detection step because the
-     * server receives a tight pre-cropped face instead of a full-resolution frame.
-     *
-     * The `canvas` parameter is accepted for API compatibility but unused — the
-     * crop is performed on an internal offscreen canvas so the output is always
-     * exactly 224×224 regardless of the hidden canvas in the DOM.
+     * The `canvas` parameter is accepted for API compatibility but unused.
      *
      * @returns Base64 JPEG data-URL (~8-18KB), or null if no face is detected.
      */
@@ -304,7 +451,6 @@ export function useFaceDetection(
             const video = videoRef.current
             if (!video || !state.boundingBox) return null
 
-            // Client pre-crops to 224×224 — server detection only as fallback
             return cropFaceToDataURL(video, state.boundingBox, 224, 0.2)
         },
         [videoRef, state.boundingBox]

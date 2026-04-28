@@ -1090,7 +1090,8 @@
     "deleteAllBiometricConfirm": "Bu işlem tüm biyometrik kayıtlarınızı (yüz, ses, parmak izi vb.) kalıcı olarak silecektir. Biyometrik kimlik doğrulama kullanmak için yeniden kayıt olmanız gerekecektir. Bu işlem geri alınamaz.",
     "deleteAllConfirm": "Tümünü Sil",
     "allBiometricDeleted": "Tüm biyometrik veriler başarıyla silindi.",
-    "deleteBiometricError": "Biyometrik veriler silinemedi."
+    "deleteBiometricError": "Biyometrik veriler silinemedi.",
+    "enrollmentRenewalWarning": "Bu kayıt 2 yıldan daha eski. En iyi doğruluk için bu yöntemi yeniden kaydetmeyi düşünün."
   },
   "enrollment": {
     "face": {
@@ -1519,7 +1520,8 @@
     "videoAriaLabel": "Yüz yakalama için kamera önizlemesi",
     "backend": {
       "blazeface": "BlazeFace (cihazda)",
-      "mediapipe": "MediaPipe (CDN)"
+      "mediapipe": "MediaPipe (CDN)",
+      "mediapipe-landmarker": "MediaPipe FaceLandmarker (478 nokta)"
     }
   },
   "faceChallenge": {
@@ -1532,7 +1534,8 @@
     "holdStill": "Sabit durun...",
     "capturedVerifying": "Yakalandı! Doğrulanıyor...",
     "identityVerified": "Kimlik doğrulandı!",
-    "verificationFailed": "Doğrulama başarısız oldu. Tekrar deneyin."
+    "verificationFailed": "Doğrulama başarısız oldu. Tekrar deneyin.",
+    "livenessCheckFailed": "Gerçek yüz algılanamadı, lütfen tekrar deneyin."
   },
   "register": {
     "verificationFailed": "Doğrulama başarısız oldu. Lütfen tekrar deneyin.",

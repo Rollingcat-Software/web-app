@@ -3,6 +3,15 @@ import { FaceDetectionState } from './useFaceDetection'
 import { BiometricEngine } from '../../../lib/biometric-engine/core/BiometricEngine'
 import { dataURLToImageData } from '../utils/faceCropper'
 
+/**
+ * Client-side passive liveness pre-filter threshold.
+ * Captures scoring below this value are discarded and the challenge resets.
+ * This is a client-side guard only — the server still makes the auth decision (D2).
+ *
+ * @see BIOMETRIC_ROADMAP_2026-04-28.md Faz 2 — passive liveness client pre-filter
+ */
+const PASSIVE_LIVENESS_THRESHOLD = 0.45
+
 export type ChallengeStage =
     | 'position'      // Center face in oval
     | 'frontal'       // Look straight
@@ -188,6 +197,70 @@ export function useFaceChallenge() {
                     }
                 }
                 if (capturedImage) {
+                    // ── Passive liveness pre-filter (client-side, D2 compliant) ──────────
+                    // Extract face ROI as ImageData synchronously from the current video
+                    // frame (bounded by detection.boundingBox). Run PassiveLivenessDetector
+                    // synchronously (pure canvas math, no async needed).
+                    // If score is below threshold, reset the challenge and skip submission.
+                    // If livenessDetector is unavailable (not loaded), skip silently.
+                    // Server still makes the final auth decision — this is a client pre-filter.
+                    try {
+                        const engine = BiometricEngine.getInstance()
+                        const livenessDetector = engine.livenessDetector
+                        if (livenessDetector && livenessDetector.isAvailable() && detection.boundingBox) {
+                            const video = document.querySelector('video') as HTMLVideoElement | null
+                            if (video && video.videoWidth > 0 && video.videoHeight > 0) {
+                                const vw = video.videoWidth
+                                const vh = video.videoHeight
+                                const bb = detection.boundingBox
+                                // Convert normalized bbox to pixel coords
+                                const px = Math.max(0, Math.round(bb.x * vw))
+                                const py = Math.max(0, Math.round(bb.y * vh))
+                                const pw = Math.min(vw - px, Math.round(bb.width * vw))
+                                const ph = Math.min(vh - py, Math.round(bb.height * vh))
+
+                                if (pw > 2 && ph > 2) {
+                                    const offscreen = document.createElement('canvas')
+                                    offscreen.width = pw
+                                    offscreen.height = ph
+                                    const ctx2d = offscreen.getContext('2d')
+                                    if (ctx2d) {
+                                        ctx2d.drawImage(video, px, py, pw, ph, 0, 0, pw, ph)
+                                        const faceROI = ctx2d.getImageData(0, 0, pw, ph)
+                                        const livenessResult = livenessDetector.check(faceROI)
+                                        console.log('[PassiveLiveness]', livenessResult.score)
+                                        if (livenessResult.score < PASSIVE_LIVENESS_THRESHOLD * 100) {
+                                            // Score is on 0-100 scale in PassiveLivenessDetector
+                                            // Reset challenge — liveness check failed
+                                            stageIndexRef.current = 0
+                                            capturesRef.current = []
+                                            clientEmbeddingsRef.current = []
+                                            holdStartRef.current = null
+                                            prevConfidenceRef.current = 0
+                                            blinkDetectedRef.current = false
+                                            stageStartRef.current = Date.now()
+                                            setChallengeState({
+                                                stage: 'position',
+                                                stageIndex: 0,
+                                                totalStages: ENROLLMENT_STAGES.length,
+                                                progress: 1 / ENROLLMENT_STAGES.length,
+                                                stageProgress: 0,
+                                                instruction: 'faceChallenge.livenessCheckFailed',
+                                                captures: [],
+                                                clientEmbeddings: [],
+                                            })
+                                            return
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    } catch {
+                        // Non-critical: liveness pre-filter failure is silently ignored.
+                        // Server will perform its own liveness check.
+                    }
+                    // ─────────────────────────────────────────────────────────────────────
+
                     capturesRef.current = [...capturesRef.current, capturedImage]
 
                     // Async: extract client-side landmark-geometry embedding (log-only per D2).

@@ -875,6 +875,18 @@ function EnrollmentCard({
             <Collapse in={expanded}>
                 <Divider />
                 <Box sx={{ p: 2, display: 'flex', flexDirection: 'column', gap: 1 }}>
+                    {/* Renewal warning — shown when enrollment is older than 2 years */}
+                    {enrollment.createdAt && (() => {
+                        const twoYearsMs = 2 * 365 * 24 * 60 * 60 * 1000
+                        const age = Date.now() - new Date(enrollment.createdAt).getTime()
+                        return age > twoYearsMs ? (
+                            <Alert severity="warning" icon={<Warning fontSize="inherit" />} sx={{ py: 0.5 }}>
+                                <Typography variant="caption">
+                                    {t('myProfile.enrollmentRenewalWarning')}
+                                </Typography>
+                            </Alert>
+                        ) : null
+                    })()}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">{t('myProfile.enrolledDate')}</Typography>
                         <Typography variant="caption">{formatDate(enrollment.createdAt)}</Typography>

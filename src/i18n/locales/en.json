@@ -1090,7 +1090,8 @@
     "deleteAllBiometricConfirm": "This will permanently delete all your biometric enrollments (face, voice, fingerprint, etc.). You will need to re-enroll to use biometric authentication. This action cannot be undone.",
     "deleteAllConfirm": "Delete All",
     "allBiometricDeleted": "All biometric data deleted successfully.",
-    "deleteBiometricError": "Failed to delete biometric data."
+    "deleteBiometricError": "Failed to delete biometric data.",
+    "enrollmentRenewalWarning": "This enrollment is over 2 years old. For best accuracy, consider re-enrolling this method."
   },
   "enrollment": {
     "face": {
@@ -1519,7 +1520,8 @@
     "videoAriaLabel": "Camera preview for face capture",
     "backend": {
       "blazeface": "BlazeFace (on-device)",
-      "mediapipe": "MediaPipe (CDN)"
+      "mediapipe": "MediaPipe (CDN)",
+      "mediapipe-landmarker": "MediaPipe FaceLandmarker (478pt)"
     }
   },
   "faceChallenge": {
@@ -1532,7 +1534,8 @@
     "holdStill": "Hold still...",
     "capturedVerifying": "Captured! Verifying...",
     "identityVerified": "Identity verified!",
-    "verificationFailed": "Verification failed. Try again."
+    "verificationFailed": "Verification failed. Try again.",
+    "livenessCheckFailed": "Live face not detected, please try again."
   },
   "register": {
     "verificationFailed": "Verification failed. Please try again.",
