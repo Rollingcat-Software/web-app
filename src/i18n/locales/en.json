@@ -423,8 +423,11 @@
     "totp": {
       "error": {
         "userIdRequired": "User ID is required for TOTP setup",
-        "userIdRequiredVerify": "User ID is required for TOTP verification"
-      }
+        "userIdRequiredVerify": "User ID is required for TOTP verification",
+        "invalidCode": "Invalid verification code"
+      },
+      "disableConfirm": "Are you sure you want to disable TOTP? You will no longer need a code from your authenticator app to log in.",
+      "qrAltText": "TOTP QR Code"
     }
   },
   "users": {
@@ -1493,7 +1496,13 @@
     "unknown": "An unexpected error occurred. Please try again.",
     "failedToLoad": "Failed to load data. Please try again.",
     "rateLimitExceeded": "Too many requests. Please wait a moment before trying again.",
-    "unknownError": "Something went wrong. Please try again."
+    "unknownError": "Something went wrong. Please try again.",
+    "failedToSubmitEnrollment": "Failed to submit enrollment",
+    "livenessPuzzleError": "Liveness puzzle error",
+    "bankEnrollmentError": "Bank enrollment error",
+    "failedToLoadSessions": "Failed to load sessions",
+    "biometricProcessingFailed": "Biometric processing failed",
+    "enrollmentSyncFailed": "Enrollment sync failed"
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "That email or password didn't match. Please try again.",
@@ -1909,5 +1918,38 @@
       "ready": "Ready to ship this in your product?",
       "cta": "Open Developer Portal"
     }
+  },
+  "pageTitles": {
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "tenants": "Tenants",
+    "roles": "Roles",
+    "authFlows": "Auth Flows",
+    "authSessions": "Auth Sessions",
+    "devices": "Devices",
+    "enrollments": "Enrollments",
+    "userEnrollment": "Identity Enrollment",
+    "enrollment": "Biometric Enrollment",
+    "biometricTools": "Biometric Tools",
+    "biometricPuzzles": "Biometric Puzzles",
+    "authMethodsTesting": "Auth Methods Testing",
+    "widgetDemo": "Auth Widget",
+    "widgetAuth": "Widget Auth",
+    "developerPortal": "Developer Portal",
+    "verificationFlows": "Verification Flows",
+    "verificationDashboard": "Verification Dashboard",
+    "verificationSessions": "Verification Session",
+    "auditLogs": "Audit Logs",
+    "analytics": "Analytics",
+    "guests": "Guests",
+    "settings": "Settings",
+    "myProfile": "My Profile",
+    "login": "Sign In",
+    "register": "Create Account",
+    "forgotPassword": "Forgot Password",
+    "resetPassword": "Reset Password",
+    "terms": "Terms of Service",
+    "privacy": "Privacy Policy",
+    "default": "FIVUCSAS"
   }
 }

@@ -592,7 +592,7 @@ export default function LoginPage() {
                                             borderRadius: '12px',
                                         }}
                                     >
-                                        {faceError || loginError || error?.message || t('auth.invalidCredentials')}
+                                        {faceError || loginError || (error ? formatApiError(error, t) : t('auth.invalidCredentials'))}
                                     </Alert>
                                 </motion.div>
                             )}

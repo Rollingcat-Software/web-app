@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { detectHeadTurn } from './useLivenessPuzzle'
 
 interface Landmark {
@@ -37,6 +39,7 @@ const CAPTURE_ANGLES: Array<{ label: string; direction: 'center' | 'left' | 'rig
  * then sends all 3 to the backend (tries multi-enroll, falls back to sequential).
  */
 export function useBankEnrollment() {
+    const { t } = useTranslation()
     const [state, setState] = useState<BankEnrollmentState>({
         status: 'idle',
         currentAngle: -1,
@@ -270,11 +273,10 @@ export function useBankEnrollment() {
             setState(prev => ({
                 ...prev,
                 status: 'error',
-                // eslint-disable-next-line no-restricted-syntax -- hook stores raw message for caller; caller is responsible for formatApiError display
-                message: err instanceof Error ? err.message : 'Bank enrollment error',
+                message: formatApiError(err, t) || t('errors.bankEnrollmentError'),
             }))
         }
-    }, [waitForPose, captureFrame])
+    }, [waitForPose, captureFrame, t])
 
     const cancelEnrollment = useCallback(() => {
         abortRef.current = true

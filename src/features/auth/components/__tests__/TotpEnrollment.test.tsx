@@ -166,7 +166,7 @@ describe('TotpEnrollment', () => {
             })
 
             // QR code image
-            expect(screen.getByAltText('TOTP QR Code')).toBeInTheDocument()
+            expect(screen.getByAltText('auth.totp.qrAltText')).toBeInTheDocument()
             // Copy button
             expect(screen.getByRole('button', { name: /Copy/i })).toBeInTheDocument()
             // Verification code input
