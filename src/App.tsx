@@ -35,6 +35,7 @@ const PAGE_TITLE_KEYS: Record<string, string> = {
     '/auth-methods-testing': 'authMethodsTesting',
     '/widget-demo': 'widgetDemo',
     '/widget-auth': 'widgetAuth',
+    '/face-demo': 'faceDemo',
     '/developer-portal': 'developerPortal',
     '/verification-flows': 'verificationFlows',
     '/verification-dashboard': 'verificationDashboard',
@@ -111,6 +112,7 @@ const TermsPage = lazy(() => import('./pages/TermsPage'))
 const PrivacyPage = lazy(() => import('./pages/PrivacyPage'))
 const WidgetAuthPage = lazy(() => import('./pages/WidgetAuthPage'))
 const MyProfilePage = lazy(() => import('./pages/MyProfilePage'))
+const FaceDemoPage = lazy(() => import('./pages/FaceDemoPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -221,6 +223,7 @@ function App() {
                     <Route path="/privacy" element={<PrivacyPage />} />
                     <Route path="/widget-demo" element={<ErrorBoundary><WidgetDemoPage /></ErrorBoundary>} />
                     <Route path="/developer-portal" element={<ErrorBoundary><DeveloperPortalPage /></ErrorBoundary>} />
+                    <Route path="/face-demo" element={<ErrorBoundary><FaceDemoPage /></ErrorBoundary>} />
                 </Route>
 
                 {/* Protected Routes */}
