@@ -35,10 +35,9 @@ import { z } from 'zod'
 import { motion, Variants } from 'framer-motion'
 import { AxiosError } from 'axios'
 import { useAuth } from '../hooks/useAuth'
-import FaceVerificationFlow from './FaceVerificationFlow'
+// face login removed 2026-04-29 — see /opt/projects/fivucsas/MULTI_EMAIL_TENANT_DESIGN_2026-04-28.md follow-up; needs public /auth/face-login endpoint
 import TwoFactorDispatcher from './TwoFactorDispatcher'
 import MethodPickerStep from './steps/MethodPickerStep'
-import { getBiometricService } from '@core/services/BiometricService'
 import type { AvailableMfaMethod, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import { useService } from '@app/providers'
@@ -137,8 +136,6 @@ export default function LoginPage() {
     const { login, loading, error, user, logout, refreshUser } = useAuth()
     const tokenService = useService<ITokenService>(TYPES.TokenService)
     const [showPassword, setShowPassword] = useState(false)
-    const [faceLoginOpen, setFaceLoginOpen] = useState(false)
-    const [faceError, setFaceError] = useState<string | null>(null)
     const [loginError, setLoginError] = useState<string | null>(null)
     const [pageReady, setPageReady] = useState(false)
     const [showSecondaryAuth, setShowSecondaryAuth] = useState(false)
@@ -241,25 +238,6 @@ export default function LoginPage() {
         setResetConfirmPassword('')
         setResetError(null)
         setResetSuccess(false)
-    }
-
-    const handleFaceVerify = async (image: string): Promise<boolean> => {
-        setFaceError(null)
-        try {
-            const biometric = getBiometricService()
-            const result = await biometric.searchFace(image)
-            if (result.found && result.userId) {
-                // Face matched — log in with the matched user
-                await login({ email: result.userId, password: '' })
-                navigate('/')
-                return true
-            }
-            setFaceError(t('auth.noMatchingFace'))
-            return false
-        } catch (err) {
-            setFaceError(formatApiError(err, t))
-            return false
-        }
     }
 
     const {
@@ -574,7 +552,7 @@ export default function LoginPage() {
                         {/* Login Form */}
                         <form onSubmit={handleSubmit(onSubmit)} aria-label={t('auth.loginFormLabel')}>
                             {/* Error Alert */}
-                            {(error || faceError || loginError) && (
+                            {(error || loginError) && (
                                 <motion.div
                                     initial={{ opacity: 0, scale: 0.95 }}
                                     animate={{ opacity: 1, scale: 1 }}
@@ -592,7 +570,7 @@ export default function LoginPage() {
                                             borderRadius: '12px',
                                         }}
                                     >
-                                        {faceError || loginError || (error ? formatApiError(error, t) : t('auth.invalidCredentials'))}
+                                        {loginError || (error ? formatApiError(error, t) : t('auth.invalidCredentials'))}
                                     </Alert>
                                 </motion.div>
                             )}
@@ -904,13 +882,6 @@ export default function LoginPage() {
                     </Box>
                 </motion.div>
             </motion.div>
-
-            {/* Face Login Dialog */}
-            <FaceVerificationFlow
-                open={faceLoginOpen}
-                onClose={() => setFaceLoginOpen(false)}
-                onVerify={handleFaceVerify}
-            />
 
             {/* Forgot Password Dialog */}
             <Dialog open={forgotPasswordOpen} onClose={handleCloseForgotPassword} maxWidth="sm" fullWidth>
