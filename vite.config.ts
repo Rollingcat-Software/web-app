@@ -228,6 +228,6 @@ export default defineConfig(({ mode }) => ({
         globals: true,
         environment: 'jsdom',
         setupFiles: './src/test/setup.ts',
-        exclude: ['e2e/**', 'node_modules/**', 'src/test/e2e/**'],
+        exclude: ['e2e/**', 'node_modules/**', 'src/test/e2e/**', '.claude/**', 'archive/**'],
     },
 }))
