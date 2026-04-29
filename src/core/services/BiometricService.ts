@@ -1,4 +1,7 @@
 import axios, { AxiosInstance } from 'axios'
+import { container } from '@core/di/container'
+import { TYPES } from '@core/di/types'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
 
 export interface EnrollmentResult {
     success: boolean
@@ -34,33 +37,49 @@ export interface LivenessResult {
 }
 
 /**
- * BiometricService — Wrapper for Biometric Processor API
+ * BiometricService — Wrapper for biometric operations.
  *
- * Communicates with the biometric-processor FastAPI service
- * for face enrollment, verification, search, and liveness checks.
+ * SECURITY (Sec-P0b, audit 2026-04-28):
+ * All requests go through identity-core-api at `${VITE_API_BASE_URL}/biometric/*`.
+ * The browser bundle MUST NOT carry the biometric-processor X-API-Key — that key
+ * is held server-side and applied by `BiometricServiceAdapter` inside the Java
+ * backend, which talks to bio.fivucsas.com over the internal docker network.
  *
- * IL2: This service calls biometric-processor directly (via VITE_BIOMETRIC_API_URL)
- * rather than proxying through identity-core-api. This is intentional because:
- *   - Biometric operations involve large image payloads (multipart/form-data)
- *     that would add unnecessary latency if proxied through the Java backend.
- *   - identity-core-api does have a BiometricServicePort adapter for server-side
- *     biometric calls (e.g., during auth flow step-up), but the web dashboard
- *     bypasses it for direct user-initiated operations like enrollment and search.
- *   - Authentication for biometric-processor is handled via X-API-Key header.
+ * The browser authenticates to identity-core-api with the user's Bearer JWT
+ * (pulled from `ITokenService` via the IoC container), and identity-core-api
+ * enforces RBAC + tenant scoping before delegating to the biometric processor.
+ *
+ * NOTE: face SEARCH (1:N identification) and continuous VERIFY require an
+ * authenticated session. The legacy "log in by face" flow on `LoginPage` is
+ * pre-auth, has no JWT, and is NOT supported by the proxy as currently
+ * designed — that path will surface a 401 until a dedicated public face-login
+ * endpoint is added on the backend (logged as a follow-up).
  */
 export class BiometricService {
     private readonly client: AxiosInstance
 
     constructor() {
-        const baseURL = import.meta.env.VITE_BIOMETRIC_API_URL || 'https://bio.fivucsas.com/api/v1'
-        const apiKey = import.meta.env.VITE_BIOMETRIC_API_KEY || ''
+        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
 
         this.client = axios.create({
             baseURL,
             timeout: 30000,
-            headers: {
-                ...(apiKey ? { 'X-API-Key': apiKey } : {}),
-            },
+        })
+
+        // Inject the user's Bearer JWT on every call. We resolve TokenService lazily
+        // per-request so we don't have to thread DI through the singleton constructor.
+        this.client.interceptors.request.use(async (config) => {
+            try {
+                const tokenService = container.get<ITokenService>(TYPES.TokenService)
+                const token = await tokenService.getAccessToken()
+                if (token) {
+                    config.headers = config.headers ?? {}
+                    config.headers.Authorization = `Bearer ${token}`
+                }
+            } catch {
+                // No token available (pre-auth caller) — let the backend reject.
+            }
+            return config
         })
     }
 
@@ -69,44 +88,45 @@ export class BiometricService {
      * When multiple images are provided, uses the /enroll/multi endpoint
      * for quality-weighted template fusion (30-40% better accuracy).
      *
-     * @param imageBase64      Single or multiple base64 JPEG data-URLs (224×224 client crop).
-     * @param tenantId         Optional tenant scope.
-     * @param clientEmbeddings Optional per-image 512-dim landmark-geometry embeddings computed client-side.
-     *                         Log-only telemetry per D2; server stores for offline analysis (never auth).
+     * @param imageBase64      Single or multiple base64 JPEG data-URLs (224x224 client crop).
+     * @param tenantId         Optional tenant scope (currently unused by the proxy — backend
+     *                         derives tenant from the authenticated user; recorded as a
+     *                         follow-up if explicit override is ever needed).
+     * @param clientEmbeddings Optional per-image 512-dim landmark-geometry embeddings.
+     *                         Currently dropped at the proxy boundary (D2 telemetry will
+     *                         need a backend pass-through enhancement to land server-side).
      */
     async enrollFace(
         userId: string,
         imageBase64: string | string[],
-        tenantId?: string,
-        clientEmbeddings?: (number[] | null)[],
+        // tenantId/clientEmbeddings retained on the API for caller compat;
+        // backend proxy currently does not forward them (see follow-up note).
+        _tenantId?: string,
+        _clientEmbeddings?: (number[] | null)[],
     ): Promise<EnrollmentResult> {
         const images = Array.isArray(imageBase64) ? imageBase64 : [imageBase64]
 
         try {
             if (images.length >= 2) {
-                return await this.enrollFaceMulti(userId, images, tenantId, clientEmbeddings)
+                return await this.enrollFaceMulti(userId, images)
             }
 
             const blob = this.base64ToBlob(images[0])
             const formData = new FormData()
-            formData.append('file', blob, 'face.jpg')
-            formData.append('user_id', userId)
-            if (tenantId) formData.append('tenant_id', tenantId)
+            // identity-core-api `enrollFace` expects field name `image`.
+            formData.append('image', blob, 'face.jpg')
 
-            // Attach client embedding if available (server ignores unknown fields)
-            const embedding = clientEmbeddings?.[0]
-            if (embedding) {
-                formData.append('client_embedding', JSON.stringify(embedding))
-            }
+            const response = await this.client.post(
+                `/biometric/enroll/${encodeURIComponent(userId)}`,
+                formData,
+                { headers: { 'Content-Type': 'multipart/form-data' } },
+            )
 
-            const response = await this.client.post('/enroll', formData, {
-                headers: { 'Content-Type': 'multipart/form-data' },
-            })
-
+            // Proxy returns BiometricVerificationResponse: {verified, confidence, message}.
             return {
-                success: true,
+                success: response.data.verified !== false,
                 userId,
-                confidence: response.data.quality_score != null ? response.data.quality_score / 100 : 1.0,
+                confidence: typeof response.data.confidence === 'number' ? response.data.confidence : 1.0,
                 message: response.data.message ?? 'Face enrolled successfully',
             }
         } catch (error) {
@@ -116,40 +136,29 @@ export class BiometricService {
 
     /**
      * Enroll using multiple images with quality-weighted fusion.
-     *
-     * @param clientEmbeddings Optional per-image 512-dim landmark-geometry embeddings.
-     *                         Serialized as JSON array in FormData field "client_embeddings".
-     *                         Log-only telemetry per D2; server stores for offline analysis.
      */
-    private async enrollFaceMulti(
-        userId: string,
-        images: string[],
-        tenantId?: string,
-        clientEmbeddings?: (number[] | null)[],
-    ): Promise<EnrollmentResult> {
+    private async enrollFaceMulti(userId: string, images: string[]): Promise<EnrollmentResult> {
         const formData = new FormData()
-        formData.append('user_id', userId)
-        if (tenantId) formData.append('tenant_id', tenantId)
-
         for (let i = 0; i < images.length; i++) {
             const blob = this.base64ToBlob(images[i])
+            // identity-core-api `enrollFaceMulti` expects field name `files`.
             formData.append('files', blob, `face_${i}.jpg`)
         }
 
-        // Attach client embeddings if at least one is non-null (server ignores unknown fields)
-        if (clientEmbeddings && clientEmbeddings.some(Boolean)) {
-            formData.append('client_embeddings', JSON.stringify(clientEmbeddings))
-        }
+        const response = await this.client.post(
+            `/biometric/enroll/multi/${encodeURIComponent(userId)}`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } },
+        )
 
-        const response = await this.client.post('/enroll/multi', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        })
-
+        // Multi-enroll returns the raw biometric-processor payload — preserve the
+        // legacy `fused_quality_score` mapping where available.
+        const fusedQuality = response.data?.fused_quality_score
         return {
             success: true,
             userId,
-            confidence: response.data.fused_quality_score != null ? response.data.fused_quality_score / 100 : 1.0,
-            message: response.data.message ?? 'Face enrolled successfully',
+            confidence: typeof fusedQuality === 'number' ? fusedQuality / 100 : 1.0,
+            message: response.data?.message ?? 'Face enrolled successfully',
         }
     }
 
@@ -184,43 +193,51 @@ export class BiometricService {
     }
 
     /**
-     * Verify a face against an enrolled user (1:1)
+     * Verify a face against an enrolled user (1:1).
+     * `tenantId` retained for caller compat; backend proxy uses the authenticated
+     * user's tenant context.
      */
-    async verifyFace(userId: string, imageBase64: string, tenantId?: string): Promise<VerificationResult> {
+    async verifyFace(userId: string, imageBase64: string, _tenantId?: string): Promise<VerificationResult> {
         const blob = this.base64ToBlob(imageBase64)
         const formData = new FormData()
-        formData.append('file', blob, 'face.jpg')
-        formData.append('user_id', userId)
-        if (tenantId) formData.append('tenant_id', tenantId)
+        // identity-core-api `verifyFace` expects field name `image`.
+        formData.append('image', blob, 'face.jpg')
 
-        const response = await this.client.post('/verify', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        const response = await this.client.post(
+            `/biometric/verify/${encodeURIComponent(userId)}`,
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } },
+        )
 
         return {
             verified: response.data.verified ?? false,
             confidence: response.data.confidence ?? 0,
+            // Proxy's BiometricVerificationResponse does not currently surface
+            // distance/threshold; default to safe sentinels.
             distance: response.data.distance ?? 1,
             threshold: response.data.threshold ?? 0.4,
-            message: response.data.verified ? 'Face verified' : 'Face not recognized',
+            message: response.data.message ?? (response.data.verified ? 'Face verified' : 'Face not recognized'),
         }
     }
 
     /**
-     * Search for a face in the database (1:N identification)
+     * Search for a face in the database (1:N identification).
+     * Requires an authenticated session — backend mirror endpoint is gated on
+     * `isAuthenticated()`. Pre-auth callers will receive 401.
      */
-    async searchFace(imageBase64: string, tenantId?: string, maxResults = 5): Promise<SearchResult> {
+    async searchFace(imageBase64: string, _tenantId?: string, _maxResults = 5): Promise<SearchResult> {
         const blob = this.base64ToBlob(imageBase64)
         const formData = new FormData()
+        // identity-core-api `searchFace` expects field name `file`.
         formData.append('file', blob, 'face.jpg')
-        formData.append('max_results', String(maxResults))
-        if (tenantId) formData.append('tenant_id', tenantId)
 
-        const response = await this.client.post('/search', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        })
+        const response = await this.client.post(
+            '/biometric/search',
+            formData,
+            { headers: { 'Content-Type': 'multipart/form-data' } },
+        )
 
-        // Backend returns "matches" (not "results")
+        // Backend proxies the biometric-processor payload through unchanged.
         const matches = response.data.matches ?? response.data.results ?? []
         return {
             found: matches.length > 0 || response.data.found === true,
@@ -236,30 +253,21 @@ export class BiometricService {
     }
 
     /**
-     * Check liveness / anti-spoofing
+     * Liveness check — NOT exposed by identity-core-api as a dedicated mirror endpoint
+     * (liveness is now bundled into /enroll and /verify on the biometric processor
+     * via `LIVENESS_MODE=passive`). Retained for caller-API compatibility; throws
+     * to make accidental usage visible.
      */
-    async checkLiveness(imageBase64: string): Promise<LivenessResult> {
-        const blob = this.base64ToBlob(imageBase64)
-        const formData = new FormData()
-        formData.append('file', blob, 'face.jpg')
-
-        const response = await this.client.post('/liveness', formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
-        })
-
-        return {
-            isReal: response.data.is_real ?? response.data.isReal ?? false,
-            confidence: response.data.confidence ?? 0,
-            spoofType: response.data.spoof_type,
-        }
+    async checkLiveness(_imageBase64: string): Promise<LivenessResult> {
+        throw new Error('checkLiveness is no longer exposed as a standalone call — liveness is enforced server-side inside /enroll and /verify.')
     }
 
     /**
-     * Check if the biometric API is reachable
+     * Check if the biometric API is reachable (via proxy).
      */
     async healthCheck(): Promise<boolean> {
         try {
-            await this.client.get('/health')
+            await this.client.get('/biometric/health')
             return true
         } catch {
             return false

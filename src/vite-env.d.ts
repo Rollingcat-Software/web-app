@@ -13,7 +13,6 @@ interface ImportMetaEnv {
     readonly VITE_TOKEN_STORAGE: 'localStorage' | 'cookie'
     readonly VITE_SESSION_TIMEOUT: string
     readonly VITE_DEV_SERVER_PORT: string
-    readonly VITE_BIOMETRIC_API_URL: string
     readonly VITE_ENABLE_NOTIFICATIONS: string
     readonly VITE_ENABLE_WEBSOCKET: string
     readonly VITE_LOG_LEVEL: 'debug' | 'info' | 'warn' | 'error'

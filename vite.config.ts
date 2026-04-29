@@ -71,8 +71,11 @@ function cspPlugin(): Plugin {
             const scriptSrc = isProduction
                 ? "script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net"
                 : "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net"
+            // Sec-P0b 2026-04-29: bio.fivucsas.com removed from connect-src.
+            // The browser must never reach the biometric processor directly;
+            // identity-core-api proxies all biometric calls.
             const connectSrc = isProduction
-                ? "connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev"
+                ? "connect-src 'self' https://api.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev"
                 : "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*"
 
             // Note: frame-ancestors is NOT included in meta tag because browsers ignore it there

@@ -30,11 +30,12 @@ jobs:
       - run: npm ci
 
       - name: Write production env
+        # NOTE (Sec-P0b 2026-04-29): VITE_BIOMETRIC_API_URL/KEY removed.
+        # All biometric calls now route through identity-core-api at
+        # api.fivucsas.com; the X-API-Key is held server-side only.
         run: |
           cat > .env.production << 'EOF'
           VITE_API_BASE_URL=https://api.fivucsas.com/api/v1
-          VITE_BIOMETRIC_API_URL=https://bio.fivucsas.com/api/v1
-          VITE_BIOMETRIC_API_KEY=${{ secrets.BIOMETRIC_API_KEY }}
           VITE_API_TIMEOUT=30000
           VITE_APP_NAME=FIVUCSAS Admin
           VITE_APP_VERSION=1.0.0
