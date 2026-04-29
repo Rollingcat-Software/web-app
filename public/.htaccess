@@ -54,12 +54,12 @@ RewriteRule . /index.html [L]
     # never load biometric WASM — reported as:
     #   "WebAssembly.instantiate(): ... 'unsafe-eval' is not an allowed source"
     # Unify with the biometric routes below.
-    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
 
     # Biometric / verification / enrollment routes need 'unsafe-eval' +
     # 'wasm-unsafe-eval' for onnxruntime-web and @tensorflow/tfjs.
     <If "%{REQUEST_URI} =~ m#^/(verify|enroll|biometric)#">
-        Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
+        Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'self' https://*.fivucsas.com; base-uri 'self'; form-action 'self';"
     </If>
 
     # Hosted login (/login): runs the full MFA flow including face capture
@@ -67,7 +67,7 @@ RewriteRule . /index.html [L]
     # and 'wasm-unsafe-eval'. frame-ancestors stays 'none' — top-level OIDC
     # sign-in page must never be framable (clickjacking defense).
     <If "%{REQUEST_URI} =~ m#^/login#">
-        Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://bio.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
+        Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-eval' 'wasm-unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https:; connect-src 'self' https://api.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev; media-src 'self' blob:; worker-src 'self' blob:; frame-ancestors 'none'; base-uri 'self'; form-action 'self';"
     </If>
 
     # X-Frame-Options removed: CSP frame-ancestors supersedes it and supports wildcard subdomains
