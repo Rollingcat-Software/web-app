@@ -116,6 +116,14 @@ export default defineConfig(({ mode }) => ({
             },
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+                // SPA fallback — every navigation request resolves to the
+                // freshly precached index.html so the worker never serves a
+                // stale shell referencing chunks Hostinger no longer hosts.
+                // Edge-P2 #9 (AUDIT_2026-04-28).
+                navigateFallback: '/index.html',
+                // Discard precache entries from prior builds when the new
+                // worker activates, preventing "old chunk 404" tombstones.
+                cleanupOutdatedCaches: true,
                 runtimeCaching: [
                     {
                         urlPattern: /^https:\/\/api\.fivucsas\.com\/.*/i,
