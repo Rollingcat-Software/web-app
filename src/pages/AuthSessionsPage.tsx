@@ -29,6 +29,7 @@ import {
 } from '@mui/material'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { PageTransition } from '@components/animations'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useAuthSessionsList } from '@features/auth/hooks/useAuthSessionsList'
@@ -162,7 +163,7 @@ export default function AuthSessionsPage() {
 
                 {error && (
                     <Alert severity="error" sx={{ mb: 3 }}>
-                        {error.message}
+                        {formatApiError(error, t)}
                     </Alert>
                 )}
 

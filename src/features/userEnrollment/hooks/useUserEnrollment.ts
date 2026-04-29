@@ -1,10 +1,12 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IUserEnrollmentService } from '@domain/interfaces/IUserEnrollmentService'
 import type { IdInfoData, UserEnrollmentStatusResponse } from '@domain/models/UserEnrollment'
 import { UserEnrollmentStatus } from '@domain/models/UserEnrollment'
 import type { ErrorHandler } from '@core/errors/ErrorHandler'
+import { formatApiError } from '@utils/formatApiError'
 
 export enum EnrollmentStep {
     ID_INFO = 0,
@@ -39,6 +41,7 @@ interface UseUserEnrollmentReturn {
 export function useUserEnrollment(): UseUserEnrollmentReturn {
     const service = useService<IUserEnrollmentService>(TYPES.UserEnrollmentService)
     const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
+    const { t } = useTranslation()
 
     const [currentStep, setCurrentStep] = useState<EnrollmentStep>(EnrollmentStep.ID_INFO)
     const [idInfo, setIdInfoState] = useState<IdInfoData | null>(null)
@@ -127,12 +130,11 @@ export function useUserEnrollment(): UseUserEnrollmentReturn {
             setEnrollmentStatus(result)
             setCurrentStep(EnrollmentStep.COMPLETE)
         } catch (err) {
-            // eslint-disable-next-line no-restricted-syntax -- hook surface; caller wraps with formatApiError + i18n where displayed
-            const message = err instanceof Error ? err.message : 'Failed to submit enrollment'
+            const message = formatApiError(err, t)
             if (phaseRef.current === 'processing_biometrics') {
-                setError(`Biometric processing failed: ${message}`)
+                setError(`${t('errors.biometricProcessingFailed')}: ${message}`)
             } else {
-                setError(`Enrollment sync failed: ${message}`)
+                setError(`${t('errors.enrollmentSyncFailed')}: ${message}`)
             }
             errorHandler.handle(err)
         } finally {
@@ -140,7 +142,7 @@ export function useUserEnrollment(): UseUserEnrollmentReturn {
             setSubmittingPhase(null)
             phaseRef.current = null
         }
-    }, [service, errorHandler])
+    }, [service, errorHandler, t])
 
     const refreshStatus = useCallback(async () => {
         try {

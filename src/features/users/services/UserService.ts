@@ -5,7 +5,7 @@ import type { IUserRepository, CreateUserData, UpdateUserData } from '@domain/in
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { PaginatedResult } from '@domain/interfaces/IRepository'
 import { User, UserStatus } from '@domain/models/User'
-import { ValidationError, NotFoundError, ConflictError, BusinessError } from '@core/errors'
+import { NotFoundError, ConflictError, BusinessError } from '@core/errors'
 import { validateCreateUser, validateUpdateUser } from '@domain/validators/userValidator'
 
 /**
@@ -67,15 +67,13 @@ export class UserService implements IUserService {
      * Create new user
      */
     async createUser(data: CreateUserData): Promise<User> {
-        // Validate input
+        // Validate input — re-throw the raw ZodError so consumers can render
+        // localized field-level messages via formatApiError(err, t). We
+        // intentionally do not extract `err.message` here (those Zod default
+        // messages are English-only and would leak to the UI).
         const validation = validateCreateUser(data)
         if (!validation.success) {
-            const validationErrors = validation.error.errors.map((err) => ({
-                field: err.path.join('.'),
-                // eslint-disable-next-line no-restricted-syntax -- ZodIssue.message, not a runtime Error
-                message: err.message,
-            }))
-            throw new ValidationError('Invalid user data', validationErrors)
+            throw validation.error
         }
 
         // Check if email already exists
@@ -103,15 +101,12 @@ export class UserService implements IUserService {
      * Update user
      */
     async updateUser(id: string, data: UpdateUserData): Promise<User> {
-        // Validate input
+        // Validate input — re-throw the raw ZodError so consumers can render
+        // localized field-level messages via formatApiError(err, t). See
+        // createUser() for rationale.
         const validation = validateUpdateUser(data)
         if (!validation.success) {
-            const validationErrors = validation.error.errors.map((err) => ({
-                field: err.path.join('.'),
-                // eslint-disable-next-line no-restricted-syntax -- ZodIssue.message, not a runtime Error
-                message: err.message,
-            }))
-            throw new ValidationError('Invalid user data', validationErrors)
+            throw validation.error
         }
 
         // Check if user exists

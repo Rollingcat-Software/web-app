@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import { AuthSessionRepository, type UserSessionResponse } from '@core/repositories/AuthSessionRepository'
 import type { ErrorHandler } from '@core/errors'
+import { formatApiError } from '@utils/formatApiError'
 import { jwtDecode } from 'jwt-decode'
 
 /**
@@ -47,6 +49,7 @@ function getTokenJti(): string | undefined {
 export function useSessions(): UseSessionsReturn {
     const sessionRepo = useService<AuthSessionRepository>(TYPES.AuthSessionRepository)
     const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
+    const { t } = useTranslation()
 
     const [state, setState] = useState<SessionsState>({
         sessions: [],
@@ -71,11 +74,11 @@ export function useSessions(): UseSessionsReturn {
             setState((prev) => ({
                 ...prev,
                 loading: false,
-                error: error instanceof Error ? error.message : 'Failed to load sessions',
+                error: formatApiError(error, t) || t('errors.failedToLoadSessions'),
             }))
             errorHandler.handle(error)
         }
-    }, [sessionRepo, errorHandler, currentTokenId])
+    }, [sessionRepo, errorHandler, currentTokenId, t])
 
     useEffect(() => {
         fetchSessions()

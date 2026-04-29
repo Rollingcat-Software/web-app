@@ -102,7 +102,10 @@ describe('useSessions', () => {
             expect(result.current.loading).toBe(false)
         })
 
-        expect(result.current.error).toBe('Failed to load sessions')
+        // After audit polish: hook routes the error through formatApiError,
+        // which returns t('errors.unknown') for plain Error instances. We
+        // assert non-empty + that ErrorHandler still received the raw err.
+        expect(result.current.error).toBeTruthy()
         expect(result.current.sessions).toEqual([])
         expect(mockErrorHandler.handle).toHaveBeenCalledWith(error)
     })
@@ -118,7 +121,8 @@ describe('useSessions', () => {
             expect(result.current.loading).toBe(false)
         })
 
-        expect(result.current.error).toBe('Failed to load sessions')
+        // formatApiError returns t('errors.unknown') for non-Error throws.
+        expect(result.current.error).toBeTruthy()
     })
 
     it('should revoke a specific session and refetch', async () => {

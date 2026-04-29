@@ -142,7 +142,7 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
         try {
             const response = await httpClient.post<TotpVerifyResponse>(`/totp/verify-setup/${userId}`, { code })
             if (!response.data.success) {
-                setError(response.data.message || 'Invalid verification code')
+                setError(response.data.message || t('auth.totp.error.invalidCode'))
                 return
             }
 
@@ -162,9 +162,7 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
     const handleDisable = useCallback(async () => {
         if (!userId) return
 
-        const confirmed = window.confirm(
-            'Are you sure you want to disable TOTP? You will no longer need a code from your authenticator app to log in.',
-        )
+        const confirmed = window.confirm(t('auth.totp.disableConfirm'))
         if (!confirmed) return
 
         setDisableLoading(true)
@@ -303,7 +301,7 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
                                         >
                                             <img
                                                 src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`}
-                                                alt="TOTP QR Code"
+                                                alt={t('auth.totp.qrAltText')}
                                                 width={200}
                                                 height={200}
                                             />

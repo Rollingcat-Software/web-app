@@ -1,4 +1,6 @@
 import { useState, useCallback, useRef } from 'react'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 import { cropFaceToDataURL } from '../utils/faceCropper'
 
 /**
@@ -179,6 +181,7 @@ function detectAction(action: string, landmarks: Landmark[]): boolean {
  * 5. Compute hybrid score (client 40% + server 60%)
  */
 export function useLivenessPuzzle() {
+    const { t } = useTranslation()
     const [state, setState] = useState<LivenessPuzzleState>({
         status: 'idle',
         currentStepIndex: -1,
@@ -537,11 +540,10 @@ export function useLivenessPuzzle() {
             setState(prev => ({
                 ...prev,
                 status: 'error',
-                // eslint-disable-next-line no-restricted-syntax -- hook stores raw message for caller; caller is responsible for formatApiError display
-                message: err instanceof Error ? err.message : 'Liveness puzzle error',
+                message: formatApiError(err, t) || t('errors.livenessPuzzleError'),
             }))
         }
-    }, [waitForAction, captureFrame])
+    }, [waitForAction, captureFrame, t])
 
     const cancelPuzzle = useCallback(() => {
         abortRef.current = true

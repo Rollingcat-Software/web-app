@@ -4,7 +4,8 @@ import type { IUserRepository, CreateUserData, UpdateUserData } from '@domain/in
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { PaginatedResult } from '@domain/interfaces/IRepository'
 import { User, UserRole, UserStatus } from '@domain/models/User'
-import { ValidationError, NotFoundError, ConflictError, BusinessError } from '@core/errors'
+import { NotFoundError, ConflictError, BusinessError } from '@core/errors'
+import { ZodError } from 'zod'
 import type { UserFilters } from '@domain/interfaces/IUserService'
 
 describe('UserService', () => {
@@ -197,7 +198,7 @@ describe('UserService', () => {
             }
 
             // Act & Assert
-            await expect(userService.createUser(invalidData)).rejects.toThrow(ValidationError)
+            await expect(userService.createUser(invalidData)).rejects.toThrow(ZodError)
             expect(mockUserRepository.findByEmail).not.toHaveBeenCalled()
             expect(mockUserRepository.create).not.toHaveBeenCalled()
         })
@@ -211,7 +212,7 @@ describe('UserService', () => {
             } as CreateUserData
 
             // Act & Assert
-            await expect(userService.createUser(invalidData)).rejects.toThrow(ValidationError)
+            await expect(userService.createUser(invalidData)).rejects.toThrow(ZodError)
             expect(mockUserRepository.create).not.toHaveBeenCalled()
         })
 
@@ -223,7 +224,7 @@ describe('UserService', () => {
             }
 
             // Act & Assert
-            await expect(userService.createUser(invalidData)).rejects.toThrow(ValidationError)
+            await expect(userService.createUser(invalidData)).rejects.toThrow(ZodError)
             expect(mockUserRepository.create).not.toHaveBeenCalled()
         })
 
@@ -292,7 +293,7 @@ describe('UserService', () => {
             }
 
             // Act & Assert
-            await expect(userService.updateUser('1', invalidData)).rejects.toThrow(ValidationError)
+            await expect(userService.updateUser('1', invalidData)).rejects.toThrow(ZodError)
             expect(mockUserRepository.findById).not.toHaveBeenCalled()
         })
 

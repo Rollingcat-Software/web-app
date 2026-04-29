@@ -423,8 +423,11 @@
     "totp": {
       "error": {
         "userIdRequired": "TOTP kurulumu için kullanıcı kimliği gerekli",
-        "userIdRequiredVerify": "TOTP doğrulaması için kullanıcı kimliği gerekli"
-      }
+        "userIdRequiredVerify": "TOTP doğrulaması için kullanıcı kimliği gerekli",
+        "invalidCode": "Geçersiz doğrulama kodu"
+      },
+      "disableConfirm": "TOTP'yi devre dışı bırakmak istediğinize emin misiniz? Giriş yaparken artık kimlik doğrulayıcı uygulamanızdan kod girmeniz gerekmeyecek.",
+      "qrAltText": "TOTP QR Kodu"
     }
   },
   "users": {
@@ -1493,7 +1496,13 @@
     "unknown": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
     "failedToLoad": "Veriler yüklenemedi. Lütfen tekrar deneyin.",
     "rateLimitExceeded": "Çok fazla istek. Lütfen tekrar denemeden önce biraz bekleyin.",
-    "unknownError": "Bir şeyler ters gitti. Lütfen tekrar deneyin."
+    "unknownError": "Bir şeyler ters gitti. Lütfen tekrar deneyin.",
+    "failedToSubmitEnrollment": "Kayıt gönderilemedi",
+    "livenessPuzzleError": "Canlılık bulmacası hatası",
+    "bankEnrollmentError": "Banka kaydı hatası",
+    "failedToLoadSessions": "Oturumlar yüklenemedi",
+    "biometricProcessingFailed": "Biyometrik işleme başarısız",
+    "enrollmentSyncFailed": "Kayıt senkronizasyonu başarısız"
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "E-posta veya parola eşleşmedi. Lütfen tekrar deneyin.",
@@ -1690,95 +1699,118 @@
     "puzzles": {
       "face_blink": {
         "title": "Göz Kırp",
-        "description": "Her iki gözünüzü bir anlığına kapatıp tekrar açın. Dedektör, kareler boyunca göz en-boy oranını izler."
+        "description": "Her iki gözünüzü bir anlığına kapatıp tekrar açın. Dedektör, kareler boyunca göz en-boy oranını izler.",
+        "hint": "Yüzünüzü çerçeveye ortalayın, sonra bir kez bilinçli olarak göz kırpın."
       },
       "face_close_left": {
         "title": "Sol Gözü Kapat",
-        "description": "Sağ gözü açık tutarken sol gözünüzü kapatın. Asimetrik göz kapağı kontrolünü test eder."
+        "description": "Sağ gözü açık tutarken sol gözünüzü kapatın. Asimetrik göz kapağı kontrolünü test eder.",
+        "hint": "Doğrudan kameraya bakın ve yalnızca sol gözünüzü kapatın — sağ gözünüz açık kalsın."
       },
       "face_close_right": {
         "title": "Sağ Gözü Kapat",
-        "description": "Sol gözü açık tutarken sağ gözünüzü kapatın. Asimetrik göz kapağı kontrolünü test eder."
+        "description": "Sol gözü açık tutarken sağ gözünüzü kapatın. Asimetrik göz kapağı kontrolünü test eder.",
+        "hint": "Doğrudan kameraya bakın ve yalnızca sağ gözünüzü kapatın — sol gözünüz açık kalsın."
       },
       "face_smile": {
         "title": "Geniş Gülümse",
-        "description": "Geniş bir şekilde gülümseyin (dişler görünüyorsa daha iyi). Dudak köşesi açıklığını ölçer."
+        "description": "Geniş bir şekilde gülümseyin (dişler görünüyorsa daha iyi). Dudak köşesi açıklığını ölçer.",
+        "hint": "Geniş ve içten bir gülümseme en iyisidir — dişler görünsün, ağız kenarları yukarı kalksın."
       },
       "face_open_mouth": {
         "title": "Ağzı Aç",
-        "description": "Ağzınızı geniş bir şekilde açın. Yüz yüksekliğine göre dudak arası mesafeyi ölçer."
+        "description": "Ağzınızı geniş bir şekilde açın. Yüz yüksekliğine göre dudak arası mesafeyi ölçer.",
+        "hint": "\"Aaa\" der gibi ağzınızı açın ve bir an öyle tutun."
       },
       "face_turn_left": {
         "title": "Başı Sola Çevir",
-        "description": "Başınızı solunuza çevirin. İşaret noktalarından baş-poz yaw açısını takip eder."
+        "description": "Başınızı solunuza çevirin. İşaret noktalarından baş-poz yaw açısını takip eder.",
+        "hint": "Burnunuz merkezden yaklaşık 30° sapacak şekilde başınızı yavaşça kendi solunuza çevirin."
       },
       "face_turn_right": {
         "title": "Başı Sağa Çevir",
-        "description": "Başınızı sağınıza çevirin. İşaret noktalarından baş-poz yaw açısını takip eder."
+        "description": "Başınızı sağınıza çevirin. İşaret noktalarından baş-poz yaw açısını takip eder.",
+        "hint": "Burnunuz merkezden yaklaşık 30° sapacak şekilde başınızı yavaşça kendi sağınıza çevirin."
       },
       "face_look_up": {
         "title": "Yukarı Bak",
-        "description": "Çenenizi yukarı kaldırın. İşaret noktalarından baş-poz pitch açısını takip eder."
+        "description": "Çenenizi yukarı kaldırın. İşaret noktalarından baş-poz pitch açısını takip eder.",
+        "hint": "Gözlerinizi kameradan ayırmadan çenenizi hafifçe yukarı kaldırın."
       },
       "face_look_down": {
         "title": "Aşağı Bak",
-        "description": "Çenenizi aşağı indirin. İşaret noktalarından baş-poz pitch açısını takip eder."
+        "description": "Çenenizi aşağı indirin. İşaret noktalarından baş-poz pitch açısını takip eder.",
+        "hint": "Yüzünüz çerçevede kalacak şekilde çenenizi göğsünüze doğru hafifçe eğin."
       },
       "face_raise_both_brows": {
         "title": "Her İki Kaşı Kaldır",
-        "description": "Her iki kaşınızı birlikte kaldırın. Kaş-göz mesafesi değişimini ölçer."
+        "description": "Her iki kaşınızı birlikte kaldırın. Kaş-göz mesafesi değişimini ölçer.",
+        "hint": "Şaşırmış gibi her iki kaşınızı da kaldırın — yaklaşık bir saniye tutun."
       },
       "face_raise_left_brow": {
         "title": "Sol Kaşı Kaldır",
-        "description": "Sadece sol kaşınızı kaldırın. Asimetrik kaş kontrolünü test eder."
+        "description": "Sadece sol kaşınızı kaldırın. Asimetrik kaş kontrolünü test eder.",
+        "hint": "Yalnızca sol kaşınızı kaldırmaya çalışın. Zorlanırsanız önce ikisini kaldırıp sağı indirmek de işe yarar."
       },
       "face_raise_right_brow": {
         "title": "Sağ Kaşı Kaldır",
-        "description": "Sadece sağ kaşınızı kaldırın. Asimetrik kaş kontrolünü test eder."
+        "description": "Sadece sağ kaşınızı kaldırın. Asimetrik kaş kontrolünü test eder.",
+        "hint": "Yalnızca sağ kaşınızı kaldırmaya çalışın. Zorlanırsanız önce ikisini kaldırıp solu indirmek de işe yarar."
       },
       "face_nod": {
         "title": "Başı Salla (Evet)",
-        "description": "Başınızı yukarı-aşağı sallayın. Kısa bir pencerede pitch hareketini izler."
+        "description": "Başınızı yukarı-aşağı sallayın. Kısa bir pencerede pitch hareketini izler.",
+        "hint": "\"Evet\" der gibi başınızı sallayın — çene yukarı, aşağı ve tekrar yukarı. İki net hareket yeterlidir."
       },
       "face_shake_head": {
         "title": "Başı Salla (Hayır)",
-        "description": "Başınızı sağa-sola sallayın. Kısa bir pencerede yaw hareketini izler."
+        "description": "Başınızı sağa-sola sallayın. Kısa bir pencerede yaw hareketini izler.",
+        "hint": "\"Hayır\" der gibi başınızı sallayın — sola, sonra sağa ve tekrar ortaya. Yavaş yapın."
       },
       "hand_finger_count": {
         "title": "Parmak Say",
-        "description": "İstenen sayıda parmağı kaldırın. Canlı el görünürlüğünü ve MCP/PIP eklem tespitini test eder."
+        "description": "İstenen sayıda parmağı kaldırın. Canlı el görünürlüğünü ve MCP/PIP eklem tespitini test eder.",
+        "hint": "Avuç içiniz kameraya dönük olacak şekilde tam olarak istenen sayıda parmağı açık tutun. Diğerleri kapalı kalsın."
       },
       "hand_wave": {
         "title": "El Salla",
-        "description": "Elinizi kameranın önünde yana yana sallayın. El merkezi yatay salınımını algılar."
+        "description": "Elinizi kameranın önünde yana yana sallayın. El merkezi yatay salınımını algılar.",
+        "hint": "Açık avucunuzu sola-sağa-sola birkaç kez sallayın — samimi bir merhaba gibi."
       },
       "hand_flip": {
         "title": "Avuç Çevir",
-        "description": "Avucunuzu gösterin, sonra elin arkasına çevirin. Bilek rotasyonunu ve işaret noktası yönünü test eder."
+        "description": "Avucunuzu gösterin, sonra elin arkasına çevirin. Bilek rotasyonunu ve işaret noktası yönünü test eder.",
+        "hint": "Avuç içiniz kameraya dönük olarak başlayın, sonra bileğinizi çevirin ve elinizin tersini kameraya gösterin."
       },
       "hand_finger_tap": {
         "title": "Parmak Tıklama",
-        "description": "Baş parmağınızı ve işaret parmağınızı birkaç kez birbirine değdirin. Baş parmak ucu ile işaret parmağı ucu arasındaki mesafeyi ölçer."
+        "description": "Baş parmağınızı ve işaret parmağınızı birkaç kez birbirine değdirin. Baş parmak ucu ile işaret parmağı ucu arasındaki mesafeyi ölçer.",
+        "hint": "Baş parmağınızın ucunu işaret parmağınızın ucuna değdirin, ayırın ve tekrarlayın — küçük bir çimdik hareketi gibi."
       },
       "hand_pinch": {
         "title": "Sıkıştır",
-        "description": "Baş parmağı ve işaret parmağını sıkıştırıp tutun. Sürekli sıkıştırma mesafesi tespiti."
+        "description": "Baş parmağı ve işaret parmağını sıkıştırıp tutun. Sürekli sıkıştırma mesafesi tespiti.",
+        "hint": "Baş parmağınız ile işaret parmağınızın uçlarını değene kadar yaklaştırın — ve öyle tutun."
       },
       "hand_peek_a_boo": {
         "title": "Ce-e",
-        "description": "Gözlerinizi avucunuzla kapatın, sonra yüzünüzü gösterin. Yüz kapatma ve el varlığı sinyallerini birleştirir."
+        "description": "Gözlerinizi avucunuzla kapatın, sonra yüzünüzü gösterin. Yüz kapatma ve el varlığı sinyallerini birleştirir.",
+        "hint": "Açık avuç içinizle gözlerinizi bir an kapatın, sonra elinizi çekip yüzünüzü tekrar gösterin."
       },
       "hand_shape_trace": {
         "title": "Şekil Çiz",
-        "description": "Gösterilen şekli (daire, kare, üçgen) işaret parmağınızla havada çizin."
+        "description": "Gösterilen şekli (daire, kare, üçgen) işaret parmağınızla havada çizin.",
+        "hint": "Yalnızca işaret parmağınızın ucunu kullanarak istenen şekli havada net biçimde çizin."
       },
       "hand_trace_template": {
         "title": "Şablon Çiz",
-        "description": "Özel bir yol şablonunu parmak ucuyla çizin. Kiracıya özel hareket görevleri için kullanılır."
+        "description": "Özel bir yol şablonunu parmak ucuyla çizin. Kiracıya özel hareket görevleri için kullanılır.",
+        "hint": "İşaret parmağınızın ucuyla ekrandaki yolu akıcı bir hareketle takip edin."
       },
       "hand_math": {
         "title": "Parmak Matematiği",
-        "description": "Küçük bir aritmetik sorunun cevabını (örneğin 2+3) parmak kaldırarak gösterin."
+        "description": "Küçük bir aritmetik sorunun cevabını (örneğin 2+3) parmak kaldırarak gösterin.",
+        "hint": "İşlemi zihninizde çözün, ardından sonucu kadar parmağınızı kaldırın — avuç içiniz kameraya dönük olsun."
       }
     }
   },
@@ -1886,5 +1918,38 @@
       "ready": "Bunu kendi ürününde de kullanmaya hazır mısın?",
       "cta": "Developer Portal’ı Aç"
     }
+  },
+  "pageTitles": {
+    "dashboard": "Kontrol Paneli",
+    "users": "Kullanıcılar",
+    "tenants": "Kiracılar",
+    "roles": "Roller",
+    "authFlows": "Kimlik Doğrulama Akışları",
+    "authSessions": "Kimlik Doğrulama Oturumları",
+    "devices": "Cihazlar",
+    "enrollments": "Kayıtlar",
+    "userEnrollment": "Kimlik Kaydı",
+    "enrollment": "Biyometrik Kayıt",
+    "biometricTools": "Biyometrik Araçlar",
+    "biometricPuzzles": "Biyometrik Bulmacalar",
+    "authMethodsTesting": "Kimlik Doğrulama Yöntemleri Testi",
+    "widgetDemo": "Kimlik Doğrulama Bileşeni",
+    "widgetAuth": "Bileşen Kimlik Doğrulaması",
+    "developerPortal": "Geliştirici Portalı",
+    "verificationFlows": "Doğrulama Akışları",
+    "verificationDashboard": "Doğrulama Panosu",
+    "verificationSessions": "Doğrulama Oturumu",
+    "auditLogs": "Denetim Kayıtları",
+    "analytics": "Analitik",
+    "guests": "Misafirler",
+    "settings": "Ayarlar",
+    "myProfile": "Profilim",
+    "login": "Giriş Yap",
+    "register": "Hesap Oluştur",
+    "forgotPassword": "Şifremi Unuttum",
+    "resetPassword": "Şifre Sıfırla",
+    "terms": "Kullanım Şartları",
+    "privacy": "Gizlilik Politikası",
+    "default": "FIVUCSAS"
   }
 }

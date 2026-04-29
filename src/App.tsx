@@ -12,47 +12,60 @@ import {
     PLATFORM_OWNER_ROLES,
 } from './config/sidebarPermissions'
 
-const PAGE_TITLES: Record<string, string> = {
-    '/': 'Dashboard — FIVUCSAS',
-    '/users': 'Users — FIVUCSAS',
-    '/tenants': 'Tenants — FIVUCSAS',
-    '/roles': 'Roles — FIVUCSAS',
-    '/auth-flows': 'Auth Flows — FIVUCSAS',
-    '/auth-sessions': 'Auth Sessions — FIVUCSAS',
-    '/devices': 'Devices — FIVUCSAS',
-    '/enrollments': 'Enrollments — FIVUCSAS',
-    '/user-enrollment': 'Identity Enrollment — FIVUCSAS',
-    '/enrollment': 'Biometric Enrollment — FIVUCSAS',
-    '/biometric-tools': 'Biometric Tools — FIVUCSAS',
-    '/biometric-puzzles': 'Biometric Puzzles — FIVUCSAS',
-    '/auth-methods-testing': 'Auth Methods Testing — FIVUCSAS',
-    '/widget-demo': 'Auth Widget — FIVUCSAS',
-    '/widget-auth': 'Widget Auth — FIVUCSAS',
-    '/developer-portal': 'Developer Portal — FIVUCSAS',
-    '/verification-flows': 'Verification Flows — FIVUCSAS',
-    '/verification-dashboard': 'Verification Dashboard — FIVUCSAS',
-    '/verification-sessions': 'Verification Session — FIVUCSAS',
-    '/audit-logs': 'Audit Logs — FIVUCSAS',
-    '/analytics': 'Analytics — FIVUCSAS',
-    '/guests': 'Guests — FIVUCSAS',
-    '/settings': 'Settings — FIVUCSAS',
-    '/my-profile': 'My Profile — FIVUCSAS',
-    '/login': 'Sign In — FIVUCSAS',
-    '/register': 'Create Account — FIVUCSAS',
-    '/forgot-password': 'Forgot Password — FIVUCSAS',
-    '/reset-password': 'Reset Password — FIVUCSAS',
-    '/terms': 'Terms of Service — FIVUCSAS',
-    '/privacy': 'Privacy Policy — FIVUCSAS',
+/**
+ * Map of route prefix → i18n key under `pageTitles.*`.
+ *
+ * `document.title` is composed as `t('pageTitles.<key>') + ' — FIVUCSAS'`
+ * so it stays localized when the user toggles language. Adding a new
+ * route? Add it here AND in en.json/tr.json under `pageTitles`.
+ */
+const PAGE_TITLE_KEYS: Record<string, string> = {
+    '/': 'dashboard',
+    '/users': 'users',
+    '/tenants': 'tenants',
+    '/roles': 'roles',
+    '/auth-flows': 'authFlows',
+    '/auth-sessions': 'authSessions',
+    '/devices': 'devices',
+    '/enrollments': 'enrollments',
+    '/user-enrollment': 'userEnrollment',
+    '/enrollment': 'enrollment',
+    '/biometric-tools': 'biometricTools',
+    '/biometric-puzzles': 'biometricPuzzles',
+    '/auth-methods-testing': 'authMethodsTesting',
+    '/widget-demo': 'widgetDemo',
+    '/widget-auth': 'widgetAuth',
+    '/developer-portal': 'developerPortal',
+    '/verification-flows': 'verificationFlows',
+    '/verification-dashboard': 'verificationDashboard',
+    '/verification-sessions': 'verificationSessions',
+    '/audit-logs': 'auditLogs',
+    '/analytics': 'analytics',
+    '/guests': 'guests',
+    '/settings': 'settings',
+    '/my-profile': 'myProfile',
+    '/login': 'login',
+    '/register': 'register',
+    '/forgot-password': 'forgotPassword',
+    '/reset-password': 'resetPassword',
+    '/terms': 'terms',
+    '/privacy': 'privacy',
 }
 
 function PageTitle() {
     const location = useLocation()
-    const { i18n } = useTranslation()
+    const { t, i18n } = useTranslation()
 
     useEffect(() => {
         const base = '/' + location.pathname.split('/').filter(Boolean)[0]
-        document.title = PAGE_TITLES[base] ?? PAGE_TITLES[location.pathname] ?? 'FIVUCSAS'
-    }, [location.pathname])
+        const key =
+            PAGE_TITLE_KEYS[base] ??
+            PAGE_TITLE_KEYS[location.pathname] ??
+            'default'
+        const title = t(`pageTitles.${key}`)
+        document.title = key === 'default' ? title : `${title} — FIVUCSAS`
+        // i18n.language is included so the title re-renders on locale change
+    }, [location.pathname, t, i18n.language])
 
     // Keep <html lang> in sync with i18next so native date pickers use correct locale
     useEffect(() => {
