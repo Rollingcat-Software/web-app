@@ -5,7 +5,7 @@ import type { IAuthRepository, LoginCredentials } from '@domain/interfaces/IAuth
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import { User } from '@domain/models/User'
-import { ValidationError, UnauthorizedError } from '@core/errors'
+import { UnauthorizedError } from '@core/errors'
 import { validateLoginCredentials } from '@domain/validators/authValidator'
 import i18n from '@/i18n/index'
 
@@ -44,19 +44,14 @@ export class AuthService implements IAuthService {
             this.loginAttempts = 0
         }
 
-        // Validate credentials
+        // Validate credentials — re-throw the raw ZodError so the caller
+        // (LoginPage / hosted login) can render localized field messages via
+        // formatApiError(err, t). We intentionally do not extract
+        // `err.message` (Zod's English defaults would leak to the UI).
         const validation = validateLoginCredentials(credentials)
         if (!validation.success && validation.errors) {
             this.logger.warn('Login validation failed', { errors: validation.errors })
-
-            // Map Zod errors to ValidationErrorItems
-            const validationErrors = validation.errors.errors.map((err) => ({
-                field: err.path.join('.'),
-                // eslint-disable-next-line no-restricted-syntax -- ZodIssue.message, not a runtime Error; consumed by ValidationError model
-                message: err.message,
-            }))
-
-            throw new ValidationError('Invalid credentials', validationErrors)
+            throw validation.errors
         }
 
         try {

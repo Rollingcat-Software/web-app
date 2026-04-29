@@ -4,7 +4,8 @@ import type { IAuthRepository, LoginCredentials, AuthResponse } from '@domain/in
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import { User, UserRole, UserStatus } from '@domain/models/User'
-import { ValidationError, UnauthorizedError } from '@core/errors'
+import { UnauthorizedError } from '@core/errors'
+import { ZodError } from 'zod'
 
 describe('AuthService', () => {
     let authService: AuthService
@@ -100,7 +101,7 @@ describe('AuthService', () => {
             }
 
             // Act & Assert
-            await expect(authService.login(invalidCredentials)).rejects.toThrow(ValidationError)
+            await expect(authService.login(invalidCredentials)).rejects.toThrow(ZodError)
             expect(mockLogger.warn).toHaveBeenCalledWith(
                 'Login validation failed',
                 expect.objectContaining({ errors: expect.any(Object) })
@@ -116,7 +117,7 @@ describe('AuthService', () => {
             }
 
             // Act & Assert
-            await expect(authService.login(invalidCredentials)).rejects.toThrow(ValidationError)
+            await expect(authService.login(invalidCredentials)).rejects.toThrow(ZodError)
             expect(mockAuthRepository.login).not.toHaveBeenCalled()
         })
 
@@ -128,7 +129,7 @@ describe('AuthService', () => {
             }
 
             // Act & Assert
-            await expect(authService.login(invalidCredentials)).rejects.toThrow(ValidationError)
+            await expect(authService.login(invalidCredentials)).rejects.toThrow(ZodError)
             expect(mockAuthRepository.login).not.toHaveBeenCalled()
         })
 
@@ -140,7 +141,7 @@ describe('AuthService', () => {
             }
 
             // Act & Assert
-            await expect(authService.login(invalidCredentials)).rejects.toThrow(ValidationError)
+            await expect(authService.login(invalidCredentials)).rejects.toThrow(ZodError)
             expect(mockAuthRepository.login).not.toHaveBeenCalled()
         })
 
