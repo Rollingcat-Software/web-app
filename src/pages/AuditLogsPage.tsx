@@ -36,9 +36,8 @@ import {
     Warning,
 } from '@mui/icons-material'
 import { useAuditLogs } from '@features/auditLogs'
-import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
-import { dateFnsLocale } from '@utils/dateLocale'
+import { formatLocale } from '@utils/dateLocale'
 import { formatApiError } from '@utils/formatApiError'
 
 function getActionIcon(action: string) {
@@ -240,14 +239,10 @@ export default function AuditLogsPage() {
                                         <TableRow key={log.id} hover>
                                             <TableCell>
                                                 <Typography variant="body2">
-                                                    {new Date(log.createdAt).toLocaleDateString(i18n.language, {
-                                                        year: 'numeric',
-                                                        month: 'short',
-                                                        day: '2-digit',
-                                                    })}
+                                                    {formatLocale(log.createdAt, i18n.language, 'PP')}
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
-                                                    {format(new Date(log.createdAt), 'HH:mm:ss', { locale: dateFnsLocale(i18n.language) })}
+                                                    {formatLocale(log.createdAt, i18n.language, 'pp')}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>

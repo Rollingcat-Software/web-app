@@ -27,9 +27,8 @@ import {
 import {Add, Block, CheckCircle, Delete, Edit, Search, Visibility,} from '@mui/icons-material'
 import {useTenants} from '@features/tenants'
 import {TenantStatus} from '@domain/models/Tenant'
-import {format} from 'date-fns'
 import {Trans, useTranslation} from 'react-i18next'
-import {dateFnsLocale} from '@utils/dateLocale'
+import {formatLocale} from '@utils/dateLocale'
 import {formatApiError} from '@/utils/formatApiError'
 
 function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
@@ -195,7 +194,7 @@ export default function TenantsListPage() {
                                             </Box>
                                         </TableCell>
                                         <TableCell>
-                                            {format(new Date(tenant.createdAt), 'MMM dd, yyyy', {locale: dateFnsLocale(i18n.language)})}
+                                            {formatLocale(tenant.createdAt, i18n.language, 'PP')}
                                         </TableCell>
                                         <TableCell align="right">
                                             <IconButton

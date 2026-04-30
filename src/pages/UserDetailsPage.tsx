@@ -13,9 +13,8 @@ import {
 import { ArrowBack, Edit, Email, Person, Shield, Business, Schedule } from '@mui/icons-material'
 import { useUser } from '@features/users'
 import { UserRole, UserStatus } from '@domain/models/User'
-import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
-import { dateFnsLocale } from '@utils/dateLocale'
+import { formatLocale } from '@utils/dateLocale'
 import { formatApiError } from '@utils/formatApiError'
 
 function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | 'default' {
@@ -217,7 +216,7 @@ export default function UserDetailsPage() {
                                 <DetailRow
                                     icon={<Schedule />}
                                     label="Created"
-                                    value={format(user.createdAt, 'MMM dd, yyyy HH:mm', { locale: dateFnsLocale(i18n.language) })}
+                                    value={formatLocale(user.createdAt, i18n.language, 'PPp')}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -226,7 +225,7 @@ export default function UserDetailsPage() {
                                     label="Last Login"
                                     value={
                                         user.lastLoginAt
-                                            ? format(user.lastLoginAt, 'MMM dd, yyyy HH:mm', { locale: dateFnsLocale(i18n.language) })
+                                            ? formatLocale(user.lastLoginAt, i18n.language, 'PPp')
                                             : 'Never'
                                     }
                                 />
@@ -235,7 +234,7 @@ export default function UserDetailsPage() {
                                 <DetailRow
                                     icon={<Schedule />}
                                     label="Last Updated"
-                                    value={format(user.updatedAt, 'MMM dd, yyyy HH:mm', { locale: dateFnsLocale(i18n.language) })}
+                                    value={formatLocale(user.updatedAt, i18n.language, 'PPp')}
                                 />
                             </Grid>
                         </Grid>

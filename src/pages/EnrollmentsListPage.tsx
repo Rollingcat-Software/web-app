@@ -28,9 +28,8 @@ import {
 import {Autorenew, CheckCircle, Delete, Error, Refresh, Schedule, Search, Visibility,} from '@mui/icons-material'
 import {useEnrollments} from '@features/enrollments'
 import {EnrollmentStatus} from '@domain/models/Enrollment'
-import {format} from 'date-fns'
 import {useTranslation} from 'react-i18next'
-import {dateFnsLocale} from '@utils/dateLocale'
+import {formatLocale} from '@utils/dateLocale'
 import {keyframes} from '@mui/system'
 
 const rotate = keyframes`
@@ -263,11 +262,11 @@ export default function EnrollmentsListPage() {
                                             ) : '-'}
                                         </TableCell>
                                         <TableCell>
-                                            {format(new Date(enrollment.createdAt), 'MMM dd, HH:mm', {locale: dateFnsLocale(i18n.language)})}
+                                            {formatLocale(enrollment.createdAt, i18n.language, 'PPp')}
                                         </TableCell>
                                         <TableCell>
                                             {enrollment.completedAt
-                                                ? format(new Date(enrollment.completedAt), 'MMM dd, HH:mm', {locale: dateFnsLocale(i18n.language)})
+                                                ? formatLocale(enrollment.completedAt, i18n.language, 'PPp')
                                                 : '-'}
                                         </TableCell>
                                         <TableCell align="right">

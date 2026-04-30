@@ -64,7 +64,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
-import { dateFnsLocale } from '@utils/dateLocale'
+import { formatLocale } from '@utils/dateLocale'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -139,7 +139,7 @@ function parseDeviceLabel(raw: string): string {
 function formatDate(dateStr: string | Date | undefined, lang: string): string {
     if (!dateStr) return 'N/A'
     try {
-        return format(new Date(dateStr), 'PPp', { locale: dateFnsLocale(lang) })
+        return formatLocale(dateStr, lang, 'PPp')
     } catch {
         return 'N/A'
     }
@@ -148,7 +148,7 @@ function formatDate(dateStr: string | Date | undefined, lang: string): string {
 function formatDateShort(dateStr: string | Date | undefined, lang: string): string {
     if (!dateStr) return 'N/A'
     try {
-        return format(new Date(dateStr), 'PP', { locale: dateFnsLocale(lang) })
+        return formatLocale(dateStr, lang, 'PP')
     } catch {
         return 'N/A'
     }

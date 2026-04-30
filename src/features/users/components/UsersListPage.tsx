@@ -24,9 +24,8 @@ import { Add, Delete, Edit, Search, Visibility } from '@mui/icons-material'
 import { useUsers } from '../hooks/useUsers'
 import { UserRole, UserStatus } from '@domain/models/User'
 import { ConfirmDialog } from '@components/ConfirmDialog'
-import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
-import { dateFnsLocale } from '@utils/dateLocale'
+import { formatLocale } from '@utils/dateLocale'
 import { formatApiError } from '@utils/formatApiError'
 
 function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | 'default' {
@@ -238,7 +237,7 @@ export default function UsersListPage() {
                                             </TableCell>
                                             <TableCell>
                                                 {user.lastLoginAt
-                                                    ? format(user.lastLoginAt, 'MMM dd, yyyy HH:mm', { locale: dateFnsLocale(i18n.language) })
+                                                    ? formatLocale(user.lastLoginAt, i18n.language, 'PPp')
                                                     : 'Never'}
                                             </TableCell>
                                             <TableCell align="right">
