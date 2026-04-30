@@ -42,6 +42,17 @@ import {
 import { ChallengeType } from '@/lib/biometric-engine/types'
 import type { BiometricPuzzleProps } from '../biometricPuzzleRegistry'
 
+// Lazily import DrawingUtils + FaceLandmarker statics from MediaPipe so the
+// puzzle bundle can render the 468-point mesh + named contours over the
+// camera feed (face oval, eye outlines, eyebrows, lips, iris).
+type DrawingUtilsModule = typeof import('@mediapipe/tasks-vision')
+let _vision: DrawingUtilsModule | null = null
+async function loadVision(): Promise<DrawingUtilsModule> {
+    if (_vision) return _vision
+    _vision = await import('@mediapipe/tasks-vision')
+    return _vision
+}
+
 interface Props extends BiometricPuzzleProps {
     challengeType: ChallengeType
     /** i18n key root (e.g. `biometricPuzzle.puzzles.face_blink`). */
@@ -58,6 +69,12 @@ const ATTEMPT_TIMEOUT_MS = 30_000
 function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
     const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement | null>(null)
+    const canvasRef = useRef<HTMLCanvasElement | null>(null)
+    // Lazy-loaded DrawingUtils instance + FaceLandmarker statics (connection groups).
+    const drawingRef = useRef<{
+        utils: InstanceType<DrawingUtilsModule['DrawingUtils']> | null
+        FaceLandmarker: DrawingUtilsModule['FaceLandmarker'] | null
+    }>({ utils: null, FaceLandmarker: null })
     const streamRef = useRef<MediaStream | null>(null)
     const animFrameRef = useRef<number>(0)
     const startTsRef = useRef<number>(0)
@@ -86,6 +103,103 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
             puzzleEngineRef.current = null
         }
     }, [engine])
+
+    // Lazy-load MediaPipe DrawingUtils + FaceLandmarker statics so we can
+    // render the 468-pt mesh + named contours over the video feed.
+    useEffect(() => {
+        let cancelled = false
+        loadVision().then((vision) => {
+            if (cancelled) return
+            const canvas = canvasRef.current
+            if (!canvas) return
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return
+            drawingRef.current = {
+                utils: new vision.DrawingUtils(ctx),
+                FaceLandmarker: vision.FaceLandmarker,
+            }
+        }).catch(() => {
+            /* DrawingUtils is decorative — silently degrade if it fails to load */
+        })
+        return () => { cancelled = true }
+    }, [cameraActive])
+
+    const clearOverlay = useCallback(() => {
+        const canvas = canvasRef.current
+        const ctx = canvas?.getContext('2d')
+        if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }, [])
+
+    /**
+     * Draw the 468-point face mesh on the overlay canvas using MediaPipe's
+     * DrawingUtils. Mirrors the reference Python `draw_landmarks` palette:
+     * tessellation in faint gray, face oval in cyan, eyes in green,
+     * eyebrows in yellow, lips in orange, iris in pink. Hold-state flips
+     * the oval to bright green so the user gets immediate feedback that
+     * the gesture is registering.
+     */
+    const drawFaceLandmarks = useCallback((
+        rawLandmarks: { x: number; y: number; z: number }[],
+        isHolding: boolean,
+    ) => {
+        // DrawingUtils.drawConnectors only reads x/y/z; cast through unknown
+        // to satisfy MediaPipe's NormalizedLandmark type which also wants
+        // a `visibility` field our internal pipeline doesn't track.
+        const landmarks = rawLandmarks as unknown as
+            import('@mediapipe/tasks-vision').NormalizedLandmark[]
+        const canvas = canvasRef.current
+        const video = videoRef.current
+        const { utils, FaceLandmarker } = drawingRef.current
+        if (!canvas || !video || !utils || !FaceLandmarker) return
+        // Match canvas internal pixel buffer to video natural size so DrawingUtils
+        // (which scales by canvas.width/height) renders at the right resolution.
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth || 640
+            canvas.height = video.videoHeight || 480
+        }
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+        const ovalColor = isHolding ? '#10b981' : '#67e8f9'
+
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_TESSELATION, {
+            color: 'rgba(255, 255, 255, 0.18)',
+            lineWidth: 1,
+        })
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_FACE_OVAL, {
+            color: ovalColor,
+            lineWidth: 2,
+        })
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_EYE, {
+            color: '#34d399',
+            lineWidth: 2,
+        })
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYE, {
+            color: '#34d399',
+            lineWidth: 2,
+        })
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_EYEBROW, {
+            color: '#facc15',
+            lineWidth: 2,
+        })
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_EYEBROW, {
+            color: '#facc15',
+            lineWidth: 2,
+        })
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LIPS, {
+            color: '#fb923c',
+            lineWidth: 2,
+        })
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_LEFT_IRIS, {
+            color: '#f472b6',
+            lineWidth: 2,
+        })
+        utils.drawConnectors(landmarks, FaceLandmarker.FACE_LANDMARKS_RIGHT_IRIS, {
+            color: '#f472b6',
+            lineWidth: 2,
+        })
+    }, [])
 
     const startCamera = useCallback(async () => {
         try {
@@ -173,6 +287,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 const frame = engine.frameProcessor.processFrame(video)
                 const face = frame.faces[0]
                 if (face?.detection.landmarks478?.length && face.headPose) {
+                    drawFaceLandmarks(face.detection.landmarks478, detected)
                     const result = puzzle.checkChallenge(
                         face.detection.landmarks478,
                         face.headPose.yaw,
@@ -187,6 +302,8 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                         onSuccess()
                         return
                     }
+                } else {
+                    clearOverlay()
                 }
             } catch {
                 // Skip frame on detection error.
@@ -202,7 +319,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 animFrameRef.current = 0
             }
         }
-    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t])
+    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 
@@ -300,6 +417,18 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                                     transform: 'scaleX(-1)',
                                 }}
                                 aria-label={t('faceCapture.videoAriaLabel')}
+                            />
+                            <canvas
+                                ref={canvasRef}
+                                aria-hidden
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    pointerEvents: 'none',
+                                    transform: 'scaleX(-1)',
+                                }}
                             />
                             <Box
                                 sx={{

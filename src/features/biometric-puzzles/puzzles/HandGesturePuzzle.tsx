@@ -38,6 +38,16 @@ import {
     type HandPuzzleState,
 } from './handChallenges'
 
+// Lazily import DrawingUtils + HandLandmarker statics so we can render the
+// 21-point hand skeleton (HAND_CONNECTIONS) over the camera feed.
+type DrawingUtilsModule = typeof import('@mediapipe/tasks-vision')
+let _vision: DrawingUtilsModule | null = null
+async function loadVision(): Promise<DrawingUtilsModule> {
+    if (_vision) return _vision
+    _vision = await import('@mediapipe/tasks-vision')
+    return _vision
+}
+
 interface Props extends BiometricPuzzleProps {
     puzzleId: BiometricPuzzleId
     /** i18n key root (e.g. `biometricPuzzle.puzzles.hand_pinch`). */
@@ -52,6 +62,11 @@ const HAND_GLOW = '0 8px 24px rgba(236, 72, 153, 0.25)'
 function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
     const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement | null>(null)
+    const canvasRef = useRef<HTMLCanvasElement | null>(null)
+    const drawingRef = useRef<{
+        utils: InstanceType<DrawingUtilsModule['DrawingUtils']> | null
+        HandLandmarker: DrawingUtilsModule['HandLandmarker'] | null
+    }>({ utils: null, HandLandmarker: null })
     const streamRef = useRef<MediaStream | null>(null)
     const animFrameRef = useRef<number>(0)
     const startTsRef = useRef<number>(0)
@@ -106,6 +121,71 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
     }, [])
 
     useEffect(() => () => stopCamera(), [stopCamera])
+
+    // Lazy-load DrawingUtils once the canvas is mounted (camera active).
+    useEffect(() => {
+        let cancelled = false
+        loadVision().then((vision) => {
+            if (cancelled) return
+            const canvas = canvasRef.current
+            if (!canvas) return
+            const ctx = canvas.getContext('2d')
+            if (!ctx) return
+            drawingRef.current = {
+                utils: new vision.DrawingUtils(ctx),
+                HandLandmarker: vision.HandLandmarker,
+            }
+        }).catch(() => {
+            /* DrawingUtils is decorative — silently degrade if it fails to load */
+        })
+        return () => { cancelled = true }
+    }, [cameraActive])
+
+    const clearOverlay = useCallback(() => {
+        const canvas = canvasRef.current
+        const ctx = canvas?.getContext('2d')
+        if (canvas && ctx) ctx.clearRect(0, 0, canvas.width, canvas.height)
+    }, [])
+
+    /**
+     * Draw the 21-point hand skeleton on the overlay canvas. Connections
+     * (HAND_CONNECTIONS) form the wireframe; landmarks are rendered as
+     * dots with tip-of-finger keypoints emphasized. Hold-state flashes
+     * the skeleton green so the user sees the gesture register.
+     */
+    const drawHandLandmarks = useCallback((
+        rawLandmarks: { x: number; y: number; z?: number }[],
+        isHolding: boolean,
+    ) => {
+        // DrawingUtils.drawConnectors / drawLandmarks only read x/y/z; cast
+        // through unknown to satisfy MediaPipe's NormalizedLandmark type
+        // which also requires a `visibility` field our HandFrame doesn't.
+        const landmarks = rawLandmarks as unknown as
+            import('@mediapipe/tasks-vision').NormalizedLandmark[]
+        const canvas = canvasRef.current
+        const video = videoRef.current
+        const { utils, HandLandmarker } = drawingRef.current
+        if (!canvas || !video || !utils || !HandLandmarker) return
+        if (canvas.width !== video.videoWidth || canvas.height !== video.videoHeight) {
+            canvas.width = video.videoWidth || 640
+            canvas.height = video.videoHeight || 480
+        }
+        const ctx = canvas.getContext('2d')
+        if (!ctx) return
+        ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+        const skelColor = isHolding ? '#10b981' : '#ec4899'
+        utils.drawConnectors(landmarks, HandLandmarker.HAND_CONNECTIONS, {
+            color: skelColor,
+            lineWidth: 4,
+        })
+        utils.drawLandmarks(landmarks, {
+            color: '#fef3c7',
+            fillColor: skelColor,
+            radius: 4,
+            lineWidth: 1,
+        })
+    }, [])
 
     const videoCallbackRef = useCallback((node: HTMLVideoElement | null) => {
         videoRef.current = node
@@ -181,6 +261,12 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                 holdRef.current,
             )
 
+            if (handFrame) {
+                drawHandLandmarks(handFrame.landmarks, evalResult.detected)
+            } else {
+                clearOverlay()
+            }
+
             setDetected(evalResult.detected)
             if (evalResult.progress != null) setProgress(evalResult.progress)
 
@@ -202,7 +288,7 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                 animFrameRef.current = 0
             }
         }
-    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t])
+    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t, drawHandLandmarks, clearOverlay])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 
@@ -359,6 +445,18 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                                     transform: 'scaleX(-1)',
                                 }}
                                 aria-label={t('faceCapture.videoAriaLabel')}
+                            />
+                            <canvas
+                                ref={canvasRef}
+                                aria-hidden
+                                style={{
+                                    position: 'absolute',
+                                    inset: 0,
+                                    width: '100%',
+                                    height: '100%',
+                                    pointerEvents: 'none',
+                                    transform: 'scaleX(-1)',
+                                }}
                             />
                             <Box
                                 sx={{
