@@ -11,8 +11,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
-import { Provider } from 'react-redux'
-import { configureStore } from '@reduxjs/toolkit'
 import DashboardPage from '@features/dashboard/components/DashboardPage'
 import { DependencyProvider } from '@app/providers'
 
@@ -51,39 +49,17 @@ const mockDashboardService = {
     refreshStatistics: vi.fn().mockResolvedValue(mockDashboardStats),
 }
 
-// Mock the auth state
-const createMockStore = (isAuthenticated = true) => {
-    return configureStore({
-        reducer: {
-            auth: (state = {
-                user: isAuthenticated ? {
-                    id: 'test-user-id',
-                    email: 'admin@fivucsas.com',
-                    firstName: 'Admin',
-                    lastName: 'User',
-                    role: 'ADMIN',
-                } : null,
-                isAuthenticated,
-            }) => state,
-        },
-    })
-}
-
 // Test wrapper component
-const TestWrapper = ({ children, isAuthenticated = true }: {
+const TestWrapper = ({ children }: {
     children: React.ReactNode
     isAuthenticated?: boolean
 }) => {
-    const store = createMockStore(isAuthenticated)
-
     return (
-        <Provider store={store}>
-            <DependencyProvider>
-                <BrowserRouter>
-                    {children}
-                </BrowserRouter>
-            </DependencyProvider>
-        </Provider>
+        <DependencyProvider>
+            <BrowserRouter>
+                {children}
+            </BrowserRouter>
+        </DependencyProvider>
     )
 }
 
