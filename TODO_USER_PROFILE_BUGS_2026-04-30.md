@@ -12,7 +12,13 @@
 - [x] P1 Date locale leak — fixed (MyProfilePage formatDate / formatDateShort now accept `lang` param, use date-fns/locale tr|enUS)
 - [x] P2 "Kayıtlı Biyometrik Yöntemler" label — fixed (TR → "Kayıtlı Doğrulama Yöntemleri", EN → "Registered Authentication Methods")
 - [x] P2 "Kayıtlı Gün" label — fixed (TR → "Kayıtlı Gün Sayısı", EN was already "Days Registered")
-- [ ] P3 Session count 2 vs 3 — open. Different concepts (login events vs active sessions); will revisit.
+- [x] P3 Session count 2 vs 3 — closed (commit `0654b27`). Verified
+  in DB: counts are correct per design — each `createRefreshToken`
+  starts a new family (BE-M5), and signup auto-login mints a token
+  but emits `USER_CREATED` not `USER_LOGIN`, so 3 active sessions
+  with 2 USER_LOGIN events on the same device is expected for
+  signup + 2 logins. Added `activeSessionsHelper` i18n string under
+  the Profile stat to explain it.
 
 ---
 
