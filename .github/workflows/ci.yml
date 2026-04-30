@@ -55,6 +55,13 @@ jobs:
         run: npm test -- --run --reporter=verbose
 
       - name: Build production bundle
+        # SKIP_MODEL_FETCH=1: ONNX models live on Hostinger and are loaded
+        # at runtime in the browser; the CI build doesn't need them to verify
+        # the TypeScript/Vite bundle compiles. Earlier CI failed because
+        # GitHub-hosted runners hit a Hostinger fetch error on the 50 MB
+        # yolo-card-nano.onnx download.
+        env:
+          SKIP_MODEL_FETCH: "1"
         run: npm run build
 
       - name: Upload build artifacts
