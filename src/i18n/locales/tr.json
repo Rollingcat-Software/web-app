@@ -1066,6 +1066,7 @@
     "enabled": "Etkin",
     "disabled": "Devre Dışı",
     "activeSessions": "Aktif Oturumlar",
+    "activeSessionsHelper": "Şu anda geçerli olan cihaz oturumlarının sayısı (her yeni giriş bir oturum oluşturur).",
     "enrolledMethodsLabel": "Kayıtlı Yöntemler",
     "enrolledMethodsCount": "Kayıtlı Yöntemler",
     "emailVerified": "E-posta Doğrulanmış",

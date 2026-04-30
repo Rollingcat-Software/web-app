@@ -593,6 +593,7 @@ export default function MyProfilePage() {
                                 <SecurityRow
                                     icon={<Computer />}
                                     label={t('myProfile.activeSessions')}
+                                    helperText={t('myProfile.activeSessionsHelper')}
                                     value={String(sessionsCount)}
                                     color="info"
                                 />
@@ -934,17 +935,24 @@ function SecurityRow({
     label,
     value,
     color,
+    helperText,
 }: {
     icon: React.ReactNode
     label: string
     value: string
     color: 'success' | 'warning' | 'error' | 'info'
+    helperText?: string
 }) {
     return (
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 2 }}>
             <Box sx={{ color: `${color}.main` }}>{icon}</Box>
             <Box sx={{ flex: 1 }}>
                 <Typography variant="body2">{label}</Typography>
+                {helperText && (
+                    <Typography variant="caption" color="text.secondary" sx={{ display: 'block', lineHeight: 1.3 }}>
+                        {helperText}
+                    </Typography>
+                )}
             </Box>
             <Chip
                 label={value}

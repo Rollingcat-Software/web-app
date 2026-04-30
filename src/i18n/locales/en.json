@@ -1066,6 +1066,7 @@
     "enabled": "Enabled",
     "disabled": "Disabled",
     "activeSessions": "Active Sessions",
+    "activeSessionsHelper": "Number of currently valid device sessions (each fresh login creates one).",
     "enrolledMethodsLabel": "Enrolled Methods",
     "enrolledMethodsCount": "Enrolled Methods",
     "emailVerified": "Email Verified",
