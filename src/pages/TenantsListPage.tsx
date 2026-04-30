@@ -29,6 +29,7 @@ import {useTenants} from '@features/tenants'
 import {TenantStatus} from '@domain/models/Tenant'
 import {format} from 'date-fns'
 import {Trans, useTranslation} from 'react-i18next'
+import {dateFnsLocale} from '@utils/dateLocale'
 import {formatApiError} from '@/utils/formatApiError'
 
 function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
@@ -46,7 +47,7 @@ function getStatusColor(status: TenantStatus): 'success' | 'warning' | 'error' {
 
 export default function TenantsListPage() {
     const navigate = useNavigate()
-    const {t} = useTranslation()
+    const {t, i18n} = useTranslation()
     const {tenants, loading, deleteTenant, activateTenant, suspendTenant} = useTenants()
     const [searchQuery, setSearchQuery] = useState('')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -194,7 +195,7 @@ export default function TenantsListPage() {
                                             </Box>
                                         </TableCell>
                                         <TableCell>
-                                            {format(new Date(tenant.createdAt), 'MMM dd, yyyy')}
+                                            {format(new Date(tenant.createdAt), 'MMM dd, yyyy', {locale: dateFnsLocale(i18n.language)})}
                                         </TableCell>
                                         <TableCell align="right">
                                             <IconButton

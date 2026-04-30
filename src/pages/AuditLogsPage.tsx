@@ -38,6 +38,7 @@ import {
 import { useAuditLogs } from '@features/auditLogs'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { dateFnsLocale } from '@utils/dateLocale'
 import { formatApiError } from '@utils/formatApiError'
 
 function getActionIcon(action: string) {
@@ -246,7 +247,7 @@ export default function AuditLogsPage() {
                                                     })}
                                                 </Typography>
                                                 <Typography variant="caption" color="text.secondary">
-                                                    {format(new Date(log.createdAt), 'HH:mm:ss')}
+                                                    {format(new Date(log.createdAt), 'HH:mm:ss', { locale: dateFnsLocale(i18n.language) })}
                                                 </Typography>
                                             </TableCell>
                                             <TableCell>

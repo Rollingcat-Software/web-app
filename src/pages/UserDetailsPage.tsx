@@ -15,6 +15,7 @@ import { useUser } from '@features/users'
 import { UserRole, UserStatus } from '@domain/models/User'
 import { format } from 'date-fns'
 import { useTranslation } from 'react-i18next'
+import { dateFnsLocale } from '@utils/dateLocale'
 import { formatApiError } from '@utils/formatApiError'
 
 function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | 'default' {
@@ -65,7 +66,7 @@ function DetailRow({ icon, label, value }: DetailRowProps) {
 export default function UserDetailsPage() {
     const { id } = useParams()
     const navigate = useNavigate()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { user, loading, error } = useUser(id ?? '')
 
     if (!id) {
@@ -216,7 +217,7 @@ export default function UserDetailsPage() {
                                 <DetailRow
                                     icon={<Schedule />}
                                     label="Created"
-                                    value={format(user.createdAt, 'MMM dd, yyyy HH:mm')}
+                                    value={format(user.createdAt, 'MMM dd, yyyy HH:mm', { locale: dateFnsLocale(i18n.language) })}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>
@@ -225,7 +226,7 @@ export default function UserDetailsPage() {
                                     label="Last Login"
                                     value={
                                         user.lastLoginAt
-                                            ? format(user.lastLoginAt, 'MMM dd, yyyy HH:mm')
+                                            ? format(user.lastLoginAt, 'MMM dd, yyyy HH:mm', { locale: dateFnsLocale(i18n.language) })
                                             : 'Never'
                                     }
                                 />
@@ -234,7 +235,7 @@ export default function UserDetailsPage() {
                                 <DetailRow
                                     icon={<Schedule />}
                                     label="Last Updated"
-                                    value={format(user.updatedAt, 'MMM dd, yyyy HH:mm')}
+                                    value={format(user.updatedAt, 'MMM dd, yyyy HH:mm', { locale: dateFnsLocale(i18n.language) })}
                                 />
                             </Grid>
                         </Grid>

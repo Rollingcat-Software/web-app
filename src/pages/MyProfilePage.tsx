@@ -64,7 +64,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
-import { tr, enUS } from 'date-fns/locale'
+import { dateFnsLocale } from '@utils/dateLocale'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -134,10 +134,6 @@ function parseDeviceLabel(raw: string): string {
     else if (lower.includes('windows')) os = 'Windows'
     else if (lower.includes('linux')) os = 'Linux'
     return os ? `${browser} / ${os}` : browser
-}
-
-function dateFnsLocale(lang: string) {
-    return lang.startsWith('tr') ? tr : enUS
 }
 
 function formatDate(dateStr: string | Date | undefined, lang: string): string {

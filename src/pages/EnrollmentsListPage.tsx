@@ -29,6 +29,8 @@ import {Autorenew, CheckCircle, Delete, Error, Refresh, Schedule, Search, Visibi
 import {useEnrollments} from '@features/enrollments'
 import {EnrollmentStatus} from '@domain/models/Enrollment'
 import {format} from 'date-fns'
+import {useTranslation} from 'react-i18next'
+import {dateFnsLocale} from '@utils/dateLocale'
 import {keyframes} from '@mui/system'
 
 const rotate = keyframes`
@@ -77,6 +79,7 @@ function getStatusIcon(status: EnrollmentStatus) {
 
 export default function EnrollmentsListPage() {
     const navigate = useNavigate()
+    const {i18n} = useTranslation()
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | 'ALL'>('ALL')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -260,11 +263,11 @@ export default function EnrollmentsListPage() {
                                             ) : '-'}
                                         </TableCell>
                                         <TableCell>
-                                            {format(new Date(enrollment.createdAt), 'MMM dd, HH:mm')}
+                                            {format(new Date(enrollment.createdAt), 'MMM dd, HH:mm', {locale: dateFnsLocale(i18n.language)})}
                                         </TableCell>
                                         <TableCell>
                                             {enrollment.completedAt
-                                                ? format(new Date(enrollment.completedAt), 'MMM dd, HH:mm')
+                                                ? format(new Date(enrollment.completedAt), 'MMM dd, HH:mm', {locale: dateFnsLocale(i18n.language)})
                                                 : '-'}
                                         </TableCell>
                                         <TableCell align="right">
