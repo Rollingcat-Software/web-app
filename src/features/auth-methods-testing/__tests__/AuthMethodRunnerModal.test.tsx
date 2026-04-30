@@ -1,8 +1,32 @@
+import { Component, useEffect, type ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import { render, screen, fireEvent, act } from '@testing-library/react'
 import AuthMethodRunnerModal from '../AuthMethodRunnerModal'
 import { AUTH_METHOD_REGISTRY } from '../authMethodRegistry'
 import { AuthMethodType } from '@domain/models/AuthMethod'
+
+/**
+ * Test-only error boundary used to assert the modal forwards a renderer crash
+ * to its handleError callback. The runner itself doesn't catch (lazy-load
+ * means a Suspense boundary is the only React-supplied wrapper) — wrapping
+ * the modal lets us drive the `error` UI path deterministically.
+ */
+class TestErrorBoundary extends Component<
+    { onError: (err: Error) => void; children: ReactNode },
+    { hasError: boolean }
+> {
+    state = { hasError: false }
+    static getDerivedStateFromError() {
+        return { hasError: true }
+    }
+    componentDidCatch(err: Error) {
+        this.props.onError(err)
+    }
+    render() {
+        if (this.state.hasError) return <div data-testid="boundary-fallback" />
+        return this.props.children
+    }
+}
 
 // i18n — return the key as-is so assertions are deterministic.
 vi.mock('react-i18next', () => ({
@@ -60,7 +84,7 @@ describe('AuthMethodRunnerModal', () => {
         expect(container.firstChild).toBeNull()
     })
 
-    it('mounts FaceCaptureStep when the face method is opened', () => {
+    it('mounts FaceCaptureStep when the face method is opened', async () => {
         const onClose = vi.fn()
         const method = AUTH_METHOD_REGISTRY[AuthMethodType.FACE]
         expect(method).toBeDefined()
@@ -69,43 +93,42 @@ describe('AuthMethodRunnerModal', () => {
             <AuthMethodRunnerModal method={method!} open={true} onClose={onClose} />,
         )
 
-        expect(screen.getByText('face-step')).toBeInTheDocument()
+        // Lazy-loaded chunk — wait for Suspense to resolve.
+        expect(await screen.findByText('face-step')).toBeInTheDocument()
         expect(
             screen.getByText('authMethodsTesting.methods.face.title'),
         ).toBeInTheDocument()
     })
 
-    it('transitions to success when the stubbed step resolves', () => {
-        vi.useFakeTimers()
-        try {
-            const onClose = vi.fn()
-            const method = AUTH_METHOD_REGISTRY[AuthMethodType.FACE]
-            render(
-                <AuthMethodRunnerModal
-                    method={method!}
-                    open={true}
-                    onClose={onClose}
-                />,
-            )
+    it('transitions to success when the stubbed step resolves', async () => {
+        const onClose = vi.fn()
+        const method = AUTH_METHOD_REGISTRY[AuthMethodType.FACE]
+        render(
+            <AuthMethodRunnerModal
+                method={method!}
+                open={true}
+                onClose={onClose}
+            />,
+        )
 
-            // Trigger the stubbed submit.
-            fireEvent.click(screen.getByTestId('mock-face-submit'))
+        // Lazy chunk must resolve before we can drive the stubbed submit.
+        const submitButton = await screen.findByTestId('mock-face-submit')
 
-            // Wrapper waits ~500ms before reporting success.
-            act(() => {
-                vi.advanceTimersByTime(1000)
-            })
+        // FacePuzzle wrapper waits ~500ms before reporting success — let
+        // real timers run so we don't race with the lazy import resolution.
+        fireEvent.click(submitButton)
 
-            expect(
-                screen.getByText('authMethodsTesting.successMessage'),
-            ).toBeInTheDocument()
-            // Retry button appears in the success state.
-            expect(
-                screen.getByText('authMethodsTesting.tryAgainButton'),
-            ).toBeInTheDocument()
-        } finally {
-            vi.useRealTimers()
-        }
+        await act(async () => {
+            await new Promise((r) => setTimeout(r, 750))
+        })
+
+        expect(
+            screen.getByText('authMethodsTesting.successMessage'),
+        ).toBeInTheDocument()
+        // Retry button appears in the success state.
+        expect(
+            screen.getByText('authMethodsTesting.tryAgainButton'),
+        ).toBeInTheDocument()
     })
 
     it('invokes onClose when the close button is clicked', () => {
@@ -124,5 +147,94 @@ describe('AuthMethodRunnerModal', () => {
         fireEvent.click(closeButtons[closeButtons.length - 1])
 
         expect(onClose).toHaveBeenCalled()
+    })
+
+    /**
+     * handleError path — addresses TODO_POST_AUDIT_2026-04-24 web-app #29
+     * "Error-path test missing for handleError".
+     *
+     * Two scenarios are covered:
+     *   1. A puzzle wrapper invokes `props.onError(message)` (the normal way
+     *      a stub or real component reports failure). The modal must
+     *      transition to the `error` state and surface the supplied message.
+     *   2. A puzzle component throws synchronously during render. Because
+     *      the modal does not embed its own error boundary (lazy-loaded
+     *      chunks rely on the route's `<ErrorBoundary>` ancestor in
+     *      App.tsx), an outer test boundary verifies the throw bubbles up
+     *      with the expected error.
+     */
+    describe('handleError', () => {
+        it('switches to the error state when the puzzle calls onError', async () => {
+            // Stub puzzle that calls props.onError once on mount — mirrors a
+            // real puzzle reporting failure via the onError contract.
+            const FailingPuzzle = ({
+                onError,
+            }: {
+                onError: (msg: string) => void
+            }) => {
+                useEffect(() => {
+                    onError('boom')
+                }, [onError])
+                return <div data-testid="failing-puzzle">failing</div>
+            }
+
+            const onClose = vi.fn()
+            // Inject the failing component directly — bypasses the registry's
+            // lazy() wrapper so we can drive the error path synchronously.
+            const method = {
+                ...AUTH_METHOD_REGISTRY[AuthMethodType.EMAIL_OTP]!,
+                component: FailingPuzzle,
+            }
+
+            render(
+                <AuthMethodRunnerModal
+                    method={method}
+                    open={true}
+                    onClose={onClose}
+                />,
+            )
+
+            // Error message was passed through handleError → error UI.
+            expect(await screen.findByText('boom')).toBeInTheDocument()
+            // Retry button is only rendered in the error / success states.
+            expect(
+                screen.getByText('authMethodsTesting.tryAgainButton'),
+            ).toBeInTheDocument()
+        })
+
+        it('lets a renderer crash bubble to an outer error boundary', () => {
+            const onBoundaryError = vi.fn()
+            const ThrowingPuzzle = () => {
+                throw new Error('puzzle render failed')
+            }
+
+            const onClose = vi.fn()
+            const method = {
+                ...AUTH_METHOD_REGISTRY[AuthMethodType.TOTP]!,
+                component: ThrowingPuzzle,
+            }
+
+            // Silence the expected React error log noise.
+            const errorSpy = vi
+                .spyOn(console, 'error')
+                .mockImplementation(() => {})
+            try {
+                render(
+                    <TestErrorBoundary onError={onBoundaryError}>
+                        <AuthMethodRunnerModal
+                            method={method}
+                            open={true}
+                            onClose={onClose}
+                        />
+                    </TestErrorBoundary>,
+                )
+
+                expect(onBoundaryError).toHaveBeenCalledTimes(1)
+                const reported = onBoundaryError.mock.calls[0][0] as Error
+                expect(reported.message).toBe('puzzle render failed')
+            } finally {
+                errorSpy.mockRestore()
+            }
+        })
     })
 })

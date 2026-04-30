@@ -37,8 +37,12 @@ describe('authMethodRegistry', () => {
 
     describe.each(methods)('$id', (method) => {
         it('has a non-null component', () => {
+            // Components are React.lazy() wrappers — `lazy()` returns an
+            // object with `$$typeof === Symbol(react.lazy)` rather than a
+            // function. Either is a valid renderable type.
             expect(method.component).toBeTruthy()
-            expect(typeof method.component).toBe('function')
+            const kind = typeof method.component
+            expect(['function', 'object']).toContain(kind)
         })
 
         it('declares at least one platform', () => {

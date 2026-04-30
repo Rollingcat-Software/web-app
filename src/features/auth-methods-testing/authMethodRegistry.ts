@@ -16,7 +16,7 @@
  * under `src/features/biometric-puzzles/`. This one covers the platform's 9
  * pluggable authentication methods end-to-end.
  */
-import type { ComponentType } from 'react'
+import { lazy, type ComponentType } from 'react'
 import type { SvgIconComponent } from '@mui/icons-material'
 import {
     Email,
@@ -30,15 +30,20 @@ import {
     Sms,
 } from '@mui/icons-material'
 import { AuthMethodType } from '@domain/models/AuthMethod'
-import FacePuzzle from './puzzles/FacePuzzle'
-import VoicePuzzle from './puzzles/VoicePuzzle'
-import FingerprintPuzzle from './puzzles/FingerprintPuzzle'
-import NfcPuzzle from './puzzles/NfcPuzzle'
-import TotpPuzzle from './puzzles/TotpPuzzle'
-import SmsPuzzle from './puzzles/SmsPuzzle'
-import EmailOtpPuzzle from './puzzles/EmailOtpPuzzle'
-import QrCodePuzzle from './puzzles/QrCodePuzzle'
-import HardwareKeyPuzzle from './puzzles/HardwareKeyPuzzle'
+
+// Lazy-loaded puzzle components — each ships in its own chunk so opening the
+// Auth Methods Testing page no longer pulls all 9 step components (camera,
+// WebAuthn, MediaPipe, etc.) into the admin bundle. Consumers (the runner
+// modal) MUST render these under a <Suspense> boundary.
+const FacePuzzle = lazy(() => import('./puzzles/FacePuzzle'))
+const VoicePuzzle = lazy(() => import('./puzzles/VoicePuzzle'))
+const FingerprintPuzzle = lazy(() => import('./puzzles/FingerprintPuzzle'))
+const NfcPuzzle = lazy(() => import('./puzzles/NfcPuzzle'))
+const TotpPuzzle = lazy(() => import('./puzzles/TotpPuzzle'))
+const SmsPuzzle = lazy(() => import('./puzzles/SmsPuzzle'))
+const EmailOtpPuzzle = lazy(() => import('./puzzles/EmailOtpPuzzle'))
+const QrCodePuzzle = lazy(() => import('./puzzles/QrCodePuzzle'))
+const HardwareKeyPuzzle = lazy(() => import('./puzzles/HardwareKeyPuzzle'))
 
 /**
  * Props every auth-method preview component receives.

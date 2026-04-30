@@ -10,11 +10,12 @@
  *
  * The dialog is intentionally mobile-friendly (`fullScreen` on xs).
  */
-import { useCallback, useEffect, useState } from 'react'
+import { Suspense, useCallback, useEffect, useState } from 'react'
 import {
     Alert,
     Box,
     Button,
+    CircularProgress,
     Dialog,
     DialogActions,
     DialogContent,
@@ -146,11 +147,34 @@ export default function AuthMethodRunnerModal({
                     <AuthMethodModeProvider mode="stub">
                         {/* runId key forces a fresh mount on retry */}
                         <Box key={runId}>
-                            <MethodComponent
-                                onSuccess={handleSuccess}
-                                onError={handleError}
-                                onClose={onClose}
-                            />
+                            {/*
+                              Each puzzle component is React.lazy() in
+                              authMethodRegistry — Suspense is required while
+                              its chunk loads. CircularProgress matches the
+                              project's existing in-modal loading pattern.
+                            */}
+                            <Suspense
+                                fallback={
+                                    <Box
+                                        sx={{
+                                            display: 'flex',
+                                            justifyContent: 'center',
+                                            alignItems: 'center',
+                                            minHeight: 160,
+                                        }}
+                                        aria-label={t('common.loading')}
+                                        role="status"
+                                    >
+                                        <CircularProgress size={32} />
+                                    </Box>
+                                }
+                            >
+                                <MethodComponent
+                                    onSuccess={handleSuccess}
+                                    onError={handleError}
+                                    onClose={onClose}
+                                />
+                            </Suspense>
                         </Box>
                     </AuthMethodModeProvider>
                 )}
