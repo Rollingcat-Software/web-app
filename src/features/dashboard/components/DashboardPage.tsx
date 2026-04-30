@@ -431,7 +431,7 @@ function UserDashboardContent() {
                                                 </ListItemIcon>
                                                 <ListItemText
                                                     primary={<Typography variant="body2" color="text.secondary">{t('common.tenant')}</Typography>}
-                                                    secondary={<Typography variant="body1">{user?.tenantId ? 'Marmara University' : 'Default'}</Typography>}
+                                                    secondary={<Typography variant="body1">{user?.tenantName || t('common.default')}</Typography>}
                                                 />
                                             </ListItem>
                                             <ListItem sx={{ px: 0 }}>

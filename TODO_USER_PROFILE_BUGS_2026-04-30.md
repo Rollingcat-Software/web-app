@@ -1,5 +1,23 @@
 # User Profile / Dashboard Bug List — 2026-04-30
 
+> **All four P1/P2 items below were fixed in commit immediately following
+> this file's introduction.** Kept here as a record of what was wrong and
+> how. P3 (session count vs login count) is left open as it depends on
+> reconciling two different concepts (login events vs active sessions);
+> revisit when /sessions endpoint stabilizes.
+
+## Status (2026-04-30 ~05:55 UTC)
+
+- [x] P1 Tenant label mismatch — fixed (was a hardcoded "Marmara University" string in DashboardPage.tsx:434, replaced with `user?.tenantName || t('common.default')`)
+- [x] P1 Date locale leak — fixed (MyProfilePage formatDate / formatDateShort now accept `lang` param, use date-fns/locale tr|enUS)
+- [x] P2 "Kayıtlı Biyometrik Yöntemler" label — fixed (TR → "Kayıtlı Doğrulama Yöntemleri", EN → "Registered Authentication Methods")
+- [x] P2 "Kayıtlı Gün" label — fixed (TR → "Kayıtlı Gün Sayısı", EN was already "Days Registered")
+- [ ] P3 Session count 2 vs 3 — open. Different concepts (login events vs active sessions); will revisit.
+
+---
+
+## Original report
+
 Reported during a fresh user-enrollment smoke test. User signed up and
 landed on Dashboard then Profile; the two pages disagree about basic
 fields. **All bugs are display-only — no data corruption.**

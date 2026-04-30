@@ -64,6 +64,7 @@ import { useAuth } from '@features/auth/hooks/useAuth'
 import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
+import { tr, enUS } from 'date-fns/locale'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -135,19 +136,23 @@ function parseDeviceLabel(raw: string): string {
     return os ? `${browser} / ${os}` : browser
 }
 
-function formatDate(dateStr: string | Date | undefined): string {
+function dateFnsLocale(lang: string) {
+    return lang.startsWith('tr') ? tr : enUS
+}
+
+function formatDate(dateStr: string | Date | undefined, lang: string): string {
     if (!dateStr) return 'N/A'
     try {
-        return format(new Date(dateStr), 'MMM dd, yyyy HH:mm')
+        return format(new Date(dateStr), 'PPp', { locale: dateFnsLocale(lang) })
     } catch {
         return 'N/A'
     }
 }
 
-function formatDateShort(dateStr: string | Date | undefined): string {
+function formatDateShort(dateStr: string | Date | undefined, lang: string): string {
     if (!dateStr) return 'N/A'
     try {
-        return format(new Date(dateStr), 'MMM dd, yyyy')
+        return format(new Date(dateStr), 'PP', { locale: dateFnsLocale(lang) })
     } catch {
         return 'N/A'
     }
@@ -155,7 +160,7 @@ function formatDateShort(dateStr: string | Date | undefined): string {
 
 export default function MyProfilePage() {
     const { user } = useAuth()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const navigate = useNavigate()
     const userId = user?.id ?? ''
     const { enrollments, loading: enrollmentsLoading, revokeEnrollment, refetch: refetchEnrollments } = useUserEnrollments(userId)
@@ -414,7 +419,7 @@ export default function MyProfilePage() {
                                         <Typography variant="caption" color="text.secondary">{t('myProfile.memberSince')}</Typography>
                                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
                                             <CalendarToday sx={{ fontSize: 16, color: 'text.secondary' }} />
-                                            <Typography variant="body1">{formatDateShort(user?.createdAt)}</Typography>
+                                            <Typography variant="body1">{formatDateShort(user?.createdAt, i18n.language)}</Typography>
                                         </Box>
                                     </Grid>
                                     <Grid item xs={12} sm={6} md={4}>
@@ -467,7 +472,7 @@ export default function MyProfilePage() {
                         <CardContent sx={{ py: 2 }}>
                             <Timer sx={{ fontSize: 28, color: 'warning.main', mb: 0.5 }} />
                             <Typography variant="h5" fontWeight={700} sx={{ fontSize: user?.lastLoginAt ? '0.9rem' : undefined }}>
-                                {user?.lastLoginAt ? formatDate(user.lastLoginAt) : 'N/A'}
+                                {user?.lastLoginAt ? formatDate(user.lastLoginAt, i18n.language) : 'N/A'}
                             </Typography>
                             <Typography variant="caption" color="text.secondary">{t('myProfile.lastLogin')}</Typography>
                         </CardContent>
@@ -529,6 +534,7 @@ export default function MyProfilePage() {
                                                 })
                                             }}
                                             t={t}
+                                            lang={i18n.language}
                                         />
                                     ))}
 
@@ -671,7 +677,7 @@ export default function MyProfilePage() {
                                                         </TableCell>
                                                         <TableCell>
                                                             <Typography variant="body2">
-                                                                {formatDate(log.createdAt)}
+                                                                {formatDate(log.createdAt, i18n.language)}
                                                             </Typography>
                                                         </TableCell>
                                                         <TableCell>
@@ -825,12 +831,14 @@ function EnrollmentCard({
     onToggle,
     onDelete,
     t,
+    lang,
 }: {
     enrollment: Enrollment
     expanded: boolean
     onToggle: () => void
     onDelete: () => void
     t: (key: string, options?: Record<string, unknown>) => string
+    lang: string
 }) {
     const methodType = enrollment.authMethodType || ''
     const icon = METHOD_ICONS[methodType] || <Security sx={{ fontSize: 20 }} />
@@ -889,11 +897,11 @@ function EnrollmentCard({
                     })()}
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">{t('myProfile.enrolledDate')}</Typography>
-                        <Typography variant="caption">{formatDate(enrollment.createdAt)}</Typography>
+                        <Typography variant="caption">{formatDate(enrollment.createdAt, lang)}</Typography>
                     </Box>
                     <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                         <Typography variant="caption" color="text.secondary">{t('myProfile.lastUpdated')}</Typography>
-                        <Typography variant="caption">{formatDate(enrollment.updatedAt)}</Typography>
+                        <Typography variant="caption">{formatDate(enrollment.updatedAt, lang)}</Typography>
                     </Box>
                     {(methodType === 'FACE' || methodType === 'VOICE') && enrollment.qualityScore !== undefined && (
                         <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>

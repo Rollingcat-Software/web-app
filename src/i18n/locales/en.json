@@ -1045,7 +1045,7 @@
     "fullName": "Full Name",
     "memberSince": "Member Since",
     "accountStatus": "Account Status",
-    "enrolledMethods": "Enrolled Biometric Methods",
+    "enrolledMethods": "Registered Authentication Methods",
     "active": "active",
     "noEnrollments": "No authentication methods enrolled yet.",
     "enrollNow": "Enroll Now",
