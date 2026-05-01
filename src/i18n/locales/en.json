@@ -284,6 +284,7 @@
     "loadingAriaLabel": "Loading authentication sessions",
     "countLabel": "{{count}} session(s)",
     "tenantUnavailable": "Tenant context unavailable — sign in again.",
+    "platformWideNotice": "Showing sessions across all tenants (super-admin view).",
     "ipUnknown": "—"
   },
   "otp": {
@@ -776,6 +777,21 @@
     "setDefaultSuccess": "Default authentication flow updated",
     "failedToSetDefault": "Failed to set default authentication flow",
     "alreadyDefault": "This flow is already the default"
+  },
+  "devices": {
+    "title": "Registered Devices",
+    "subtitle": "Manage user devices and access permissions",
+    "empty": "No devices registered",
+    "emptyHint": "Devices will appear here when users authenticate from new devices",
+    "loadFailed": "Failed to load devices",
+    "deleteFailed": "Failed to remove device",
+    "removeDevice": "Remove device",
+    "platformWideNotice": "Showing devices across all tenants (super-admin view).",
+    "columnDevice": "Device",
+    "columnPlatform": "Platform",
+    "columnFingerprint": "Fingerprint",
+    "columnLastUsed": "Last Used",
+    "columnRegistered": "Registered"
   },
   "guests": {
     "title": "Guest Management",

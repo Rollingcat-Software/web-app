@@ -284,6 +284,7 @@
     "loadingAriaLabel": "Kimlik doğrulama oturumları yükleniyor",
     "countLabel": "{{count}} oturum",
     "tenantUnavailable": "Tenant bilgisi mevcut değil — tekrar giriş yapın.",
+    "platformWideNotice": "Tüm kiracılardaki oturumlar gösteriliyor (süper yönetici görünümü).",
     "ipUnknown": "—"
   },
   "otp": {
@@ -776,6 +777,21 @@
     "setDefaultSuccess": "Varsayılan kimlik doğrulama akışı güncellendi",
     "failedToSetDefault": "Varsayılan kimlik doğrulama akışı ayarlanamadı",
     "alreadyDefault": "Bu akış zaten varsayılan"
+  },
+  "devices": {
+    "title": "Kayıtlı Cihazlar",
+    "subtitle": "Kullanıcı cihazlarını ve erişim izinlerini yönetin",
+    "empty": "Kayıtlı cihaz yok",
+    "emptyHint": "Kullanıcılar yeni cihazlardan kimlik doğruladığında burada görünür",
+    "loadFailed": "Cihazlar yüklenemedi",
+    "deleteFailed": "Cihaz kaldırılamadı",
+    "removeDevice": "Cihazı kaldır",
+    "platformWideNotice": "Tüm kiracılardaki cihazlar gösteriliyor (süper yönetici görünümü).",
+    "columnDevice": "Cihaz",
+    "columnPlatform": "Platform",
+    "columnFingerprint": "Parmak İzi",
+    "columnLastUsed": "Son Kullanım",
+    "columnRegistered": "Kayıt Tarihi"
   },
   "guests": {
     "title": "Misafir Yönetimi",

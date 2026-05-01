@@ -26,6 +26,7 @@ import { useService } from '@app/providers'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import type { DeviceRepository, DeviceResponse } from '@core/repositories/DeviceRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import { formatApiError } from '@utils/formatApiError'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -57,7 +58,12 @@ export default function DevicesPage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
-    const tenantId = user?.tenantId ?? ''
+    // SUPER_ADMIN omits tenantId so the backend lists every tenant's
+    // devices; tenant-scoped admins always pin to their own tenant.
+    // Without this, SUPER_ADMIN saw only the system-tenant's (empty)
+    // list because user.tenantId is the system tenant id.
+    const isSuperAdmin = !!user?.isSuperAdmin?.()
+    const tenantId = isSuperAdmin ? '' : (user?.tenantId ?? '')
 
     const loadDevices = useCallback(async () => {
         setLoading(true)
@@ -67,11 +73,11 @@ export default function DevicesPage() {
             setDevices(data)
         } catch (err) {
             logger.error('Failed to load devices', err)
-            setError('Failed to load devices')
+            setError(formatApiError(err, t) || t('devices.loadFailed'))
         } finally {
             setLoading(false)
         }
-    }, [deviceRepo, logger, tenantId])
+    }, [deviceRepo, logger, tenantId, t])
 
     useEffect(() => {
         loadDevices()
@@ -83,7 +89,7 @@ export default function DevicesPage() {
             await loadDevices()
         } catch (err) {
             logger.error('Failed to delete device', err)
-            setError('Failed to delete device')
+            setError(formatApiError(err, t) || t('devices.deleteFailed'))
         }
     }
 
@@ -97,15 +103,20 @@ export default function DevicesPage() {
                 >
                     <Box sx={{ mb: 3 }}>
                         <Typography variant="h4" fontWeight={700}>
-                            Registered Devices
+                            {t('devices.title')}
                         </Typography>
                         <Typography variant="body1" color="text.secondary">
-                            Manage user devices and access permissions
+                            {t('devices.subtitle')}
                         </Typography>
                     </Box>
                 </motion.div>
 
                 {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+                {isSuperAdmin && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        {t('devices.platformWideNotice')}
+                    </Alert>
+                )}
 
                 {loading ? (
                     <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
@@ -116,10 +127,10 @@ export default function DevicesPage() {
                         <CardContent sx={{ textAlign: 'center', py: 6 }}>
                             <DevicesOther sx={{ fontSize: 48, color: 'text.secondary', mb: 2 }} />
                             <Typography variant="h6" color="text.secondary">
-                                No devices registered
+                                {t('devices.empty')}
                             </Typography>
                             <Typography variant="body2" color="text.secondary">
-                                Devices will appear here when users authenticate from new devices
+                                {t('devices.emptyHint')}
                             </Typography>
                         </CardContent>
                     </Card>
@@ -128,12 +139,12 @@ export default function DevicesPage() {
                         <Table>
                             <TableHead>
                                 <TableRow>
-                                    <TableCell>Device</TableCell>
-                                    <TableCell>Platform</TableCell>
-                                    <TableCell>Fingerprint</TableCell>
-                                    <TableCell>Last Used</TableCell>
-                                    <TableCell>Registered</TableCell>
-                                    <TableCell align="right">Actions</TableCell>
+                                    <TableCell>{t('devices.columnDevice')}</TableCell>
+                                    <TableCell>{t('devices.columnPlatform')}</TableCell>
+                                    <TableCell>{t('devices.columnFingerprint')}</TableCell>
+                                    <TableCell>{t('devices.columnLastUsed')}</TableCell>
+                                    <TableCell>{t('devices.columnRegistered')}</TableCell>
+                                    <TableCell align="right">{t('common.actions')}</TableCell>
                                 </TableRow>
                             </TableHead>
                             <TableBody>
@@ -162,7 +173,7 @@ export default function DevicesPage() {
                                             {new Date(device.createdAt).toLocaleDateString()}
                                         </TableCell>
                                         <TableCell align="right">
-                                            <Tooltip title="Remove device">
+                                            <Tooltip title={t('devices.removeDevice')}>
                                                 <IconButton
                                                     size="small"
                                                     onClick={() => handleDelete(device.id)}

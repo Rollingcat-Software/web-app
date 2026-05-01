@@ -44,20 +44,28 @@ const emptyState = (size: number): AuthSessionsListState => ({
  * 403 responses are silently coerced to an empty page (caller is not
  * tenant-admin / lacks audit:read) — same policy as `useAuditLogs`.
  *
- * @param tenantId      tenant whose sessions to list. Empty string skips
- *                      the fetch entirely (loading=false, sessions=[]).
+ * @param tenantId      tenant whose sessions to list. Empty string with
+ *                      `crossTenant=true` requests platform-wide listing
+ *                      (SUPER_ADMIN only); empty string without the flag
+ *                      skips the fetch entirely.
  * @param statusFilter  optional list of session statuses.
  * @param userIdFilter  optional userId to drill into.
  * @param initialSize   default 20.
+ * @param crossTenant   when true, omit tenantId from the request so the
+ *                      backend lists every tenant. Backend enforces this
+ *                      is only honored for SUPER_ADMIN.
  */
 export function useAuthSessionsList(
     tenantId: string,
     statusFilter?: AuthSessionStatusValue[],
     userIdFilter?: string,
-    initialSize: number = 20
+    initialSize: number = 20,
+    crossTenant: boolean = false
 ): UseAuthSessionsListReturn {
     const repo = useService<AuthSessionRepository>(TYPES.AuthSessionRepository)
     const errorHandler = useService<ErrorHandler>(TYPES.ErrorHandler)
+
+    const shouldFetch = !!tenantId || crossTenant
 
     const [state, setState] = useState<AuthSessionsListState>({
         sessions: [],
@@ -65,7 +73,7 @@ export function useAuthSessionsList(
         totalPages: 0,
         page: 0,
         size: initialSize,
-        loading: !!tenantId,
+        loading: shouldFetch,
         error: null,
     })
 
@@ -74,7 +82,7 @@ export function useAuthSessionsList(
 
     const fetchPage = useCallback(
         async (page: number, size: number) => {
-            if (!tenantId) {
+            if (!shouldFetch) {
                 setState(emptyState(size))
                 return
             }
@@ -115,7 +123,7 @@ export function useAuthSessionsList(
         },
         // filterKey intentionally — encapsulates statusFilter array identity.
         // eslint-disable-next-line react-hooks/exhaustive-deps
-        [repo, errorHandler, tenantId, userIdFilter, filterKey]
+        [repo, errorHandler, tenantId, userIdFilter, filterKey, shouldFetch]
     )
 
     // Initial + filter-change fetch.
