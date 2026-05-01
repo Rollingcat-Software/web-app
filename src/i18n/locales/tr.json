@@ -1494,6 +1494,9 @@
   },
   "errors": {
     "badRequest": "Geçersiz istek. Lütfen girişinizi kontrol edin.",
+    "invalidCredentials": "Geçersiz e-posta veya parola. Lütfen tekrar deneyin.",
+    "mfaRequired": "Ek doğrulama gerekli. Lütfen sonraki adımı tamamlayın.",
+    "needsEnrollment": "Devam etmek için ek bir doğrulama yöntemi kaydetmeniz gerekiyor.",
     "unauthorized": "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.",
     "forbidden": "Bu işlemi gerçekleştirmek için yetkiniz yok.",
     "notFound": "İstenen kaynak bulunamadı.",
