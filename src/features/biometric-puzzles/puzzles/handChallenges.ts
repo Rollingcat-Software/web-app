@@ -395,7 +395,10 @@ export class ShapeTraceDetector {
  * "no-hand" sample of count -1 (never matches).
  *
  * Synthetic tests still pass: when every frame reports the same count,
- * the mode equals that count immediately.
+ * the mode equals that count after `minSamples` (default 3) frames
+ * accumulate in the window. (Earlier docs said "immediately", which
+ * contradicted the `if (this.samples.length < this.minSamples) return
+ * false` guard in `push()` — Copilot post-merge on PR #51.)
  */
 export class FingerCountSmoother {
     private samples: { count: number; ts: number }[] = []
@@ -546,6 +549,13 @@ export function evaluateHandPuzzle(
         case BiometricPuzzleId.HAND_FINGER_COUNT:
         case BiometricPuzzleId.HAND_MATH: {
             const target = state.targetFingerCount ?? -1
+            // Guard against an unset / negative target. Without this the
+            // no-hand path (count = -1) trivially matches target = -1 and
+            // the puzzle reports `detected` for an empty frame (Copilot
+            // post-merge on PR #51). `initialHandState` always sets a
+            // positive target, so this branch only fires if a caller
+            // forgot to call it.
+            if (target < 0) return { detected: false, completed: false }
             const smoother = state.countSmoother
             // Push -1 for no-hand frames so the dominance ratio drops; once
             // a hand reappears the smoother fills back up.

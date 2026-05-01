@@ -312,6 +312,48 @@ describe('evaluateHandPuzzle (HAND_FINGER_COUNT)', () => {
         }
         expect(completed).toBe(true)
     })
+
+    it('survives single-frame finger-count jitter (regression: HAND_FINGER_COUNT must use the smoother)', () => {
+        // Mirrors the HAND_MATH jitter test but pinned for HAND_FINGER_COUNT
+        // specifically. Pre-fix coverage (Copilot post-merge on PR #51)
+        // exercised only HAND_MATH, so a refactor that quietly stopped
+        // wiring `countSmoother` for HAND_FINGER_COUNT would have slipped
+        // through — this test fails loudly in that scenario.
+        const state = initialHandState(BiometricPuzzleId.HAND_FINGER_COUNT)
+        state.targetFingerCount = 5
+        const hold = { detectedSince: null }
+        let completed = false
+        // 12 frames at 80ms apart → 960ms total, well over the 700ms hold.
+        // Inject a 1-frame jitter (count=2) every 5th frame.
+        for (let i = 0; i < 12; i++) {
+            const ts = i * 80
+            const frame = i % 5 === 0 ? twoFingerFrame(ts) : openHandFrame(ts)
+            const r = evaluateHandPuzzle(
+                BiometricPuzzleId.HAND_FINGER_COUNT,
+                { frame, state },
+                hold,
+            )
+            if (r.completed) completed = true
+        }
+        expect(completed).toBe(true)
+    })
+
+    it('refuses to report `detected` for an empty frame when target is unset (negative-target guard)', () => {
+        // Caller forgot to call initialHandState → targetFingerCount stays
+        // undefined → fallback target = -1. Pre-fix the no-hand path also
+        // produced count = -1 and the dominance check trivially matched,
+        // so the puzzle reported `detected` with no hand visible at all.
+        // The negative-target guard short-circuits that.
+        const hold = { detectedSince: null }
+        const state = {} // intentionally not initialised
+        const r = evaluateHandPuzzle(
+            BiometricPuzzleId.HAND_FINGER_COUNT,
+            { frame: null, state },
+            hold,
+        )
+        expect(r.detected).toBe(false)
+        expect(r.completed).toBe(false)
+    })
 })
 
 describe('evaluateHandPuzzle (HAND_MATH)', () => {
@@ -363,7 +405,11 @@ describe('evaluateHandPuzzle (HAND_MATH)', () => {
         const hold = { detectedSince: null }
         let completed = false
         // 12 frames at 80ms apart → 960ms total, well over the 700ms hold.
-        // Inject a 1-frame jitter (4 fingers instead of 5) every 5th frame.
+        // Inject a 1-frame jitter (2 fingers instead of 5) every 5th frame
+        // — `twoFingerFrame` returns count=2, which is the actual signal we
+        // throw at the smoother below. (Comment was previously off-by-one:
+        // it said "4 fingers" while the code clearly used twoFingerFrame.
+        // Copilot post-merge on PR #51.)
         for (let i = 0; i < 12; i++) {
             const ts = i * 80
             const frame = i % 5 === 0
