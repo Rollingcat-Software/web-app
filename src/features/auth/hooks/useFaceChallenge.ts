@@ -204,7 +204,13 @@ export function useFaceChallenge() {
                     capturedImage = cropFace(canvasRef.current)
                 }
                 if (!capturedImage) {
+                    // Reset BOTH hold and stage timers. Pre-fix only
+                    // holdStartRef was reset, so `stageElapsed` and the
+                    // derived `timeoutReached` could remain "true" on the
+                    // next loop iteration — re-introducing the soft
+                    // stage-skip race (Copilot post-merge on PR #50).
                     holdStartRef.current = null
+                    stageStartRef.current = Date.now()
                     setChallengeState(prev => ({
                         ...prev,
                         stageProgress: 0,
