@@ -26,13 +26,13 @@ import {
 } from '@mui/material'
 import { Add, Delete, Edit, Lock, Search, Shield } from '@mui/icons-material'
 import { useRoles } from '@features/roles'
-import { format } from 'date-fns'
 import { Trans, useTranslation } from 'react-i18next'
+import { formatLocale } from '@utils/dateLocale'
 import { formatApiError } from '@utils/formatApiError'
 
 export default function RolesListPage() {
     const navigate = useNavigate()
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const { roles, loading, error, deleteRole } = useRoles()
     const [searchQuery, setSearchQuery] = useState('')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -176,7 +176,7 @@ export default function RolesListPage() {
                                             />
                                         </TableCell>
                                         <TableCell>
-                                            {format(new Date(role.createdAt), 'MMM dd, yyyy')}
+                                            {formatLocale(role.createdAt, i18n.language, 'PP')}
                                         </TableCell>
                                         <TableCell align="right">
                                             <IconButton
