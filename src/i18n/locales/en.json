@@ -1604,6 +1604,16 @@
     "stubbedOnly": "Simulated only",
     "successMessage": "Challenge passed. You're ready to enable this method in your auth flow.",
     "errorMessage": "The preview could not be completed. Please try again.",
+    "errors": {
+      "notAuthenticated": "You must be signed in to test this method against the live backend.",
+      "verifyRejected": "The server rejected the verification. Please try again.",
+      "noEnrollment": "No enrollment was found for this method. The first attempt will register a new template; please try again.",
+      "webauthnNoCredentials": "No WebAuthn credentials are registered for your account. Enroll a passkey or hardware key from your profile first.",
+      "nfcNotAvailable": "Web NFC is not available in this browser or context. Try Chrome on Android or open the hosted login surface in a top-level tab."
+    },
+    "info": {
+      "autoEnrolled": "First-time enrollment captured. Please run the test again to verify against the live template."
+    },
     "difficulty": {
       "beginner": "Beginner",
       "intermediate": "Intermediate",

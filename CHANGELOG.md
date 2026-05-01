@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### Fix — 2026-05-01 (USER-BUG-5: auth-methods-testing puzzles always succeeded)
+
+Auth Methods Testing playground (`/auth-methods-testing`) previously routed every test card through `stubAuthRepository.verifyMfaStep`, which resolved with `status: 'AUTHENTICATED'` after a 500 ms artificial delay. Plus each puzzle wrapper (`FacePuzzle`, `VoicePuzzle`, `FingerprintPuzzle`, `NfcPuzzle`, `HardwareKeyPuzzle`) called `setTimeout(onSuccess, 500)` regardless of what the underlying step component returned. Net effect: clicking "Try this method" → completing the step UI always reported success, even when the camera saw nothing, NFC was unavailable, the fingerprint dialog was cancelled, or no WebAuthn credentials existed.
+
+This fix wires the 5 biometric / WebAuthn puzzles owned by this PR to real production endpoints with the signed-in admin's JWT. The puzzles now share `useAuthMethodPuzzleApi` and only invoke `onSuccess` on a server-confirmed verdict; cancellations and rejections surface as real errors via `formatApiError(err, t)`.
+
+**Per-method round-trips:**
+- `FacePuzzle` — `POST /biometric/verify/{userId}` (auto `/biometric/enroll/{userId}` on first attempt). USER-BUG-1 detection-gate preserved (FaceCaptureStep blocks capture without `detected=true` + bbox).
+- `VoicePuzzle` — `POST /biometric/voice/verify/{userId}` (auto `/biometric/voice/enroll/{userId}` on first attempt). Production `VoiceStep` emits 16 kHz WAV via `useVoiceRecorder`.
+- `FingerprintPuzzle` — `POST /webauthn/authenticate-options` → `navigator.credentials.get` (platform authenticator) → `POST /webauthn/authenticate`. Server-side fingerprint biometric removed in PR #39.
+- `NfcPuzzle` — `POST /nfc/verify` against the captured card serial. NDEFReader / framed-context errors continue to surface from `NfcStep` directly.
+- `HardwareKeyPuzzle` — `POST /webauthn/authenticate-options` → `navigator.credentials.get` (cross-platform authenticator) → `POST /webauthn/authenticate`.
+
+**Files**:
+- New `src/features/auth-methods-testing/puzzles/useAuthMethodPuzzleApi.ts` — DI-resolved HttpClient + BiometricService + useAuth.
+- 5 puzzle wrappers rewritten to delegate to the hook; the bogus `setTimeout(onSuccess, 500)` is gone in all of them.
+- New regression test `__tests__/biometricPuzzleApi.test.tsx` asserts that server-rejected verifications and missing WebAuthn sessions surface as `kind: 'error'` (NOT silent success).
+- `__tests__/AuthMethodRunnerModal.test.tsx` updated for the new async-resolution path (no fake timers).
+- 7 new i18n keys added to `authMethodsTesting.errors.*` and `authMethodsTesting.info.*` in both en.json and tr.json.
+
+`StubAuthRepository` is intentionally NOT deleted — the parallel non-biometric puzzles PR (Password / EmailOTP / SMS / TOTP / QR) may still reference it. Final removal lands when both PRs merge.
+
 ### Docs — 2026-04-26 (iOS / macOS scope dropped)
 
 Forward-looking iOS AppAuth integration references removed from `TODO.md` (Phase G4 + Wave 2 PR-2 backlog). iOS / iPadOS / macOS permanently out of scope — no Apple hardware available for development, signing, or testing. Apple-platform users are served via the hosted login page in their system browser.

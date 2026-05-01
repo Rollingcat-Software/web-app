@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, fireEvent, act } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import AuthMethodRunnerModal from '../AuthMethodRunnerModal'
 import { AUTH_METHOD_REGISTRY } from '../authMethodRegistry'
 import { AuthMethodType } from '@domain/models/AuthMethod'
@@ -9,6 +9,21 @@ vi.mock('react-i18next', () => ({
     useTranslation: () => ({
         t: (key: string) => key,
         i18n: { language: 'en', changeLanguage: vi.fn() },
+    }),
+    initReactI18next: { type: '3rdParty', init: vi.fn() },
+    Trans: ({ children }: { children: React.ReactNode }) => children,
+}))
+
+// The puzzles now talk to real backends through this hook. Replace it with a
+// fake whose `submit*` methods always succeed so the modal's orchestration
+// remains the focus of these tests.
+vi.mock('../puzzles/useAuthMethodPuzzleApi', () => ({
+    useAuthMethodPuzzleApi: () => ({
+        submitFace: vi.fn().mockResolvedValue({ kind: 'success' }),
+        submitVoice: vi.fn().mockResolvedValue({ kind: 'success' }),
+        submitNfc: vi.fn().mockResolvedValue({ kind: 'success' }),
+        requestWebAuthnChallenge: vi.fn().mockResolvedValue(null),
+        submitWebAuthnAssertion: vi.fn().mockResolvedValue({ kind: 'success' }),
     }),
 }))
 
@@ -75,37 +90,31 @@ describe('AuthMethodRunnerModal', () => {
         ).toBeInTheDocument()
     })
 
-    it('transitions to success when the stubbed step resolves', () => {
-        vi.useFakeTimers()
-        try {
-            const onClose = vi.fn()
-            const method = AUTH_METHOD_REGISTRY[AuthMethodType.FACE]
-            render(
-                <AuthMethodRunnerModal
-                    method={method!}
-                    open={true}
-                    onClose={onClose}
-                />,
-            )
+    it('transitions to success when the puzzle reports a server-confirmed verdict', async () => {
+        const onClose = vi.fn()
+        const method = AUTH_METHOD_REGISTRY[AuthMethodType.FACE]
+        render(
+            <AuthMethodRunnerModal
+                method={method!}
+                open={true}
+                onClose={onClose}
+            />,
+        )
 
-            // Trigger the stubbed submit.
-            fireEvent.click(screen.getByTestId('mock-face-submit'))
+        // Trigger the step's onSubmit. The mocked puzzle API resolves
+        // synchronously with kind=success — no setTimeout is involved any
+        // more (regression guard for USER-BUG-5).
+        fireEvent.click(screen.getByTestId('mock-face-submit'))
 
-            // Wrapper waits ~500ms before reporting success.
-            act(() => {
-                vi.advanceTimersByTime(1000)
-            })
-
+        await waitFor(() => {
             expect(
                 screen.getByText('authMethodsTesting.successMessage'),
             ).toBeInTheDocument()
-            // Retry button appears in the success state.
-            expect(
-                screen.getByText('authMethodsTesting.tryAgainButton'),
-            ).toBeInTheDocument()
-        } finally {
-            vi.useRealTimers()
-        }
+        })
+        // Retry button appears in the success state.
+        expect(
+            screen.getByText('authMethodsTesting.tryAgainButton'),
+        ).toBeInTheDocument()
     })
 
     it('invokes onClose when the close button is clicked', () => {
