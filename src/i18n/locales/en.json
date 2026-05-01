@@ -769,7 +769,13 @@
     "deleteFlowAction": "Delete flow",
     "failedToLoad": "Failed to load authentication flows",
     "failedToSave": "Failed to save authentication flow",
-    "failedToDelete": "Failed to delete authentication flow"
+    "failedToDelete": "Failed to delete authentication flow",
+    "setAsDefault": "Set as default",
+    "setDefaultTitle": "Set Default Authentication Flow",
+    "setDefaultConfirm": "Set \"{{name}}\" as the default authentication flow? This will replace the current default for this operation type.",
+    "setDefaultSuccess": "Default authentication flow updated",
+    "failedToSetDefault": "Failed to set default authentication flow",
+    "alreadyDefault": "This flow is already the default"
   },
   "guests": {
     "title": "Guest Management",
