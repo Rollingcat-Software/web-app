@@ -1554,7 +1554,8 @@
     "capturedVerifying": "Captured! Verifying...",
     "identityVerified": "Identity verified!",
     "verificationFailed": "Verification failed. Try again.",
-    "livenessCheckFailed": "Live face not detected, please try again."
+    "livenessCheckFailed": "Live face not detected, please try again.",
+    "noFaceDetected": "No face detected — please position your face in the frame."
   },
   "register": {
     "verificationFailed": "Verification failed. Please try again.",

@@ -1554,7 +1554,8 @@
     "capturedVerifying": "Yakalandı! Doğrulanıyor...",
     "identityVerified": "Kimlik doğrulandı!",
     "verificationFailed": "Doğrulama başarısız oldu. Tekrar deneyin.",
-    "livenessCheckFailed": "Gerçek yüz algılanamadı, lütfen tekrar deneyin."
+    "livenessCheckFailed": "Gerçek yüz algılanamadı, lütfen tekrar deneyin.",
+    "noFaceDetected": "Yüz algılanmadı — lütfen yüzünüzü kameraya yerleştirin."
   },
   "register": {
     "verificationFailed": "Doğrulama başarısız oldu. Lütfen tekrar deneyin.",
