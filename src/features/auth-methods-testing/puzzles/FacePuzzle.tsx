@@ -1,34 +1,45 @@
 /**
- * FacePuzzle — wraps FaceCaptureStep for the Biometric Puzzle playground.
+ * FacePuzzle — wraps the production `FaceCaptureStep` and runs it against the
+ * REAL `/biometric/verify/{userId}` endpoint with the signed-in admin's JWT.
  *
- * The wrapped step calls `onSubmit(image, embedding)` on capture. We map that
- * to the puzzle-level `onSuccess`. Errors come from the step's `error` prop
- * which we never populate in stub mode — `onError` stays silent.
+ * USER-BUG-1 detection-gate is preserved: `FaceCaptureStep` blocks `captureImage`
+ * unless `useFaceDetection` reports `detected=true` AND a bounding box.
+ *
+ * USER-BUG-5 (this fix): the previous wrapper called a 500 ms `setTimeout(onSuccess)`
+ * with no server round-trip. It is replaced by a real verify call; `onSuccess` is
+ * only invoked when the backend confirms `verified=true`. Cancellation or a
+ * server-rejected verdict surfaces as an `onError`.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import FaceCaptureStep from '@features/auth/components/steps/FaceCaptureStep'
 import type { AuthMethodProps } from '../authMethodRegistry'
+import { useAuthMethodPuzzleApi } from './useAuthMethodPuzzleApi'
 
-export default function FacePuzzle({ onSuccess }: AuthMethodProps) {
+export default function FacePuzzle({ onSuccess, onError }: AuthMethodProps) {
+    const { t } = useTranslation()
+    const api = useAuthMethodPuzzleApi()
     const [loading, setLoading] = useState(false)
-    const timerRef = useRef<number | null>(null)
+    const [stepError, setStepError] = useState<string | undefined>(undefined)
 
-    useEffect(() => () => {
-        if (timerRef.current != null) {
-            window.clearTimeout(timerRef.current)
-            timerRef.current = null
-        }
-    }, [])
-
-    const handleSubmit = useCallback(() => {
-        setLoading(true)
-        // Mirror the real flow where the server takes a beat to verify.
-        timerRef.current = window.setTimeout(() => {
-            timerRef.current = null
+    const handleSubmit = useCallback(
+        async (image: string) => {
+            setLoading(true)
+            setStepError(undefined)
+            const result = await api.submitFace(image, t)
             setLoading(false)
-            onSuccess()
-        }, 500)
-    }, [onSuccess])
+            if (result.kind === 'success') {
+                onSuccess()
+            } else {
+                // Surface the message inline AND bubble to the modal so the
+                // outer "Try again" button works whether the user dismissed
+                // or the server rejected.
+                setStepError(result.message)
+                onError(result.message)
+            }
+        },
+        [api, t, onSuccess, onError],
+    )
 
-    return <FaceCaptureStep onSubmit={handleSubmit} loading={loading} />
+    return <FaceCaptureStep onSubmit={handleSubmit} loading={loading} error={stepError} />
 }

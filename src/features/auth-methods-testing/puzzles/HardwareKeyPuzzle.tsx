@@ -1,31 +1,50 @@
 /**
- * HardwareKeyPuzzle — wraps HardwareKeyStep for the playground.
- * Real WebAuthn still runs in-browser; we just accept whatever the step
- * component hands back and report success.
+ * HardwareKeyPuzzle — wraps the production `HardwareKeyStep` and runs the
+ * cross-platform WebAuthn assertion against the REAL `/webauthn/authenticate`
+ * endpoint.
+ *
+ * Same shape as `FingerprintPuzzle`: the only difference is which kind of
+ * authenticator the OS picker prefers. Both call into
+ * `useAuthMethodPuzzleApi.submitWebAuthnAssertion` so the cryptographic
+ * verification on the server side is identical.
+ *
+ * USER-BUG-5 (this fix): no more 500 ms `setTimeout(onSuccess)`; success only
+ * fires on a server-confirmed signature.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import HardwareKeyStep from '@features/auth/components/steps/HardwareKeyStep'
 import type { AuthMethodProps } from '../authMethodRegistry'
+import { useAuthMethodPuzzleApi } from './useAuthMethodPuzzleApi'
 
-export default function HardwareKeyPuzzle({ onSuccess }: AuthMethodProps) {
+export default function HardwareKeyPuzzle({ onSuccess, onError }: AuthMethodProps) {
+    const { t } = useTranslation()
+    const api = useAuthMethodPuzzleApi()
     const [loading, setLoading] = useState(false)
-    const timerRef = useRef<number | null>(null)
+    const [stepError, setStepError] = useState<string | undefined>(undefined)
 
-    useEffect(() => () => {
-        if (timerRef.current != null) {
-            window.clearTimeout(timerRef.current)
-            timerRef.current = null
-        }
-    }, [])
-
-    const handleSubmit = useCallback(() => {
-        setLoading(true)
-        timerRef.current = window.setTimeout(() => {
-            timerRef.current = null
+    const handleSubmit = useCallback(
+        async (data: string) => {
+            setLoading(true)
+            setStepError(undefined)
+            const result = await api.submitWebAuthnAssertion(data, t)
             setLoading(false)
-            onSuccess()
-        }, 500)
-    }, [onSuccess])
+            if (result.kind === 'success') {
+                onSuccess()
+            } else {
+                setStepError(result.message)
+                onError(result.message)
+            }
+        },
+        [api, t, onSuccess, onError],
+    )
 
-    return <HardwareKeyStep onSubmit={handleSubmit} loading={loading} />
+    return (
+        <HardwareKeyStep
+            onRequestChallenge={() => api.requestWebAuthnChallenge(t)}
+            onSubmit={handleSubmit}
+            loading={loading}
+            error={stepError}
+        />
+    )
 }

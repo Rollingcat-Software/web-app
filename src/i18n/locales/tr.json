@@ -1604,6 +1604,16 @@
     "stubbedOnly": "Yalnızca simülasyon",
     "successMessage": "Doğrulama başarılı. Bu yöntemi kimlik doğrulama akışınızda etkinleştirmeye hazırsınız.",
     "errorMessage": "Önizleme tamamlanamadı. Lütfen tekrar deneyin.",
+    "errors": {
+      "notAuthenticated": "Bu yöntemi canlı arka uca karşı test etmek için oturum açmış olmanız gerekir.",
+      "verifyRejected": "Sunucu doğrulamayı reddetti. Lütfen tekrar deneyin.",
+      "noEnrollment": "Bu yöntem için kayıt bulunamadı. İlk deneme yeni bir şablon kaydeder; lütfen yeniden deneyin.",
+      "webauthnNoCredentials": "Hesabınızda kayıtlı WebAuthn kimlik bilgisi yok. Önce profilinizden bir geçiş anahtarı veya donanım anahtarı kaydedin.",
+      "nfcNotAvailable": "Web NFC bu tarayıcıda veya bağlamda kullanılamıyor. Android'de Chrome deneyin veya barındırılan giriş ekranını üst düzey bir sekmede açın."
+    },
+    "info": {
+      "autoEnrolled": "İlk kayıt yakalandı. Canlı şablona karşı doğrulama yapmak için lütfen testi yeniden çalıştırın."
+    },
     "difficulty": {
       "beginner": "Başlangıç",
       "intermediate": "Orta",
