@@ -1,13 +1,15 @@
 /**
  * AuthMethodMode provider component.
  *
- * Exposes whether the surrounding tree is running in `real` authentication
- * mode (the production flow) or `stub` mode (the Auth Methods Testing
- * playground) and the `IAuthRepository` instance that should be consumed.
+ * Exposes whether the surrounding tree is running in `live` authentication
+ * mode (the production flow) or `test` mode (the Auth Methods Testing
+ * playground hitting real endpoints with the logged-in admin's session).
  *
- * Step components themselves still resolve their dependencies via
- * InversifyJS; this context is the escape hatch for wrappers that want to
- * branch on mode (e.g. swap copy, skip network calls, show demo chips).
+ * The `IAuthRepository` exposed here is **always** the real, DI-resolved
+ * production repository. There is no stub — the previous behaviour of
+ * returning fake `AUTHENTICATED` responses caused USER-BUG-5 (every test
+ * card silently "passed"). All puzzles must hit real endpoints and
+ * surface real failures.
  *
  * NOTE: The hooks (`useAuthMethodMode`, `useAuthMethodModeOptional`) and
  * the React context object live in `AuthMethodModeContext.ts` so
@@ -15,7 +17,8 @@
  */
 import { useMemo, type ReactNode } from 'react'
 import type { IAuthRepository } from '@domain/interfaces/IAuthRepository'
-import { createStubAuthRepository } from './stubs/stubAuthRepository'
+import { useService } from '@app/providers'
+import { TYPES } from '@core/di/types'
 import {
     AuthMethodModeContext,
     type AuthMethodModeKind,
@@ -24,37 +27,31 @@ import {
 
 export interface AuthMethodModeProviderProps {
     mode: AuthMethodModeKind
-    /** Optional override — tests may inject their own stub. */
+    /**
+     * Optional override — Vitest tests inject a mock here so they don't
+     * need a fully-configured DI container to render a puzzle.
+     */
     authRepository?: IAuthRepository
     children: ReactNode
 }
 
 /**
- * Wraps `children` with an AuthMethodMode value. When `mode === 'stub'` the
- * stub repository is used; when `mode === 'real'` callers MUST pass a real
- * `authRepository` (typically resolved from the DI container).
+ * Wraps `children` with an AuthMethodMode value. The `mode` prop is now
+ * informational only (kept on the context so wrappers can branch their
+ * copy / chips); the repository is the production one regardless.
  */
 export function AuthMethodModeProvider({
     mode,
     authRepository,
     children,
 }: AuthMethodModeProviderProps) {
-    const value = useMemo<AuthMethodModeValue>(() => {
-        if (mode === 'stub') {
-            return {
-                mode,
-                authRepository: authRepository ?? createStubAuthRepository(),
-            }
-        }
-
-        if (!authRepository) {
-            throw new Error(
-                'AuthMethodModeProvider: mode="real" requires an authRepository prop',
-            )
-        }
-
-        return { mode, authRepository }
-    }, [mode, authRepository])
+    // Resolve the production repo from the DI container. Tests that render
+    // outside of a DependencyProvider must pass `authRepository` explicitly.
+    const resolved = useService<IAuthRepository>(TYPES.AuthRepository)
+    const value = useMemo<AuthMethodModeValue>(
+        () => ({ mode, authRepository: authRepository ?? resolved }),
+        [mode, authRepository, resolved],
+    )
 
     return (
         <AuthMethodModeContext.Provider value={value}>

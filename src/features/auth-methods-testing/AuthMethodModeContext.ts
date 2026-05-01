@@ -7,7 +7,20 @@
 import { createContext, useContext } from 'react'
 import type { IAuthRepository } from '@domain/interfaces/IAuthRepository'
 
-export type AuthMethodModeKind = 'real' | 'stub'
+/**
+ * Mode the auth-methods-testing tree is running in.
+ *
+ * - `real` — the production auth/MFA flow during sign-in (hosts the
+ *   `IAuthRepository` resolved from DI).
+ * - `test` — the Auth Methods Testing playground; still hits real
+ *   endpoints (against the logged-in admin's own session) but uses the
+ *   JWT-authenticated `/auth/2fa/*` surface instead of an MFA session
+ *   token. Wrappers may use this flag to swap copy or hide chips.
+ *
+ * Historical alias `stub` is preserved so older tests continue to type-check;
+ * functionally it behaves identically to `test` (no fake responses anywhere).
+ */
+export type AuthMethodModeKind = 'real' | 'test' | 'stub'
 
 export interface AuthMethodModeValue {
     mode: AuthMethodModeKind

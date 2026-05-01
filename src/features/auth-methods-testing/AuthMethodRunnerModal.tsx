@@ -2,11 +2,13 @@
  * AuthMethodRunnerModal
  *
  * Dialog container that mounts the selected auth method's component under an
- * `AuthMethodModeProvider` in `stub` mode. Tracks three UI states:
+ * `AuthMethodModeProvider` in `test` mode. Each puzzle hits a real backend
+ * endpoint scoped to the logged-in admin (USER-BUG-5 fix). Tracks three UI
+ * states:
  *
  *   - `running` — preview mounted, awaiting user interaction
- *   - `success` — the stubbed backend accepted the challenge
- *   - `error`   — rare in stub mode; surfaced with a retry button
+ *   - `success` — the server accepted the challenge for real
+ *   - `error`   — server rejected the challenge or the request failed
  *
  * The dialog is intentionally mobile-friendly (`fullScreen` on xs).
  */
@@ -143,7 +145,7 @@ export default function AuthMethodRunnerModal({
                         {errorMessage ?? t('authMethodsTesting.errorMessage')}
                     </Alert>
                 ) : (
-                    <AuthMethodModeProvider mode="stub">
+                    <AuthMethodModeProvider mode="test">
                         {/* runId key forces a fresh mount on retry */}
                         <Box key={runId}>
                             <MethodComponent

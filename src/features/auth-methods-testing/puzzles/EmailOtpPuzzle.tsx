@@ -1,42 +1,67 @@
 /**
- * EmailOtpPuzzle — wraps EmailOtpStep (the enrollment variant with the same
- * UX contract as SMS). We deliberately avoid EmailOtpMfaStep here because it
- * reaches into InversifyJS for an HttpClient + AuthRepository and hits
- * `/auth/mfa/send-otp` on mount — which has no meaning in the playground.
+ * EmailOtpPuzzle — exercises the real Email OTP path against the logged-in
+ * admin's own account.
+ *
+ *   1. On mount, POST /auth/2fa/send → server emails a 6-digit code.
+ *   2. User enters the code; we POST /auth/2fa/verify-method with method
+ *      `EMAIL_OTP` and `{ code }`.
+ *   3. On `success: true` we resolve `onSuccess()`; on `success: false`
+ *      we surface the server message (or an i18n-mapped fallback) via
+ *      the step's `error` prop. No silent successes.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useState } from 'react'
 import EmailOtpStep from '@features/auth/components/steps/EmailOtpStep'
+import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
+import { useTestVerifyApi } from '../hooks/useTestVerifyApi'
 import type { AuthMethodProps } from '../authMethodRegistry'
 
 export default function EmailOtpPuzzle({ onSuccess }: AuthMethodProps) {
+    const { t } = useTranslation()
+    const api = useTestVerifyApi()
+
     const [loading, setLoading] = useState(false)
-    const timerRef = useRef<number | null>(null)
+    const [sending, setSending] = useState(false)
+    const [error, setError] = useState<string | undefined>()
 
-    useEffect(() => () => {
-        if (timerRef.current != null) {
-            window.clearTimeout(timerRef.current)
-            timerRef.current = null
+    const handleSendOtp = useCallback(async () => {
+        setSending(true)
+        setError(undefined)
+        try {
+            await api.sendEmailOtp()
+        } catch (err) {
+            setError(formatApiError(err, t))
+        } finally {
+            setSending(false)
         }
-    }, [])
+    }, [api, t])
 
-    const handleSubmit = useCallback(() => {
-        setLoading(true)
-        timerRef.current = window.setTimeout(() => {
-            timerRef.current = null
-            setLoading(false)
-            onSuccess()
-        }, 500)
-    }, [onSuccess])
-
-    const handleSendOtp = useCallback(() => {
-        // No-op in puzzle mode.
-    }, [])
+    const handleSubmit = useCallback(
+        async (code: string) => {
+            setLoading(true)
+            setError(undefined)
+            try {
+                const result = await api.verifyMethod('EMAIL_OTP', { code })
+                if (result.success) {
+                    onSuccess()
+                } else {
+                    setError(result.message || t('mfa.verificationFailed'))
+                }
+            } catch (err) {
+                setError(formatApiError(err, t))
+            } finally {
+                setLoading(false)
+            }
+        },
+        [api, onSuccess, t],
+    )
 
     return (
         <EmailOtpStep
             onSubmit={handleSubmit}
             onSendOtp={handleSendOtp}
-            loading={loading}
+            loading={loading || sending}
+            error={error}
         />
     )
 }

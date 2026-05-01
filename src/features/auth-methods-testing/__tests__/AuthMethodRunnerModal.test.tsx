@@ -12,6 +12,13 @@ vi.mock('react-i18next', () => ({
     }),
 }))
 
+// AuthMethodModeProvider now resolves the real IAuthRepository via DI.
+// Tests don't exercise that path — return a stand-in object so the
+// provider can render without a configured DI container.
+vi.mock('@app/providers', () => ({
+    useService: vi.fn(() => ({})),
+}))
+
 // Replace heavy step components with lightweight stand-ins that expose a
 // "succeed" button we can click. This keeps the test focused on the modal's
 // orchestration, not on camera / ML / WebAuthn plumbing.
