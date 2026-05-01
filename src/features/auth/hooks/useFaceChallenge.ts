@@ -55,7 +55,15 @@ const ENROLLMENT_STAGES: { stage: ChallengeStage; instructionKey: string; holdMs
 ]
 
 const HEAD_TURN_THRESHOLD = 0.06 // relaxed for mobile front cameras
-const STAGE_TIMEOUT_MS = 6000 // auto-advance after 6s if stuck (soft timeout)
+// Soft timeout: if a face IS detected but the stage-specific gesture (turn left,
+// blink, etc.) is not satisfied for this long, capture anyway. This is forgiving
+// of mobile front-camera quirks where head-pose estimation is noisy.
+//
+// IMPORTANT: timeouts must NEVER fire while `detection.detected === false`.
+// Pointing the camera at the ceiling (or anywhere with no face) must NOT
+// advance the flow — the server rejects an empty descriptor at pgvector insert
+// time and the user only sees the failure at save. See USER-BUG-1.
+const STAGE_TIMEOUT_MS = 6000
 
 export function useFaceChallenge() {
     const [challengeState, setChallengeState] = useState<ChallengeState>({
@@ -151,12 +159,30 @@ export function useFaceChallenge() {
         const currentStage = ENROLLMENT_STAGES[idx]
         const conditionMet = checkStageCondition(currentStage.stage, detection)
 
+        // GATE: never advance, never run capture/liveness math, never start
+        // hold timers when there is no face in the frame. The previous build
+        // had a "hard timeout" that fired regardless of `detection.detected`,
+        // which let users enroll a ceiling/wall and then crashed at the
+        // pgvector insert — surfacing only as "DB save failed". See USER-BUG-1.
+        if (!detection.detected) {
+            holdStartRef.current = null
+            // Reset stage-elapsed clock too, otherwise the soft-timeout below
+            // would fire instantly the moment a face reappears.
+            stageStartRef.current = Date.now()
+            setChallengeState(prev => ({
+                ...prev,
+                stageProgress: 0,
+                progress: (idx + 1) / ENROLLMENT_STAGES.length,
+                instruction: 'faceChallenge.noFaceDetected',
+            }))
+            return
+        }
+
         const stageElapsed = Date.now() - stageStartRef.current
-        // Soft timeout: auto-advance if face detected but condition not met
-        const softTimeout = stageElapsed > STAGE_TIMEOUT_MS && detection.detected
-        // Hard timeout: auto-advance even without detection (MediaPipe may have failed)
-        const hardTimeout = stageElapsed > STAGE_TIMEOUT_MS * 2
-        const timeoutReached = softTimeout || hardTimeout
+        // Soft timeout: face IS detected but the gesture (turn left, blink…)
+        // is not satisfied. After STAGE_TIMEOUT_MS we capture anyway with a
+        // shortened hold to be forgiving of mobile head-pose noise.
+        const timeoutReached = stageElapsed > STAGE_TIMEOUT_MS
 
         if (conditionMet || timeoutReached) {
             if (!holdStartRef.current) {
@@ -169,34 +195,25 @@ export function useFaceChallenge() {
             const stageProgress = Math.min(1, elapsed / requiredHold)
 
             if (elapsed >= requiredHold) {
-                // Stage complete — capture image
+                // Stage complete — capture image. cropFace requires a face
+                // bounding box; if it returns null, we MUST NOT submit a
+                // synthesized center-crop (that would let a ceiling capture
+                // through). Reset the hold and keep waiting for a real face.
                 let capturedImage: string | null = null
                 if (canvasRef.current) {
                     capturedImage = cropFace(canvasRef.current)
-                    // If cropFace returned null (no bounding box), capture a center crop
-                    // that approximates a face region rather than the full frame.
-                    // The biometric-processor rejects full-frame images where it can't detect a face.
-                    if (!capturedImage && canvasRef.current) {
-                        const video = document.querySelector('video')
-                        if (video && video.videoWidth > 0) {
-                            // Crop center ~50% of frame (face is usually centered in selfie mode)
-                            const vw = video.videoWidth
-                            const vh = video.videoHeight
-                            const cropSize = Math.min(vw, vh) * 0.6
-                            const sx = (vw - cropSize) / 2
-                            const sy = (vh - cropSize) / 2.5 // shift slightly up (face is upper-center)
-                            const size = Math.round(cropSize)
-                            canvasRef.current.width = size
-                            canvasRef.current.height = size
-                            const ctx = canvasRef.current.getContext('2d')
-                            if (ctx) {
-                                ctx.drawImage(video, sx, Math.max(0, sy), cropSize, cropSize, 0, 0, size, size)
-                                capturedImage = canvasRef.current.toDataURL('image/jpeg', 0.85)
-                            }
-                        }
-                    }
                 }
-                if (capturedImage) {
+                if (!capturedImage) {
+                    holdStartRef.current = null
+                    setChallengeState(prev => ({
+                        ...prev,
+                        stageProgress: 0,
+                        progress: (idx + 1) / ENROLLMENT_STAGES.length,
+                        instruction: 'faceChallenge.noFaceDetected',
+                    }))
+                    return
+                }
+                {
                     // ── Passive liveness pre-filter (client-side, D2 compliant) ──────────
                     // Extract face ROI as ImageData synchronously from the current video
                     // frame (bounded by detection.boundingBox). Run PassiveLivenessDetector
