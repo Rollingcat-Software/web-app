@@ -36,6 +36,7 @@ import type { AuthFlowRepository, AuthFlowResponse } from '@core/repositories/Au
 import TotpEnrollment from '@features/auth/components/TotpEnrollment'
 import WebAuthnEnrollment from '@features/auth/components/WebAuthnEnrollment'
 import SessionsSection from '@features/settings/components/SessionsSection'
+import { normalizePhoneInputE164, isValidE164 } from '@utils/phoneNumber'
 
 export default function SettingsPage() {
     const { user } = useAuth()
@@ -127,7 +128,11 @@ export default function SettingsPage() {
         if (settings) {
             setFirstName(settings.firstName || user?.firstName || '')
             setLastName(settings.lastName || user?.lastName || '')
-            setPhoneNumber(settings.phoneNumber || user?.phoneNumber || '')
+            // Normalize whatever we receive from the API/auth so the field
+            // always renders in E.164 — keeps the form aligned with the
+            // backend's V54 CHECK constraint and avoids "you typed it
+            // right, now retype it the same way" UX bugs.
+            setPhoneNumber(normalizePhoneInputE164(settings.phoneNumber || user?.phoneNumber || ''))
             setSessionTimeout(String(settings.sessionTimeoutMinutes))
         }
     }, [settings, user])
@@ -135,7 +140,14 @@ export default function SettingsPage() {
     const handleSaveProfile = useCallback(async () => {
         try {
             setSaving('profile')
-            await updateProfile({ firstName, lastName, phoneNumber: phoneNumber || undefined })
+            // Defense-in-depth: re-normalize at submit time so a paste
+            // override (which bypasses onChange) still lands in E.164.
+            const normalizedPhone = phoneNumber ? normalizePhoneInputE164(phoneNumber) : ''
+            await updateProfile({
+                firstName,
+                lastName,
+                phoneNumber: normalizedPhone || undefined,
+            })
             showSuccessMessage('profile')
         } catch {
             // Error handled by hook
@@ -143,6 +155,11 @@ export default function SettingsPage() {
             setSaving(null)
         }
     }, [firstName, lastName, phoneNumber, updateProfile, showSuccessMessage])
+
+    // Phone-validity flag drives both helperText and the Save-button gate.
+    // Empty is allowed (phone is optional in profile); a non-empty value
+    // must pass E.164.
+    const phoneValid = phoneNumber === '' || isValidE164(phoneNumber)
 
     const handleSaveSecurity = useCallback(async () => {
         const timeout = parseInt(sessionTimeout, 10)
@@ -279,10 +296,16 @@ export default function SettingsPage() {
                                     label={t('settings.phoneNumber')}
                                     type="tel"
                                     value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    onChange={(e) => setPhoneNumber(normalizePhoneInputE164(e.target.value))}
                                     disabled={saving === 'profile'}
-                                    placeholder="+905xxxxxxxxx"
-                                    helperText={t('settings.phoneHelper')}
+                                    placeholder="+90 5XX XXX XX XX"
+                                    error={!phoneValid}
+                                    helperText={
+                                        !phoneValid
+                                            ? t('phoneNumber.e164Required')
+                                            : t('settings.phoneHelper')
+                                    }
+                                    inputProps={{ inputMode: 'tel', autoComplete: 'tel' }}
                                 />
                             </Grid>
                             <Grid item xs={12}>
@@ -311,7 +334,7 @@ export default function SettingsPage() {
                                 variant="contained"
                                 startIcon={saving === 'profile' ? <CircularProgress size={16} /> : <Save />}
                                 onClick={handleSaveProfile}
-                                disabled={saving === 'profile'}
+                                disabled={saving === 'profile' || !phoneValid}
                             >
                                 {t('settings.saveProfile')}
                             </Button>

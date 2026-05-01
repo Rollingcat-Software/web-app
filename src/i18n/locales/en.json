@@ -76,6 +76,9 @@
       "hidePassword": "Hide password"
     }
   },
+  "phoneNumber": {
+    "e164Required": "Phone number must be in international format (e.g. +90 555 123 45 67)"
+  },
   "nav": {
     "dashboard": "Dashboard",
     "users": "Users",

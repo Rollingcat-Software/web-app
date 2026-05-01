@@ -76,6 +76,9 @@
       "hidePassword": "Parolayı gizle"
     }
   },
+  "phoneNumber": {
+    "e164Required": "Telefon numarası uluslararası formatta olmalı (örn. +90 555 123 45 67)"
+  },
   "nav": {
     "dashboard": "Kontrol Paneli",
     "users": "Kullanıcılar",
