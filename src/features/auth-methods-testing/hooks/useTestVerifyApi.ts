@@ -10,11 +10,14 @@
  *   endpoints which run the same verification logic against the caller's
  *   own user record (TOTP secret, phone, email, QR token store).
  *
- *   Endpoints used (all require an authenticated admin JWT):
- *   - POST /auth/2fa/send                — emails an OTP to the admin
- *   - POST /auth/2fa/send-sms            — texts an OTP to the admin
- *   - POST /auth/qr/generate/{userId}    — mints a QR token (qr:generate or self)
- *   - POST /auth/2fa/verify-method       — verifies any AuthMethodType
+ *   Endpoints used (all require an authenticated admin JWT). Paths are
+ *   shown relative to the configured `apiBase` (which already includes
+ *   `/api/v1`), matching the strings passed to `httpClient` below:
+ *   - POST   /auth/2fa/send              — emails an OTP to the admin
+ *   - POST   /auth/2fa/send-sms          — texts an OTP to the admin
+ *   - POST   /qr/generate/{userId}       — mints a QR token (qr:generate or self)
+ *   - DELETE /qr/{token}                 — best-effort token invalidation
+ *   - POST   /auth/2fa/verify-method     — verifies any AuthMethodType
  *
  *   The verify endpoint returns `{ success: boolean, message: string }` —
  *   we return that boolean as-is so the puzzle can surface a real error.
@@ -44,9 +47,9 @@ export interface TestVerifyApi {
     sendEmailOtp: () => Promise<SendOtpResult>
     /** POST /auth/2fa/send-sms — sends an SMS OTP to the logged-in admin. */
     sendSmsOtp: () => Promise<SendOtpResult>
-    /** POST /auth/qr/generate/{userId} — mints a QR token for the admin. */
+    /** POST /qr/generate/{userId} — mints a QR token for the admin. */
     generateQrToken: (userId: string) => Promise<QrTokenResult>
-    /** DELETE /api/v1/qr/{token} — best-effort token invalidation. */
+    /** DELETE /qr/{token} — best-effort token invalidation. */
     invalidateQrToken: (token: string) => Promise<void>
     /**
      * POST /auth/2fa/verify-method — verifies an arbitrary auth method
