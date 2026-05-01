@@ -334,13 +334,77 @@ describe('evaluateHandPuzzle (HAND_MATH)', () => {
         }
         expect(completed).toBe(false)
 
-        // Now show 5 fingers — correct answer.
+        // Now show 5 fingers — correct answer. Fresh state (the smoother
+        // and hold-tracker reset when the user starts a new attempt).
+        const state2 = initialHandState(BiometricPuzzleId.HAND_MATH)
+        state2.targetFingerCount = 5
+        state2.mathPrompt = '2 + 3'
         const hold2 = { detectedSince: null }
         for (let i = 0; i < 10; i++) {
             const r = evaluateHandPuzzle(
                 BiometricPuzzleId.HAND_MATH,
-                { frame: openHandFrame(i * 100), state },
+                { frame: openHandFrame(i * 100), state: state2 },
                 hold2,
+            )
+            if (r.completed) completed = true
+        }
+        expect(completed).toBe(true)
+    })
+
+    it('survives single-frame finger-count jitter (regression for "math doesn\'t work")', () => {
+        // Real users' thumbs flicker between extended/curled — without
+        // smoothing, a single jittered frame would reset the hold timer
+        // and the puzzle would never finish. With the
+        // `FingerCountSmoother`, the dominant count over the last 500ms
+        // wins, so 1 jittered frame in 5 still completes.
+        const state = initialHandState(BiometricPuzzleId.HAND_MATH)
+        state.targetFingerCount = 5
+        state.mathPrompt = '2 + 3'
+        const hold = { detectedSince: null }
+        let completed = false
+        // 12 frames at 80ms apart → 960ms total, well over the 700ms hold.
+        // Inject a 1-frame jitter (4 fingers instead of 5) every 5th frame.
+        for (let i = 0; i < 12; i++) {
+            const ts = i * 80
+            const frame = i % 5 === 0
+                ? twoFingerFrame(ts)  // wrong-count jitter (count=2)
+                : openHandFrame(ts)   // correct count=5
+            const r = evaluateHandPuzzle(
+                BiometricPuzzleId.HAND_MATH,
+                { frame, state },
+                hold,
+            )
+            if (r.completed) completed = true
+        }
+        expect(completed).toBe(true)
+    })
+})
+
+describe('evaluateHandPuzzle (HAND_SHAPE_TRACE)', () => {
+    it('completes a closed-loop trace even when the thumb rides loose (regression for "shape drawing doesn\'t work")', () => {
+        // Real users naturally hold the thumb loose while pointing.
+        // Strict `countFingers === 1` rejected such frames and reset the
+        // path buffer every frame, so the puzzle never accumulated
+        // enough points. The new `isIndexExtended` check only requires
+        // the index TIP to be above its PIP joint.
+        const state = initialHandState(BiometricPuzzleId.HAND_SHAPE_TRACE)
+        const hold = { detectedSince: null }
+        let completed = false
+        // 60 frames tracing a circle of radius 0.15 around (0.5, 0.5).
+        // We use `openHandFrame` (5 fingers) but force the index TIP to
+        // follow a circular path — `countFingers` returns 5 here,
+        // which the OLD strict detector would reject. The NEW detector
+        // only checks index extension and accepts.
+        for (let i = 0; i <= 60; i++) {
+            const angle = (i / 60) * Math.PI * 2
+            const x = 0.5 + 0.15 * Math.cos(angle)
+            const y = 0.5 + 0.15 * Math.sin(angle)
+            const f = openHandFrame(i * 100)
+            f.landmarks[8] = { x, y, z: 0 }
+            const r = evaluateHandPuzzle(
+                BiometricPuzzleId.HAND_SHAPE_TRACE,
+                { frame: f, state },
+                hold,
             )
             if (r.completed) completed = true
         }

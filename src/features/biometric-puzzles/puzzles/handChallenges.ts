@@ -95,6 +95,18 @@ export function countFingers(frame: HandFrame): number {
     return count
 }
 
+/**
+ * Returns true if the index finger is extended (TIP above PIP in image
+ * coordinates). Less strict than `countFingers === 1` — used by the
+ * shape-trace puzzles where the user is told to point but their thumb
+ * frequently rides loose, which would otherwise abort the trace.
+ */
+export function isIndexExtended(frame: HandFrame): boolean {
+    const lms = frame.landmarks
+    if (lms.length < 21) return false
+    return lms[8].y < lms[6].y
+}
+
 /** Returns true while thumb-tip and index-tip are pinched together. */
 export function isPinching(frame: HandFrame): boolean {
     const lms = frame.landmarks
@@ -309,9 +321,14 @@ export class PeekABooDetector {
 
 /**
  * Shape-trace detector: records the index-fingertip path while the
- * user has the index extended and other fingers curled, and reports
+ * user has the index extended (loose-thumb tolerant), and reports
  * success once the path has reasonable arc length AND has revisited
  * its starting point (closed shape).
+ *
+ * 2026-04-30: switched from strict `countFingers === 1` to
+ * `isIndexExtended`. Real users naturally let their thumb ride loose
+ * when pointing — the strict check kept resetting the buffer on
+ * ~every frame, so the puzzle never finished.
  */
 export class ShapeTraceDetector {
     private path: { x: number; y: number; ts: number }[] = []
@@ -327,9 +344,9 @@ export class ShapeTraceDetector {
             return false
         }
 
-        // Index extended, others curled.
-        const counts = countFingers(frame)
-        if (counts !== 1) {
+        // Index must be extended; thumb / other fingers don't matter — the
+        // tip path itself is what we evaluate.
+        if (!isIndexExtended(frame)) {
             // Not in pointing pose yet — discard buffer until they are.
             this.path = []
             return false
@@ -368,6 +385,51 @@ export class ShapeTraceDetector {
 }
 
 /**
+ * Sliding-window finger-count smoother. `countFingers` is per-frame and
+ * jitters by ±1 when the thumb relaxes — that jitter caused the
+ * HAND_MATH and HAND_FINGER_COUNT puzzles to never accumulate the 700ms
+ * hold because every wobble reset the timer. The smoother accepts a
+ * target as "matched" once the target value is the most common count
+ * over the last `windowMs` of samples AND occupies at least
+ * `dominanceRatio` of the window. A null frame is treated as a
+ * "no-hand" sample of count -1 (never matches).
+ *
+ * Synthetic tests still pass: when every frame reports the same count,
+ * the mode equals that count immediately.
+ */
+export class FingerCountSmoother {
+    private samples: { count: number; ts: number }[] = []
+    private windowMs: number
+    private minSamples: number
+    private dominanceRatio: number
+
+    constructor(windowMs = 500, minSamples = 3, dominanceRatio = 0.6) {
+        this.windowMs = windowMs
+        this.minSamples = minSamples
+        this.dominanceRatio = dominanceRatio
+    }
+
+    /** Push a finger count (or -1 if no hand). Returns true when the
+     *  target is dominant in the current window. */
+    push(count: number, ts: number, target: number): boolean {
+        this.samples.push({ count, ts })
+        while (this.samples.length && ts - this.samples[0].ts > this.windowMs) {
+            this.samples.shift()
+        }
+        if (this.samples.length < this.minSamples) return false
+        let matches = 0
+        for (const s of this.samples) {
+            if (s.count === target) matches += 1
+        }
+        return matches / this.samples.length >= this.dominanceRatio
+    }
+
+    reset() {
+        this.samples = []
+    }
+}
+
+/**
  * Per-puzzle dispatcher. Most challenges use stateless detectors, but
  * a few maintain temporal state — those are passed in via `state` and
  * the caller is responsible for keeping the same instance across
@@ -379,6 +441,9 @@ export interface HandPuzzleState {
     tap?: TapDetector
     peek?: PeekABooDetector
     shape?: ShapeTraceDetector
+    /** Smooths per-frame finger counts so single-frame jitter doesn't
+     *  reset the hold timer. Used by FINGER_COUNT and MATH. */
+    countSmoother?: FingerCountSmoother
     /** Random target finger count for FINGER_COUNT / MATH puzzles. */
     targetFingerCount?: number
     /** For MATH: the human-readable prompt ("2 + 3"). */
@@ -410,12 +475,15 @@ export function initialHandState(id: BiometricPuzzleId): HandPuzzleState {
         case BiometricPuzzleId.HAND_FINGER_COUNT:
             // Pick a target between 1..5 inclusive.
             s.targetFingerCount = 1 + Math.floor(Math.random() * 5)
+            s.countSmoother = new FingerCountSmoother()
             break
         case BiometricPuzzleId.HAND_MATH: {
+            // Constrain so a+b lands in [2, 5] — one hand's 5 fingers max.
             const a = 1 + Math.floor(Math.random() * 4)
             const b = 1 + Math.floor(Math.random() * (5 - a))
             s.targetFingerCount = a + b
             s.mathPrompt = `${a} + ${b}`
+            s.countSmoother = new FingerCountSmoother()
             break
         }
         case BiometricPuzzleId.HAND_WAVE:
@@ -477,9 +545,15 @@ export function evaluateHandPuzzle(
     switch (id) {
         case BiometricPuzzleId.HAND_FINGER_COUNT:
         case BiometricPuzzleId.HAND_MATH: {
-            if (!frame) return holdResult(false)
-            const count = countFingers(frame)
-            return holdResult(count === state.targetFingerCount)
+            const target = state.targetFingerCount ?? -1
+            const smoother = state.countSmoother
+            // Push -1 for no-hand frames so the dominance ratio drops; once
+            // a hand reappears the smoother fills back up.
+            const count = frame ? countFingers(frame) : -1
+            const matched = smoother
+                ? smoother.push(count, now, target)
+                : count === target
+            return holdResult(matched)
         }
         case BiometricPuzzleId.HAND_PINCH: {
             if (!frame) return holdResult(false)
