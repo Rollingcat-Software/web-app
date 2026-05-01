@@ -55,6 +55,7 @@ import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { ISettingsService } from '@domain/interfaces/ISettingsService'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { formatApiError } from '@utils/formatApiError'
+import { normalizePhoneInputE164, isValidE164 } from '@utils/phoneNumber'
 
 /**
  * Device capability detection results
@@ -1135,11 +1136,17 @@ export default function EnrollmentPage() {
                         label={t('enrollmentPage.phoneDialog.label')}
                         type="tel"
                         value={phoneInput}
-                        onChange={(e) => setPhoneInput(e.target.value)}
-                        placeholder={t('enrollmentPage.phoneDialog.placeholder')}
-                        helperText={t('enrollmentPage.phoneDialog.helper')}
+                        onChange={(e) => setPhoneInput(normalizePhoneInputE164(e.target.value))}
+                        placeholder="+90 5XX XXX XX XX"
+                        error={phoneInput.length > 0 && !isValidE164(phoneInput)}
+                        helperText={
+                            phoneInput.length > 0 && !isValidE164(phoneInput)
+                                ? t('phoneNumber.e164Required')
+                                : t('enrollmentPage.phoneDialog.helper')
+                        }
                         disabled={phoneSaving}
                         autoFocus
+                        inputProps={{ inputMode: 'tel', autoComplete: 'tel' }}
                     />
                 </DialogContent>
                 <DialogActions>
@@ -1154,7 +1161,7 @@ export default function EnrollmentPage() {
                     </Button>
                     <Button
                         variant="contained"
-                        disabled={phoneSaving || !phoneInput.trim() || phoneInput.trim().length < 10}
+                        disabled={phoneSaving || !isValidE164(phoneInput)}
                         startIcon={phoneSaving ? <CircularProgress size={16} /> : null}
                         onClick={async () => {
                             setPhoneSaving(true)
@@ -1164,7 +1171,10 @@ export default function EnrollmentPage() {
                                 await settingsService.updateProfile({
                                     firstName: user?.firstName ?? '',
                                     lastName: user?.lastName ?? '',
-                                    phoneNumber: phoneInput.trim(),
+                                    // Defense-in-depth: re-normalize at submit
+                                    // so a paste override cannot bypass the
+                                    // E.164 contract enforced by V54 / api PR #48.
+                                    phoneNumber: normalizePhoneInputE164(phoneInput),
                                 })
                                 // Phone is saved — now start the real SMS OTP enrollment
                                 // flow: create the PENDING row, request an OTP, and open
