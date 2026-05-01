@@ -731,7 +731,16 @@
     "cardDetected": "Card Detected",
     "noCardFound": "No Card Found",
     "type": "Type: {{type}}",
-    "confidenceValue": "Confidence: {{value}}%"
+    "confidenceValue": "Confidence: {{value}}%",
+    "unrecognised": "Card type unrecognised",
+    "unrecognisedHint": "We could not confidently classify this card. Please try again with better lighting and the card filling more of the frame.",
+    "classLabels": {
+      "tc_kimlik": "Turkish Republic ID Card",
+      "ehliyet": "Driver's License",
+      "pasaport": "Passport",
+      "ogrenci_karti": "Student Card",
+      "akademisyen_karti": "Academic Staff Card"
+    }
   },
   "authFlows": {
     "title": "Authentication Flows",

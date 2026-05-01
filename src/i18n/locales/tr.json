@@ -731,7 +731,16 @@
     "cardDetected": "Kart Algılandı",
     "noCardFound": "Kart Bulunamadı",
     "type": "Tür: {{type}}",
-    "confidenceValue": "Güven: %{{value}}"
+    "confidenceValue": "Güven: %{{value}}",
+    "unrecognised": "Kart türü tanınamadı",
+    "unrecognisedHint": "Bu kartı güvenle sınıflandıramadık. Daha iyi aydınlatmayla ve kartı kareye tam yerleştirerek tekrar deneyin.",
+    "classLabels": {
+      "tc_kimlik": "T.C. Kimlik Kartı",
+      "ehliyet": "Sürücü Belgesi (Ehliyet)",
+      "pasaport": "Pasaport",
+      "ogrenci_karti": "Öğrenci Kartı",
+      "akademisyen_karti": "Akademisyen Kartı"
+    }
   },
   "authFlows": {
     "title": "Kimlik Doğrulama Akışları",

@@ -1,0 +1,14 @@
+{
+  "_comment": "Canonical class index -> name mapping for yolo-card-nano.onnx. Extracted from the model's embedded ONNX metadata_props 'names' field on 2026-05-01. Indices MUST match the YOLOv8 head's training order, not alphabetical. Verified via raw ONNX bytes: {0: 'ehliyet', 1: 'pasaport', 2: 'ogrenci_karti', 3: 'tc_kimlik', 4: 'akademisyen_karti'}. Do NOT reorder.",
+  "model": "yolo-card-nano.onnx",
+  "model_sha256": "1b0db1183de768b1f0a7ab3d280b79ad84b653c433cc6a7ee55ac9c73e0b1863",
+  "extracted_from": "ONNX metadata_props.names",
+  "extracted_at": "2026-05-01",
+  "classes": [
+    "ehliyet",
+    "pasaport",
+    "ogrenci_karti",
+    "tc_kimlik",
+    "akademisyen_karti"
+  ]
+}

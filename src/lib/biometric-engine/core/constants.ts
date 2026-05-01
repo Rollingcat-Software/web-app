@@ -205,6 +205,20 @@ export const MAX_MATCH_DISTANCE = 120;
 /** Min YOLO detection confidence for cards. @see demo_local_fast.py line 1151 */
 export const CARD_CONFIDENCE = 0.35;
 
+/**
+ * High-confidence floor required before the client-side card detector will
+ * publish a class label to the UI. Below this threshold the detector
+ * reports "not detected" so the user sees a friendly retry prompt rather
+ * than a confidently wrong answer.
+ *
+ * Rationale: the Turkish ID classes the model was trained on overlap
+ * visually (tc_kimlik vs ehliyet share the red-cyan TR coat-of-arms;
+ * ogrenci_karti vs akademisyen_karti share the institution-issued layout).
+ * The server-side path has an OCR validator for these confusable pairs;
+ * the client path has none, so we set a stricter top-1 gate.
+ */
+export const CARD_HIGH_CONFIDENCE = 0.7;
+
 /** YOLO inference image size in pixels. @see demo_local_fast.py line 1151 */
 export const CARD_INPUT_SIZE = 640;
 

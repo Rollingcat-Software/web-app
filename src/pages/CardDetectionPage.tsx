@@ -190,10 +190,31 @@ export default function CardDetectionPage() {
                                 color={result.detected ? 'success' : 'default'}
                                 size="medium"
                             />
-                            {result.cardType && (
+                            {/*
+                              Below ~0.6 confidence the YOLO model is known to
+                              confuse tc_kimlik/ehliyet and ogrenci_karti/
+                              akademisyen_karti. Server-side OCR validation
+                              runs in YOLOCardTypeDetector for those confusable
+                              pairs; by the time the answer reaches us, a low
+                              confidence value means the OCR tiebreaker also
+                              abstained — so we show a friendly "unrecognised"
+                              hint rather than a wrong class.
+                            */}
+                            {result.cardType && result.confidence >= 0.6 && (
                                 <Chip
-                                    label={t('cardDetection.type', { type: result.cardType })}
+                                    label={t('cardDetection.type', {
+                                        type: t(`cardDetection.classLabels.${result.cardType}`, {
+                                            defaultValue: result.cardType,
+                                        }),
+                                    })}
                                     color="primary"
+                                    variant="outlined"
+                                />
+                            )}
+                            {result.cardType && result.confidence > 0 && result.confidence < 0.6 && (
+                                <Chip
+                                    label={t('cardDetection.unrecognised')}
+                                    color="warning"
                                     variant="outlined"
                                 />
                             )}
@@ -205,7 +226,9 @@ export default function CardDetectionPage() {
                             )}
                         </Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            {result.message}
+                            {result.cardType && result.confidence > 0 && result.confidence < 0.6
+                                ? t('cardDetection.unrecognisedHint')
+                                : result.message}
                         </Typography>
                     </CardContent>
                 </Card>

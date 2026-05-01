@@ -1,51 +1,67 @@
 /**
  * CardDetector — Client-side YOLO card type detection via ONNX Runtime Web.
  *
- * Uses a YOLOv8n model exported to ONNX to detect Turkish ID cards, passports,
- * driver licenses, and student cards directly in the browser. Falls back to
- * a "not available" result when the ONNX model cannot be loaded.
+ * Uses a YOLOv8 model exported to ONNX to detect Turkish ID cards, passports,
+ * driver licenses, and student/academic cards directly in the browser.
+ * Falls back to a "not available" result when the ONNX model cannot be loaded.
  *
- * Model: yolo-card-nano.onnx (~6.2 MB)
+ * Model: yolo-card-nano.onnx (~50 MB FP16)
  * Input: 640×640×3 float32, normalized [0,1], NCHW layout
- * Output: YOLOv8 format [1, 5+C, 8400]
- * Classes: tc_kimlik, ehliyet, pasaport, ogrenci_karti, akademisyen_karti
+ * Output: YOLOv8 format [1, 4+C, 8400]
+ *
+ * Classes: loaded at runtime from `/models/labels.json`. Do NOT hardcode
+ * the class order in this file. The YOLO training-time order is NOT
+ * alphabetical — it was, until 2026-05-01, the source of a "Yanlış buluyor"
+ * production bug where every detection was off-by-N. The canonical mapping
+ * (extracted from the ONNX `metadata_props.names` field) is:
+ *   {0: 'ehliyet', 1: 'pasaport', 2: 'ogrenci_karti',
+ *    3: 'tc_kimlik', 4: 'akademisyen_karti'}
  *
  * @see BIOMETRIC_ENGINE_ARCHITECTURE.md Section 9
- * @see demo_local_fast.py lines 1069-1151 (card detection)
+ * @see public/models/labels.json — single source of truth for class order
+ * @see public/models/README.md
  */
 
 import type { ICardDetector } from '../interfaces';
 import type { BoundingBox, CardDetectionResult } from '../types';
 import {
   CARD_CONFIDENCE,
+  CARD_HIGH_CONFIDENCE,
   CARD_INPUT_SIZE,
   SMOOTHING_HISTORY,
   SMOOTHING_MIN_DETECTIONS,
 } from './constants';
 
 const MODEL_URL = '/models/yolo-card-nano.onnx';
+const LABELS_URL = '/models/labels.json';
 const IOU_THRESHOLD = 0.45;
 const NUM_ANCHORS = 8400;
 
 /**
- * Card class names matching the YOLO model's training labels.
- * Indices correspond to class_id in model output.
+ * Fallback class order used only if `labels.json` cannot be loaded
+ * (e.g. SSR hydration or offline cache miss). This mirrors the canonical
+ * training-time order embedded in the ONNX `metadata_props.names` field.
+ *
+ * Verified 2026-05-01 by reading the raw ONNX bytes — see labels.json.
+ *
+ * IMPORTANT: this is the WIRE order, NOT alphabetical. Reordering this
+ * array silently breaks every detection.
  */
-const CLASS_NAMES = [
-  'tc_kimlik',
+export const FALLBACK_CLASS_NAMES: readonly string[] = [
   'ehliyet',
   'pasaport',
   'ogrenci_karti',
+  'tc_kimlik',
   'akademisyen_karti',
 ] as const;
 
-type CardClassName = (typeof CLASS_NAMES)[number];
-
 /**
- * Human-readable labels for each card class, for display in UI.
- * Keys must match CLASS_NAMES exactly.
+ * Human-readable labels for each known card class slug. Used as a final
+ * cosmetic fallback for `cardLabel`. Production UI should resolve labels
+ * via the i18n bundle (`cardDetection.classLabels.<slug>`) rather than
+ * relying on these strings.
  */
-const CLASS_LABELS: Record<CardClassName, string> = {
+const CLASS_LABELS: Readonly<Record<string, string>> = {
   tc_kimlik: 'Turkish ID Card',
   ehliyet: 'Driver License',
   pasaport: 'Passport',
@@ -119,6 +135,14 @@ export class CardDetector implements ICardDetector {
   private smoothingHistory: Array<SmoothingEntry | null> = [];
 
   /**
+   * Class index → name mapping for this model. Loaded from labels.json at
+   * initialize() time so adding/retraining the model does not require a
+   * code change in this file. Defaults to FALLBACK_CLASS_NAMES if the
+   * fetch fails (still uses correct training order).
+   */
+  private classNames: readonly string[] = FALLBACK_CLASS_NAMES;
+
+  /**
    * Load the YOLO ONNX model and prepare the WASM execution provider.
    *
    * Model input:  [1, 3, 640, 640] float32 NCHW, normalized to [0,1]
@@ -128,8 +152,36 @@ export class CardDetector implements ICardDetector {
    *
    * @param modelUrl - Path or URL to yolo-card-nano.onnx. Defaults to /models/yolo-card-nano.onnx.
    */
-  async initialize(modelUrl = MODEL_URL): Promise<void> {
+  async initialize(modelUrl = MODEL_URL, labelsUrl = LABELS_URL): Promise<void> {
     try {
+      // --- Load class label mapping (canonical training-order names) ---
+      // Single source of truth lives in /models/labels.json — extracted from
+      // the ONNX metadata_props "names" field. Falls back gracefully on
+      // fetch failure to avoid a hard outage in degraded network states.
+      try {
+        const labelsRes = await fetch(labelsUrl, { cache: 'force-cache' });
+        if (labelsRes.ok) {
+          const labelsJson = (await labelsRes.json()) as { classes?: unknown };
+          const classes = labelsJson.classes;
+          if (Array.isArray(classes) && classes.every((c) => typeof c === 'string')) {
+            this.classNames = classes as string[];
+          } else {
+            console.warn(
+              '[CardDetector] labels.json.classes is malformed; using fallback order.',
+            );
+          }
+        } else {
+          console.warn(
+            `[CardDetector] labels.json fetch failed (${labelsRes.status}); using fallback order.`,
+          );
+        }
+      } catch (labelsErr) {
+        console.warn(
+          '[CardDetector] labels.json fetch error; using fallback order:',
+          labelsErr,
+        );
+      }
+
       // Dynamic import avoids bundling the ~5MB WASM runtime at build time.
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       // @ts-ignore — onnxruntime-web is loaded at runtime
@@ -154,6 +206,15 @@ export class CardDetector implements ICardDetector {
       this.initError = err instanceof Error ? err.message : String(err);
       console.warn('[CardDetector] ONNX model not available, detection disabled:', err);
     }
+  }
+
+  /**
+   * Test-only seam: expose the resolved class-name list so unit tests can
+   * pin the ordering against `FALLBACK_CLASS_NAMES` and against a
+   * test-provided labels.json. Returns a defensive copy.
+   */
+  getClassNames(): readonly string[] {
+    return this.classNames.slice();
   }
 
   /**
@@ -238,16 +299,28 @@ export class CardDetector implements ICardDetector {
       const feeds: Record<string, unknown> = { [inputName]: inputTensor };
       const outputs = await session.run(feeds);
 
-      // --- Step 4: Parse YOLOv8 output [1, 5+C, 8400] ---
+      // --- Step 4: Parse YOLOv8 output [1, 4+C, 8400] ---
       // Layout (transposed): for anchor a, element at row r is: output[r * NUM_ANCHORS + a]
       // Rows 0-3 = cx, cy, w, h  (in 640×640 padded space)
       // Rows 4..4+C-1 = class confidence scores
       const outputKey = Object.keys(outputs)[0];
       const output = outputs[outputKey].data as Float32Array;
-      const numClasses = CLASS_NAMES.length;
+      const numClasses = this.classNames.length;
 
       const best = this.findBestAnchor(output, numClasses);
       if (!best) {
+        this.pushSmoothing(null);
+        return useSmoothing ? this.resolveSmoothed() : notDetected;
+      }
+
+      // --- Defensive runtime gate ---
+      // Refuse to commit a class label below CARD_HIGH_CONFIDENCE — the
+      // model is known to confuse tc_kimlik/ehliyet and ogrenci_karti/
+      // akademisyen_karti, so a low-confidence top-1 guess is a UX hazard.
+      // We still feed the entry into the smoothing buffer so multi-frame
+      // agreement can still confirm; we just refuse to publish a single
+      // marginal frame as "detected".
+      if (best.confidence < CARD_HIGH_CONFIDENCE) {
         this.pushSmoothing(null);
         return useSmoothing ? this.resolveSmoothed() : notDetected;
       }
@@ -423,11 +496,22 @@ export class CardDetector implements ICardDetector {
    * @returns CardDetectionResult with all fields populated
    */
   private buildResult(entry: SmoothingEntry): CardDetectionResult {
-    const className = CLASS_NAMES[entry.classIdx] as CardClassName;
+    const className = this.classNames[entry.classIdx];
+    if (!className) {
+      // Defensive: model returned an out-of-range class index. Treat as
+      // unrecognised rather than displaying garbage.
+      return {
+        detected: false,
+        cardClass: null,
+        cardLabel: null,
+        confidence: entry.confidence,
+        boundingBox: entry.box,
+      };
+    }
     return {
       detected: true,
       cardClass: className,
-      cardLabel: CLASS_LABELS[className],
+      cardLabel: CLASS_LABELS[className] ?? className,
       confidence: entry.confidence,
       boundingBox: entry.box,
     };
