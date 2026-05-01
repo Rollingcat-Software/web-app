@@ -179,7 +179,7 @@ describe('useVerification', () => {
         })
 
         expect(result.current.flows).toEqual(mockFlows)
-        expect(mockVerificationRepo.listFlows).toHaveBeenCalledWith('tenant-1')
+        expect(mockVerificationRepo.listFlows).toHaveBeenCalledWith('tenant-1', undefined)
     })
 
     it('should handle load flows error', async () => {
@@ -210,7 +210,7 @@ describe('useVerification', () => {
 
         expect(created).toEqual(mockFlows[0])
         expect(mockVerificationRepo.createFlow).toHaveBeenCalledWith(command)
-        expect(mockVerificationRepo.listFlows).toHaveBeenCalledWith('tenant-1')
+        expect(mockVerificationRepo.listFlows).toHaveBeenCalledWith('tenant-1', undefined)
     })
 
     it('should handle create flow error', async () => {

@@ -65,8 +65,12 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
 
     // Perf (USER-BUG-7): warm MediaPipe FaceLandmarker in the background while
     // the user is still on the password step. By the time MFA dispatches the
-    // face capture step, the WASM + .task model are already cached. Lazy import
-    // keeps BiometricEngine off the password-step critical path.
+    // face capture step, the WASM + .task model are already cached. Lazy
+    // import keeps BiometricEngine off the password-step critical path.
+    // Copilot post-merge round 5: BiometricEngine.initialize() is now
+    // single-flight (shared in-flight promise) so this idle warm-up cannot
+    // race with useFaceDetection's on-mount init. Failures are non-fatal —
+    // useFaceDetection retries on demand.
     useEffect(() => {
         let cancelled = false
         const win = window as Window & { requestIdleCallback?: (cb: () => void) => void }

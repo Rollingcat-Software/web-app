@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
     Box,
     Typography,
@@ -73,6 +73,19 @@ export default function AuthFlowsPage() {
     const [setDefaultTarget, setSetDefaultTarget] = useState<AuthFlowResponse | null>(null)
     const [setDefaultInFlight, setSetDefaultInFlight] = useState(false)
     const [success, setSuccess] = useState<string | null>(null)
+
+    // Copilot post-merge round 5: keep a ref to the auto-clear timer so
+    // unmount / replacement cancels it, preventing setState-on-unmounted
+    // warnings.
+    const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current !== null) {
+                clearTimeout(successTimerRef.current)
+                successTimerRef.current = null
+            }
+        }
+    }, [])
 
     const tenantId = user?.tenantId ?? ''
 
@@ -185,7 +198,14 @@ export default function AuthFlowsPage() {
         try {
             await authFlowRepo.updateFlow(tenantId, setDefaultTarget.id, { isDefault: true })
             setSuccess(t('authFlows.setDefaultSuccess'))
-            setTimeout(() => setSuccess(null), 4000)
+            // Clear any in-flight auto-clear before scheduling a new one.
+            if (successTimerRef.current !== null) {
+                clearTimeout(successTimerRef.current)
+            }
+            successTimerRef.current = setTimeout(() => {
+                setSuccess(null)
+                successTimerRef.current = null
+            }, 4000)
             setSetDefaultDialogOpen(false)
             setSetDefaultTarget(null)
             await loadFlows()
@@ -343,7 +363,11 @@ export default function AuthFlowsPage() {
                                                         onClick={() => handleSetDefaultClick(flow)}
                                                         disabled={flow.isDefault}
                                                         sx={{ color: flow.isDefault ? 'warning.main' : 'text.secondary', mr: 0.5 }}
-                                                        aria-label={t('authFlows.setAsDefault')}
+                                                        aria-label={
+                                                            flow.isDefault
+                                                                ? t('authFlows.alreadyDefault')
+                                                                : t('authFlows.setAsDefault')
+                                                        }
                                                     >
                                                         {flow.isDefault ? <Star fontSize="small" /> : <StarBorder fontSize="small" />}
                                                     </IconButton>
@@ -426,7 +450,15 @@ export default function AuthFlowsPage() {
                 {/* Set Default Confirmation Dialog */}
                 <Dialog
                     open={setDefaultDialogOpen}
-                    onClose={handleSetDefaultCancel}
+                    onClose={() => {
+                        // Copilot post-merge round 5: ignore backdrop / Escape
+                        // close while the request is in flight, so a stray
+                        // dismiss can't leave a setDefault call orphaned with
+                        // no UI to surface its result. Cancel button stays
+                        // disabled separately.
+                        if (setDefaultInFlight) return
+                        handleSetDefaultCancel()
+                    }}
                     aria-labelledby="set-default-flow-dialog-title"
                 >
                     <DialogTitle id="set-default-flow-dialog-title">{t('authFlows.setDefaultTitle')}</DialogTitle>

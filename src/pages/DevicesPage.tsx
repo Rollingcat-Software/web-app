@@ -66,10 +66,22 @@ export default function DevicesPage() {
     const tenantId = isSuperAdmin ? '' : (user?.tenantId ?? '')
 
     const loadDevices = useCallback(async () => {
+        // Copilot post-merge round 5: only pass crossTenant for an actual
+        // SUPER_ADMIN; otherwise wait for the tenantId to be present rather
+        // than triggering an accidental platform-wide fetch with `''`.
+        if (!tenantId && !isSuperAdmin) {
+            setDevices([])
+            setError(null)
+            setLoading(false)
+            return
+        }
         setLoading(true)
         setError(null)
         try {
-            const data = await deviceRepo.listDevices(tenantId)
+            const data = await deviceRepo.listDevices(
+                tenantId,
+                isSuperAdmin ? { crossTenant: true } : undefined
+            )
             setDevices(data)
         } catch (err) {
             logger.error('Failed to load devices', err)
@@ -77,7 +89,7 @@ export default function DevicesPage() {
         } finally {
             setLoading(false)
         }
-    }, [deviceRepo, logger, tenantId, t])
+    }, [deviceRepo, logger, tenantId, isSuperAdmin, t])
 
     useEffect(() => {
         loadDevices()

@@ -25,10 +25,18 @@
     <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
     <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
     <!-- prefetch (low-priority) — won't compete with critical JS but makes
-         the WASM cache-warm by the time FaceCaptureStep mounts. -->
-    <link rel="prefetch" as="script" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs" crossorigin>
-    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm/vision_wasm_internal.wasm" crossorigin>
-    <link rel="prefetch" href="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" crossorigin>
+         the WASM cache-warm by the time FaceCaptureStep mounts.
+         Copilot post-merge round 5:
+           * Pin CDN URL to the same version we ship in package.json
+             (@mediapipe/tasks-vision@0.10.18) instead of @latest, so the
+             prefetched JS/WASM cannot diverge when upstream publishes a new
+             "latest" tag. Keep this in sync with the package.json bump.
+           * Use as="fetch" + crossorigin on .wasm and .task so browsers
+             prioritize/cache them in a way that satisfies the later
+             FilesetResolver / model loader fetch() calls. -->
+    <link rel="prefetch" as="script" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/vision_bundle.mjs" crossorigin>
+    <link rel="prefetch" as="fetch" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.18/wasm/vision_wasm_internal.wasm" crossorigin>
+    <link rel="prefetch" as="fetch" href="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" crossorigin>
 
     <!-- Open Graph -->
     <meta property="og:title" content="FIVUCSAS — Biometric Identity Verification Platform"/>

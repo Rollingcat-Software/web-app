@@ -115,6 +115,16 @@ export class BiometricEngine {
   private _ready: boolean = false;
 
   /**
+   * Shared in-flight initialize() promise for single-flight semantics.
+   * Copilot post-merge round 5: previous code only short-circuited when
+   * `_ready` was already true, which let LoginPage's idle-time warm-up
+   * race with `useFaceDetection`'s on-mount initialize(), causing duplicate
+   * CDN imports / WASM / model fetches if the user reached FaceCaptureStep
+   * quickly. Concurrent callers now await the same promise.
+   */
+  private _initPromise: Promise<void> | null = null;
+
+  /**
    * Private constructor — use getInstance(), create(), or BiometricEngineBuilder.
    *
    * @param config - Partial config; missing components use null (not defaults).
@@ -211,7 +221,18 @@ export class BiometricEngine {
    */
   async initialize(): Promise<void> {
     if (this._ready) return;
+    // Single-flight guard (Copilot post-merge round 5): if another caller is
+    // already running initialize(), join that promise instead of starting a
+    // duplicate model load.
+    if (this._initPromise) return this._initPromise;
+    this._initPromise = this._doInitialize().finally(() => {
+      this._initPromise = null;
+    });
+    return this._initPromise;
+  }
 
+  /** Internal initialize body — never call directly; go through initialize(). */
+  private async _doInitialize(): Promise<void> {
     // Initialize face detector (P0 — required)
     try {
       await this.faceDetector.initialize();
@@ -256,6 +277,9 @@ export class BiometricEngine {
     this.voiceProcessor?.dispose();
 
     this._ready = false;
+    // Clear the in-flight init promise so a future initialize() call after
+    // dispose() can retry from scratch (Copilot post-merge round 5).
+    this._initPromise = null;
   }
 
   /**
