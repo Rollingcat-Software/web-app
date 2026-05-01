@@ -157,6 +157,34 @@ export default function LoginPage() {
         return () => clearTimeout(timer)
     }, [])
 
+    // Perf (USER-BUG-7): warm the MediaPipe FaceLandmarker in the background
+    // while the user is typing email + password. By the time MFA dispatches
+    // FaceCaptureStep, the WASM + .task model are already loaded, so the
+    // "MediaPipe (CDN)" badge appears immediately and detection starts on
+    // the first frame. Lazy import keeps BiometricEngine out of the login
+    // critical-path JS chunk; failures are non-fatal (face-detect hooks
+    // re-attempt on FaceCaptureStep mount).
+    useEffect(() => {
+        let cancelled = false
+        const idle =
+            (window as Window & { requestIdleCallback?: (cb: () => void) => void })
+                .requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1))
+        idle(() => {
+            if (cancelled) return
+            import('../../../lib/biometric-engine/core/BiometricEngine')
+                .then(({ BiometricEngine }) => {
+                    if (cancelled) return
+                    return BiometricEngine.getInstance().initialize()
+                })
+                .catch(() => {
+                    // Non-fatal — useFaceDetection will retry on demand
+                })
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
     // Forgot password state
     const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
     const [forgotEmail, setForgotEmail] = useState('')

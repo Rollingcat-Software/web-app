@@ -63,6 +63,30 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
     const [totalSteps, setTotalSteps] = useState(1)
     const [usedMethods, setUsedMethods] = useState<string[]>([])
 
+    // Perf (USER-BUG-7): warm MediaPipe FaceLandmarker in the background while
+    // the user is still on the password step. By the time MFA dispatches the
+    // face capture step, the WASM + .task model are already cached. Lazy import
+    // keeps BiometricEngine off the password-step critical path.
+    useEffect(() => {
+        let cancelled = false
+        const win = window as Window & { requestIdleCallback?: (cb: () => void) => void }
+        const idle = win.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1))
+        idle(() => {
+            if (cancelled) return
+            import('@/lib/biometric-engine/core/BiometricEngine')
+                .then(({ BiometricEngine }) => {
+                    if (cancelled) return
+                    return BiometricEngine.getInstance().initialize()
+                })
+                .catch(() => {
+                    // Non-fatal — useFaceDetection retries on demand
+                })
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [])
+
     // Notify parent bridge when the login/MFA phase changes
     useEffect(() => {
         if (!onStepChange) return

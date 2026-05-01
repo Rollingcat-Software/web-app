@@ -16,6 +16,20 @@
     <meta name="referrer" content="strict-origin-when-cross-origin"/>
     <meta name="format-detection" content="telephone=no"/>
 
+    <!-- Perf (USER-BUG-7): warm DNS + TCP + TLS to MediaPipe origins so the
+         FaceLandmarker WASM bundle and `.task` model start downloading in
+         parallel with the React bundle. The face-capture screen previously
+         stalled for ~1-2 s after first paint while these resolved cold.
+         `crossorigin` is required for fetch-style preconnect to honor
+         CORS for the .mjs/.wasm/.task fetches that follow. -->
+    <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+    <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
+    <!-- prefetch (low-priority) — won't compete with critical JS but makes
+         the WASM cache-warm by the time FaceCaptureStep mounts. -->
+    <link rel="prefetch" as="script" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs" crossorigin>
+    <link rel="prefetch" href="https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm/vision_wasm_internal.wasm" crossorigin>
+    <link rel="prefetch" href="https://storage.googleapis.com/mediapipe-models/face_landmarker/face_landmarker/float16/1/face_landmarker.task" crossorigin>
+
     <!-- Open Graph -->
     <meta property="og:title" content="FIVUCSAS — Biometric Identity Verification Platform"/>
     <meta property="og:description" content="Multi-factor biometric identity verification — face, voice, fingerprint, NFC, TOTP, hardware keys, QR, and more. Hosted-first OAuth 2.0 / OIDC."/>

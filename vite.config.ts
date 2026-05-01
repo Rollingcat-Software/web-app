@@ -220,6 +220,16 @@ export default defineConfig(({ mode }) => ({
                     if (id.includes('node_modules/onnxruntime-web')) {
                         return 'onnx-vendor';
                     }
+                    // Perf USER-BUG-7 (2026-05-01): @mediapipe/tasks-vision is
+                    // only loaded by the face-capture / liveness flows. The
+                    // primary FaceDetector loads MediaPipe via the CDN at
+                    // runtime, but useFaceDetection.ts also imports the
+                    // npm package as a fallback when BlazeFace fails.
+                    // Isolating the chunk keeps it off the login critical
+                    // path (saved-cost: ~100 KB gzipped from main bundle).
+                    if (id.includes('node_modules/@mediapipe/tasks-vision')) {
+                        return 'mediapipe-vendor';
+                    }
                 },
             },
         },
