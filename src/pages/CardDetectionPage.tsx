@@ -1,4 +1,18 @@
 import { useRef, useState } from 'react'
+
+/**
+ * Confidence threshold below which the YOLO model is known to confuse
+ * tc_kimlik/ehliyet and ogrenci_karti/akademisyen_karti. Server-side
+ * OCR validation runs in YOLOCardTypeDetector for those confusable
+ * pairs; by the time the answer reaches us, a confidence value below
+ * this threshold means the OCR tiebreaker also abstained — so we show
+ * a friendly "unrecognised" hint rather than a wrong class.
+ *
+ * Centralized so the gate threshold lives in one place (Copilot
+ * post-merge on PR #52 — the literal 0.6 was duplicated across 3
+ * conditions which silently drifted on every prior tweak).
+ */
+const UNRECOGNISED_CONFIDENCE_THRESHOLD = 0.6
 import {
     Alert,
     Box,
@@ -190,17 +204,8 @@ export default function CardDetectionPage() {
                                 color={result.detected ? 'success' : 'default'}
                                 size="medium"
                             />
-                            {/*
-                              Below ~0.6 confidence the YOLO model is known to
-                              confuse tc_kimlik/ehliyet and ogrenci_karti/
-                              akademisyen_karti. Server-side OCR validation
-                              runs in YOLOCardTypeDetector for those confusable
-                              pairs; by the time the answer reaches us, a low
-                              confidence value means the OCR tiebreaker also
-                              abstained — so we show a friendly "unrecognised"
-                              hint rather than a wrong class.
-                            */}
-                            {result.cardType && result.confidence >= 0.6 && (
+                            {/* See UNRECOGNISED_CONFIDENCE_THRESHOLD doc above. */}
+                            {result.cardType && result.confidence >= UNRECOGNISED_CONFIDENCE_THRESHOLD && (
                                 <Chip
                                     label={t('cardDetection.type', {
                                         type: t(`cardDetection.classLabels.${result.cardType}`, {
@@ -211,7 +216,7 @@ export default function CardDetectionPage() {
                                     variant="outlined"
                                 />
                             )}
-                            {result.cardType && result.confidence > 0 && result.confidence < 0.6 && (
+                            {result.cardType && result.confidence > 0 && result.confidence < UNRECOGNISED_CONFIDENCE_THRESHOLD && (
                                 <Chip
                                     label={t('cardDetection.unrecognised')}
                                     color="warning"
@@ -226,7 +231,7 @@ export default function CardDetectionPage() {
                             )}
                         </Box>
                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
-                            {result.cardType && result.confidence > 0 && result.confidence < 0.6
+                            {result.cardType && result.confidence > 0 && result.confidence < UNRECOGNISED_CONFIDENCE_THRESHOLD
                                 ? t('cardDetection.unrecognisedHint')
                                 : result.message}
                         </Typography>
