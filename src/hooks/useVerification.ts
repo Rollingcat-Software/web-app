@@ -21,10 +21,15 @@ export function useVerification() {
     const verificationRepo = useService<VerificationRepository>(TYPES.VerificationRepository)
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
-    // SUPER_ADMIN sends '' so the backend lists/aggregates platform-wide;
-    // tenant-scoped admins always pin to their own tenant. Without this,
-    // the SUPER_ADMIN saw only the (empty) system-tenant slice.
-    const tenantId = user?.isSuperAdmin?.() ? '' : (user?.tenantId ?? '')
+    // SUPER_ADMIN sends '' + crossTenant so the backend lists/aggregates
+    // platform-wide; tenant-scoped admins always pin to their own tenant.
+    // Without this, the SUPER_ADMIN saw only the (empty) system-tenant slice.
+    // Copilot post-merge round 5: derive a dedicated isSuperAdmin so
+    // listFlows() can request platform-wide mode explicitly instead of
+    // relying on a falsy tenantId (which used to be ambiguous with "auth
+    // hasn't finished loading").
+    const isSuperAdmin = !!user?.isSuperAdmin?.()
+    const tenantId = isSuperAdmin ? '' : (user?.tenantId ?? '')
 
     const [templates, setTemplates] = useState<VerificationTemplate[]>([])
     const [flows, setFlows] = useState<VerificationFlow[]>([])
@@ -53,10 +58,23 @@ export function useVerification() {
     // ── Flows ───────────────────────────────────────────────────────────────
 
     const loadFlows = useCallback(async () => {
+        // Copilot post-merge round 5: only request flows once we know who
+        // the caller is. Tenant-scoped users without a tenantId yet (auth
+        // still loading) get an empty flow list rather than accidentally
+        // triggering a SUPER_ADMIN cross-tenant request.
+        if (!tenantId && !isSuperAdmin) {
+            setFlows([])
+            setError(null)
+            setLoading(false)
+            return
+        }
         setLoading(true)
         setError(null)
         try {
-            const data = await verificationRepo.listFlows(tenantId)
+            const data = await verificationRepo.listFlows(
+                tenantId,
+                isSuperAdmin ? { crossTenant: true } : undefined
+            )
             setFlows(data)
         } catch (err) {
             logger.error('Failed to load verification flows', err)
@@ -64,7 +82,7 @@ export function useVerification() {
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger, tenantId])
+    }, [verificationRepo, logger, tenantId, isSuperAdmin])
 
     const createFlow = useCallback(async (command: CreateVerificationFlowCommand): Promise<VerificationFlow | null> => {
         setLoading(true)
@@ -72,7 +90,10 @@ export function useVerification() {
         try {
             const created = await verificationRepo.createFlow(command)
             logger.info('Verification flow created', { flowId: created.id })
-            const updated = await verificationRepo.listFlows(tenantId)
+            const updated = await verificationRepo.listFlows(
+                tenantId,
+                isSuperAdmin ? { crossTenant: true } : undefined
+            )
             setFlows(updated)
             return created
         } catch (err) {
@@ -82,7 +103,7 @@ export function useVerification() {
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger, tenantId])
+    }, [verificationRepo, logger, tenantId, isSuperAdmin])
 
     const deleteFlow = useCallback(async (flowId: string): Promise<boolean> => {
         setError(null)

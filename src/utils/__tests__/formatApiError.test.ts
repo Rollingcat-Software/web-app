@@ -49,7 +49,7 @@ describe('formatApiError — login wrong-password (USER-BUG-6)', () => {
         expect(formatApiError(err, tIdentity)).toBe('errors.invalidCredentials')
     })
 
-    it('returns auth.invalidCredentials for INVALID_CREDENTIALS errorCode (legacy `errorCode` field)', () => {
+    it('returns errors.invalidCredentials for INVALID_CREDENTIALS errorCode (legacy `errorCode` field)', () => {
         const err = axiosError({
             status: 401,
             url: '/auth/login',
@@ -58,7 +58,7 @@ describe('formatApiError — login wrong-password (USER-BUG-6)', () => {
         expect(formatApiError(err, tIdentity)).toBe('errors.invalidCredentials')
     })
 
-    it('returns auth.invalidCredentials for a 401 on /auth/login even WITHOUT errorCode', () => {
+    it('returns errors.invalidCredentials for a 401 on /auth/login even WITHOUT errorCode', () => {
         const err = axiosError({ status: 401, url: '/auth/login' })
         expect(formatApiError(err, tIdentity)).toBe('errors.invalidCredentials')
     })

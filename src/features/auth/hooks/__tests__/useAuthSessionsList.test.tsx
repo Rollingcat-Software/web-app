@@ -225,6 +225,30 @@ describe('useAuthSessionsList', () => {
         expect(mockErrorHandler.handle).toHaveBeenCalledWith(networkErr)
     })
 
+    it('fetches platform-wide when crossTenant=true even with empty tenantId (SUPER_ADMIN)', async () => {
+        // Copilot post-merge round 5: cover the new crossTenant behavior so a
+        // future regression that re-introduces the "empty tenantId skips fetch"
+        // shortcut for cross-tenant callers is caught.
+        const { result } = renderHook(
+            () => useAuthSessionsList('', undefined, undefined, 20, true),
+            { wrapper: Wrapper }
+        )
+
+        await waitFor(() => expect(result.current.loading).toBe(false))
+
+        expect(mockRepo.listSessions).toHaveBeenCalledTimes(1)
+        expect(mockRepo.listSessions).toHaveBeenCalledWith(
+            '',
+            undefined,
+            undefined,
+            0,
+            20
+        )
+        expect(result.current.sessions).toHaveLength(1)
+        expect(result.current.totalElements).toBe(1)
+        expect(result.current.error).toBeNull()
+    })
+
     it('refetch re-invokes listSessions with current page+size', async () => {
         const { result } = renderHook(() => useAuthSessionsList('tenant-1'), {
             wrapper: Wrapper,

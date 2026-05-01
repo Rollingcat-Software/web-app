@@ -773,7 +773,7 @@
     "failedToDelete": "Kimlik doğrulama akışı silinemedi",
     "setAsDefault": "Varsayılan yap",
     "setDefaultTitle": "Varsayılan Kimlik Doğrulama Akışı",
-    "setDefaultConfirm": "\"{{name}}\" akışını varsayılan olarak ayarlansın mı? Bu işlem, bu işlem tipi için mevcut varsayılanı değiştirir.",
+    "setDefaultConfirm": "\"{{name}}\" akışını varsayılan olarak ayarlamak ister misiniz? Bu işlem, bu işlem tipi için mevcut varsayılanı değiştirir.",
     "setDefaultSuccess": "Varsayılan kimlik doğrulama akışı güncellendi",
     "failedToSetDefault": "Varsayılan kimlik doğrulama akışı ayarlanamadı",
     "alreadyDefault": "Bu akış zaten varsayılan"

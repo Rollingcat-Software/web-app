@@ -157,13 +157,19 @@ export default function LoginPage() {
         return () => clearTimeout(timer)
     }, [])
 
-    // Perf (USER-BUG-7): warm the MediaPipe FaceLandmarker in the background
-    // while the user is typing email + password. By the time MFA dispatches
-    // FaceCaptureStep, the WASM + .task model are already loaded, so the
-    // "MediaPipe (CDN)" badge appears immediately and detection starts on
-    // the first frame. Lazy import keeps BiometricEngine out of the login
-    // critical-path JS chunk; failures are non-fatal (face-detect hooks
-    // re-attempt on FaceCaptureStep mount).
+    // Perf (USER-BUG-7): warm BiometricEngine / MediaPipe initialization in
+    // the background while the user is typing email + password. By the time
+    // MFA dispatches FaceCaptureStep, the WASM + .task model may already be
+    // loaded, so the "MediaPipe (CDN)" badge appears immediately and
+    // detection can start on the first frame. This optimizes warm-up timing,
+    // not necessarily login-bundle composition: TwoFactorDispatcher (which
+    // is statically imported by LoginPage) statically pulls in
+    // BiometricEngine, so the engine code is already in the login chunk —
+    // the `import(...)` below is just a deferred warm-up trigger, not a
+    // chunk-split. Failures are non-fatal because face-detect hooks
+    // re-attempt on FaceCaptureStep mount. BiometricEngine.initialize() is
+    // single-flight (shared in-flight promise) so this warm-up never races
+    // with the first FaceCaptureStep mount.
     useEffect(() => {
         let cancelled = false
         const idle =

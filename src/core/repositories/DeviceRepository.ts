@@ -30,13 +30,35 @@ export class DeviceRepository {
     ) {}
 
     /**
-     * List devices. Pass an empty string to list every tenant's devices
-     * (backend honors this only for SUPER_ADMIN); pass a tenant UUID to
-     * scope the listing to that tenant.
+     * List devices.
+     *
+     * Copilot post-merge round 5: previously the signature accepted
+     * `tenantId: string` and treated `''` as a sentinel meaning
+     * "platform-wide". That made it easy for call sites to accidentally
+     * trigger a SUPER_ADMIN cross-tenant fetch when tenant context simply
+     * hadn't loaded yet (e.g. DevicesPage on first paint with `user` still
+     * null). Both forms below are now explicit:
+     *   - `listDevices(tenantId)` with a non-empty UUID → tenant-scoped
+     *   - `listDevices('', { crossTenant: true })` → platform-wide; backend
+     *     still enforces SUPER_ADMIN. An empty `tenantId` without
+     *     `crossTenant: true` is rejected so accidental empty strings can't
+     *     dump the platform.
+     *
+     * The legacy single-arg shape with a non-empty tenantId is kept for
+     * backwards compatibility with callers that pass a fully-resolved id.
      */
-    async listDevices(tenantId: string): Promise<DeviceResponse[]> {
+    async listDevices(
+        tenantId: string,
+        options: { crossTenant?: boolean } = {}
+    ): Promise<DeviceResponse[]> {
         try {
-            this.logger.debug('Fetching devices', { tenantId })
+            this.logger.debug('Fetching devices', { tenantId, crossTenant: !!options.crossTenant })
+
+            if (!tenantId && !options.crossTenant) {
+                throw new Error(
+                    'listDevices: tenantId is required (pass { crossTenant: true } for SUPER_ADMIN platform-wide listing).'
+                )
+            }
 
             const url = tenantId
                 ? `/devices?tenantId=${tenantId}`

@@ -117,12 +117,27 @@ export class VerificationRepository {
     /**
      * List verification flows for the tenant
      */
-    async listFlows(tenantId: string): Promise<VerificationFlow[]> {
+    async listFlows(
+        tenantId: string,
+        options: { crossTenant?: boolean } = {}
+    ): Promise<VerificationFlow[]> {
         try {
-            this.logger.debug('Fetching verification flows', { tenantId })
-            // Empty tenantId = "platform-wide" (SUPER_ADMIN). Skip the
-            // param entirely rather than sending tenantId='' which the
-            // backend would parse as an invalid UUID.
+            this.logger.debug('Fetching verification flows', {
+                tenantId,
+                crossTenant: !!options.crossTenant,
+            })
+
+            // Copilot post-merge round 5: previously falsy/empty tenantId was
+            // silently interpreted as "platform-wide" (SUPER_ADMIN). That
+            // could trigger an accidental cross-tenant fetch when callers
+            // passed `''` because the user object hadn't loaded yet. Now
+            // platform-wide mode is explicit via `{ crossTenant: true }`.
+            if (!tenantId && !options.crossTenant) {
+                throw new Error(
+                    'listFlows: tenantId is required (pass { crossTenant: true } for SUPER_ADMIN platform-wide listing).'
+                )
+            }
+
             const response = await this.httpClient.get<VerificationFlow[]>(
                 `/verification/flows`,
                 tenantId ? { params: { tenantId } } : undefined
