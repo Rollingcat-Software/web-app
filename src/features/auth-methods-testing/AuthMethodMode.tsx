@@ -1,9 +1,10 @@
 /**
  * AuthMethodMode provider component.
  *
- * Exposes whether the surrounding tree is running in `live` authentication
- * mode (the production flow) or `test` mode (the Auth Methods Testing
- * playground hitting real endpoints with the logged-in admin's session).
+ * Exposes which `AuthMethodModeKind` the surrounding tree is running in:
+ * `real` (the production sign-in flow), `test` (the Auth Methods Testing
+ * playground hitting real endpoints with the logged-in admin's session),
+ * or the legacy `stub` alias (kept for older tests; behaves like `test`).
  *
  * The `IAuthRepository` exposed here is **always** the real, DI-resolved
  * production repository. There is no stub — the previous behaviour of

@@ -11,7 +11,7 @@
  *   4. A wrong token returns `success: false`; we render the server
  *      message via the step's `error` prop.
  */
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import QrCodeStep from '@features/auth/components/steps/QrCodeStep'
 import { formatApiError } from '@utils/formatApiError'
@@ -64,8 +64,18 @@ export default function QrCodePuzzle({ onSuccess, onError }: AuthMethodProps) {
     // The QR step requires a user id to mint the token — guard explicitly
     // so we don't show a half-broken UI to a session that somehow lost its
     // identity.
+    //
+    // The onError side effect must run from a useEffect, not directly in the
+    // render body: calling a parent setter during render triggers React 18's
+    // "Cannot update a component while rendering a different component"
+    // warning and is incorrect even when it doesn't warn.
+    useEffect(() => {
+        if (!user?.id) {
+            onError(t('mfa.qrCode.autoUnavailable'))
+        }
+    }, [user?.id, onError, t])
+
     if (!user?.id) {
-        onError(t('mfa.qrCode.autoUnavailable'))
         return null
     }
 

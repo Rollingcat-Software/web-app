@@ -2,7 +2,10 @@
  * EmailOtpPuzzle — exercises the real Email OTP path against the logged-in
  * admin's own account.
  *
- *   1. On mount, POST /auth/2fa/send → server emails a 6-digit code.
+ *   1. When the user clicks "Send code" inside EmailOtpStep we POST
+ *      /auth/2fa/send → server emails a 6-digit code. (Nothing is sent
+ *      automatically on mount; that lets the admin re-render the puzzle
+ *      without spamming themselves.)
  *   2. User enters the code; we POST /auth/2fa/verify-method with method
  *      `EMAIL_OTP` and `{ code }`.
  *   3. On `success: true` we resolve `onSuccess()`; on `success: false`
