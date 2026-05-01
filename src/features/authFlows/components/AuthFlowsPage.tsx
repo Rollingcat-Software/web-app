@@ -27,7 +27,7 @@ import {
     Select,
     MenuItem,
 } from '@mui/material'
-import { Add, Delete, Edit } from '@mui/icons-material'
+import { Add, Delete, Edit, Star, StarBorder } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
 import { AuthFlowBuilder } from './AuthFlowBuilder'
@@ -67,6 +67,12 @@ export default function AuthFlowsPage() {
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
     const [deletingFlowId, setDeletingFlowId] = useState<string | null>(null)
     const [deletingFlowName, setDeletingFlowName] = useState<string>('')
+
+    // Set-default confirmation state
+    const [setDefaultDialogOpen, setSetDefaultDialogOpen] = useState(false)
+    const [setDefaultTarget, setSetDefaultTarget] = useState<AuthFlowResponse | null>(null)
+    const [setDefaultInFlight, setSetDefaultInFlight] = useState(false)
+    const [success, setSuccess] = useState<string | null>(null)
 
     const tenantId = user?.tenantId ?? ''
 
@@ -167,6 +173,35 @@ export default function AuthFlowsPage() {
         setDeletingFlowName('')
     }
 
+    const handleSetDefaultClick = (flow: AuthFlowResponse) => {
+        if (flow.isDefault) return
+        setSetDefaultTarget(flow)
+        setSetDefaultDialogOpen(true)
+    }
+
+    const handleSetDefaultConfirm = async () => {
+        if (!setDefaultTarget) return
+        setSetDefaultInFlight(true)
+        try {
+            await authFlowRepo.updateFlow(tenantId, setDefaultTarget.id, { isDefault: true })
+            setSuccess(t('authFlows.setDefaultSuccess'))
+            setTimeout(() => setSuccess(null), 4000)
+            setSetDefaultDialogOpen(false)
+            setSetDefaultTarget(null)
+            await loadFlows()
+        } catch (err) {
+            logger.error('Failed to set default auth flow', err)
+            setError(t('authFlows.failedToSetDefault'))
+        } finally {
+            setSetDefaultInFlight(false)
+        }
+    }
+
+    const handleSetDefaultCancel = () => {
+        setSetDefaultDialogOpen(false)
+        setSetDefaultTarget(null)
+    }
+
     // Convert AuthFlowResponse steps to AuthFlowStep[] for the builder
     const getBuilderInitialSteps = (): AuthFlowStep[] => {
         if (!editingFlow?.steps) return []
@@ -214,6 +249,7 @@ export default function AuthFlowsPage() {
                 </motion.div>
 
                 {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
+                {success && <Alert severity="success" sx={{ mb: 2 }} onClose={() => setSuccess(null)}>{success}</Alert>}
                 {authMethodWarning && (
                     <Alert severity="warning" sx={{ mb: 2 }}>
                         {authMethodWarning}
@@ -299,22 +335,36 @@ export default function AuthFlowsPage() {
                                             {flow.isDefault && <Chip label={t('common.default')} size="small" color="primary" />}
                                         </TableCell>
                                         <TableCell align="right">
-                                            <Tooltip title="Edit flow">
+                                            <Tooltip title={flow.isDefault ? t('authFlows.alreadyDefault') : t('authFlows.setAsDefault')}>
+                                                {/* span keeps Tooltip alive even when the IconButton is disabled */}
+                                                <span>
+                                                    <IconButton
+                                                        size="small"
+                                                        onClick={() => handleSetDefaultClick(flow)}
+                                                        disabled={flow.isDefault}
+                                                        sx={{ color: flow.isDefault ? 'warning.main' : 'text.secondary', mr: 0.5 }}
+                                                        aria-label={t('authFlows.setAsDefault')}
+                                                    >
+                                                        {flow.isDefault ? <Star fontSize="small" /> : <StarBorder fontSize="small" />}
+                                                    </IconButton>
+                                                </span>
+                                            </Tooltip>
+                                            <Tooltip title={t('authFlows.editFlowAction')}>
                                                 <IconButton
                                                     size="small"
                                                     onClick={() => handleEditClick(flow)}
                                                     sx={{ color: 'primary.main', mr: 0.5 }}
-                                                    aria-label="Edit flow"
+                                                    aria-label={t('authFlows.editFlowAction')}
                                                 >
                                                     <Edit fontSize="small" />
                                                 </IconButton>
                                             </Tooltip>
-                                            <Tooltip title="Delete flow">
+                                            <Tooltip title={t('authFlows.deleteFlowAction')}>
                                                 <IconButton
                                                     size="small"
                                                     onClick={() => handleDeleteClick(flow.id, flow.name)}
                                                     sx={{ color: 'error.main' }}
-                                                    aria-label="Delete flow"
+                                                    aria-label={t('authFlows.deleteFlowAction')}
                                                 >
                                                     <Delete fontSize="small" />
                                                 </IconButton>
@@ -369,6 +419,32 @@ export default function AuthFlowsPage() {
                         <Button onClick={handleDeleteCancel}>{t('common.cancel')}</Button>
                         <Button onClick={handleDeleteConfirm} color="error" variant="contained">
                             {t('common.delete')}
+                        </Button>
+                    </DialogActions>
+                </Dialog>
+
+                {/* Set Default Confirmation Dialog */}
+                <Dialog
+                    open={setDefaultDialogOpen}
+                    onClose={handleSetDefaultCancel}
+                    aria-labelledby="set-default-flow-dialog-title"
+                >
+                    <DialogTitle id="set-default-flow-dialog-title">{t('authFlows.setDefaultTitle')}</DialogTitle>
+                    <DialogContent>
+                        <DialogContentText>
+                            {t('authFlows.setDefaultConfirm', { name: setDefaultTarget?.name ?? '' })}
+                        </DialogContentText>
+                    </DialogContent>
+                    <DialogActions>
+                        <Button onClick={handleSetDefaultCancel} disabled={setDefaultInFlight}>{t('common.cancel')}</Button>
+                        <Button
+                            onClick={handleSetDefaultConfirm}
+                            color="primary"
+                            variant="contained"
+                            disabled={setDefaultInFlight}
+                            startIcon={setDefaultInFlight ? <CircularProgress size={14} /> : <Star fontSize="small" />}
+                        >
+                            {t('authFlows.setAsDefault')}
                         </Button>
                     </DialogActions>
                 </Dialog>

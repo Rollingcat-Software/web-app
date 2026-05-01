@@ -75,7 +75,12 @@ function shortId(id: string | null): string {
 export default function AuthSessionsPage() {
     const { t } = useTranslation()
     const { user } = useAuth()
-    const tenantId = user?.tenantId ?? ''
+    // SUPER_ADMIN omits tenantId so the backend lists every tenant's
+    // sessions; tenant-scoped admins always pin to their own tenant.
+    // Without this, SUPER_ADMIN saw only the system-tenant's (empty)
+    // list because user.tenantId is the system tenant id.
+    const isSuperAdmin = !!user?.isSuperAdmin?.()
+    const tenantId = isSuperAdmin ? '' : (user?.tenantId ?? '')
 
     const [statusFilter, setStatusFilter] = useState<string>('')
     const [cancelTarget, setCancelTarget] = useState<string | null>(null)
@@ -98,7 +103,7 @@ export default function AuthSessionsPage() {
         setPage,
         setSize,
         cancelSession,
-    } = useAuthSessionsList(tenantId, statusFilterArr)
+    } = useAuthSessionsList(tenantId, statusFilterArr, undefined, 20, isSuperAdmin)
 
     const handleCancelConfirm = async () => {
         if (!cancelTarget) return
@@ -132,9 +137,14 @@ export default function AuthSessionsPage() {
                     </Box>
                 </motion.div>
 
-                {!tenantId && (
+                {!tenantId && !isSuperAdmin && (
                     <Alert severity="warning" sx={{ mb: 3 }}>
                         {t('authSessionsPage.tenantUnavailable')}
+                    </Alert>
+                )}
+                {isSuperAdmin && (
+                    <Alert severity="info" sx={{ mb: 3 }}>
+                        {t('authSessionsPage.platformWideNotice')}
                     </Alert>
                 )}
 

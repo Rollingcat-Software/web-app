@@ -284,6 +284,7 @@
     "loadingAriaLabel": "Kimlik doğrulama oturumları yükleniyor",
     "countLabel": "{{count}} oturum",
     "tenantUnavailable": "Tenant bilgisi mevcut değil — tekrar giriş yapın.",
+    "platformWideNotice": "Tüm kiracılardaki oturumlar gösteriliyor (süper yönetici görünümü).",
     "ipUnknown": "—"
   },
   "otp": {
@@ -769,7 +770,28 @@
     "deleteFlowAction": "Akışı sil",
     "failedToLoad": "Kimlik doğrulama akışları yüklenemedi",
     "failedToSave": "Kimlik doğrulama akışı kaydedilemedi",
-    "failedToDelete": "Kimlik doğrulama akışı silinemedi"
+    "failedToDelete": "Kimlik doğrulama akışı silinemedi",
+    "setAsDefault": "Varsayılan yap",
+    "setDefaultTitle": "Varsayılan Kimlik Doğrulama Akışı",
+    "setDefaultConfirm": "\"{{name}}\" akışını varsayılan olarak ayarlansın mı? Bu işlem, bu işlem tipi için mevcut varsayılanı değiştirir.",
+    "setDefaultSuccess": "Varsayılan kimlik doğrulama akışı güncellendi",
+    "failedToSetDefault": "Varsayılan kimlik doğrulama akışı ayarlanamadı",
+    "alreadyDefault": "Bu akış zaten varsayılan"
+  },
+  "devices": {
+    "title": "Kayıtlı Cihazlar",
+    "subtitle": "Kullanıcı cihazlarını ve erişim izinlerini yönetin",
+    "empty": "Kayıtlı cihaz yok",
+    "emptyHint": "Kullanıcılar yeni cihazlardan kimlik doğruladığında burada görünür",
+    "loadFailed": "Cihazlar yüklenemedi",
+    "deleteFailed": "Cihaz kaldırılamadı",
+    "removeDevice": "Cihazı kaldır",
+    "platformWideNotice": "Tüm kiracılardaki cihazlar gösteriliyor (süper yönetici görünümü).",
+    "columnDevice": "Cihaz",
+    "columnPlatform": "Platform",
+    "columnFingerprint": "Parmak İzi",
+    "columnLastUsed": "Son Kullanım",
+    "columnRegistered": "Kayıt Tarihi"
   },
   "guests": {
     "title": "Misafir Yönetimi",

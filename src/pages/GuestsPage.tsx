@@ -29,6 +29,7 @@ import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import { useTranslation } from 'react-i18next'
+import { formatApiError } from '@utils/formatApiError'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -156,7 +157,10 @@ export default function GuestsPage() {
             await loadCount()
         } catch (err) {
             logger.error('Failed to invite guest', err)
-            setError(t('guests.inviteFailed'))
+            // Surface backend's structured message (e.g. "active invitation
+            // already exists" via 409) instead of the generic toast — falls
+            // back to inviteFailed if the helper has nothing concrete.
+            setError(formatApiError(err, t) || t('guests.inviteFailed'))
         } finally {
             setInviteLoading(false)
         }

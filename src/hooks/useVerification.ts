@@ -21,7 +21,10 @@ export function useVerification() {
     const verificationRepo = useService<VerificationRepository>(TYPES.VerificationRepository)
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
-    const tenantId = user?.tenantId ?? ''
+    // SUPER_ADMIN sends '' so the backend lists/aggregates platform-wide;
+    // tenant-scoped admins always pin to their own tenant. Without this,
+    // the SUPER_ADMIN saw only the (empty) system-tenant slice.
+    const tenantId = user?.isSuperAdmin?.() ? '' : (user?.tenantId ?? '')
 
     const [templates, setTemplates] = useState<VerificationTemplate[]>([])
     const [flows, setFlows] = useState<VerificationFlow[]>([])

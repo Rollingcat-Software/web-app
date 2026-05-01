@@ -30,15 +30,19 @@ export class DeviceRepository {
     ) {}
 
     /**
-     * List all devices for a tenant
+     * List devices. Pass an empty string to list every tenant's devices
+     * (backend honors this only for SUPER_ADMIN); pass a tenant UUID to
+     * scope the listing to that tenant.
      */
     async listDevices(tenantId: string): Promise<DeviceResponse[]> {
         try {
             this.logger.debug('Fetching devices', { tenantId })
 
-            const response = await this.httpClient.get<DeviceResponse[]>(
-                `/devices?tenantId=${tenantId}`
-            )
+            const url = tenantId
+                ? `/devices?tenantId=${tenantId}`
+                : '/devices'
+
+            const response = await this.httpClient.get<DeviceResponse[]>(url)
 
             this.logger.debug('Devices fetched', { count: response.data.length })
             return response.data

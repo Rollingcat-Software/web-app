@@ -120,9 +120,12 @@ export class VerificationRepository {
     async listFlows(tenantId: string): Promise<VerificationFlow[]> {
         try {
             this.logger.debug('Fetching verification flows', { tenantId })
+            // Empty tenantId = "platform-wide" (SUPER_ADMIN). Skip the
+            // param entirely rather than sending tenantId='' which the
+            // backend would parse as an invalid UUID.
             const response = await this.httpClient.get<VerificationFlow[]>(
                 `/verification/flows`,
-                { params: { tenantId } }
+                tenantId ? { params: { tenantId } } : undefined
             )
             return response.data
         } catch (error) {
