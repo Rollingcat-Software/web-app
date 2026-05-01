@@ -1494,6 +1494,9 @@
   },
   "errors": {
     "badRequest": "Invalid request. Please check your input.",
+    "invalidCredentials": "Invalid email or password. Please try again.",
+    "mfaRequired": "Additional verification required. Please complete the next step.",
+    "needsEnrollment": "You need to enroll an additional verification method to continue.",
     "unauthorized": "Your session has expired. Please log in again.",
     "forbidden": "You don't have permission to perform this action.",
     "notFound": "The requested resource was not found.",

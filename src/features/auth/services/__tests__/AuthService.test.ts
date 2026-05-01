@@ -145,15 +145,27 @@ describe('AuthService', () => {
             expect(mockAuthRepository.login).not.toHaveBeenCalled()
         })
 
-        it('should throw UnauthorizedError when repository returns 401', async () => {
+        it('should re-throw the original axios 401 error untouched (USER-BUG-6)', async () => {
+            // The earlier wrapper that converted any Error whose message
+            // contained "401" into a fresh `UnauthorizedError('Invalid email
+            // or password')` stripped the axios `response` property, which
+            // `formatApiError(err, t)` needs to localize the message. The
+            // result was `errors.unknown` ("Beklenmeyen bir hata oluştu") on
+            // every wrong-password attempt. We now re-throw the original.
             // Arrange
-            const error = new Error('401 Unauthorized')
-            vi.mocked(mockAuthRepository.login).mockRejectedValue(error)
+            const axios401 = Object.assign(new Error('Request failed with status code 401'), {
+                response: {
+                    status: 401,
+                    data: { error: 'INVALID_CREDENTIALS', message: 'Invalid email or password' },
+                },
+                config: { url: '/auth/login' },
+            })
+            vi.mocked(mockAuthRepository.login).mockRejectedValue(axios401)
 
-            // Act & Assert
-            await expect(authService.login(validCredentials)).rejects.toThrow(UnauthorizedError)
-            await expect(authService.login(validCredentials)).rejects.toThrow('Invalid email or password')
-            expect(mockLogger.error).toHaveBeenCalledWith('Login failed', error)
+            // Act & Assert — the SAME object instance must propagate, so the
+            // response/config payload survives for downstream formatters.
+            await expect(authService.login(validCredentials)).rejects.toBe(axios401)
+            expect(mockLogger.error).toHaveBeenCalledWith('Login failed', axios401)
         })
 
         it('should re-throw other errors from repository', async () => {

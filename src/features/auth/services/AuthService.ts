@@ -104,11 +104,14 @@ export class AuthService implements IAuthService {
 
             this.logger.error('Login failed', error)
 
-            // Re-throw as UnauthorizedError if not already an AppError
-            if (error instanceof Error && error.message.includes('401')) {
-                throw new UnauthorizedError('Invalid email or password')
-            }
-
+            // Re-throw the original error untouched. Wrapping a 401 axios error
+            // in a fresh `UnauthorizedError` strips the `response` property,
+            // which is the very thing `formatApiError(err, t)` reads to map the
+            // HTTP status + backend `errorCode` to the correct localized
+            // message (auth.invalidCredentials for INVALID_CREDENTIALS,
+            // mfa.errors.required for MFA_REQUIRED, etc.). With the wrapper in
+            // place the call always fell through to `errors.unknown`
+            // ("Beklenmeyen bir hata oluştu") — see USER-BUG-6.
             throw error
         }
     }
