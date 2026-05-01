@@ -36,6 +36,8 @@ import type { AuthFlowRepository, AuthFlowResponse } from '@core/repositories/Au
 import TotpEnrollment from '@features/auth/components/TotpEnrollment'
 import WebAuthnEnrollment from '@features/auth/components/WebAuthnEnrollment'
 import SessionsSection from '@features/settings/components/SessionsSection'
+import { isValidE164, normalizeToE164 } from '@utils/phoneE164'
+import { formatApiError } from '@utils/formatApiError'
 
 export default function SettingsPage() {
     const { user } = useAuth()
@@ -103,6 +105,8 @@ export default function SettingsPage() {
     // Save states
     const [saving, setSaving] = useState<string | null>(null)
     const [saveSuccess, setSaveSuccess] = useState<string | null>(null)
+    const [phoneError, setPhoneError] = useState<string | null>(null)
+    const [profileError, setProfileError] = useState<string | null>(null)
     const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     // Clear success timer on unmount to prevent state updates after unmount
@@ -133,16 +137,43 @@ export default function SettingsPage() {
     }, [settings, user])
 
     const handleSaveProfile = useCallback(async () => {
+        setProfileError(null)
+        // Phone is optional. If the user typed something, normalize it
+        // (auto-prefix +90, strip non-digits) and gate submit on the
+        // result passing strict E.164. The server-side @Pattern + V53
+        // CHECK constraint are the authoritative defenses; this is the
+        // defense-in-depth that prevents the round-trip.
+        const trimmedPhone = phoneNumber.trim()
+        let phoneToSend: string | undefined
+        if (trimmedPhone) {
+            const normalized = normalizeToE164(trimmedPhone)
+            if (!normalized || !isValidE164(normalized)) {
+                setPhoneError(t('settings.phoneInvalidE164'))
+                return
+            }
+            phoneToSend = normalized
+            // Reflect the canonical form back into the input so the user
+            // sees what we'll persist.
+            if (normalized !== trimmedPhone) {
+                setPhoneNumber(normalized)
+            }
+        }
+
         try {
             setSaving('profile')
-            await updateProfile({ firstName, lastName, phoneNumber: phoneNumber || undefined })
+            await updateProfile({ firstName, lastName, phoneNumber: phoneToSend })
+            setPhoneError(null)
             showSuccessMessage('profile')
-        } catch {
-            // Error handled by hook
+        } catch (err) {
+            // Surface server-side rejection (e.g. phone.e164 from V53 /
+            // @Pattern). The hook also sets its own error state; we
+            // additionally show it next to the form so the user sees
+            // exactly what failed.
+            setProfileError(formatApiError(err, t))
         } finally {
             setSaving(null)
         }
-    }, [firstName, lastName, phoneNumber, updateProfile, showSuccessMessage])
+    }, [firstName, lastName, phoneNumber, updateProfile, showSuccessMessage, t])
 
     const handleSaveSecurity = useCallback(async () => {
         const timeout = parseInt(sessionTimeout, 10)
@@ -254,6 +285,12 @@ export default function SettingsPage() {
                             </Avatar>
                         </Box>
 
+                        {profileError && (
+                            <Alert severity="error" sx={{ mb: 2 }} onClose={() => setProfileError(null)}>
+                                {profileError}
+                            </Alert>
+                        )}
+
                         <Grid container spacing={2}>
                             <Grid item xs={12} md={6}>
                                 <TextField
@@ -279,10 +316,26 @@ export default function SettingsPage() {
                                     label={t('settings.phoneNumber')}
                                     type="tel"
                                     value={phoneNumber}
-                                    onChange={(e) => setPhoneNumber(e.target.value)}
+                                    onChange={(e) => {
+                                        setPhoneNumber(e.target.value)
+                                        if (phoneError) setPhoneError(null)
+                                    }}
+                                    onBlur={() => {
+                                        // Auto-canonicalize on blur so the user
+                                        // sees the +90-prefixed E.164 form before
+                                        // they hit Save. Only rewrites when our
+                                        // best guess is structurally valid; we
+                                        // don't fight the user when they're still
+                                        // typing or pasting an unusual format.
+                                        const normalized = normalizeToE164(phoneNumber)
+                                        if (normalized && isValidE164(normalized) && normalized !== phoneNumber) {
+                                            setPhoneNumber(normalized)
+                                        }
+                                    }}
                                     disabled={saving === 'profile'}
-                                    placeholder="+905xxxxxxxxx"
-                                    helperText={t('settings.phoneHelper')}
+                                    placeholder={t('settings.phonePlaceholder')}
+                                    error={Boolean(phoneError)}
+                                    helperText={phoneError ?? t('settings.phoneHelper')}
                                 />
                             </Grid>
                             <Grid item xs={12}>

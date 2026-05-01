@@ -55,6 +55,7 @@ import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { ISettingsService } from '@domain/interfaces/ISettingsService'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { formatApiError } from '@utils/formatApiError'
+import { isValidE164, normalizeToE164 } from '@utils/phoneE164'
 
 /**
  * Device capability detection results
@@ -306,6 +307,7 @@ export default function EnrollmentPage() {
     const [phoneDialogOpen, setPhoneDialogOpen] = useState(false)
     const [phoneInput, setPhoneInput] = useState('')
     const [phoneSaving, setPhoneSaving] = useState(false)
+    const [phoneInputError, setPhoneInputError] = useState<string | null>(null)
 
     // SMS OTP verification dialog (step 2 of SMS enrollment after phone is on file)
     const [smsOtpDialogOpen, setSmsOtpDialogOpen] = useState(false)
@@ -1135,9 +1137,23 @@ export default function EnrollmentPage() {
                         label={t('enrollmentPage.phoneDialog.label')}
                         type="tel"
                         value={phoneInput}
-                        onChange={(e) => setPhoneInput(e.target.value)}
+                        onChange={(e) => {
+                            setPhoneInput(e.target.value)
+                            if (phoneInputError) setPhoneInputError(null)
+                        }}
+                        onBlur={() => {
+                            // Mirror SettingsPage: canonicalize on blur so the
+                            // user sees the +90-prefixed E.164 form before
+                            // they submit. Avoids a server round-trip just to
+                            // confirm the format.
+                            const normalized = normalizeToE164(phoneInput)
+                            if (normalized && isValidE164(normalized) && normalized !== phoneInput) {
+                                setPhoneInput(normalized)
+                            }
+                        }}
                         placeholder={t('enrollmentPage.phoneDialog.placeholder')}
-                        helperText={t('enrollmentPage.phoneDialog.helper')}
+                        error={Boolean(phoneInputError)}
+                        helperText={phoneInputError ?? t('enrollmentPage.phoneDialog.helper')}
                         disabled={phoneSaving}
                         autoFocus
                     />
@@ -1147,6 +1163,7 @@ export default function EnrollmentPage() {
                         onClick={() => {
                             setPhoneDialogOpen(false)
                             setPhoneInput('')
+                            setPhoneInputError(null)
                         }}
                         disabled={phoneSaving}
                     >
@@ -1157,6 +1174,18 @@ export default function EnrollmentPage() {
                         disabled={phoneSaving || !phoneInput.trim() || phoneInput.trim().length < 10}
                         startIcon={phoneSaving ? <CircularProgress size={16} /> : null}
                         onClick={async () => {
+                            // Normalize + validate BEFORE the network call so
+                            // we never hand Twilio Verify a non-E.164 string.
+                            // The server-side @Pattern (USER-BUG-4 fix) will
+                            // reject it anyway with a 400 + phone.e164 code,
+                            // but failing fast lets us show an inline error
+                            // instead of a generic snackbar.
+                            const normalized = normalizeToE164(phoneInput)
+                            if (!normalized || !isValidE164(normalized)) {
+                                setPhoneInputError(t('settings.phoneInvalidE164'))
+                                return
+                            }
+                            setPhoneInputError(null)
                             setPhoneSaving(true)
                             try {
                                 // Save phone number to profile
@@ -1164,7 +1193,7 @@ export default function EnrollmentPage() {
                                 await settingsService.updateProfile({
                                     firstName: user?.firstName ?? '',
                                     lastName: user?.lastName ?? '',
-                                    phoneNumber: phoneInput.trim(),
+                                    phoneNumber: normalized,
                                 })
                                 // Phone is saved — now start the real SMS OTP enrollment
                                 // flow: create the PENDING row, request an OTP, and open
