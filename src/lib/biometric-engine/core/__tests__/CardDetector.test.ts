@@ -21,8 +21,15 @@
 
 import fs from 'node:fs'
 import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { describe, expect, it } from 'vitest'
 import { FALLBACK_CLASS_NAMES } from '../CardDetector'
+
+// `package.json` declares `"type": "module"`, so this file runs as ESM
+// where the CommonJS `__dirname` global is undefined. Derive the directory
+// from `import.meta.url` instead — Copilot post-merge on PR #52.
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
 
 /** Canonical training-time class order extracted from the ONNX model on
  *  2026-05-01 by reading the raw bytes of `metadata_props.names`. This is

@@ -146,7 +146,10 @@ export class CardDetector implements ICardDetector {
    * Load the YOLO ONNX model and prepare the WASM execution provider.
    *
    * Model input:  [1, 3, 640, 640] float32 NCHW, normalized to [0,1]
-   * Model output: [1, 5+C, 8400] float32 YOLOv8 predictions
+   * Model output: [1, 4+C, 8400] float32 YOLOv8 predictions — 4 bbox dims
+   * (cx, cy, w, h) + N per-class confidences. (No explicit objectness in
+   * YOLOv8; class scores act as confidence directly.) Earlier docs said
+   * 5+C, which was YOLOv5; the parsing below has always assumed 4+C.
    *
    * Uses 2 WASM threads (conservative, to avoid cross-origin issues in iframes).
    *
@@ -313,19 +316,10 @@ export class CardDetector implements ICardDetector {
         return useSmoothing ? this.resolveSmoothed() : notDetected;
       }
 
-      // --- Defensive runtime gate ---
-      // Refuse to commit a class label below CARD_HIGH_CONFIDENCE — the
-      // model is known to confuse tc_kimlik/ehliyet and ogrenci_karti/
-      // akademisyen_karti, so a low-confidence top-1 guess is a UX hazard.
-      // We still feed the entry into the smoothing buffer so multi-frame
-      // agreement can still confirm; we just refuse to publish a single
-      // marginal frame as "detected".
-      if (best.confidence < CARD_HIGH_CONFIDENCE) {
-        this.pushSmoothing(null);
-        return useSmoothing ? this.resolveSmoothed() : notDetected;
-      }
-
       // --- Step 5: Transform box from padded 640×640 back to source pixel coordinates ---
+      // We compute the box up front so even a low-confidence entry can be
+      // pushed into the smoothing buffer with its real bbox — see the
+      // defensive gate below.
       const x1 = (best.cx - best.w / 2 - padX) / scale;
       const y1 = (best.cy - best.h / 2 - padY) / scale;
       const x2 = (best.cx + best.w / 2 - padX) / scale;
@@ -343,6 +337,25 @@ export class CardDetector implements ICardDetector {
         confidence: best.confidence,
         box: boundingBox,
       };
+
+      // --- Defensive runtime gate ---
+      // Refuse to commit a class label below CARD_HIGH_CONFIDENCE — the
+      // model is known to confuse tc_kimlik/ehliyet and ogrenci_karti/
+      // akademisyen_karti, so a low-confidence top-1 guess is a UX hazard.
+      //
+      // We DO still feed the entry into the smoothing buffer so multi-frame
+      // agreement (≥ SMOOTHING_MIN_DETECTIONS consistent frames in the
+      // window) can confirm a borderline-but-stable detection — that's the
+      // documented intent of the smoothing layer. Pre-fix this path pushed
+      // `null`, contradicting the comment and silently disabling
+      // confirmation-by-consensus for borderline cases (Copilot post-merge
+      // on PR #52).
+      if (best.confidence < CARD_HIGH_CONFIDENCE) {
+        this.pushSmoothing(entry);
+        // Don't publish *this* marginal frame, but smoothing can confirm
+        // on subsequent frames if the class stays consistent.
+        return useSmoothing ? this.resolveSmoothed() : notDetected;
+      }
 
       this.pushSmoothing(entry);
 
