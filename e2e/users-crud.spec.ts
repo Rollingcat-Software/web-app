@@ -5,7 +5,7 @@ import * as path from 'path'
 const BASE_URL = process.env.E2E_BASE_URL || 'https://app.fivucsas.com'
 const SESSION_FILE = path.join(process.cwd(), 'e2e', '.auth', 'session.json')
 
-test.describe('Users CRUD', () => {
+test.describe('Users CRUD', { tag: '@destructive' }, () => {
     test.beforeEach(async ({ page }) => {
         // Inject saved sessionStorage tokens (from auth.setup.ts) to avoid rate limiting
         const sessionData = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'))
