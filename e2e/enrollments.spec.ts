@@ -5,7 +5,7 @@ import * as path from 'path'
 const BASE_URL = process.env.E2E_BASE_URL || 'https://app.fivucsas.com'
 const SESSION_FILE = path.join(process.cwd(), 'e2e', '.auth', 'session.json')
 
-test.describe('Enrollments Page', () => {
+test.describe('Enrollments Page', { tag: '@destructive' }, () => {
     test.beforeEach(async ({ page }) => {
         const sessionData = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'))
         await page.addInitScript((data: Record<string, string>) => {

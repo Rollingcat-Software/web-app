@@ -1,7 +1,30 @@
 name: E2E Tests
 
+# Triggers
+#  - schedule:           nightly readonly @smoke run against PROD (low-risk).
+#  - workflow_dispatch:  operator-driven; pick a Playwright project. Default
+#                        excludes destructive CRUD; pass `destructive` here
+#                        when you want to validate users/tenants/roles/enrollments
+#                        flows against PROD (will mutate state).
+#
+# pull_request triggers are intentionally NOT enabled until a non-PROD staging
+# URL exists. TODO: once verify.fivucsas.com (or a hosted staging) is up,
+# add `pull_request:` running --project=smoke against that origin.
 on:
-  workflow_dispatch: # manual trigger only — do not run against production on every push
+  schedule:
+    # 02:00 UTC daily — readonly smoke against PROD. Tag: @readonly @smoke.
+    - cron: '0 2 * * *'
+  workflow_dispatch:
+    inputs:
+      project:
+        description: 'Playwright project to run'
+        required: true
+        default: 'smoke'
+        type: choice
+        options:
+          - smoke
+          - authenticated
+          - destructive
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -28,8 +51,17 @@ jobs:
       - name: Install Playwright Chromium
         run: npx playwright install chromium --with-deps
 
-      - name: Run Playwright E2E tests
-        run: npx playwright test
+      - name: Resolve target project
+        id: project
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            echo "name=smoke" >> "$GITHUB_OUTPUT"
+          else
+            echo "name=${{ github.event.inputs.project || 'smoke' }}" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Run Playwright E2E (${{ steps.project.outputs.name }})
+        run: npx playwright test --project=${{ steps.project.outputs.name }}
         env:
           E2E_BASE_URL: https://app.fivucsas.com
 
@@ -37,7 +69,7 @@ jobs:
         uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: playwright-report
+          name: playwright-report-${{ steps.project.outputs.name }}
           path: |
             test-results/
             playwright-report/

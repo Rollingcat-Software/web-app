@@ -7,7 +7,7 @@ const SESSION_FILE = path.join(process.cwd(), 'e2e', '.auth', 'session.json')
 
 const RUN_ID = Date.now().toString().slice(-6)
 
-test.describe('Roles CRUD', () => {
+test.describe('Roles CRUD', { tag: '@destructive' }, () => {
     test.beforeEach(async ({ page }) => {
         const sessionData = JSON.parse(fs.readFileSync(SESSION_FILE, 'utf-8'))
         await page.addInitScript((data: Record<string, string>) => {
