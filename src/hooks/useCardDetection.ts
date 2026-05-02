@@ -3,6 +3,7 @@ import axios from 'axios'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
+import { config as envConfig } from '@config/env'
 
 export interface CardDetectionResult {
     detected: boolean
@@ -44,7 +45,7 @@ export function useCardDetection(): UseCardDetectionReturn {
         abortRef.current = new AbortController()
 
         try {
-            const apiUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
+            const apiUrl = envConfig.apiBaseUrl
             const formData = new FormData()
             formData.append('file', imageBlob, 'capture.jpg')
 

@@ -35,6 +35,7 @@ import LoginMfaFlow from './LoginMfaFlow'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
+import { config as envConfig } from '@config/env'
 
 // ─── URL Parameter Parsing ───────────────────────────────────────
 
@@ -90,10 +91,7 @@ function parseHostedParams(): HostedParams {
         codeChallengeMethod: params.get('code_challenge_method') ?? 'S256',
         locale: resolveLocale(params),
         theme: (params.get('theme') as 'light' | 'dark') || 'light',
-        apiBaseUrl:
-            params.get('api_base_url') ||
-            import.meta.env.VITE_API_BASE_URL ||
-            'https://api.fivucsas.com/api/v1',
+        apiBaseUrl: params.get('api_base_url') || envConfig.apiBaseUrl,
     }
 }
 

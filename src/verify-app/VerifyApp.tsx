@@ -37,6 +37,7 @@ import {
 } from './postMessageBridge'
 import { useResizeObserver } from './useResizeObserver'
 import { formatApiError } from '@utils/formatApiError'
+import { config as envConfig } from '@config/env'
 
 // ─── URL Parameter Parsing ───────────────────────────────────────
 
@@ -74,10 +75,7 @@ function parseUrlParams(): VerifyParams {
         theme: (params.get('theme') as 'light' | 'dark') || 'light',
         locale: (params.get('locale') as 'en' | 'tr') || 'en',
         userId: params.get('user_id') || '',
-        apiBaseUrl:
-            params.get('api_base_url') ||
-            import.meta.env.VITE_API_BASE_URL ||
-            'https://api.fivucsas.com/api/v1',
+        apiBaseUrl: params.get('api_base_url') || envConfig.apiBaseUrl,
         mode,
     }
 }

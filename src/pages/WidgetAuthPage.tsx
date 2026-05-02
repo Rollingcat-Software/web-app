@@ -36,6 +36,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@/utils/formatApiError'
+import { config as envConfig } from '@config/env'
 
 import TotpStep from '@/features/auth/components/steps/TotpStep'
 import SmsOtpStep from '@/features/auth/components/steps/SmsOtpStep'
@@ -73,10 +74,7 @@ function parseWidgetParams(): WidgetParams {
         flow: params.get('flow') || 'login',
         userId: params.get('user_id') || '',
         locale: params.get('locale') || 'en',
-        apiBaseUrl:
-            params.get('api_base_url') ||
-            import.meta.env.VITE_API_BASE_URL ||
-            'https://api.fivucsas.com/api/v1',
+        apiBaseUrl: params.get('api_base_url') || envConfig.apiBaseUrl,
         theme: params.get('theme') || 'light',
     }
 }

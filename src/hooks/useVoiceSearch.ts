@@ -2,6 +2,7 @@ import { useState, useCallback, useRef } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
+import { config as envConfig } from '@config/env'
 
 interface VoiceSearchMatch {
     userId: string
@@ -46,7 +47,7 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
         setError(null)
 
         try {
-            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
+            const apiBaseUrl = envConfig.apiBaseUrl
             // Use TokenService for token retrieval — the legacy `fivucsas_token`
             // localStorage key is no longer populated (cleared by clearAuthState
             // on every login) and produced 401s on /biometric/voice/search.

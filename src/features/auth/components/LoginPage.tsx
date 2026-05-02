@@ -42,6 +42,7 @@ import type { AvailableMfaMethod, MfaStepResponse } from '@domain/interfaces/IAu
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
+import { config as envConfig } from '@config/env'
 
 /**
  * Login form validation schema
@@ -211,7 +212,7 @@ export default function LoginPage() {
         setForgotLoading(true)
         setForgotError(null)
         try {
-            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+            const baseUrl = envConfig.apiBaseUrl
             const response = await fetch(`${baseUrl}/auth/forgot-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -236,7 +237,7 @@ export default function LoginPage() {
         setResetLoading(true)
         setResetError(null)
         try {
-            const baseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+            const baseUrl = envConfig.apiBaseUrl
             const response = await fetch(`${baseUrl}/auth/reset-password`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },

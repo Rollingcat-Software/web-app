@@ -59,6 +59,7 @@ import type { IUserEnrollmentService } from '@domain/interfaces/IUserEnrollmentS
 import { UserEnrollmentService } from '@features/userEnrollment/services/UserEnrollmentService'
 import type { IPasswordService } from '@domain/interfaces/IPasswordService'
 import { PasswordService } from '@features/auth/services/PasswordService'
+import { config as envConfig } from '@config/env'
 
 /**
  * Create and configure the IoC container
@@ -66,10 +67,13 @@ import { PasswordService } from '@features/auth/services/PasswordService'
 const container = new Container()
 
 /**
- * Load configuration from environment variables
+ * Load configuration from environment variables.
+ * `apiBaseUrl` is sourced from the centralized `@config/env` module — see
+ * QUALITY_REVIEW_2026-05-01.md §P0-Q1 for why every other call-site that used
+ * to read `import.meta.env.VITE_API_BASE_URL` directly now goes through here.
  */
 const config: IConfig = {
-    apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1',
+    apiBaseUrl: envConfig.apiBaseUrl,
     apiTimeout: parseInt(import.meta.env.VITE_API_TIMEOUT as string) || 30000,
     useMockAPI: false, // Mock API permanently disabled
     environment: (['development', 'staging', 'production', 'test'].includes(import.meta.env.VITE_ENVIRONMENT)

@@ -24,6 +24,7 @@ import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import { QRCodeSVG } from 'qrcode.react'
 import { formatApiError } from '@utils/formatApiError'
+import { config as envConfig } from '@config/env'
 
 /**
  * Check if Web NFC API is available (Chrome on Android only).
@@ -87,7 +88,7 @@ export default function NfcEnrollmentPage() {
         setActionLoading(action)
         setActionResult(null)
 
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
+        const apiBaseUrl = envConfig.apiBaseUrl
 
         try {
             let url: string
