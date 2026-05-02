@@ -17,21 +17,22 @@ import type {
   NormalizedLandmark,
   PixelLandmark,
 } from '../types';
+import { MEDIAPIPE_VISION_BUNDLE_URL, MEDIAPIPE_WASM_URL } from '../../../config/cdn';
 
 /**
  * CDN URL for the MediaPipe Tasks Vision WASM bundle.
  * Using CDN dynamic import to avoid bundling ~5MB of WASM files.
+ * Sourced from `src/config/cdn.ts` so the prefetch in `index.html` and
+ * this runtime loader stay version-locked (Copilot post-merge round 8).
  * @see auth-test/app.js line 464
  */
-const VISION_CDN_URL =
-  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/vision_bundle.mjs';
+const VISION_CDN_URL = MEDIAPIPE_VISION_BUNDLE_URL;
 
 /**
  * CDN URL for the MediaPipe WASM fileset (loaded by FilesetResolver).
  * @see auth-test/app.js line 468
  */
-const WASM_CDN_URL =
-  'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm';
+const WASM_CDN_URL = MEDIAPIPE_WASM_URL;
 
 /**
  * Google Storage URL for the FaceLandmarker model.

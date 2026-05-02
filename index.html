@@ -26,11 +26,14 @@
     <link rel="preconnect" href="https://storage.googleapis.com" crossorigin>
     <!-- prefetch (low-priority) — won't compete with critical JS but makes
          the WASM cache-warm by the time FaceCaptureStep mounts.
-         Copilot post-merge round 5:
-           * Pin CDN URL to the same version we ship in package.json
-             (@mediapipe/tasks-vision@0.10.18) instead of @latest, so the
-             prefetched JS/WASM cannot diverge when upstream publishes a new
-             "latest" tag. Keep this in sync with the package.json bump.
+         Copilot post-merge round 8 (PR #60):
+           * The pinned MediaPipe version below MUST match
+             `MEDIAPIPE_VERSION` in `src/config/cdn.ts`. The runtime loaders
+             (FaceDetector.ts, HandGestureDetector.ts, useFaceDetection.ts,
+             useHandLandmarker.ts) all build their CDN URLs from that
+             constant. Bump in lockstep with `package.json`'s
+             `@mediapipe/tasks-vision`. Drift here breaks the prefetch:
+             the runtime fetches a different URL and the prefetch is wasted.
            * Use as="fetch" + crossorigin on .wasm and .task so browsers
              prioritize/cache them in a way that satisfies the later
              FilesetResolver / model loader fetch() calls. -->

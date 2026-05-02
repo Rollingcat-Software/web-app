@@ -19,6 +19,7 @@ import type { FaceDetector } from '@mediapipe/tasks-vision'
 import { useBlazeFace } from '../../../lib/ml/useBlazeFace'
 import { cropFaceToDataURL } from '../utils/faceCropper'
 import { BiometricEngine } from '../../../lib/biometric-engine/core/BiometricEngine'
+import { MEDIAPIPE_WASM_URL } from '../../../config/cdn'
 
 export type DetectionBackend = 'blazeface' | 'mediapipe' | 'mediapipe-landmarker' | 'none'
 
@@ -136,9 +137,7 @@ export function useFaceDetection(
         async function init() {
             try {
                 const { FaceDetector: MPFaceDetector, FilesetResolver } = await import('@mediapipe/tasks-vision')
-                const vision = await FilesetResolver.forVisionTasks(
-                    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
-                )
+                const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL)
                 if (cancelled) return
 
                 const detector = await MPFaceDetector.createFromOptions(vision, {

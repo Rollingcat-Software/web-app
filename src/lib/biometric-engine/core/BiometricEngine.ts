@@ -125,6 +125,19 @@ export class BiometricEngine {
   private _initPromise: Promise<void> | null = null;
 
   /**
+   * Disposed flag — set by `dispose()`, never cleared.
+   *
+   * Copilot post-merge round 8 (PR #60): `dispose()` previously nulled
+   * `_initPromise` mid-flight, breaking the single-flight guarantee — a
+   * subsequent `initialize()` call would start a second `_doInitialize()`
+   * concurrently with the first, and the first could still set
+   * `_ready = true` after the engine had been disposed. We now mark
+   * disposed instead and bail inside `_doInitialize()` before mutating
+   * state, so a disposed engine can never claim to be ready.
+   */
+  private _disposed: boolean = false;
+
+  /**
    * Private constructor — use getInstance(), create(), or BiometricEngineBuilder.
    *
    * @param config - Partial config; missing components use null (not defaults).
@@ -259,6 +272,11 @@ export class BiometricEngine {
       }
     }
 
+    // Dispose-during-init guard (Copilot post-merge round 8): if dispose()
+    // was called while we were awaiting initialize(), don't flip _ready
+    // back on. The engine has been torn down; pretend init failed.
+    if (this._disposed) return;
+
     this._ready = this.faceDetector.isAvailable();
   }
 
@@ -268,6 +286,11 @@ export class BiometricEngine {
    * @see BIOMETRIC_ENGINE_ARCHITECTURE.md Section 5a (dispose)
    */
   dispose(): void {
+    // Mark disposed first so an in-flight `_doInitialize()` that wakes
+    // up later sees the flag and bails before flipping `_ready` back on
+    // (Copilot post-merge round 8 / PR #60).
+    this._disposed = true;
+
     this.frameProcessor.stop();
     this.enrollmentController.cancel();
 
@@ -277,9 +300,14 @@ export class BiometricEngine {
     this.voiceProcessor?.dispose();
 
     this._ready = false;
-    // Clear the in-flight init promise so a future initialize() call after
-    // dispose() can retry from scratch (Copilot post-merge round 5).
-    this._initPromise = null;
+    // Note (Copilot post-merge round 8): we deliberately do NOT null
+    // `_initPromise` here. Nulling it during a pending init would let a
+    // subsequent `initialize()` call start a second `_doInitialize()`
+    // concurrently with the first, breaking single-flight. The
+    // `_disposed` flag above makes the in-flight init a no-op when it
+    // resolves; the promise itself simply settles. A future
+    // `initialize()` after dispose is a no-op too because `_disposed`
+    // is sticky and the engine is intended as one-shot.
   }
 
   /**
