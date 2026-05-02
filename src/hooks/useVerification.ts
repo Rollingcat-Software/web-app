@@ -1,7 +1,9 @@
 import { useState, useCallback } from 'react'
+import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { TYPES } from '@core/di/types'
+import { formatApiError } from '@utils/formatApiError'
 import type {
     VerificationRepository,
     VerificationTemplate,
@@ -21,6 +23,7 @@ export function useVerification() {
     const verificationRepo = useService<VerificationRepository>(TYPES.VerificationRepository)
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
+    const { t } = useTranslation()
     // SUPER_ADMIN sends '' + crossTenant so the backend lists/aggregates
     // platform-wide; tenant-scoped admins always pin to their own tenant.
     // Without this, the SUPER_ADMIN saw only the (empty) system-tenant slice.
@@ -49,11 +52,11 @@ export function useVerification() {
             setTemplates(data)
         } catch (err) {
             logger.error('Failed to load verification templates', err)
-            setError('Failed to load verification templates')
+            setError(formatApiError(err, t) || t('verification.errors.loadTemplatesFailed'))
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger])
+    }, [verificationRepo, logger, t])
 
     // ── Flows ───────────────────────────────────────────────────────────────
 
@@ -78,11 +81,11 @@ export function useVerification() {
             setFlows(data)
         } catch (err) {
             logger.error('Failed to load verification flows', err)
-            setError('Failed to load verification flows')
+            setError(formatApiError(err, t) || t('verification.errors.loadFlowsFailed'))
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger, tenantId, isSuperAdmin])
+    }, [verificationRepo, logger, tenantId, isSuperAdmin, t])
 
     const createFlow = useCallback(async (command: CreateVerificationFlowCommand): Promise<VerificationFlow | null> => {
         setLoading(true)
@@ -98,12 +101,12 @@ export function useVerification() {
             return created
         } catch (err) {
             logger.error('Failed to create verification flow', err)
-            setError('Failed to create verification flow')
+            setError(formatApiError(err, t) || t('verification.errors.createFlowFailed'))
             return null
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger, tenantId, isSuperAdmin])
+    }, [verificationRepo, logger, tenantId, isSuperAdmin, t])
 
     const deleteFlow = useCallback(async (flowId: string): Promise<boolean> => {
         setError(null)
@@ -114,10 +117,10 @@ export function useVerification() {
             return true
         } catch (err) {
             logger.error('Failed to delete verification flow', err)
-            setError('Failed to delete verification flow')
+            setError(formatApiError(err, t) || t('verification.errors.deleteFlowFailed'))
             return false
         }
-    }, [verificationRepo, logger])
+    }, [verificationRepo, logger, t])
 
     // ── Sessions ────────────────────────────────────────────────────────────
 
@@ -134,11 +137,11 @@ export function useVerification() {
             setSessions(data)
         } catch (err) {
             logger.error('Failed to load verification sessions', err)
-            setError('Failed to load verification sessions')
+            setError(formatApiError(err, t) || t('verification.errors.loadSessionsFailed'))
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger])
+    }, [verificationRepo, logger, t])
 
     const loadSession = useCallback(async (sessionId: string) => {
         setLoading(true)
@@ -148,11 +151,11 @@ export function useVerification() {
             setCurrentSession(data)
         } catch (err) {
             logger.error('Failed to load verification session', err)
-            setError('Failed to load verification session')
+            setError(formatApiError(err, t) || t('verification.errors.loadSessionFailed'))
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger])
+    }, [verificationRepo, logger, t])
 
     // ── Stats ───────────────────────────────────────────────────────────────
 
@@ -164,11 +167,11 @@ export function useVerification() {
             setStats(data)
         } catch (err) {
             logger.error('Failed to load verification stats', err)
-            setError('Failed to load verification stats')
+            setError(formatApiError(err, t) || t('verification.errors.loadStatsFailed'))
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger])
+    }, [verificationRepo, logger, t])
 
     const clearError = useCallback(() => {
         setError(null)

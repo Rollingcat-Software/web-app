@@ -165,8 +165,10 @@ describe('TotpEnrollment', () => {
                 expect(screen.getByText('JBSWY3DPEHPK3PXP')).toBeInTheDocument()
             })
 
-            // QR code image
-            expect(screen.getByAltText('auth.totp.qrAltText')).toBeInTheDocument()
+            // QR code image — i18n is initialized in src/test/setup.ts as of
+            // 2026-05-02 (P0-FE-2 follow-up), so the alt text is the resolved
+            // English string instead of the bare key.
+            expect(screen.getByAltText('TOTP QR Code')).toBeInTheDocument()
             // Copy button
             expect(screen.getByRole('button', { name: /Copy/i })).toBeInTheDocument()
             // Verification code input
