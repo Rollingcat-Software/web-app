@@ -202,9 +202,6 @@ export default defineConfig(({ mode }) => ({
                     if (id.includes('node_modules/@mui/x-')) {
                         return 'mui-data';
                     }
-                    if (id.includes('node_modules/@reduxjs/toolkit') || id.includes('node_modules/react-redux') || id.includes('node_modules/redux-persist')) {
-                        return 'redux-vendor';
-                    }
                     // E1 / FE-M3: Recharts + d3 live in their own chunk
                     // so dashboard routes don't pay the 395 KB cost until
                     // an analytics page is actually opened. AnalyticsPage

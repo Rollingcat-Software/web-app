@@ -45,7 +45,11 @@ export class ErrorHandler {
      */
     private handleAppError(error: AppError): void {
         if (error.isOperational) {
-            // Operational errors are expected and should be shown to user
+            // Operational errors are expected and should be shown to user.
+            // The message originates from domain code, which is responsible
+            // for localizing it (or passing a localized message in). We
+            // don't t() here because that would re-translate already-
+            // translated strings.
             this.notifier.error(error.message)
             this.logger.warn(error.message, {
                 statusCode: error.statusCode,
@@ -54,7 +58,7 @@ export class ErrorHandler {
         } else {
             // Non-operational errors are unexpected and should be logged
             this.logger.error('Non-operational error occurred', error)
-            this.notifier.error('An unexpected error occurred. Please try again.')
+            this.notifier.error(i18n.t('errors.unexpectedRetry'))
         }
     }
 
@@ -75,32 +79,32 @@ export class ErrorHandler {
 
         if (!error.response) {
             // Network error - no response received
-            this.notifier.error('Network error. Please check your connection.')
+            this.notifier.error(i18n.t('errors.networkError'))
             return
         }
 
         switch (status) {
             case 400:
-                this.notifier.error(message || 'Invalid request. Please check your input.')
+                this.notifier.error(message || i18n.t('errors.badRequest'))
                 break
             case 401:
                 // 401 is handled by AxiosClient interceptor (token refresh)
                 // Only show notification if refresh also failed
                 if (error.config?.url?.includes('/auth/refresh')) {
-                    this.notifier.error('Session expired. Please login again.')
+                    this.notifier.error(i18n.t('errors.sessionExpired'))
                 }
                 break
             case 403:
-                this.notifier.error('You do not have permission for this action.')
+                this.notifier.error(i18n.t('errors.forbidden'))
                 break
             case 404:
-                this.notifier.error('Resource not found.')
+                this.notifier.error(i18n.t('errors.notFound'))
                 break
             case 409:
-                this.notifier.error(message || 'This resource already exists.')
+                this.notifier.error(message || i18n.t('errors.conflict'))
                 break
             case 422:
-                this.notifier.error(message || 'Unable to process your request.')
+                this.notifier.error(message || i18n.t('errors.validation'))
                 break
             case 429: {
                 const responseData = error.response?.data as { retryAfterSeconds?: number } | undefined
@@ -115,10 +119,10 @@ export class ErrorHandler {
             case 502:
             case 503:
             case 504:
-                this.notifier.error('Server error. Please try again later.')
+                this.notifier.error(i18n.t('errors.serverError'))
                 break
             default:
-                this.notifier.error(message || 'An error occurred. Please try again.')
+                this.notifier.error(message || i18n.t('errors.unexpectedRetry'))
         }
     }
 
@@ -127,7 +131,7 @@ export class ErrorHandler {
      */
     private handleGenericError(error: Error): void {
         this.logger.error('Generic error', error)
-        this.notifier.error('An unexpected error occurred.')
+        this.notifier.error(i18n.t('errors.unexpected'))
     }
 
     /**
@@ -135,7 +139,7 @@ export class ErrorHandler {
      */
     private handleUnknownError(error: unknown): void {
         this.logger.error('Unknown error', error)
-        this.notifier.error('An unexpected error occurred.')
+        this.notifier.error(i18n.t('errors.unexpected'))
     }
 
     /**

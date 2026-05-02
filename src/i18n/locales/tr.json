@@ -982,7 +982,16 @@
     "sessionNotFound": "Doğrulama oturumu bulunamadı.",
     "backToDashboard": "Panele Dön",
     "stepProgress": "Adım İlerlemesi",
-    "verificationLevel": "Doğrulama Seviyesi"
+    "verificationLevel": "Doğrulama Seviyesi",
+    "errors": {
+      "loadTemplatesFailed": "Doğrulama şablonları yüklenemedi",
+      "loadFlowsFailed": "Doğrulama akışları yüklenemedi",
+      "createFlowFailed": "Doğrulama akışı oluşturulamadı",
+      "deleteFlowFailed": "Doğrulama akışı silinemedi",
+      "loadSessionsFailed": "Doğrulama oturumları yüklenemedi",
+      "loadSessionFailed": "Doğrulama oturumu yüklenemedi",
+      "loadStatsFailed": "Doğrulama istatistikleri yüklenemedi"
+    }
   },
   "biometricTools": {
     "title": "Biyometrik Araçlar",
@@ -1540,7 +1549,10 @@
     "bankEnrollmentError": "Banka kaydı hatası",
     "failedToLoadSessions": "Oturumlar yüklenemedi",
     "biometricProcessingFailed": "Biyometrik işleme başarısız",
-    "enrollmentSyncFailed": "Kayıt senkronizasyonu başarısız"
+    "enrollmentSyncFailed": "Kayıt senkronizasyonu başarısız",
+    "sessionExpired": "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.",
+    "unexpectedRetry": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
+    "unexpected": "Beklenmeyen bir hata oluştu."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "E-posta veya parola eşleşmedi. Lütfen tekrar deneyin.",

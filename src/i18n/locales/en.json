@@ -982,7 +982,16 @@
     "sessionNotFound": "Verification session not found.",
     "backToDashboard": "Back to Dashboard",
     "stepProgress": "Step Progress",
-    "verificationLevel": "Verification Level"
+    "verificationLevel": "Verification Level",
+    "errors": {
+      "loadTemplatesFailed": "Failed to load verification templates",
+      "loadFlowsFailed": "Failed to load verification flows",
+      "createFlowFailed": "Failed to create verification flow",
+      "deleteFlowFailed": "Failed to delete verification flow",
+      "loadSessionsFailed": "Failed to load verification sessions",
+      "loadSessionFailed": "Failed to load verification session",
+      "loadStatsFailed": "Failed to load verification stats"
+    }
   },
   "biometricTools": {
     "title": "Biometric Tools",
@@ -1540,7 +1549,10 @@
     "bankEnrollmentError": "Bank enrollment error",
     "failedToLoadSessions": "Failed to load sessions",
     "biometricProcessingFailed": "Biometric processing failed",
-    "enrollmentSyncFailed": "Enrollment sync failed"
+    "enrollmentSyncFailed": "Enrollment sync failed",
+    "sessionExpired": "Session expired. Please login again.",
+    "unexpectedRetry": "An unexpected error occurred. Please try again.",
+    "unexpected": "An unexpected error occurred."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "That email or password didn't match. Please try again.",

@@ -11,8 +11,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { BrowserRouter } from 'react-router-dom'
-import { Provider } from 'react-redux'
-import { configureStore } from '@reduxjs/toolkit'
 import LoginPage from '@features/auth/components/LoginPage'
 // DashboardPage import removed - unused in current tests
 import { DependencyProvider } from '@app/providers'
@@ -25,27 +23,16 @@ const mockAuthService = {
     refreshToken: vi.fn(),
 }
 
-// Mock the store
-const createMockStore = () => {
-    return configureStore({
-        reducer: {
-            auth: (state = { user: null, isAuthenticated: false }) => state,
-        },
-    })
-}
-
 // Test wrapper component
+// Redux Provider was removed in 2026-05-02 (P0-FE-3) — the app no longer uses
+// Redux at runtime, so the test wrapper just chains DI + BrowserRouter.
 const TestWrapper = ({ children }: { children: React.ReactNode }) => {
-    const store = createMockStore()
-
     return (
-        <Provider store={store}>
-            <DependencyProvider>
-                <BrowserRouter>
-                    {children}
-                </BrowserRouter>
-            </DependencyProvider>
-        </Provider>
+        <DependencyProvider>
+            <BrowserRouter>
+                {children}
+            </BrowserRouter>
+        </DependencyProvider>
     )
 }
 
