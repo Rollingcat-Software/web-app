@@ -92,6 +92,8 @@ export function useEnrollments(initialFilters?: EnrollmentFilters): UseEnrollmen
                 await fetchEnrollments(initialFilters)
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -111,6 +113,8 @@ export function useEnrollments(initialFilters?: EnrollmentFilters): UseEnrollmen
                 await fetchEnrollments(initialFilters)
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -229,6 +233,8 @@ export function useUserEnrollments(userId: string): UseUserEnrollmentsReturn {
                 return enrollment
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -242,6 +248,8 @@ export function useUserEnrollments(userId: string): UseUserEnrollmentsReturn {
                 await fetchEnrollments()
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },

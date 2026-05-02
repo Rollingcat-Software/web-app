@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -42,6 +42,7 @@ import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import { formatApiError } from '@utils/formatApiError'
 import { useTranslation } from 'react-i18next'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useNavigate } from 'react-router-dom'
@@ -119,9 +120,33 @@ export default function DeveloperPortalPage() {
     const [success, setSuccess] = useState<string | null>(null)
     const [copied, setCopied] = useState<string | null>(null)
 
+    // P1-FE-2: keep refs to the auto-clear timers so unmount / replacement
+    // cancels them, preventing setState-on-unmounted warnings and double-fire
+    // under React 18 StrictMode. Mirrors AuthFlowsPage.tsx successTimerRef.
+    const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current !== null) {
+                clearTimeout(successTimerRef.current)
+                successTimerRef.current = null
+            }
+            if (copiedTimerRef.current !== null) {
+                clearTimeout(copiedTimerRef.current)
+                copiedTimerRef.current = null
+            }
+        }
+    }, [])
+
     const showSuccess = useCallback((msg: string) => {
         setSuccess(msg)
-        setTimeout(() => setSuccess(null), 4000)
+        if (successTimerRef.current !== null) {
+            clearTimeout(successTimerRef.current)
+        }
+        successTimerRef.current = setTimeout(() => {
+            setSuccess(null)
+            successTimerRef.current = null
+        }, 4000)
     }, [])
 
     // --- Load apps from backend ---
@@ -133,7 +158,9 @@ export default function DeveloperPortalPage() {
             setApps(res.data)
         } catch (err) {
             logger.error('Failed to load OAuth2 clients', err)
-            setError(t('developerPortal.loadFailed'))
+            // P1-FE-3: surface the backend's actual reason (e.g. 503 details)
+            // instead of a generic "loadFailed" copy.
+            setError(formatApiError(err, t) || t('developerPortal.loadFailed'))
         } finally {
             setLoading(false)
         }
@@ -150,11 +177,19 @@ export default function DeveloperPortalPage() {
         try {
             await navigator.clipboard.writeText(text)
             setCopied(label)
-            setTimeout(() => setCopied(null), 2000)
-        } catch {
-            // fallback: select text
+            if (copiedTimerRef.current !== null) {
+                clearTimeout(copiedTimerRef.current)
+            }
+            copiedTimerRef.current = setTimeout(() => {
+                setCopied(null)
+                copiedTimerRef.current = null
+            }, 2000)
+        } catch (err) {
+            // P1-FE-1/3: log clipboard failures so a flat-out denied permission
+            // is debuggable instead of completely silent.
+            logger.warn('Clipboard write failed', err)
         }
-    }, [])
+    }, [logger])
 
     // --- Register new app (real API) ---
     const handleRegister = useCallback(async () => {
@@ -185,7 +220,9 @@ export default function DeveloperPortalPage() {
             setCredentialsApp(newApp)
         } catch (err) {
             logger.error('Failed to register OAuth2 client', err)
-            setError(t('developerPortal.registerFailed'))
+            // P1-FE-3: surface backend reason (e.g. 409 "client_id already exists",
+            // 400 "invalid redirect_uri") instead of generic copy.
+            setError(formatApiError(err, t) || t('developerPortal.registerFailed'))
         } finally {
             setRegisterLoading(false)
         }
@@ -202,7 +239,8 @@ export default function DeveloperPortalPage() {
             showSuccess(t('developerPortal.deleteSuccess'))
         } catch (err) {
             logger.error('Failed to delete OAuth2 client', err)
-            setError(t('developerPortal.deleteFailed'))
+            // P1-FE-3: surface backend reason for delete failure.
+            setError(formatApiError(err, t) || t('developerPortal.deleteFailed'))
         } finally {
             setDeleteLoading(false)
         }

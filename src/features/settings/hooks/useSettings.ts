@@ -60,66 +60,91 @@ export function useSettings(): UseSettingsReturn {
     const updateProfile = useCallback(async (data: UpdateProfileData) => {
         try {
             setLoading(true)
+            setError(null)
             const updated = await settingsService.updateProfile(data)
             setSettings(updated)
         } catch (err) {
+            // P1-FE-4: also set inline `error` state so SettingsPage's
+            // page-level <Alert> can render the backend's actual reason
+            // instead of relying solely on the (English-only) toaster.
             errorHandler.handle(err)
+            setError(formatApiError(err, t))
             throw err
         } finally {
             setLoading(false)
         }
-    }, [settingsService, errorHandler])
+    }, [settingsService, errorHandler, t])
 
     const updateNotifications = useCallback(async (data: UpdateNotificationSettings) => {
         try {
             setLoading(true)
+            setError(null)
             const updated = await settingsService.updateNotifications(data)
             setSettings(updated)
         } catch (err) {
+            // P1-FE-4: also set inline `error` state so SettingsPage's
+            // page-level <Alert> can render the backend's actual reason
+            // instead of relying solely on the (English-only) toaster.
             errorHandler.handle(err)
+            setError(formatApiError(err, t))
             throw err
         } finally {
             setLoading(false)
         }
-    }, [settingsService, errorHandler])
+    }, [settingsService, errorHandler, t])
 
     const updateSecurity = useCallback(async (data: UpdateSecuritySettings) => {
         try {
             setLoading(true)
+            setError(null)
             const updated = await settingsService.updateSecurity(data)
             setSettings(updated)
         } catch (err) {
+            // P1-FE-4: also set inline `error` state so SettingsPage's
+            // page-level <Alert> can render the backend's actual reason
+            // instead of relying solely on the (English-only) toaster.
             errorHandler.handle(err)
+            setError(formatApiError(err, t))
             throw err
         } finally {
             setLoading(false)
         }
-    }, [settingsService, errorHandler])
+    }, [settingsService, errorHandler, t])
 
     const updateAppearance = useCallback(async (data: UpdateAppearanceSettings) => {
         try {
             setLoading(true)
+            setError(null)
             const updated = await settingsService.updateAppearance(data)
             setSettings(updated)
         } catch (err) {
+            // P1-FE-4: also set inline `error` state so SettingsPage's
+            // page-level <Alert> can render the backend's actual reason
+            // instead of relying solely on the (English-only) toaster.
             errorHandler.handle(err)
+            setError(formatApiError(err, t))
             throw err
         } finally {
             setLoading(false)
         }
-    }, [settingsService, errorHandler])
+    }, [settingsService, errorHandler, t])
 
     const changePassword = useCallback(async (data: ChangePasswordData) => {
         try {
             setLoading(true)
+            setError(null)
             await settingsService.changePassword(data)
         } catch (err) {
+            // P1-FE-4: also set inline `error` state so SettingsPage's
+            // page-level <Alert> can render the backend's actual reason
+            // instead of relying solely on the (English-only) toaster.
             errorHandler.handle(err)
+            setError(formatApiError(err, t))
             throw err
         } finally {
             setLoading(false)
         }
-    }, [settingsService, errorHandler])
+    }, [settingsService, errorHandler, t])
 
     const validatePassword = useCallback((password: string) => {
         return settingsService.validatePassword(password)

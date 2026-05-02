@@ -96,6 +96,8 @@ export function useGuests(initialFilters?: GuestFilters): UseGuestsReturn {
                 return guest
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -115,6 +117,8 @@ export function useGuests(initialFilters?: GuestFilters): UseGuestsReturn {
                 await fetchGuests(initialFilters)
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -134,6 +138,8 @@ export function useGuests(initialFilters?: GuestFilters): UseGuestsReturn {
                 await fetchGuests(initialFilters)
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },

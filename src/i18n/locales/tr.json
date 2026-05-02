@@ -1118,6 +1118,8 @@
     "manageSecuritySettings": "Güvenlik Ayarlarını Yönet",
     "loginHistory": "Giriş Geçmişi ve Etkinlik",
     "noActivity": "Son etkinlik bulunamadı.",
+    "activityLoadError": "Etkinlik kaydı yüklenemedi. Lütfen tekrar deneyin.",
+    "sessionsLoadError": "Aktif oturum sayısı yüklenemedi.",
     "activityAction": "İşlem",
     "activityTimestamp": "Zaman",
     "activityIp": "IP Adresi",

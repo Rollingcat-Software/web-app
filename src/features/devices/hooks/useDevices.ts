@@ -87,6 +87,8 @@ export function useDevices(tenantId: string): UseDevicesReturn {
                 await fetchDevices()
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
