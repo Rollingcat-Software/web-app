@@ -43,6 +43,7 @@ import {
 } from '@domain/models/AuthMethod'
 import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
+import { formatApiError } from '@utils/formatApiError'
 import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -97,7 +98,8 @@ export default function AuthFlowsPage() {
             setFlows(data)
         } catch (err) {
             logger.error('Failed to load auth flows', err)
-            setError(t('authFlows.failedToLoad'))
+            // P1-FE-5: surface backend reason (e.g. 403, 502) over generic copy.
+            setError(formatApiError(err, t) || t('authFlows.failedToLoad'))
         } finally {
             setLoading(false)
         }
@@ -146,7 +148,9 @@ export default function AuthFlowsPage() {
             await loadFlows()
         } catch (err) {
             logger.error('Failed to save auth flow', err)
-            setError(t('authFlows.failedToSave'))
+            // P1-FE-5: surface 409 ("flow with same name exists") and 400
+            // ("invalid step config") instead of generic "Failed to save".
+            setError(formatApiError(err, t) || t('authFlows.failedToSave'))
         }
     }
 
@@ -173,7 +177,8 @@ export default function AuthFlowsPage() {
             await loadFlows()
         } catch (err) {
             logger.error('Failed to delete auth flow', err)
-            setError(t('authFlows.failedToDelete'))
+            // P1-FE-5: surface 409 ("flow in use by N users") instead of generic.
+            setError(formatApiError(err, t) || t('authFlows.failedToDelete'))
         }
         setDeleteDialogOpen(false)
         setDeletingFlowId(null)
@@ -211,7 +216,8 @@ export default function AuthFlowsPage() {
             await loadFlows()
         } catch (err) {
             logger.error('Failed to set default auth flow', err)
-            setError(t('authFlows.failedToSetDefault'))
+            // P1-FE-5: surface backend reason on set-default failure.
+            setError(formatApiError(err, t) || t('authFlows.failedToSetDefault'))
         } finally {
             setSetDefaultInFlight(false)
         }

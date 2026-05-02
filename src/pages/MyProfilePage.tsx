@@ -69,7 +69,10 @@ import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { IUserRepository } from '@domain/interfaces/IUserRepository'
+import type { ILogger } from '@domain/interfaces/ILogger'
 import type { Enrollment } from '@domain/models/Enrollment'
+import { formatApiError } from '@utils/formatApiError'
+import type { AxiosError } from 'axios'
 
 /** Map auth method type to icon */
 const METHOD_ICONS: Record<string, React.ReactNode> = {
@@ -167,9 +170,14 @@ export default function MyProfilePage() {
     const [activityPage, setActivityPage] = useState(0)
     const [activityHasMore, setActivityHasMore] = useState(true)
     const [loadingMore, setLoadingMore] = useState(false)
+    // P1-FE-1: surface non-403 backend failures inline so the activity panel
+    // doesn't silently render an empty list when the server is 5xx-ing.
+    const [activityError, setActivityError] = useState<string | null>(null)
 
     // Sessions count
     const [sessionsCount, setSessionsCount] = useState<number>(0)
+    // P1-FE-1: surface non-403 backend failures for the sessions counter too.
+    const [sessionsError, setSessionsError] = useState<string | null>(null)
 
     // Expanded enrollments
     const [expandedEnrollment, setExpandedEnrollment] = useState<string | null>(null)
@@ -199,18 +207,21 @@ export default function MyProfilePage() {
     // Fetch activity logs
     const fetchActivity = useCallback(async (page: number, append = false) => {
         try {
-            if (!append) setActivityLoading(true)
-            else setLoadingMore(true)
+            if (!append) {
+                setActivityLoading(true)
+                setActivityError(null)
+            } else {
+                setLoadingMore(true)
+            }
             const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
             const response = await httpClient.get<{ content?: ActivityLog[]; items?: ActivityLog[] }>('/my/activity', {
                 params: { page, size: 10 },
             })
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            const rawLogs: any[] = response.data.content ?? response.data.items ?? (Array.isArray(response.data) ? response.data : [])
+            const rawLogs: ActivityLog[] = response.data.content ?? response.data.items ?? (Array.isArray(response.data) ? (response.data as ActivityLog[]) : [])
             const mapped: ActivityLog[] = rawLogs.map((l) => ({
                 ...l,
-                createdAt: l.createdAt ?? l.timestamp ?? null,
-                deviceInfo: l.deviceInfo ?? l.userAgent ?? null,
+                createdAt: l.createdAt ?? l.timestamp,
+                deviceInfo: l.deviceInfo ?? l.userAgent,
             }))
             if (append) {
                 setActivityLogs((prev) => [...prev, ...mapped])
@@ -218,27 +229,41 @@ export default function MyProfilePage() {
                 setActivityLogs(mapped)
             }
             setActivityHasMore(mapped.length >= 10)
-        } catch {
-            // Silently handle 403
+        } catch (err) {
+            const logger = container.get<ILogger>(TYPES.Logger)
+            logger.error('Failed to load activity logs', err)
+            // P1-FE-1: 403 (non-admin) is expected — keep silent.
+            // Surface 5xx / network errors so the user knows the panel is broken.
+            const status = (err as AxiosError | undefined)?.response?.status
+            if (status !== 403) {
+                setActivityError(formatApiError(err, t) || t('myProfile.activityLoadError'))
+            }
         } finally {
             setActivityLoading(false)
             setLoadingMore(false)
         }
-    }, [])
+    }, [t])
 
     // Fetch sessions count
     useEffect(() => {
         const fetchSessions = async () => {
             try {
+                setSessionsError(null)
                 const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
                 const response = await httpClient.get<unknown[]>('/auth/sessions/my')
                 setSessionsCount(Array.isArray(response.data) ? response.data.length : 0)
-            } catch {
-                // Silently handle errors
+            } catch (err) {
+                const logger = container.get<ILogger>(TYPES.Logger)
+                logger.error('Failed to load active sessions', err)
+                // P1-FE-1: 403 is expected for non-admin contexts — keep silent.
+                const status = (err as AxiosError | undefined)?.response?.status
+                if (status !== 403) {
+                    setSessionsError(formatApiError(err, t) || t('myProfile.sessionsLoadError'))
+                }
             }
         }
         if (userId) fetchSessions()
-    }, [userId])
+    }, [userId, t])
 
     // Tenant name comes from GET /auth/me → GetCurrentUserService (resolves via tenantRepository)
     const tenantName = user?.tenantName || ''
@@ -276,8 +301,16 @@ export default function MyProfilePage() {
             await revokeEnrollment(deleteDialog.methodType)
             setSnackbar({ open: true, message: t('myProfile.enrollmentDeleted'), severity: 'success' })
             setDeleteDialog({ open: false, methodType: '', label: '' })
-        } catch {
-            setSnackbar({ open: true, message: t('myProfile.enrollmentDeleteError'), severity: 'error' })
+        } catch (err) {
+            // P1-FE-1: log + use formatApiError so the backend's actual reason
+            // (e.g. "cannot revoke last MFA method") replaces the generic copy.
+            const logger = container.get<ILogger>(TYPES.Logger)
+            logger.error('Failed to revoke enrollment', err)
+            setSnackbar({
+                open: true,
+                message: formatApiError(err, t) || t('myProfile.enrollmentDeleteError'),
+                severity: 'error',
+            })
         } finally {
             setDeleteLoading(false)
         }
@@ -295,8 +328,15 @@ export default function MyProfilePage() {
             await refetchEnrollments()
             setSnackbar({ open: true, message: t('myProfile.allBiometricDeleted'), severity: 'success' })
             setDeleteAllDialog(false)
-        } catch {
-            setSnackbar({ open: true, message: t('myProfile.deleteBiometricError'), severity: 'error' })
+        } catch (err) {
+            // P1-FE-1: log + surface backend reason instead of swallowing.
+            const logger = container.get<ILogger>(TYPES.Logger)
+            logger.error('Failed to delete biometric data', err)
+            setSnackbar({
+                open: true,
+                message: formatApiError(err, t) || t('myProfile.deleteBiometricError'),
+                severity: 'error',
+            })
         } finally {
             setDeleteAllLoading(false)
         }
@@ -589,9 +629,9 @@ export default function MyProfilePage() {
                                 <SecurityRow
                                     icon={<Computer />}
                                     label={t('myProfile.activeSessions')}
-                                    helperText={t('myProfile.activeSessionsHelper')}
-                                    value={String(sessionsCount)}
-                                    color="info"
+                                    helperText={sessionsError ?? t('myProfile.activeSessionsHelper')}
+                                    value={sessionsError ? '—' : String(sessionsCount)}
+                                    color={sessionsError ? 'warning' : 'info'}
                                 />
 
                                 <SecurityRow
@@ -634,6 +674,12 @@ export default function MyProfilePage() {
                                     {t('myProfile.loginHistory')}
                                 </Typography>
                             </Box>
+
+                            {activityError && (
+                                <Alert severity="error" role="alert" sx={{ mb: 2 }}>
+                                    {activityError}
+                                </Alert>
+                            )}
 
                             {activityLoading ? (
                                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>

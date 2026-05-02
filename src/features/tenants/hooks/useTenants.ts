@@ -97,6 +97,10 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
                 return tenant
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: also surface the error in hook state so the page
+                // can render an inline <Alert> rather than relying solely
+                // on the (now-localized) toaster.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -118,6 +122,8 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
                 return tenant
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -137,6 +143,8 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
                 await fetchTenants(initialFilters)
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface 409 ("users still attached") inline.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -152,6 +160,8 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
                 return tenant
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -167,6 +177,8 @@ export function useTenants(initialFilters?: TenantFilters): UseTenantsReturn {
                 return tenant
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },

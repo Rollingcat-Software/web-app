@@ -1118,6 +1118,8 @@
     "manageSecuritySettings": "Manage Security Settings",
     "loginHistory": "Login History & Activity",
     "noActivity": "No recent activity found.",
+    "activityLoadError": "Could not load activity log. Please try again.",
+    "sessionsLoadError": "Could not load active sessions count.",
     "activityAction": "Action",
     "activityTimestamp": "Timestamp",
     "activityIp": "IP Address",

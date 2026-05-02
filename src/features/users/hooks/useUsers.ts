@@ -97,6 +97,8 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
                 return user
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -117,6 +119,8 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
                 return user
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -135,6 +139,8 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
                 await fetchUsers(initialFilters)
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -153,6 +159,8 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
                 await fetchUsers(initialFilters)
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
@@ -171,6 +179,8 @@ export function useUsers(initialFilters?: UserFilters): UseUsersReturn {
                 await fetchUsers(initialFilters)
             } catch (error) {
                 errorHandler.handle(error)
+                // P1-FE-6: surface in hook state for inline <Alert>.
+                setState((prev) => ({ ...prev, error: error as Error }))
                 throw error
             }
         },
