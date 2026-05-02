@@ -22,6 +22,7 @@ import { AuthMethodType } from '@domain/models/AuthMethod'
 import { EnrollmentStatus, type EnrollmentJSON } from '@domain/models/Enrollment'
 import { FivucsasAuth } from '@/verify-app/sdk/FivucsasAuth'
 import type { AuthSessionResponse } from '@core/repositories/AuthSessionRepository'
+import { config as envConfig } from '@config/env'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -172,7 +173,7 @@ export default function SecondaryAuthFlow({
     useEffect(() => {
         if (!authSession || !containerRef.current || widgetActive) return
 
-        const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
+        const apiBaseUrl = envConfig.apiBaseUrl
         const baseUrl = window.location.origin + '/verify'
 
         let auth: FivucsasAuth

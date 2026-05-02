@@ -56,6 +56,7 @@ import type { ISettingsService } from '@domain/interfaces/ISettingsService'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { formatApiError } from '@utils/formatApiError'
 import { normalizePhoneInputE164, isValidE164 } from '@utils/phoneNumber'
+import { config as envConfig } from '@config/env'
 
 /**
  * Device capability detection results
@@ -1075,7 +1076,7 @@ export default function EnrollmentPage() {
             <VoiceEnrollmentFlow
                 open={voiceEnrollOpen}
                 userId={userId}
-                apiBaseUrl={import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'}
+                apiBaseUrl={envConfig.apiBaseUrl}
                 token={accessToken}
                 onClose={() => setVoiceEnrollOpen(false)}
                 onSuccess={async (action) => {

@@ -2,6 +2,7 @@ import axios, { AxiosInstance } from 'axios'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
+import { config as envConfig } from '@config/env'
 
 export interface EnrollmentResult {
     success: boolean
@@ -59,7 +60,7 @@ export class BiometricService {
     private readonly client: AxiosInstance
 
     constructor() {
-        const baseURL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1'
+        const baseURL = envConfig.apiBaseUrl
 
         this.client = axios.create({
             baseURL,

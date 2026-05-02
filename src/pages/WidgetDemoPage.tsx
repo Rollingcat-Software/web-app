@@ -43,6 +43,7 @@ import type { VerifyResult } from '@/verify-app/sdk/FivucsasAuth'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@utils/formatApiError'
+import { config as envConfig } from '@config/env'
 
 // ─── Status ─────────────────────────────────────────────────────────
 
@@ -189,7 +190,7 @@ export function VerifyButton({ userId, onComplete }: VerifyButtonProps) {
     const auth = new FivucsasAuth({
       clientId: 'your-client-id',
       baseUrl: window.location.origin + '/verify',
-      apiBaseUrl: import.meta.env.VITE_API_BASE_URL,
+      apiBaseUrl: envConfig.apiBaseUrl,
       locale: 'en',
       theme: { primaryColor: '#6366f1', borderRadius: '12px' },
     });
@@ -412,8 +413,7 @@ export default function WidgetDemoPage() {
             setDemoError(null)
             setDemoStatus('verifying')
 
-            const apiBaseUrl =
-                import.meta.env.VITE_API_BASE_URL || 'https://api.fivucsas.com/api/v1'
+            const apiBaseUrl = envConfig.apiBaseUrl
             const baseUrl = window.location.origin + '/widget-auth'
 
             const auth = new FivucsasAuth({
