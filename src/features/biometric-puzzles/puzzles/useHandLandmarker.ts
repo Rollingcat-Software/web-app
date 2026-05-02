@@ -12,9 +12,9 @@
  */
 import { useEffect, useRef, useState } from 'react'
 import type { HandLandmarker, HandLandmarkerResult } from '@mediapipe/tasks-vision'
+import { MEDIAPIPE_WASM_URL } from '../../../config/cdn'
 
-const VISION_WASM_URL =
-    'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm'
+const VISION_WASM_URL = MEDIAPIPE_WASM_URL
 const HAND_MODEL_URL =
     'https://storage.googleapis.com/mediapipe-models/hand_landmarker/hand_landmarker/float16/1/hand_landmarker.task'
 

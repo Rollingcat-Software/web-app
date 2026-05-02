@@ -25,6 +25,7 @@ import type {
   HandLandmarkerResult,
   NormalizedLandmark as MpNormalizedLandmark,
 } from '@mediapipe/tasks-vision';
+import { MEDIAPIPE_WASM_URL } from '../../../config/cdn';
 
 /**
  * One of the nine server-defined gesture challenge types.
@@ -294,9 +295,7 @@ export class HandGestureDetector {
       const { HandLandmarker, FilesetResolver } = await import(
         '@mediapipe/tasks-vision'
       );
-      const vision = await FilesetResolver.forVisionTasks(
-        'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@latest/wasm',
-      );
+      const vision = await FilesetResolver.forVisionTasks(MEDIAPIPE_WASM_URL);
       if (this.disposed) return;
 
       this.landmarker = await HandLandmarker.createFromOptions(vision, {
