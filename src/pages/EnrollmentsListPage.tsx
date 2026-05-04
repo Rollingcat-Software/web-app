@@ -78,7 +78,7 @@ function getStatusIcon(status: EnrollmentStatus) {
 
 export default function EnrollmentsListPage() {
     const navigate = useNavigate()
-    const {i18n} = useTranslation()
+    const {t, i18n} = useTranslation()
     const [searchQuery, setSearchQuery] = useState('')
     const [statusFilter, setStatusFilter] = useState<EnrollmentStatus | 'ALL'>('ALL')
     const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
@@ -273,7 +273,7 @@ export default function EnrollmentsListPage() {
                                             <IconButton
                                                 size="small"
                                                 onClick={() => navigate(`/enrollments/${enrollment.id}`)}
-                                                aria-label="View details"
+                                                aria-label={t('a11y.viewDetails')}
                                             >
                                                 <Visibility fontSize="small"/>
                                             </IconButton>
@@ -282,7 +282,7 @@ export default function EnrollmentsListPage() {
                                                     size="small"
                                                     onClick={() => handleRetry(enrollment.id)}
                                                     color="primary"
-                                                    aria-label="Retry enrollment"
+                                                    aria-label={t('a11y.retryEnrollment')}
                                                 >
                                                     <Refresh fontSize="small"/>
                                                 </IconButton>
@@ -291,7 +291,7 @@ export default function EnrollmentsListPage() {
                                                 size="small"
                                                 onClick={() => handleDeleteClick(enrollment.id)}
                                                 color="error"
-                                                aria-label="Delete enrollment"
+                                                aria-label={t('a11y.deleteEnrollment')}
                                             >
                                                 <Delete fontSize="small"/>
                                             </IconButton>

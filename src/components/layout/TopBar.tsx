@@ -99,7 +99,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                 {/* Mobile menu button */}
                 <IconButton
                     color="inherit"
-                    aria-label="Open navigation menu"
+                    aria-label={t('a11y.openNavigationMenu')}
                     edge="start"
                     onClick={onMenuClick}
                     sx={{ mr: 1, display: {md: 'none'} }}
@@ -132,7 +132,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                         <IconButton
                             color="inherit"
                             onClick={toggleLanguage}
-                            aria-label="Toggle language"
+                            aria-label={t('a11y.toggleLanguage')}
                             sx={{
                                 fontSize: '0.8rem',
                                 fontWeight: 700,
@@ -154,7 +154,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
 
                     {/* Dark mode toggle */}
                     <Tooltip title={mode === 'dark' ? t('topbar.lightMode') : t('topbar.darkMode')}>
-                        <IconButton color="inherit" onClick={toggleMode} aria-label="Toggle dark mode">
+                        <IconButton color="inherit" onClick={toggleMode} aria-label={t('a11y.toggleDarkMode')}>
                             {mode === 'dark' ? <LightMode/> : <DarkMode/>}
                         </IconButton>
                     </Tooltip>

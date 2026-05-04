@@ -118,6 +118,7 @@ const FaceDemoPage = lazy(() => import('./pages/FaceDemoPage'))
  * Loading fallback for lazy-loaded components
  */
 function PageLoader() {
+    const { t } = useTranslation()
     return (
         <Box
             sx={{
@@ -127,7 +128,7 @@ function PageLoader() {
                 minHeight: 400,
             }}
         >
-            <CircularProgress aria-label="Loading page" />
+            <CircularProgress aria-label={t('a11y.loadingPage')} />
         </Box>
     )
 }

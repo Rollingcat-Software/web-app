@@ -149,30 +149,29 @@ describe('HostedLoginApp — B8 surface behavior', () => {
         resetEnv()
     })
 
-    it('missing client_id → renders error state (no API call)', async () => {
+    it('missing client_id → renders IntegratorLanding (no API call)', async () => {
+        // P1-1 (SENIOR_UIUX_REVIEW_2026-05-04): cold-load with no/partial OAuth
+        // params now renders the friendly Integrator Landing card instead of a
+        // red "Missing parameters" error. Verifies the title + section copy.
         setLocation('?redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb')
 
         render(<HostedLoginApp />)
 
-        // Matches en.json "hosted.missingParams"
         await waitFor(() => {
-            expect(
-                screen.getByText(/sign-in link is incomplete/i)
-            ).toBeInTheDocument()
+            expect(screen.getByText(/Hosted sign-in surface/i)).toBeInTheDocument()
         })
+        expect(screen.getByText(/What this surface does/i)).toBeInTheDocument()
         // No meta fetch should have fired
         expect(mockHttpGet).not.toHaveBeenCalled()
     })
 
-    it('missing redirect_uri → renders error state', async () => {
+    it('missing redirect_uri → renders IntegratorLanding', async () => {
         setLocation('?client_id=c1')
 
         render(<HostedLoginApp />)
 
         await waitFor(() => {
-            expect(
-                screen.getByText(/sign-in link is incomplete/i)
-            ).toBeInTheDocument()
+            expect(screen.getByText(/Hosted sign-in surface/i)).toBeInTheDocument()
         })
         expect(mockHttpGet).not.toHaveBeenCalled()
     })
