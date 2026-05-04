@@ -21,12 +21,13 @@ import {
     Button,
     CircularProgress,
     CssBaseline,
+    Link,
     Paper,
     Stack,
     ThemeProvider,
     Typography,
 } from '@mui/material'
-import { VerifiedUserOutlined } from '@mui/icons-material'
+import { ArrowForwardOutlined, MenuBookOutlined, VerifiedUserOutlined } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { createAppTheme } from '../theme'
 import { DependencyProvider } from '@app/providers'
@@ -129,6 +130,10 @@ export default function HostedLoginApp() {
 
     const [clientMeta, setClientMeta] = useState<ClientPublicMeta | null>(null)
     const [paramError, setParamError] = useState<string | null>(null)
+    // Distinguish "no params at all" (developer hits the bare URL) from "wrong params"
+    // (active integration handed us a bad client_id). The first deserves an
+    // explainer/integrator-landing card; the second is a user-facing error.
+    const [paramsMissing, setParamsMissing] = useState(false)
     const [metaLoading, setMetaLoading] = useState(true)
     const [metaLoadFailed, setMetaLoadFailed] = useState(false)
     const [metaReloadKey, setMetaReloadKey] = useState(0)
@@ -177,7 +182,13 @@ export default function HostedLoginApp() {
         if (isFramed) return
 
         if (!config.clientId || !config.redirectUri) {
-            setParamError(t('hosted.missingParams'))
+            // Cold-load (developer typed the bare URL) — render the Integrator
+            // Landing card rather than a red "Missing parameters" error. Genuine
+            // half-broken redirects (one param present, the other missing) still
+            // fall through to the landing rather than the error path so the
+            // operator sees the same friendly explainer; the OAuth error itself
+            // is then surfaced upstream by the tenant's integration code.
+            setParamsMissing(true)
             setMetaLoading(false)
             return
         }
@@ -401,6 +412,17 @@ export default function HostedLoginApp() {
         )
     }
 
+    if (paramsMissing) {
+        return (
+            <ThemeProvider theme={theme}>
+                <CssBaseline />
+                <HostedFrame>
+                    <IntegratorLanding />
+                </HostedFrame>
+            </ThemeProvider>
+        )
+    }
+
     if (paramError) {
         return (
             <ThemeProvider theme={theme}>
@@ -598,5 +620,148 @@ function HostedFrame({ children }: { children: React.ReactNode }) {
                 verify.fivucsas.com
             </Typography>
         </Box>
+    )
+}
+
+// ─── IntegratorLanding ───────────────────────────────────────────
+//
+// Rendered when a developer hits `verify.fivucsas.com` with no OAuth params.
+// Reuses the HostedFrame card so the surface still reads as the same product
+// (brand mark, pill chip, ambient gradient). Avoids the red "Missing
+// parameters" alert which made the URL feel broken to anyone evaluating the
+// SDK. P1-1 of SENIOR_UIUX_REVIEW_2026-05-04.
+
+function IntegratorLanding() {
+    const { t } = useTranslation()
+    // App origin for "Open Developer Portal" / "View documentation" CTAs. We
+    // can't link to a path on this same host (verify is a different bundle)
+    // so the absolute origin keeps the destinations stable across envs.
+    const appOrigin = 'https://app.fivucsas.com'
+    const docsHref = `${appOrigin}/developer-portal`
+    const portalHref = `${appOrigin}/developer-portal`
+
+    return (
+        <Stack spacing={3}>
+            <Box>
+                <Box
+                    sx={{
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: 0.75,
+                        px: 1.25,
+                        py: 0.5,
+                        mb: 1.25,
+                        borderRadius: 999,
+                        border: (th) => `1px solid ${alpha(th.palette.primary.main, 0.25)}`,
+                        backgroundColor: (th) => alpha(th.palette.primary.main, 0.08),
+                        color: 'primary.main',
+                    }}
+                >
+                    <VerifiedUserOutlined sx={{ fontSize: 14 }} />
+                    <Typography
+                        variant="caption"
+                        sx={{
+                            fontWeight: 700,
+                            letterSpacing: '0.08em',
+                            textTransform: 'uppercase',
+                            fontSize: '0.68rem',
+                            fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                        }}
+                    >
+                        {t('hosted.integratorLanding.eyebrow')}
+                    </Typography>
+                </Box>
+                <Typography
+                    variant="h5"
+                    sx={{
+                        fontFamily: '"Poppins", "Inter", sans-serif',
+                        fontWeight: 700,
+                        letterSpacing: '-0.018em',
+                        lineHeight: 1.25,
+                        mb: 1,
+                    }}
+                >
+                    {t('hosted.integratorLanding.title')}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                    {t('hosted.integratorLanding.lead')}
+                </Typography>
+            </Box>
+
+            <Stack spacing={2}>
+                <Box>
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+                        {t('hosted.integratorLanding.section1Title')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {t('hosted.integratorLanding.section1Body')}
+                    </Typography>
+                </Box>
+
+                <Box>
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+                        {t('hosted.integratorLanding.section2Title')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary" sx={{ mb: 1 }}>
+                        {t('hosted.integratorLanding.section2Body')}
+                    </Typography>
+                    <Box
+                        component="pre"
+                        sx={{
+                            m: 0,
+                            p: 1.5,
+                            borderRadius: 2,
+                            backgroundColor: (th) => alpha(th.palette.primary.main, 0.06),
+                            border: (th) => `1px solid ${alpha(th.palette.primary.main, 0.18)}`,
+                            color: 'text.primary',
+                            fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                            fontSize: '0.78rem',
+                            overflowX: 'auto',
+                            lineHeight: 1.55,
+                        }}
+                    >{`import { FivucsasAuth } from '@fivucsas/auth-js'
+
+FivucsasAuth.init({ clientId: 'YOUR_CLIENT_ID' })
+FivucsasAuth.loginRedirect({
+    redirectUri: 'https://your-app.com/callback',
+    scope: 'openid profile email',
+})`}</Box>
+                </Box>
+
+                <Box>
+                    <Typography variant="subtitle2" fontWeight={700} sx={{ mb: 0.5 }}>
+                        {t('hosted.integratorLanding.section3Title')}
+                    </Typography>
+                    <Typography variant="body2" color="text.secondary">
+                        {t('hosted.integratorLanding.section3Body')}
+                    </Typography>
+                </Box>
+            </Stack>
+
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.25}>
+                <Button
+                    variant="contained"
+                    component={Link}
+                    href={portalHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    endIcon={<ArrowForwardOutlined />}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                    {t('hosted.integratorLanding.section2Cta')}
+                </Button>
+                <Button
+                    variant="outlined"
+                    component={Link}
+                    href={docsHref}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    startIcon={<MenuBookOutlined />}
+                    sx={{ textTransform: 'none', fontWeight: 600 }}
+                >
+                    {t('hosted.integratorLanding.section3Cta')}
+                </Button>
+            </Stack>
+        </Stack>
     )
 }

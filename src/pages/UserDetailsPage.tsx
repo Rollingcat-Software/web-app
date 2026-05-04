@@ -75,7 +75,7 @@ export default function UserDetailsPage() {
     if (loading) {
         return (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                <CircularProgress aria-label="Loading user details" />
+                <CircularProgress aria-label={t('a11y.loadingUserDetails')} />
             </Box>
         )
     }

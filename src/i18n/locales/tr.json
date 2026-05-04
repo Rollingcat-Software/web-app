@@ -106,7 +106,7 @@
     "widgetDemo": "Kimlik Bileşeni",
     "developerPortal": "Geliştirici Portalı",
     "settings": "Ayarlar",
-    "myProfile": "Profilim",
+    "myProfile": "Kimliğim ve Biyometriklerim",
     "group": {
       "overview": "Genel Bakış",
       "access": "Erişim & Kiracılık",
@@ -1522,6 +1522,19 @@
       "title": "Bu giriş sayfasını yükleyemedik",
       "body": "Sunucularımıza bağlantı zaman aşımına uğradı veya başarısız oldu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
       "retry": "Tekrar dene"
+    },
+    "integratorLanding": {
+      "eyebrow": "Barındırılan giriş yüzeyi",
+      "title": "FIVUCSAS Doğrulama",
+      "lead": "Bu sayfa, bir kiracı entegrasyonu kullanıcıyı buraya yönlendirdiğinde otomatik olarak açılır. Hiçbir OAuth parametresi gönderilmediği için bu açıklamayı görüyorsunuz.",
+      "section1Title": "Bu yüzey ne işe yarar",
+      "section1Body": "verify.fivucsas.com, barındırılan giriş uç noktasıdır. Kiracılar kullanıcıları OAuth 2.0 / OIDC parametreleriyle buraya yönlendirir; biz yapılandırılmış MFA akışını çalıştırır ve yetki koduyla geri yönlendiririz.",
+      "section2Title": "Entegre edin",
+      "section2Body": "Kiracı uygulamanızda @fivucsas/auth-js SDK'sını kullanın:",
+      "section2Cta": "Geliştirici Portalını Aç",
+      "section3Title": "Belgelere göz atın",
+      "section3Body": "Tam referans, izin verilen istemciler, örnek kodlar ve bir sandbox client_id Geliştirici Portalında mevcuttur.",
+      "section3Cta": "Belgeleri görüntüle"
     }
   },
   "language": {
@@ -1981,6 +1994,19 @@
       "ready": "Bunu kendi ürününde de kullanmaya hazır mısın?",
       "cta": "Developer Portal’ı Aç"
     }
+  },
+  "a11y": {
+    "loadingApp": "Uygulama yükleniyor",
+    "loadingPage": "Sayfa yükleniyor",
+    "loadingUsers": "Kullanıcılar yükleniyor",
+    "loadingUserDetails": "Kullanıcı bilgileri yükleniyor",
+    "registrationForm": "Kayıt formu",
+    "viewDetails": "Ayrıntıları görüntüle",
+    "retryEnrollment": "Kaydı yeniden dene",
+    "deleteEnrollment": "Kaydı sil",
+    "openNavigationMenu": "Gezinme menüsünü aç",
+    "toggleLanguage": "Dili değiştir",
+    "toggleDarkMode": "Karanlık modu değiştir"
   },
   "pageTitles": {
     "dashboard": "Kontrol Paneli",

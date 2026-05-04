@@ -191,7 +191,7 @@ export default function UsersListPage() {
 
             {loading ? (
                 <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
-                    <CircularProgress aria-label="Loading users" />
+                    <CircularProgress aria-label={t('a11y.loadingUsers')} />
                 </Box>
             ) : (
                 <Paper>

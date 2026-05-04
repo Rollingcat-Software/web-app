@@ -106,7 +106,7 @@
     "widgetDemo": "Auth Widget",
     "developerPortal": "Developer Portal",
     "settings": "Settings",
-    "myProfile": "My Profile",
+    "myProfile": "My Identity & Biometrics",
     "group": {
       "overview": "Overview",
       "access": "Access & Tenancy",
@@ -1522,6 +1522,19 @@
       "title": "We couldn't load this sign-in page",
       "body": "The connection to our servers timed out or failed. Please check your internet connection and try again.",
       "retry": "Try again"
+    },
+    "integratorLanding": {
+      "eyebrow": "Hosted sign-in surface",
+      "title": "FIVUCSAS Verify",
+      "lead": "This page is reached automatically when a tenant integration redirects a user here to sign in. You're seeing this because no OAuth parameters were provided.",
+      "section1Title": "What this surface does",
+      "section1Body": "verify.fivucsas.com is the hosted login endpoint. Tenants redirect users here with OAuth 2.0 / OIDC parameters; we run the configured MFA flow and redirect back with an authorization code.",
+      "section2Title": "Integrate it",
+      "section2Body": "Use the @fivucsas/auth-js SDK in your tenant app:",
+      "section2Cta": "Open the Developer Portal",
+      "section3Title": "Read the docs",
+      "section3Body": "Full reference, allowlisted clients, code samples, and a sandbox client_id are available on the developer portal.",
+      "section3Cta": "View documentation"
     }
   },
   "language": {
@@ -1981,6 +1994,19 @@
       "ready": "Ready to ship this in your product?",
       "cta": "Open Developer Portal"
     }
+  },
+  "a11y": {
+    "loadingApp": "Loading application",
+    "loadingPage": "Loading page",
+    "loadingUsers": "Loading users",
+    "loadingUserDetails": "Loading user details",
+    "registrationForm": "Registration form",
+    "viewDetails": "View details",
+    "retryEnrollment": "Retry enrollment",
+    "deleteEnrollment": "Delete enrollment",
+    "openNavigationMenu": "Open navigation menu",
+    "toggleLanguage": "Toggle language",
+    "toggleDarkMode": "Toggle dark mode"
   },
   "pageTitles": {
     "dashboard": "Dashboard",

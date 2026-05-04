@@ -442,7 +442,7 @@ export default function RegisterPage() {
                         <>
 
                         {/* Register Form */}
-                        <form onSubmit={handleSubmit(onSubmit)} aria-label="Registration form">
+                        <form onSubmit={handleSubmit(onSubmit)} aria-label={t('a11y.registrationForm')}>
                             {/* Error Alert */}
                             {error && (
                                 <motion.div
