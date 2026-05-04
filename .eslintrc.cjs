@@ -1,3 +1,9 @@
+// Lint warning ratchet policy (P1-Q10, QUALITY_REVIEW_2026-05-01 §T4.2):
+// `npm run lint` enforces `--max-warnings <N>` in package.json. The cap is
+// pinned to the *current* count on `main` and may only ever ratchet down.
+// When opening a PR that fixes warnings, lower the cap by exactly the number
+// you fixed. The cap is NEVER increased — if a new warning is introduced,
+// fix it instead of bumping the cap. The cap is the floor: drift up = revert.
 module.exports = {
     root: true,
     env: {browser: true, es2020: true},
