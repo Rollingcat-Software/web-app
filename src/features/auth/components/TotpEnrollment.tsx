@@ -79,6 +79,17 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
         }
     }, [])
 
+    // Clear pending success timer when the dialog closes — without this, a
+    // quick close after verify can still fire onSuccess()/handleReset() because
+    // <Dialog open=false> may keep the component mounted (Copilot review on
+    // PR #67).
+    useEffect(() => {
+        if (!open && successTimerRef.current) {
+            clearTimeout(successTimerRef.current)
+            successTimerRef.current = null
+        }
+    }, [open])
+
     // Check TOTP status when dialog opens
     useEffect(() => {
         if (!open || !userId) return

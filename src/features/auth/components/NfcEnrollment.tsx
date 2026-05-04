@@ -65,6 +65,14 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
                 abortRef.current.abort()
                 abortRef.current = null
             }
+            // Clear pending success timer when the dialog closes — otherwise
+            // a quick close after enrollment can still fire onSuccess()
+            // because <Dialog open=false> may keep the component mounted
+            // (Copilot review on PR #67).
+            if (successTimerRef.current) {
+                clearTimeout(successTimerRef.current)
+                successTimerRef.current = null
+            }
         }
     }, [open])
 

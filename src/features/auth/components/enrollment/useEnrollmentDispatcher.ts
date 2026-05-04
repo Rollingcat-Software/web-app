@@ -53,7 +53,10 @@ export function useEnrollmentDispatcher({
     const [voiceEnrollOpen, setVoiceEnrollOpen] = useState(false)
     const [nfcEnrollOpen, setNfcEnrollOpen] = useState(false)
     const [smsPhase, setSmsPhase] = useState<SmsPhase>(null)
-    const [actionLoading, setActionLoading] = useState<string | null>(null)
+    // Copilot review on PR #69: actionLoading is only ever assigned an
+    // AuthMethodType value or null — narrow the type to keep the contract
+    // consistent with consumers and prevent accidental string mismatches.
+    const [actionLoading, setActionLoading] = useState<AuthMethodType | null>(null)
 
     const handleEnroll = useCallback(
         async (type: AuthMethodType) => {
