@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
     Alert,
@@ -69,6 +69,15 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
     const [totpConfigured, setTotpConfigured] = useState(false)
     const [statusLoading, setStatusLoading] = useState(false)
     const [disableLoading, setDisableLoading] = useState(false)
+    const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+    const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current) clearTimeout(successTimerRef.current)
+            if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+        }
+    }, [])
 
     // Check TOTP status when dialog opens
     useEffect(() => {
@@ -148,7 +157,8 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
 
             setTotpConfigured(true)
             setActiveStep(2)
-            setTimeout(() => {
+            if (successTimerRef.current) clearTimeout(successTimerRef.current)
+            successTimerRef.current = setTimeout(() => {
                 onSuccess()
                 handleReset()
             }, 2000)
@@ -187,7 +197,8 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
         try {
             await navigator.clipboard.writeText(secret)
             setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
+            if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+            copiedTimerRef.current = setTimeout(() => setCopied(false), 2000)
         } catch {
             // Fallback for non-HTTPS
         }

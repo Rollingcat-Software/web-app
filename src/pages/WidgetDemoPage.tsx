@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback } from 'react'
+import { useEffect, useRef, useState, useCallback } from 'react'
 import {
     Alert,
     Box,
@@ -228,11 +228,19 @@ export function VerifyButton({ userId, onComplete }: VerifyButtonProps) {
 function CodeBlock({ code, language }: { code: string; language: string }) {
     const [copied, setCopied] = useState(false)
     const { t } = useTranslation()
+    const copiedTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+        }
+    }, [])
 
     const handleCopy = useCallback(() => {
         navigator.clipboard.writeText(code).then(() => {
             setCopied(true)
-            setTimeout(() => setCopied(false), 2000)
+            if (copiedTimerRef.current) clearTimeout(copiedTimerRef.current)
+            copiedTimerRef.current = setTimeout(() => setCopied(false), 2000)
         })
     }, [code])
 

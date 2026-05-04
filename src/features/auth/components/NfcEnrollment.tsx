@@ -41,9 +41,16 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
     const [nfcSupported, setNfcSupported] = useState(true)
     const [cardInfo, setCardInfo] = useState<{ enrolled: boolean; message: string; data?: Record<string, unknown> } | null>(null)
     const abortRef = useRef<AbortController | null>(null)
+    const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     useEffect(() => {
         setNfcSupported('NDEFReader' in window)
+    }, [])
+
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current) clearTimeout(successTimerRef.current)
+        }
     }, [])
 
     useEffect(() => {
@@ -115,7 +122,8 @@ export default function NfcEnrollment({ open, onClose, onSuccess, userId }: NfcE
 
             if (response.data.success) {
                 setActiveStep(2)
-                setTimeout(() => onSuccess(), 2000)
+                if (successTimerRef.current) clearTimeout(successTimerRef.current)
+                successTimerRef.current = setTimeout(() => onSuccess(), 2000)
             } else {
                 setError(response.data.message || t('nfcEnroll.registerFailed'))
                 setActiveStep(0)

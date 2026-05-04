@@ -14,14 +14,16 @@ import { VitePWA } from 'vite-plugin-pwa'
  * - Blocks unsafe-eval and unsafe-inline
  * - Enforces HTTPS for external resources
  *
- * NOTE (FE-H3): the dev CSP below is permissive by design
+ * NOTE (FE-H3, P3-FE-5 2026-05-04): the dev CSP below is permissive by design
  * ('unsafe-inline' + 'unsafe-eval') so Vite HMR + hot-reloaded ONNX/TFJS
- * modules work out of the box. Production tightens per-route via
- * public/.htaccess — dashboard routes get strict `script-src 'self'`
- * (no 'unsafe-eval', no 'wasm-unsafe-eval'), while `/verify*`, `/enroll*`
- * and `/biometric*` keep the relaxed CSP that onnxruntime-web and
- * @tensorflow/tfjs actually need. Keep the two configs in sync when
- * a new CDN origin is added.
+ * modules work out of the box. Production CSP in public/.htaccess used to be
+ * strict on dashboard routes and relaxed on /verify*, /enroll*, /biometric*,
+ * but React Router does NOT reload index.html between client-side
+ * navigations, so any user landing on `/` first could never load biometric
+ * WASM (CSP comes from the initial response). The default route was
+ * therefore unified with the biometric-permissive variant — only `/login`
+ * still differs (frame-ancestors 'none' for clickjacking defense).
+ * Keep the two configs in sync when a new CDN origin is added.
  */
 function cspPlugin(): Plugin {
     return {
@@ -74,8 +76,13 @@ function cspPlugin(): Plugin {
             // Sec-P0b 2026-04-29: bio.fivucsas.com removed from connect-src.
             // The browser must never reach the biometric processor directly;
             // identity-core-api proxies all biometric calls.
+            // P3-FE-6 2026-05-04: tfhub.dev dropped — it was an allowlist
+            // entry for TFJS Hub model loading from when MobileFaceNet was
+            // shipped in-browser, but MobileFaceNet was deliberately stripped
+            // (Phase L 2026-04-18) and the FaceDetector now CDN-loads
+            // MediaPipe via cdn.jsdelivr.net + storage.googleapis.com.
             const connectSrc = isProduction
-                ? "connect-src 'self' https://api.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com https://tfhub.dev"
+                ? "connect-src 'self' https://api.fivucsas.com https://cdn.jsdelivr.net https://storage.googleapis.com https://api.qrserver.com"
                 : "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*"
 
             // Note: frame-ancestors is NOT included in meta tag because browsers ignore it there

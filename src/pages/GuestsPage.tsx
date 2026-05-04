@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -102,9 +102,18 @@ export default function GuestsPage() {
     const [revokeGuestId, setRevokeGuestId] = useState('')
     const [revokeLoading, setRevokeLoading] = useState(false)
 
+    const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current) clearTimeout(successTimerRef.current)
+        }
+    }, [])
+
     const showSuccess = useCallback((msg: string) => {
         setSuccess(msg)
-        setTimeout(() => setSuccess(null), 4000)
+        if (successTimerRef.current) clearTimeout(successTimerRef.current)
+        successTimerRef.current = setTimeout(() => setSuccess(null), 4000)
     }, [])
 
     const loadGuests = useCallback(async () => {

@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -73,6 +73,13 @@ export default function WebAuthnEnrollment({
     const [credentials, setCredentials] = useState<WebAuthnCredential[]>([])
     const [loadingCredentials, setLoadingCredentials] = useState(false)
     const [webAuthnSupported, setWebAuthnSupported] = useState(true)
+    const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current) clearTimeout(successTimerRef.current)
+        }
+    }, [])
 
     const isPlatform = mode === WEBAUTHN.ATTACHMENT_PLATFORM
     const title = isPlatform ? t('webauthn.enrollment.registerFingerprint') : t('webauthn.enrollment.registerHardwareKey')
@@ -224,7 +231,8 @@ export default function WebAuthnEnrollment({
             if (verifyResponse.data.success) {
                 setActiveStep(2)
                 await loadCredentials()
-                setTimeout(() => {
+                if (successTimerRef.current) clearTimeout(successTimerRef.current)
+                successTimerRef.current = setTimeout(() => {
                     onSuccess()
                 }, 2000)
             } else {
