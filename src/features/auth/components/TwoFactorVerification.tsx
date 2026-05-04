@@ -51,6 +51,13 @@ export default function TwoFactorVerification({
     const [codeSent, setCodeSent] = useState(false)
     const [resendCountdown, setResendCountdown] = useState(0)
     const inputRef = useRef<HTMLInputElement>(null)
+    const focusTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
+        }
+    }, [])
 
     // Send OTP code on mount
     const sendCode = useCallback(async () => {
@@ -62,7 +69,8 @@ export default function TwoFactorVerification({
             setCodeSent(true)
             setResendCountdown(60)
             // Focus input after code is sent
-            setTimeout(() => inputRef.current?.focus(), 200)
+            if (focusTimerRef.current) clearTimeout(focusTimerRef.current)
+            focusTimerRef.current = setTimeout(() => inputRef.current?.focus(), 200)
         } catch (err) {
             setError(formatApiError(err, t))
         } finally {

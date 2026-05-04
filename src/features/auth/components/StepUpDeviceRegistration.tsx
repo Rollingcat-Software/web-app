@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -56,6 +56,13 @@ export default function StepUpDeviceRegistration({ open, userId, onClose, onSucc
     const [activeStep, setActiveStep] = useState(0)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
+    const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (successTimerRef.current) clearTimeout(successTimerRef.current)
+        }
+    }, [])
 
     // Step 1: Device registration
     const [deviceName, setDeviceName] = useState('')
@@ -178,7 +185,8 @@ export default function StepUpDeviceRegistration({ open, userId, onClose, onSucc
             )
             if (response.data.success !== false) {
                 setActiveStep(2)
-                setTimeout(() => {
+                if (successTimerRef.current) clearTimeout(successTimerRef.current)
+                successTimerRef.current = setTimeout(() => {
                     onSuccess()
                     handleReset()
                 }, 2000)

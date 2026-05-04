@@ -266,13 +266,38 @@ export default function NotificationPanel() {
         }
     }, [auditLogService, user])
 
-    // Initial fetch and polling - works for all authenticated users
+    // Initial fetch and polling - works for all authenticated users.
+    // Pauses while the document is hidden so background tabs don't keep
+    // hammering /audit-logs (and the i18n-leaking ErrorHandler toast on each
+    // failure) while the user isn't watching. P3-FE-4.
     useEffect(() => {
+        const startPolling = () => {
+            if (pollRef.current) return
+            pollRef.current = setInterval(fetchNotifications, POLL_INTERVAL)
+        }
+        const stopPolling = () => {
+            if (pollRef.current) {
+                clearInterval(pollRef.current)
+                pollRef.current = null
+            }
+        }
+        const handleVisibility = () => {
+            if (document.visibilityState === 'visible') {
+                fetchNotifications()
+                startPolling()
+            } else {
+                stopPolling()
+            }
+        }
 
         fetchNotifications()
-        pollRef.current = setInterval(fetchNotifications, POLL_INTERVAL)
+        if (document.visibilityState === 'visible') {
+            startPolling()
+        }
+        document.addEventListener('visibilitychange', handleVisibility)
         return () => {
-            if (pollRef.current) clearInterval(pollRef.current)
+            document.removeEventListener('visibilitychange', handleVisibility)
+            stopPolling()
         }
     }, [fetchNotifications])
 

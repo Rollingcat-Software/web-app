@@ -1,4 +1,4 @@
-import { useState, useCallback, useMemo } from 'react'
+import { useState, useCallback, useMemo, useEffect, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -32,6 +32,13 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
     const [scanning, setScanning] = useState(false)
     const [scanResult, setScanResult] = useState<string | null>(null)
     const [scanError, setScanError] = useState<string | null>(null)
+    const scanTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+    useEffect(() => {
+        return () => {
+            if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current)
+        }
+    }, [])
 
     const isNfcSupported = typeof window !== 'undefined' && 'NDEFReader' in window
     const isFramed = typeof window !== 'undefined' && window.top !== window.self
@@ -80,7 +87,8 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
 
             // Auto-timeout after 30 seconds with a user-visible message so the
             // user doesn't stare at a silently-stopped spinner.
-            setTimeout(() => {
+            if (scanTimeoutRef.current) clearTimeout(scanTimeoutRef.current)
+            scanTimeoutRef.current = setTimeout(() => {
                 if (!completed) {
                     setScanError(t('mfa.nfc.scanTimeout'))
                     setScanning(false)

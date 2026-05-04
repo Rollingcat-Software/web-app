@@ -27,6 +27,7 @@ export default function FaceVerificationFlow({ open, onClose, onVerify }: FaceVe
     const canvasRef = useRef<HTMLCanvasElement>(null)
     const streamRef = useRef<MediaStream | null>(null)
     const animFrameRef = useRef<number>(0)
+    const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
     const [cameraActive, setCameraActive] = useState(false)
     const [verifying, setVerifying] = useState(false)
@@ -83,7 +84,8 @@ export default function FaceVerificationFlow({ open, onClose, onVerify }: FaceVe
                 .then(success => {
                     setResult(success)
                     if (success) {
-                        setTimeout(onClose, 1500)
+                        if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+                        closeTimerRef.current = setTimeout(onClose, 1500)
                     }
                 })
                 .catch(() => {
@@ -105,6 +107,12 @@ export default function FaceVerificationFlow({ open, onClose, onVerify }: FaceVe
             resetVerification()
         }
     }, [open, startCamera, stopCamera, resetVerification])
+
+    useEffect(() => {
+        return () => {
+            if (closeTimerRef.current) clearTimeout(closeTimerRef.current)
+        }
+    }, [])
 
     const handleRetry = () => {
         resetVerification()
