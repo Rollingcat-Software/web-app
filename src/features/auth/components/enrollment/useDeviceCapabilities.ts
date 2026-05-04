@@ -18,27 +18,20 @@ async function detectCapabilities(): Promise<DeviceCapabilities> {
         nfc: null,
     }
 
-    // Camera check
+    // Camera + microphone — enumerate once and derive both. Copilot review on
+    // PR #69: previously enumerateDevices() ran twice on mount, doubling the
+    // permission-prompt cost on browsers that gate device labels behind grant.
     try {
         if (navigator.mediaDevices) {
             const devices = await navigator.mediaDevices.enumerateDevices()
             caps.camera = devices.some((d) => d.kind === 'videoinput')
-        } else {
-            caps.camera = false
-        }
-    } catch {
-        caps.camera = false
-    }
-
-    // Microphone check
-    try {
-        if (navigator.mediaDevices) {
-            const devices = await navigator.mediaDevices.enumerateDevices()
             caps.microphone = devices.some((d) => d.kind === 'audioinput')
         } else {
+            caps.camera = false
             caps.microphone = false
         }
     } catch {
+        caps.camera = false
         caps.microphone = false
     }
 
@@ -76,10 +69,19 @@ export function useDeviceCapabilities() {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
+        // Copilot review on PR #70: detectCapabilities() resolves
+        // asynchronously after mount; without a mounted-flag guard, a fast
+        // unmount can produce React 'setState on unmounted component'
+        // warnings.
+        let mounted = true
         detectCapabilities().then((caps) => {
+            if (!mounted) return
             setCapabilities(caps)
             setLoading(false)
         })
+        return () => {
+            mounted = false
+        }
     }, [])
 
     return { capabilities, loading }

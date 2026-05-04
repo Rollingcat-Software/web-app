@@ -108,6 +108,17 @@ export default function FaceVerificationFlow({ open, onClose, onVerify }: FaceVe
         }
     }, [open, startCamera, stopCamera, resetVerification])
 
+    // Clear pending close timer when the dialog closes — without this, a
+    // pending timeout can still call onClose after the dialog is already
+    // closed (double-close) because <Dialog open=false> may keep the
+    // component mounted (Copilot review on PR #67).
+    useEffect(() => {
+        if (!open && closeTimerRef.current) {
+            clearTimeout(closeTimerRef.current)
+            closeTimerRef.current = null
+        }
+    }, [open])
+
     useEffect(() => {
         return () => {
             if (closeTimerRef.current) clearTimeout(closeTimerRef.current)

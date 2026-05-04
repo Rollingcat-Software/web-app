@@ -27,7 +27,10 @@ const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 interface Props {
     isMethodEnrolled: (type: AuthMethodType) => boolean
     isMethodAvailable: (config: MethodCardConfig) => boolean
-    actionLoading: string | null
+    // Copilot review on PR #69: narrowed from string|null — actionLoading is
+    // compared against config.type (an AuthMethodType) below, so the contract
+    // is method-typed.
+    actionLoading: AuthMethodType | null
     onEnroll: (type: AuthMethodType) => void
     onTest: (type: AuthMethodType) => void
     onRevoke: (type: AuthMethodType) => void

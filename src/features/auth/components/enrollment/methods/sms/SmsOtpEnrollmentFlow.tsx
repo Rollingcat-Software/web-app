@@ -86,9 +86,15 @@ export default function SmsOtpEnrollmentFlow({
     const otpOpen = phase === 'otp'
 
     const closePhone = useCallback(() => {
+        // Copilot review on PR #70: dialog could close mid-save (backdrop /
+        // Escape always invoke onClose). The in-flight POST then succeeds and
+        // calls onPhoneSaved() which flips the flow to the OTP phase, popping
+        // an unexpected OTP dialog after dismissal. Block close while saving;
+        // the user can wait for the request to settle.
+        if (phoneSaving) return
         setPhoneInput('')
         onClose()
-    }, [onClose])
+    }, [phoneSaving, onClose])
 
     const closeOtp = useCallback(() => {
         if (smsOtpVerifying) return

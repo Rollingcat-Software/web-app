@@ -81,6 +81,17 @@ export default function WebAuthnEnrollment({
         }
     }, [])
 
+    // Clear pending success timer when the dialog closes — without this, a
+    // quick close after registration can still fire onSuccess() because
+    // <Dialog open=false> may keep the component mounted (Copilot review on
+    // PR #67).
+    useEffect(() => {
+        if (!open && successTimerRef.current) {
+            clearTimeout(successTimerRef.current)
+            successTimerRef.current = null
+        }
+    }, [open])
+
     const isPlatform = mode === WEBAUTHN.ATTACHMENT_PLATFORM
     const title = isPlatform ? t('webauthn.enrollment.registerFingerprint') : t('webauthn.enrollment.registerHardwareKey')
     const icon = isPlatform ? <Fingerprint sx={{ fontSize: 28, color: 'white' }} /> : <Key sx={{ fontSize: 28, color: 'white' }} />

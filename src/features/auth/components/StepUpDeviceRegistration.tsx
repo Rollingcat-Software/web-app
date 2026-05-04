@@ -64,6 +64,17 @@ export default function StepUpDeviceRegistration({ open, userId, onClose, onSucc
         }
     }, [])
 
+    // Clear pending success timer when the dialog closes — without this, a
+    // quick close after registration can still fire onSuccess() because
+    // <Dialog open=false> may keep the component mounted (Copilot review on
+    // PR #67).
+    useEffect(() => {
+        if (!open && successTimerRef.current) {
+            clearTimeout(successTimerRef.current)
+            successTimerRef.current = null
+        }
+    }, [open])
+
     // Step 1: Device registration
     const [deviceName, setDeviceName] = useState('')
     const [publicKey, setPublicKey] = useState('')

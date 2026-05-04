@@ -10,6 +10,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import {
     Box,
+    ButtonBase,
     Card,
     CardContent,
     Chip,
@@ -87,14 +88,30 @@ export default function NfcCardsList({ userId, refreshKey, showSnackbar }: Props
             }}
         >
             <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-                <Box
+                {/* Accessible disclosure header — Copilot review on PR #69/#70:
+                    a plain Box with onClick is not keyboard-focusable and does
+                    not announce button semantics to assistive tech. Switched
+                    to ButtonBase + role/aria-expanded so keyboard and screen-
+                    reader users can expand/collapse the list. */}
+                <ButtonBase
+                    onClick={() => setNfcCardsExpanded(!nfcCardsExpanded)}
+                    aria-expanded={nfcCardsExpanded}
+                    aria-controls="nfc-cards-collapse-region"
                     sx={{
                         display: 'flex',
+                        width: '100%',
                         justifyContent: 'space-between',
                         alignItems: 'center',
-                        cursor: 'pointer',
+                        textAlign: 'left',
+                        borderRadius: 1,
+                        px: 0.5,
+                        py: 0.5,
+                        '&:focus-visible': {
+                            outline: '2px solid',
+                            outlineColor: 'primary.main',
+                            outlineOffset: 2,
+                        },
                     }}
-                    onClick={() => setNfcCardsExpanded(!nfcCardsExpanded)}
                 >
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                         <Box
@@ -119,12 +136,17 @@ export default function NfcCardsList({ userId, refreshKey, showSnackbar }: Props
                             </Typography>
                         </Box>
                     </Box>
-                    <IconButton size="small" aria-label={nfcCardsExpanded ? t('common.aria.collapse') : t('common.aria.expand')}>
+                    <IconButton
+                        component="span"
+                        size="small"
+                        aria-hidden="true"
+                        tabIndex={-1}
+                    >
                         {nfcCardsExpanded ? <ExpandLess /> : <ExpandMore />}
                     </IconButton>
-                </Box>
+                </ButtonBase>
 
-                <Collapse in={nfcCardsExpanded}>
+                <Collapse in={nfcCardsExpanded} id="nfc-cards-collapse-region">
                     <Box sx={{ mt: 2 }}>
                         {nfcCardsLoading ? (
                             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>

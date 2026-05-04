@@ -23,7 +23,7 @@ interface Props {
     onClose: () => void
     onEnrolled: () => void
     showSnackbar: ShowSnackbar
-    setActionLoading: (val: string | null) => void
+    setActionLoading: (val: AuthMethodType | null) => void
     createEnrollment: (input: { tenantId: string; methodType: AuthMethodType }) => Promise<unknown>
 }
 
