@@ -72,6 +72,10 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
 
             ndef.addEventListener('reading', ({ serialNumber }: { serialNumber: string }) => {
                 completed = true
+                if (scanTimeoutRef.current) {
+                    clearTimeout(scanTimeoutRef.current)
+                    scanTimeoutRef.current = null
+                }
                 setScanResult(serialNumber)
                 setScanning(false)
                 if (onSubmit) {
@@ -81,6 +85,10 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
 
             ndef.addEventListener('readingerror', () => {
                 completed = true
+                if (scanTimeoutRef.current) {
+                    clearTimeout(scanTimeoutRef.current)
+                    scanTimeoutRef.current = null
+                }
                 setScanError(t('mfa.nfc.readError'))
                 setScanning(false)
             })
