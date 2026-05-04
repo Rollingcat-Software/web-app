@@ -4,7 +4,38 @@
 
 **Current branch:** `main`
 **Target PR:** PR-1 (Wave 1) — ✅ **MERGED 2026-04-16** (identity-core-api#16 + web-app#22)
-**Last updated:** 2026-04-18
+**Last updated:** 2026-05-04
+
+---
+
+## Open — 2026-05-04 (deferred from Quality + UI/UX waves)
+
+These items are logged in the parent
+`/opt/projects/fivucsas/ROADMAP_OPTIMIZED_2026-05-04.md`. Listing here for
+web-app discoverability.
+
+### Carried from senior UI/UX review (`SENIOR_UIUX_REVIEW_2026-05-04.md`)
+- [ ] **P1** — cold-load error on `verify.fivucsas.com` without OAuth params
+  (currently surfaces a generic error; should render a friendly "no session"
+  state directing the user to a tenant URL).
+- [ ] **P1** — 11 hardcoded English `aria-label` template literals; sweep to
+  `t('aria.*')` keys in en.json + tr.json (carries over P2-FE-5 from quality).
+- [ ] **P0** — developer-portal + widget-demo currently gated behind admin
+  auth; the self-serve gap blocks tenant onboarding. Surface them as public
+  read-only pages with a "Sign in to test" CTA.
+- 20 P2 / 11 P3 — see review doc for full list.
+
+### Quality carryover (still open after PR #67-#70)
+- [ ] **P2-FE-1** — Component decomposition (3 files >900 LOC remaining after #69).
+- [ ] **P2-FE-2** — Form-validation inconsistency (raw `useState` vs `useForm + zod`).
+- [ ] **P2-FE-3** — Zod parsing at API boundary.
+- [ ] **P2-FE-4** — `react-hooks/exhaustive-deps` disabled in 28 spots.
+- [ ] **P2-FE-6** — `any` casts in critical paths.
+- [ ] **F8** — Vitest "e2e" specs are unit-shaped; rename or add real Playwright e2e.
+- [ ] **F12** — MSW + API contract tests.
+
+### Test infra
+- [ ] **F13** — k6 load tests not invoked from CI.
 
 ---
 

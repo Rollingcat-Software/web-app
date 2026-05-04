@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### 2026-05-04 — Quality + hygiene wave (4 PRs)
+
+Squash-merged to `main`:
+
+- **PR #67** `chore/frontend-p3-hygiene-batch` (`319b457`) — P3 hygiene batch:
+  brand-neutral `<title>` (PageTitle still re-localizes per route), `setTimeout`
+  cleanups across 9 components (WidgetDemoPage CodeBlock, GuestsPage,
+  TotpEnrollment, WebAuthnEnrollment, NfcEnrollment, StepUpDeviceRegistration,
+  FaceVerificationFlow, TwoFactorVerification, NfcStep), NotificationPanel
+  polling pauses on `document.visibilityState === 'hidden'`, CSP cleanup
+  (`tfhub.dev` + `kaggle.com` removed across vite.config + 3 .htaccess + verify-app).
+- **PR #68** `chore/lint-ratchet` (`386b904`) — `--max-warnings` ratchet from
+  90 to 2 (P1-Q10).
+- **PR #69** `refactor/enrollment-page-decomposition` (`35c116c`) — `EnrollmentPage.tsx`
+  (1350 LOC, 38 hooks) decomposed by biometric method. New layout:
+  `src/features/auth/components/enrollment/methods/{face,voice,nfc,sms,totp,webauthn}/`.
+  Each method owns its hook, step components, and DI wiring (P1-Q7).
+- **PR #70** `chore/nfc-step-clear-timeout-copilot` (`9bcf16a`) — `NfcStep.tsx:96`
+  30s scan timeout now cleared in both `reading` and `readingerror` handlers
+  (Copilot post-merge nit on PR #67).
+
+CI: 4-of-4 GREEN on every PR; auto-deployed to Hostinger after each merge.
+
 ### Fix — 2026-05-01 (USER-BUG-5: auth-methods-testing puzzles always succeeded)
 
 Auth Methods Testing playground (`/auth-methods-testing`) previously routed every test card through `stubAuthRepository.verifyMfaStep`, which resolved with `status: 'AUTHENTICATED'` after a 500 ms artificial delay. Plus each puzzle wrapper (`FacePuzzle`, `VoicePuzzle`, `FingerprintPuzzle`, `NfcPuzzle`, `HardwareKeyPuzzle`) called `setTimeout(onSuccess, 500)` regardless of what the underlying step component returned. Net effect: clicking "Try this method" → completing the step UI always reported success, even when the camera saw nothing, NFC was unavailable, the fingerprint dialog was cancelled, or no WebAuthn credentials existed.
