@@ -23,6 +23,12 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
 ## Key Directories
 
 - `src/features/auth/components/` - Auth step components (10 methods) + enrollment UIs
+- `src/features/auth/components/enrollment/methods/` - Per-biometric-method
+  enrollment subdirectories landed in PR #69 (P1-Q7) on 2026-05-04. The old
+  monolithic `EnrollmentPage.tsx` (1350 LOC, 38 hooks) is decomposed by
+  method: `face/`, `voice/`, `nfc/`, `sms/`, `totp/`, `webauthn/`. New
+  enrollment methods follow the same pattern — each method owns its hook,
+  step components, and DI wiring under its own subdirectory.
 - `src/features/auth/constants.ts` - Centralized enums: AuthMethodType, MfaStepStatus, WEBAUTHN, AUTH_API
 - `src/features/auth/webauthn-utils.ts` - Shared WebAuthn: resolveChallenge, mapWebAuthnError, base64 helpers
 - `src/features/authFlows/` - Auth flow builder and management
