@@ -120,12 +120,18 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                             sx={{
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '12px',
-                                    backgroundColor: 'background.paper',
-                                    '&:hover': { backgroundColor: 'background.paper' },
-                                    '&.Mui-focused': { backgroundColor: 'background.paper' },
+                                    backgroundColor: 'background.default',
+                                    '&:hover': { backgroundColor: 'background.default' },
+                                    '&.Mui-focused': { backgroundColor: 'background.default' },
                                 },
                                 '& .MuiOutlinedInput-input': {
                                     color: 'text.primary',
+                                },
+                                '& .MuiInputLabel-root': {
+                                    color: 'text.secondary',
+                                },
+                                '& .MuiInputLabel-root.Mui-focused': {
+                                    color: 'primary.main',
                                 },
                             }}
                         />
@@ -179,15 +185,13 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                                     borderColor: 'primary.main',
                                     color: 'primary.main',
                                     fontWeight: 500,
-                                    backgroundColor: 'background.paper',
                                     '&:hover': {
                                         borderColor: 'primary.dark',
                                         backgroundColor: 'action.hover',
                                     },
                                     '&.Mui-disabled': {
                                         borderColor: 'action.disabled',
-                                        color: 'text.secondary',
-                                        backgroundColor: 'background.paper',
+                                        color: 'text.disabled',
                                     },
                                 }}
                             >
