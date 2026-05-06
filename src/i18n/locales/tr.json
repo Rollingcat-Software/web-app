@@ -194,6 +194,8 @@
     "twoFactorHelper": "Kuruluşunuzun yöneticisi tarafından Auth Flows üzerinden yönetilir",
     "twoFactorRequired": "Kuruluşunuz tarafından zorunlu",
     "twoFactorNotRequired": "Kuruluşunuz tarafından zorunlu değil",
+    "authenticatorDevices": "Kimlik Doğrulama Cihazları",
+    "authenticatorDevicesHelper": "Yöneticinizin etkinleştirdiği doğrulama yöntemleri için kullanmak istediğiniz cihazları buradan kaydedin. Yöntemlerin kullanılıp kullanılamayacağını yönetici belirler.",
     "sessionTimeout": "Oturum Zaman Aşımı",
     "changePassword": "Şifre Değiştir",
     "saveSecurity": "Güvenliği Kaydet",

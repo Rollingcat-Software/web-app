@@ -380,6 +380,26 @@ export default function SettingsPage() {
                             </Box>
                         )}
 
+                        {/*
+                          * USER-BUG-6: the three buttons below register devices
+                          * (TOTP secret, platform passkey, FIDO2 key) for use
+                          * with auth methods the admin has already enabled in
+                          * the org's auth flows. Earlier wording labelled this
+                          * region "Two-Factor Authentication" / "Required by
+                          * your organization" which conflated method-enablement
+                          * (org-controlled) with device-enrollment (user-
+                          * controlled). The new section header makes the
+                          * device-registration intent explicit.
+                          */}
+                        <Box sx={{ mb: 1.5 }}>
+                            <Typography variant="subtitle1" fontWeight={600}>
+                                {t('settings.authenticatorDevices')}
+                            </Typography>
+                            <Typography variant="caption" color="text.secondary" display="block">
+                                {t('settings.authenticatorDevicesHelper')}
+                            </Typography>
+                        </Box>
+
                         <Button
                             variant="outlined"
                             fullWidth

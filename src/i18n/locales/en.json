@@ -194,6 +194,8 @@
     "twoFactorHelper": "Managed by your organization's admin via Auth Flows",
     "twoFactorRequired": "Required by your organization",
     "twoFactorNotRequired": "Not required by your organization",
+    "authenticatorDevices": "Authenticator devices",
+    "authenticatorDevicesHelper": "Register devices for the auth methods that your administrator has enabled. Method enablement itself is governed by your organization's auth flows.",
     "sessionTimeout": "Session Timeout",
     "changePassword": "Change Password",
     "saveSecurity": "Save Security",
