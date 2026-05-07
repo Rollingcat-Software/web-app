@@ -242,7 +242,7 @@ export default defineConfig(({ mode }) => ({
         globals: true,
         environment: 'jsdom',
         setupFiles: './src/test/setup.ts',
-        exclude: ['e2e/**', 'node_modules/**', 'src/test/e2e/**', '.claude/**', 'archive/**'],
+        exclude: ['e2e/**', 'node_modules/**', '.claude/**', 'archive/**'],
         env: {
             // Provide a stub for the boot-time guard in src/config/env.ts so tests
             // can import modules that transitively read import.meta.env.VITE_API_BASE_URL
