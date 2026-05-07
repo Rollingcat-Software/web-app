@@ -1521,6 +1521,15 @@
     "invalidRedirect": "Invalid redirect destination. For your security this sign-in cannot continue.",
     "exchangeFailed": "We couldn't finalize your sign-in. Please try again from the original site.",
     "tenantMismatch": "This account is not a {{tenant}} member. Please sign in with a {{tenant}} email or use the original site to register.",
+    "errors": {
+      "mfaSessionExpired": "Your verification session timed out. Please start over.",
+      "mfaNotCompleted": "Verification was not completed. Please finish all required steps.",
+      "mfaAlreadyConsumed": "This verification session has already been used. Please start a new sign-in.",
+      "unknownMfaSession": "Verification session not found. Please start over.",
+      "clientMismatch": "This session belongs to a different application. Please sign in from the original site.",
+      "pkceMissing": "Required security information is missing. Please start over from the application.",
+      "redirectMismatch": "The return address is not in this application's allowlist. Contact the integrator."
+    },
     "sessionLost": "Your sign-in session has expired. Please start over from the original site.",
     "returnToApp": "Return to the application",
     "loadError": {

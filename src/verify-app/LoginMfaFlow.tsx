@@ -426,17 +426,31 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                     }
                 }}
             >
+                {/* Top-of-flow progress indicator — shown on every MFA step, not just the last.
+                    Earlier behavior hid the counter until the backend reported `totalSteps > 1`
+                    on STEP_COMPLETED, which only happens AFTER the user finishes a step — so
+                    the counter only appeared on the last step (user-reported bug:
+                    "Adım N/3 only renders on step 3 of 3"). We now show a counter as soon as
+                    the user is on the MFA leg of the flow, inferring a safe total when the
+                    backend hasn't reported one yet. */}
                 <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
-                    {/* Top-of-flow progress indicator — shown on every step, not just NFC. */}
                     {(() => {
-                        // Hide the counter until the backend returns an authoritative
-                        // totalSteps (StepProgress renders null when total <= 1). This
-                        // avoids flashing a guessed "1/2" that later jumps to "N/M".
-                        if (phase === 'password' || totalSteps <= 1) {
+                        if (phase === 'password') {
                             return <StepProgress current={1} total={0} />
                         }
-                        const displayTotal = Math.max(totalSteps, currentStep)
-                        return <StepProgress current={currentStep} total={displayTotal} />
+                        // Authoritative-total takes precedence; otherwise infer at least
+                        // 2 (PASSWORD + 1 MFA step). `currentStep` is clamped inside
+                        // StepProgress so a stale-low `currentStep` cannot exceed total.
+                        const displayTotal = Math.max(totalSteps, 2, currentStep)
+                        // Display "step 2" minimum once we leave the password phase, so
+                        // the user sees their progression past PASSWORD (step 1) into MFA.
+                        const displayCurrent = Math.max(currentStep, 2)
+                        return (
+                            <StepProgress
+                                current={Math.min(displayCurrent, displayTotal)}
+                                total={displayTotal}
+                            />
+                        )
                     })()}
 
                     {/* Header */}
