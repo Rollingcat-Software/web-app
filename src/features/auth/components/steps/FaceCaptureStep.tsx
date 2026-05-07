@@ -371,7 +371,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                                 alignItems: 'center',
                                 justifyContent: 'center',
                                 flexDirection: 'column',
-                                color: 'rgba(0, 0, 0, 0.4)',
+                                color: 'rgba(255, 255, 255, 0.6)',
                             }}
                         >
                             <VideocamOff sx={{ fontSize: 48, mb: 1 }} />

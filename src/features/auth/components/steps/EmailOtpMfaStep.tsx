@@ -178,14 +178,18 @@ export default function EmailOtpMfaStep({
                                 fontSize: '1.5rem',
                                 fontWeight: 700,
                                 letterSpacing: '0.5em',
-                                color: '#1a1a2e',
                             },
                             inputMode: 'numeric',
                         }}
                         sx={{
                             '& .MuiOutlinedInput-root': {
                                 borderRadius: '12px',
-                                backgroundColor: '#f8fafc',
+                                backgroundColor: 'background.paper',
+                                '&:hover': { backgroundColor: 'action.hover' },
+                                '&.Mui-focused': { backgroundColor: 'background.paper' },
+                            },
+                            '& .MuiOutlinedInput-input': {
+                                color: 'text.primary',
                             },
                         }}
                     />
