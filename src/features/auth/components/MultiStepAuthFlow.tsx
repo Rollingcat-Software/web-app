@@ -504,6 +504,22 @@ export default function MultiStepAuthFlow({
                         </Button>
                     </Box>
 
+                    {/* Step counter — rendered above the stepper so it stays visible
+                        without scrolling on tall steps (NFC/face/SMS) on mobile. */}
+                    {!flowComplete && currentStep && (
+                        <Typography
+                            variant="caption"
+                            color="text.secondary"
+                            sx={{
+                                display: 'block',
+                                textAlign: 'center',
+                                mb: 1,
+                            }}
+                        >
+                            {t('widget.stepOfTotal', { current: activeStepIndex + 1, total: steps.length })}
+                        </Typography>
+                    )}
+
                     {/* Step Progress Stepper */}
                     <StepProgress steps={progressSteps} activeStep={activeStepIndex} />
 
@@ -549,20 +565,6 @@ export default function MultiStepAuthFlow({
                         </motion.div>
                     )}
 
-                    {/* Step counter */}
-                    {!flowComplete && currentStep && (
-                        <Typography
-                            variant="caption"
-                            color="text.secondary"
-                            sx={{
-                                display: 'block',
-                                textAlign: 'center',
-                                mt: 3,
-                            }}
-                        >
-                            {t('widget.stepOfTotal', { current: activeStepIndex + 1, total: steps.length })}
-                        </Typography>
-                    )}
                 </CardContent>
             </Card>
         </motion.div>

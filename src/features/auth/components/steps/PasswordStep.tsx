@@ -92,9 +92,9 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
                                         borderRadius: '12px',
-                                        backgroundColor: '#f8fafc',
-                                        '&:hover': { backgroundColor: '#f1f5f9' },
-                                        '&.Mui-focused': { backgroundColor: '#fff' },
+                                        backgroundColor: 'background.paper',
+                                        '&:hover': { backgroundColor: 'action.hover' },
+                                        '&.Mui-focused': { backgroundColor: 'background.paper' },
                                     },
                                 }}
                             />
@@ -143,9 +143,9 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
                                 sx={{
                                     '& .MuiOutlinedInput-root': {
                                         borderRadius: '12px',
-                                        backgroundColor: '#f8fafc',
-                                        '&:hover': { backgroundColor: '#f1f5f9' },
-                                        '&.Mui-focused': { backgroundColor: '#fff' },
+                                        backgroundColor: 'background.paper',
+                                        '&:hover': { backgroundColor: 'action.hover' },
+                                        '&.Mui-focused': { backgroundColor: 'background.paper' },
                                     },
                                 }}
                             />

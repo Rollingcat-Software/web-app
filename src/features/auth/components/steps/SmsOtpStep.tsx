@@ -120,9 +120,9 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                             sx={{
                                 '& .MuiOutlinedInput-root': {
                                     borderRadius: '12px',
-                                    backgroundColor: 'background.default',
-                                    '&:hover': { backgroundColor: 'background.default' },
-                                    '&.Mui-focused': { backgroundColor: 'background.default' },
+                                    backgroundColor: 'background.paper',
+                                    '&:hover': { backgroundColor: 'background.paper' },
+                                    '&.Mui-focused': { backgroundColor: 'background.paper' },
                                 },
                                 '& .MuiOutlinedInput-input': {
                                     color: 'text.primary',
@@ -185,6 +185,7 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                                     borderColor: 'primary.main',
                                     color: 'primary.main',
                                     fontWeight: 500,
+                                    backgroundColor: 'transparent',
                                     '&:hover': {
                                         borderColor: 'primary.dark',
                                         backgroundColor: 'action.hover',
@@ -192,6 +193,7 @@ export default function SmsOtpStep({ onSubmit, onSendOtp, loading, error }: SmsO
                                     '&.Mui-disabled': {
                                         borderColor: 'action.disabled',
                                         color: 'text.disabled',
+                                        backgroundColor: 'transparent',
                                     },
                                 }}
                             >
