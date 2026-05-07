@@ -192,6 +192,104 @@ describe('formatApiError — status fallbacks', () => {
     })
 })
 
+describe('formatApiError — OAuth2 RFC-6749 §5.2 envelope', () => {
+    it('returns errors.oauth.invalidGrant for OAuth2 invalid_grant', () => {
+        const err = axiosError({
+            status: 400,
+            url: '/oauth2/token',
+            body: { error: 'invalid_grant', error_description: 'Authorization code expired' },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('errors.oauth.invalidGrant')
+    })
+
+    it('returns errors.oauth.unauthorizedClient for unauthorized_client', () => {
+        const err = axiosError({
+            status: 401,
+            url: '/oauth2/token',
+            body: { error: 'unauthorized_client' },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('errors.oauth.unauthorizedClient')
+    })
+
+    it('returns errors.oauth.invalidRequest for invalid_request (OAuth2 lowercase)', () => {
+        const err = axiosError({
+            status: 400,
+            url: '/oauth2/authorize',
+            body: { error: 'invalid_request', error_description: 'Missing redirect_uri' },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('errors.oauth.invalidRequest')
+    })
+
+    it('SCREAMING_SNAKE error code is treated as Spring envelope, not OAuth2', () => {
+        // INVALID_CREDENTIALS in `error` field must NOT be misclassified as
+        // an OAuth2 code despite living in the same `error` slot.
+        const err = axiosError({
+            status: 401,
+            url: '/auth/login',
+            body: { error: 'INVALID_CREDENTIALS' },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('errors.invalidCredentials')
+    })
+
+    it('falls through to safe error_description for unmapped OAuth2 code', () => {
+        const err = axiosError({
+            status: 400,
+            url: '/oauth2/token',
+            body: {
+                error: 'unsupported_response_type',
+                error_description: 'Çıkış tipi desteklenmiyor',
+            },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('Çıkış tipi desteklenmiyor')
+    })
+})
+
+describe('formatApiError — MFA-step inline FAILED envelope', () => {
+    it('returns safe backend message when status=FAILED carries one', () => {
+        const err = axiosError({
+            status: 200,
+            url: '/auth/mfa/step',
+            body: { status: 'FAILED', message: 'Geçersiz doğrulama kodu' },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('Geçersiz doğrulama kodu')
+    })
+
+    it('falls back to errors.mfaStepFailed when message is missing', () => {
+        const err = axiosError({
+            status: 200,
+            url: '/auth/mfa/step',
+            body: { status: 'FAILED' },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('errors.mfaStepFailed')
+    })
+
+    it('falls back to errors.mfaStepFailed when message is a leaky stacktrace', () => {
+        const err = axiosError({
+            status: 200,
+            url: '/auth/mfa/step',
+            body: {
+                status: 'FAILED',
+                message: 'java.lang.RuntimeException: TOTP service unavailable',
+            },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('errors.mfaStepFailed')
+    })
+
+    it('errorCode wins over status=FAILED when both are present', () => {
+        // Backend can in principle return both; the stable code should win.
+        const err = axiosError({
+            status: 200,
+            url: '/auth/mfa/step',
+            body: {
+                status: 'FAILED',
+                errorCode: 'MFA_REQUIRED',
+                message: 'whatever',
+            },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('errors.mfaRequired')
+    })
+})
+
 describe('formatApiError — non-axios shapes', () => {
     it('returns errors.networkError for a TypeError', () => {
         expect(formatApiError(new TypeError('Failed to fetch'), tIdentity)).toBe('errors.networkError')

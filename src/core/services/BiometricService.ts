@@ -90,32 +90,34 @@ export class BiometricService {
      * for quality-weighted template fusion (30-40% better accuracy).
      *
      * @param imageBase64      Single or multiple base64 JPEG data-URLs (224x224 client crop).
-     * @param tenantId         Optional tenant scope (currently unused by the proxy — backend
-     *                         derives tenant from the authenticated user; recorded as a
-     *                         follow-up if explicit override is ever needed).
-     * @param clientEmbeddings Optional per-image 512-dim landmark-geometry embeddings.
-     *                         Currently dropped at the proxy boundary (D2 telemetry will
-     *                         need a backend pass-through enhancement to land server-side).
+     * @param tenantId         Optional tenant scope (defense-in-depth — backend already
+     *                         derives tenant from the authenticated principal, but for
+     *                         admins linked to multiple tenants explicitly forwarding
+     *                         `tenant_id` removes ambiguity at the biometric processor).
+     * @param clientEmbeddings Optional per-image 512-dim landmark-geometry embeddings,
+     *                         JSON-serialized and forwarded as `client_embeddings` for
+     *                         D2 server-side telemetry.
      */
     async enrollFace(
         userId: string,
         imageBase64: string | string[],
-        // tenantId/clientEmbeddings retained on the API for caller compat;
-        // backend proxy currently does not forward them (see follow-up note).
-        _tenantId?: string,
-        _clientEmbeddings?: (number[] | null)[],
+        tenantId?: string,
+        clientEmbeddings?: (number[] | null)[],
     ): Promise<EnrollmentResult> {
         const images = Array.isArray(imageBase64) ? imageBase64 : [imageBase64]
 
         try {
             if (images.length >= 2) {
-                return await this.enrollFaceMulti(userId, images)
+                return await this.enrollFaceMulti(userId, images, tenantId, clientEmbeddings)
             }
 
             const blob = this.base64ToBlob(images[0])
             const formData = new FormData()
             // identity-core-api `enrollFace` expects field name `image`.
             formData.append('image', blob, 'face.jpg')
+            // Defense-in-depth: forward tenant + client embeddings to the proxy
+            // (BiometricServiceAdapter#addOptionalTenantAndEmbeddingParts).
+            this.appendTenantAndEmbeddings(formData, tenantId, clientEmbeddings)
 
             const response = await this.client.post(
                 `/biometric/enroll/${encodeURIComponent(userId)}`,
@@ -138,13 +140,19 @@ export class BiometricService {
     /**
      * Enroll using multiple images with quality-weighted fusion.
      */
-    private async enrollFaceMulti(userId: string, images: string[]): Promise<EnrollmentResult> {
+    private async enrollFaceMulti(
+        userId: string,
+        images: string[],
+        tenantId?: string,
+        clientEmbeddings?: (number[] | null)[],
+    ): Promise<EnrollmentResult> {
         const formData = new FormData()
         for (let i = 0; i < images.length; i++) {
             const blob = this.base64ToBlob(images[i])
             // identity-core-api `enrollFaceMulti` expects field name `files`.
             formData.append('files', blob, `face_${i}.jpg`)
         }
+        this.appendTenantAndEmbeddings(formData, tenantId, clientEmbeddings)
 
         const response = await this.client.post(
             `/biometric/enroll/multi/${encodeURIComponent(userId)}`,
@@ -195,14 +203,21 @@ export class BiometricService {
 
     /**
      * Verify a face against an enrolled user (1:1).
-     * `tenantId` retained for caller compat; backend proxy uses the authenticated
-     * user's tenant context.
+     * `tenantId` is forwarded to the proxy as `tenant_id` for defense-in-depth
+     * (backend principal-derived tenant is authoritative; explicit forwarding
+     * disambiguates admins linked to multiple tenants).
      */
-    async verifyFace(userId: string, imageBase64: string, _tenantId?: string): Promise<VerificationResult> {
+    async verifyFace(
+        userId: string,
+        imageBase64: string,
+        tenantId?: string,
+        clientEmbeddings?: (number[] | null)[],
+    ): Promise<VerificationResult> {
         const blob = this.base64ToBlob(imageBase64)
         const formData = new FormData()
         // identity-core-api `verifyFace` expects field name `image`.
         formData.append('image', blob, 'face.jpg')
+        this.appendTenantAndEmbeddings(formData, tenantId, clientEmbeddings)
 
         const response = await this.client.post(
             `/biometric/verify/${encodeURIComponent(userId)}`,
@@ -226,11 +241,15 @@ export class BiometricService {
      * Requires an authenticated session — backend mirror endpoint is gated on
      * `isAuthenticated()`. Pre-auth callers will receive 401.
      */
-    async searchFace(imageBase64: string, _tenantId?: string, _maxResults = 5): Promise<SearchResult> {
+    async searchFace(imageBase64: string, tenantId?: string, maxResults = 5): Promise<SearchResult> {
         const blob = this.base64ToBlob(imageBase64)
         const formData = new FormData()
         // identity-core-api `searchFace` expects field name `file`.
         formData.append('file', blob, 'face.jpg')
+        this.appendTenantAndEmbeddings(formData, tenantId)
+        if (Number.isFinite(maxResults) && maxResults > 0) {
+            formData.append('max_results', String(maxResults))
+        }
 
         const response = await this.client.post(
             '/biometric/search',
@@ -272,6 +291,31 @@ export class BiometricService {
             return true
         } catch {
             return false
+        }
+    }
+
+    /**
+     * Append the optional `tenant_id` + `client_embeddings` parts to a multipart
+     * request. Mirrors the field names that
+     * `BiometricServiceAdapter#addOptionalTenantAndEmbeddingParts` expects on the
+     * Java proxy (snake_case) so the proxy can forward them unchanged to the
+     * biometric processor.
+     */
+    private appendTenantAndEmbeddings(
+        formData: FormData,
+        tenantId?: string,
+        clientEmbeddings?: (number[] | null)[],
+    ): void {
+        if (tenantId && tenantId.trim().length > 0) {
+            formData.append('tenant_id', tenantId)
+        }
+        if (clientEmbeddings && clientEmbeddings.length > 0) {
+            try {
+                formData.append('client_embeddings', JSON.stringify(clientEmbeddings))
+            } catch {
+                // JSON.stringify can throw on circular refs — drop quietly,
+                // server-side logging-only telemetry is not auth-critical.
+            }
         }
     }
 
