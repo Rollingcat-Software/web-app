@@ -355,13 +355,36 @@ export default function HostedLoginApp() {
                 target.searchParams.set('code', code)
                 if (config.state) target.searchParams.set('state', config.state)
                 window.location.replace(target.toString())
-            } catch {
+            } catch (err) {
                 setRedirecting(false)
-                setFinalError(t('hosted.exchangeFailed'))
+                // Surface a specific message when the backend rejects the
+                // exchange because the authenticated user belongs to a
+                // different tenant than the OAuth client. The generic
+                // "try again from the original site" copy is misleading
+                // here — the user should switch accounts, not retry.
+                const response = (err as {
+                    response?: { status?: number; data?: { error?: string; error_description?: string } }
+                })?.response
+                const code = response?.data?.error
+                const detail = response?.data?.error_description ?? ''
+                if (
+                    response?.status === 400 &&
+                    code === 'invalid_request' &&
+                    /tenant/i.test(detail)
+                ) {
+                    const tenantLabel =
+                        clientMeta?.tenant_name ??
+                        clientMeta?.client_name ??
+                        config.clientId
+                    setFinalError(t('hosted.tenantMismatch', { tenant: tenantLabel }))
+                } else {
+                    setFinalError(t('hosted.exchangeFailed'))
+                }
             }
         },
         [
             container,
+            clientMeta,
             config.clientId,
             config.redirectUri,
             config.scope,

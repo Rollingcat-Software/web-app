@@ -1518,6 +1518,7 @@
     "invalidClient": "Bilinmeyen uygulama. Bu giriş bağlantısı tamamlanamıyor.",
     "invalidRedirect": "Geçersiz yönlendirme hedefi. Güvenliğiniz için bu giriş sürdürülemiyor.",
     "exchangeFailed": "Girişinizi tamamlayamadık. Lütfen orijinal siteden yeniden deneyin.",
+    "tenantMismatch": "Bu hesap {{tenant}} üyesi değil. Lütfen {{tenant}} kurumuna ait e-posta ile giriş yapın veya ana sayfadan yeniden deneyin.",
     "sessionLost": "Giriş oturumunuz sona erdi. Lütfen baştan başlayın.",
     "returnToApp": "Uygulamaya dön",
     "loadError": {

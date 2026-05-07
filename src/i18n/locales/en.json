@@ -1518,6 +1518,7 @@
     "invalidClient": "Unknown application. This sign-in link cannot be completed.",
     "invalidRedirect": "Invalid redirect destination. For your security this sign-in cannot continue.",
     "exchangeFailed": "We couldn't finalize your sign-in. Please try again from the original site.",
+    "tenantMismatch": "This account is not a {{tenant}} member. Please sign in with a {{tenant}} email or use the original site to register.",
     "sessionLost": "Your sign-in session has expired. Please start over from the original site.",
     "returnToApp": "Return to the application",
     "loadError": {
