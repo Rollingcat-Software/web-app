@@ -1349,7 +1349,9 @@
       "lastAttemptAlt": "Son deneme — fotoğrafı yeniden çekip tekrar deneyin",
       "retryTipLighting": "Yüzünüz eşit aydınlansın diye bir pencereye veya lambaya dönün",
       "retryTipFraming": "Kamerayı göz hizasında tutun ve yüzünüzü ortalayın",
-      "retryTipGlasses": "Mümkünse gözlük veya yüz örtüsünü çıkarın"
+      "retryTipGlasses": "Mümkünse gözlük veya yüz örtüsünü çıkarın",
+      "modelLoading": "Yüz algılama hazırlanıyor… ilk kullanımda biraz zaman alabilir.",
+      "modelLoadFailed": "Yüz algılama başlatılamadı. Bağlantınızı kontrol edin veya farklı bir doğrulama yöntemi deneyin."
     },
     "voice": {
       "title": "Ses Doğrulama",
