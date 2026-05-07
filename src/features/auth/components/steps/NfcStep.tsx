@@ -40,6 +40,18 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
         }
     }, [])
 
+    // Clear the local "scan succeeded" state as soon as the parent reports a
+    // verification failure. Without this, the user sees a contradictory pair
+    // of Alerts: success ("NFC chip read") plus error ("verification failed")
+    // from the parent. The chip *was* technically read, but in the user's
+    // mental model "success" means the MFA step passed — so we suppress the
+    // success Alert when the parent's `error` prop is truthy.
+    useEffect(() => {
+        if (error && scanResult) {
+            setScanResult(null)
+        }
+    }, [error, scanResult])
+
     const isNfcSupported = typeof window !== 'undefined' && 'NDEFReader' in window
     const isFramed = typeof window !== 'undefined' && window.top !== window.self
 
@@ -183,7 +195,7 @@ export default function NfcStep({ onSubmit, loading, error, onBack }: NfcStepPro
                 </Box>
             }
         >
-            {scanResult && (
+            {scanResult && !error && (
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}

@@ -110,6 +110,107 @@ interface AuthorizeCompleteResponse {
     state?: string | null
 }
 
+/**
+ * Map a backend OAuth2 error response (typed `{ error, error_description }`)
+ * to a localized user-facing message. Falls back to `hosted.exchangeFailed`.
+ *
+ * Backend error shapes covered (`OAuth2Controller.java:215-249, 262, 364`):
+ *  - `unknown_mfa_session` / "MFA session not found"
+ *  - `mfa_session_expired` / "MFA session expired"
+ *  - `mfa_not_completed` / "MFA flow not completed"
+ *  - `mfa_already_consumed` / "MFA already consumed"
+ *  - `client_id_mismatch` / "client_id does not match MFA session"
+ *  - `pkce_missing` / "code_verifier missing"
+ *  - `redirect_uri_mismatch` / "redirect_uri not in client allowlist"
+ *  - `invalid_request` + `tenant`-substring  → tenant mismatch (legacy mapping)
+ */
+function mapBackendOAuthError(
+    err: unknown,
+    t: (key: string, options?: Record<string, unknown>) => string,
+    tenantLabel: string,
+): { message: string; oauthErrorCode: string | null; isStructuredOAuth2Error: boolean } {
+    const response = (err as {
+        response?: { status?: number; data?: { error?: string; error_description?: string } }
+    })?.response
+
+    const code = response?.data?.error ?? null
+    const detail = response?.data?.error_description ?? ''
+
+    // No structured OAuth2 error => network/other error. Caller stays on the
+    // hosted page and DOES NOT redirect with `?error=`.
+    if (!code) {
+        return {
+            message: t('hosted.exchangeFailed'),
+            oauthErrorCode: null,
+            isStructuredOAuth2Error: false,
+        }
+    }
+
+    // 1. Tenant-mismatch (legacy mapping — `invalid_request` + tenant-in-detail).
+    if (response?.status === 400 && code === 'invalid_request' && /tenant/i.test(detail)) {
+        return {
+            message: t('hosted.tenantMismatch', { tenant: tenantLabel }),
+            oauthErrorCode: code,
+            isStructuredOAuth2Error: true,
+        }
+    }
+
+    // 2. Discriminate on the explicit `error` code from the backend.
+    switch (code) {
+        case 'unknown_mfa_session':
+            return {
+                message: t('hosted.errors.unknownMfaSession'),
+                oauthErrorCode: code,
+                isStructuredOAuth2Error: true,
+            }
+        case 'mfa_session_expired':
+            return {
+                message: t('hosted.errors.mfaSessionExpired'),
+                oauthErrorCode: code,
+                isStructuredOAuth2Error: true,
+            }
+        case 'mfa_not_completed':
+            return {
+                message: t('hosted.errors.mfaNotCompleted'),
+                oauthErrorCode: code,
+                isStructuredOAuth2Error: true,
+            }
+        case 'mfa_already_consumed':
+            return {
+                message: t('hosted.errors.mfaAlreadyConsumed'),
+                oauthErrorCode: code,
+                isStructuredOAuth2Error: true,
+            }
+        case 'client_id_mismatch':
+            return {
+                message: t('hosted.errors.clientMismatch'),
+                oauthErrorCode: code,
+                isStructuredOAuth2Error: true,
+            }
+        case 'pkce_missing':
+            return {
+                message: t('hosted.errors.pkceMissing'),
+                oauthErrorCode: code,
+                isStructuredOAuth2Error: true,
+            }
+        case 'redirect_uri_mismatch':
+            return {
+                message: t('hosted.errors.redirectMismatch'),
+                oauthErrorCode: code,
+                isStructuredOAuth2Error: true,
+            }
+        default:
+            // Backend returned a structured error we haven't mapped yet —
+            // surface a generic message but still flag it as structured so
+            // the OAuth2 redirect-back path can echo `state` per RFC 6749.
+            return {
+                message: t('hosted.exchangeFailed'),
+                oauthErrorCode: code,
+                isStructuredOAuth2Error: true,
+            }
+    }
+}
+
 // ─── Component ───────────────────────────────────────────────────
 
 export default function HostedLoginApp() {
@@ -357,28 +458,52 @@ export default function HostedLoginApp() {
                 window.location.replace(target.toString())
             } catch (err) {
                 setRedirecting(false)
-                // Surface a specific message when the backend rejects the
-                // exchange because the authenticated user belongs to a
-                // different tenant than the OAuth client. The generic
-                // "try again from the original site" copy is misleading
-                // here — the user should switch accounts, not retry.
-                const response = (err as {
-                    response?: { status?: number; data?: { error?: string; error_description?: string } }
-                })?.response
-                const code = response?.data?.error
-                const detail = response?.data?.error_description ?? ''
+                const tenantLabel =
+                    clientMeta?.tenant_name ??
+                    clientMeta?.client_name ??
+                    config.clientId
+                const mapped = mapBackendOAuthError(err, t, tenantLabel)
+                setFinalError(mapped.message)
+
+                // RFC 6749 §4.1.2.1 — when the authorization server cannot
+                // complete the request, it redirects the user-agent back to
+                // `redirect_uri` with `error`, `error_description`, and the
+                // original `state`. This only fires when:
+                //   1. The backend returned a structured OAuth2 error
+                //      (network/validation errors keep the user on the hosted
+                //      page so they can see the friendly inline message), AND
+                //   2. We have a registered+allowlisted `redirect_uri` (the
+                //      backend already validated it via the meta-fetch and
+                //      the scheme allowlist), AND
+                //   3. `state` is present (no point redirecting if the
+                //      relying party can't correlate the response).
                 if (
-                    response?.status === 400 &&
-                    code === 'invalid_request' &&
-                    /tenant/i.test(detail)
+                    mapped.isStructuredOAuth2Error &&
+                    mapped.oauthErrorCode &&
+                    config.redirectUri &&
+                    config.state
                 ) {
-                    const tenantLabel =
-                        clientMeta?.tenant_name ??
-                        clientMeta?.client_name ??
-                        config.clientId
-                    setFinalError(t('hosted.tenantMismatch', { tenant: tenantLabel }))
-                } else {
-                    setFinalError(t('hosted.exchangeFailed'))
+                    let safeRedirect: URL | null = null
+                    try {
+                        assertSafeRedirectScheme(config.redirectUri)
+                        safeRedirect = new URL(config.redirectUri)
+                    } catch {
+                        safeRedirect = null
+                    }
+                    if (safeRedirect) {
+                        safeRedirect.searchParams.set('error', mapped.oauthErrorCode)
+                        safeRedirect.searchParams.set(
+                            'error_description',
+                            mapped.message,
+                        )
+                        safeRedirect.searchParams.set('state', config.state)
+                        // Display the localized error briefly so the user
+                        // understands what happened before the relying party
+                        // re-renders its own error UI.
+                        window.setTimeout(() => {
+                            window.location.replace(safeRedirect!.toString())
+                        }, 4000)
+                    }
                 }
             }
         },

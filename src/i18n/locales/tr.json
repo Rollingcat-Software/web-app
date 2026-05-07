@@ -1521,6 +1521,15 @@
     "invalidRedirect": "Geçersiz yönlendirme hedefi. Güvenliğiniz için bu giriş sürdürülemiyor.",
     "exchangeFailed": "Girişinizi tamamlayamadık. Lütfen orijinal siteden yeniden deneyin.",
     "tenantMismatch": "Bu hesap {{tenant}} üyesi değil. Lütfen {{tenant}} kurumuna ait e-posta ile giriş yapın veya ana sayfadan yeniden deneyin.",
+    "errors": {
+      "mfaSessionExpired": "Doğrulama oturumunuz zaman aşımına uğradı. Lütfen tekrar başlayın.",
+      "mfaNotCompleted": "Doğrulama tamamlanmadı. Eksik adımları tamamlayın.",
+      "mfaAlreadyConsumed": "Bu doğrulama oturumu zaten kullanıldı.",
+      "unknownMfaSession": "Doğrulama oturumu bulunamadı. Lütfen tekrar başlayın.",
+      "clientMismatch": "Bu oturum farklı bir uygulamaya ait.",
+      "pkceMissing": "Güvenlik bilgisi eksik. Lütfen baştan deneyin.",
+      "redirectMismatch": "Geri yönlendirme adresi izin listesinde değil."
+    },
     "sessionLost": "Giriş oturumunuz sona erdi. Lütfen baştan başlayın.",
     "returnToApp": "Uygulamaya dön",
     "loadError": {
