@@ -52,7 +52,16 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         boundingBox,
         cropFace,
         backend,
+        initialized,
+        initFailed,
     } = useFaceDetection(videoRef, cameraActive && !capturedImage, recordOperation)
+
+    // True while the camera is live but the face-detection model (BlazeFace /
+    // MediaPipe FaceLandmarker / FaceDetector) is still loading from the CDN.
+    // Used to suppress quality chips that would otherwise display values
+    // computed from the raw frame before any face localization is available,
+    // and to disable the capture button during the load window.
+    const modelLoading = cameraActive && !initialized && !initFailed
 
     const { quality, updateQuality, resetQuality, getScoreColor, getQualityLabel } = useQualityAssessment()
 
@@ -61,9 +70,12 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const boundingBoxRef = useRef(boundingBox)
     boundingBoxRef.current = boundingBox
 
-    // Run quality assessment in animation loop
+    // Run quality assessment in animation loop. Gated on `initialized` so we
+    // don't burn CPU computing blur/light/size on raw frames before the
+    // detector model finishes loading (those scores would also be misleading
+    // to the user since no face localization is available yet).
     useEffect(() => {
-        if (!cameraActive || capturedImage) return
+        if (!cameraActive || capturedImage || !initialized) return
         let animFrame = 0
         function loop() {
             recordFrame()
@@ -79,7 +91,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             cancelAnimationFrame(animFrame)
             resetQuality()
         }
-    }, [cameraActive, capturedImage, updateQuality, resetQuality, recordFrame, recordOperation])
+    }, [cameraActive, capturedImage, initialized, updateQuality, resetQuality, recordFrame, recordOperation])
 
     const startCamera = useCallback(async () => {
         try {
@@ -392,8 +404,52 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                 </motion.div>
             )}
 
-            {/* Quality assessment overlay */}
-            {cameraActive && !capturedImage && quality.overall > 0 && (
+            {/* Model loading / load-failed status. Shown while the face
+                detection model (BlazeFace / MediaPipe) is still being
+                fetched from the CDN — without this, the quality chips
+                below would display values that don't reflect any actual
+                face localization. */}
+            {cameraActive && !capturedImage && (modelLoading || initFailed) && (
+                <Box
+                    sx={{
+                        display: 'flex',
+                        justifyContent: 'center',
+                        mb: 1,
+                    }}
+                >
+                    {modelLoading && (
+                        <Box
+                            sx={{
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: 1,
+                                color: 'text.secondary',
+                            }}
+                            role="status"
+                            aria-live="polite"
+                        >
+                            <CircularProgress size={16} />
+                            <Typography variant="caption">
+                                {t('mfa.face.modelLoading')}
+                            </Typography>
+                        </Box>
+                    )}
+                    {initFailed && (
+                        <Alert
+                            severity="warning"
+                            sx={{ borderRadius: '12px', width: '100%' }}
+                        >
+                            {t('mfa.face.modelLoadFailed')}
+                        </Alert>
+                    )}
+                </Box>
+            )}
+
+            {/* Quality assessment overlay — only render once the detection
+                model has loaded and produced a real backend, otherwise the
+                chips would show values computed on raw frames before any
+                face has been localized. */}
+            {cameraActive && !capturedImage && initialized && backend !== 'none' && quality.overall > 0 && (
                 <motion.div
                     initial={{ opacity: 0, y: 5 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -442,19 +498,19 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                                 sx={{ fontSize: '0.7rem', height: 24 }}
                             />
                         )}
-                        {backend !== 'none' && (
-                            <Chip
-                                label={
-                                    backend === 'blazeface'
-                                        ? t('faceCapture.backend.blazeface')
-                                        : t('faceCapture.backend.mediapipe')
-                                }
-                                size="small"
-                                color={backend === 'blazeface' ? 'success' : 'info'}
-                                variant="outlined"
-                                sx={{ fontSize: '0.65rem', height: 24 }}
-                            />
-                        )}
+                        {/* backend !== 'none' is already guarded by the outer
+                            block — TS narrows it away here. */}
+                        <Chip
+                            label={
+                                backend === 'blazeface'
+                                    ? t('faceCapture.backend.blazeface')
+                                    : t('faceCapture.backend.mediapipe')
+                            }
+                            size="small"
+                            color={backend === 'blazeface' ? 'success' : 'info'}
+                            variant="outlined"
+                            sx={{ fontSize: '0.65rem', height: 24 }}
+                        />
                     </Box>
                 </motion.div>
             )}
@@ -492,7 +548,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                         variant="contained"
                         size="large"
                         onClick={captureImage}
-                        disabled={loading || !videoReady}
+                        disabled={loading || !videoReady || modelLoading}
                         startIcon={<CameraAlt />}
                         sx={{
                             py: 1.5,

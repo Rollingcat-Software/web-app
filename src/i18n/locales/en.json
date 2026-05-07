@@ -1349,7 +1349,9 @@
       "lastAttemptAlt": "Last attempt — retake the photo and try again",
       "retryTipLighting": "Face a window or lamp so your face is evenly lit",
       "retryTipFraming": "Hold the camera at eye level and keep your face centered",
-      "retryTipGlasses": "Remove glasses or face coverings if possible"
+      "retryTipGlasses": "Remove glasses or face coverings if possible",
+      "modelLoading": "Preparing face detection… this takes a moment on first use.",
+      "modelLoadFailed": "Face detection couldn't initialize. Check your connection or try a different verification method."
     },
     "voice": {
       "title": "Voice Verification",
