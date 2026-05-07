@@ -18,6 +18,10 @@ function isZodError(err: unknown): err is { name: string; issues: unknown[] } {
  *
  * Centralised here so route-aware branches and shape-driven branches stay in
  * sync. Keep keys present in BOTH `en.json` and `tr.json`.
+ *
+ * NOTE: `TENANT_MISMATCH` is handled inline in `formatApiError` (not here)
+ * because it requires interpolating the `requiredTenant` value carried in
+ * the response body alongside the errorCode.
  */
 function errorCodeToI18nKey(code: string | undefined): string | null {
     switch (code) {
@@ -51,7 +55,13 @@ export function formatApiError(err: unknown, t: TFunction): string {
     const axiosErr = err as {
         response?: {
             status?: number
-            data?: { message?: string; errorCode?: string; error?: string }
+            data?: {
+                message?: string
+                errorCode?: string
+                error?: string
+                /** T-TENANT-GATE 2026-05-07 — present on TENANT_MISMATCH 403 */
+                requiredTenant?: string
+            }
         }
         config?: { url?: string }
     }
@@ -60,10 +70,24 @@ export function formatApiError(err: unknown, t: TFunction): string {
         const status = axiosErr.response.status
         const data = axiosErr.response.data
         const url = axiosErr.config?.url ?? ''
+        const errCode = data?.errorCode ?? data?.error
+
+        // T-TENANT-GATE 2026-05-07: tenant-lock on hosted/widget login. The
+        // backend returns HTTP 403 with errorCode TENANT_MISMATCH and a
+        // `requiredTenant` field carrying the tenant display name. Render
+        // an inline localized error at the password step so the user
+        // understands they need to use a different account — instead of
+        // bouncing through MFA only to fail at /oauth2/authorize/complete.
+        if (errCode === 'TENANT_MISMATCH') {
+            const tenant = data?.requiredTenant?.trim()
+            return tenant
+                ? t('errors.TENANT_MISMATCH_INLINE', { tenant })
+                : t('errors.TENANT_MISMATCH_INLINE_NOTENANT')
+        }
 
         // 1. Stable backend errorCode wins. Spring's ErrorResponse puts the
         // code in `error`; some endpoints use `errorCode`. Prefer either.
-        const codeKey = errorCodeToI18nKey(data?.errorCode ?? data?.error)
+        const codeKey = errorCodeToI18nKey(errCode)
         if (codeKey) {
             return t(codeKey)
         }

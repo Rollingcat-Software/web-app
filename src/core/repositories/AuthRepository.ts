@@ -49,17 +49,27 @@ export class AuthRepository implements IAuthRepository {
     ) {}
 
     /**
-     * Login with credentials
+     * Login with credentials.
+     *
+     * When `credentials.clientId` is provided (hosted-login / widget flow),
+     * it is forwarded to the backend so the tenant-lock fires at the password
+     * step. Without this, a wrong-tenant user would pass the password step
+     * and only fail later at /oauth2/authorize/complete (the user-reported
+     * 2026-05-07 bug — see T-TENANT-GATE).
      */
     async login(credentials: LoginCredentials): Promise<AuthResponse> {
         try {
             this.logger.info('Attempting login', { email: credentials.email })
 
             // SECURITY: Properly typed API response
-            const response = await this.httpClient.post<AuthApiResponse>('/auth/login', {
+            const body: { email: string; password: string; clientId?: string } = {
                 email: credentials.email,
                 password: credentials.password,
-            })
+            }
+            if (credentials.clientId) {
+                body.clientId = credentials.clientId
+            }
+            const response = await this.httpClient.post<AuthApiResponse>('/auth/login', body)
 
             const data = response.data
 

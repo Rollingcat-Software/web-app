@@ -7,6 +7,15 @@ export interface LoginCredentials {
     email: string
     password: string
     mfaCode?: string
+    /**
+     * Optional OAuth2 client_id when login originates from a hosted-login or
+     * widget surface bound to a specific tenant. When present, the backend
+     * applies a tenant-lock: if the user's home tenant does not match the
+     * client's bound tenant, login is rejected at the password step with
+     * HTTP 403 + errorCode TENANT_MISMATCH (carrying `requiredTenant`).
+     * See T-TENANT-GATE 2026-05-07.
+     */
+    clientId?: string
 }
 
 /**

@@ -48,7 +48,7 @@ interface LoginMfaFlowProps {
     onStepChange?: (stepIndex: number, methodType: string, totalSteps: number) => void
 }
 
-export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel, onStepChange }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -111,7 +111,17 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         setError(undefined)
 
         try {
-            const result = await authRepository.login({ email: data.email, password: data.password })
+            // T-TENANT-GATE 2026-05-07: forward clientId so the backend can
+            // reject wrong-tenant users at the password step (HTTP 403 +
+            // TENANT_MISMATCH). Without this, a gmail user submitting the
+            // Marmara hosted-login form passes password + MFA only to fail at
+            // /oauth2/authorize/complete with no enrollment in the foreign
+            // tenant — the bug user reported on demo.fivucsas.com.
+            const result = await authRepository.login({
+                email: data.email,
+                password: data.password,
+                clientId: clientId || undefined,
+            })
 
             if (result.twoFactorRequired) {
                 // MFA required
@@ -152,7 +162,7 @@ export default function LoginMfaFlow({ clientId: _clientId, onComplete, onCancel
         } finally {
             setLoading(false)
         }
-    }, [authRepository, onComplete, t])
+    }, [authRepository, clientId, onComplete, t])
 
     // ─── Method Selection ───────────────────────────────────────
 

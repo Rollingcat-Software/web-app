@@ -89,6 +89,62 @@ describe('formatApiError — distinct codes for adaptive MFA flow', () => {
     })
 })
 
+describe('formatApiError — tenant mismatch (T-TENANT-GATE 2026-05-07)', () => {
+    // Captures interpolation params so we can assert tenant is forwarded.
+    function makeT() {
+        const calls: Array<{ key: string; vars?: Record<string, unknown> }> = []
+        const t = ((key: string, vars?: Record<string, unknown>) => {
+            calls.push({ key, vars })
+            // Return the rendered key so existing assertions still work.
+            if (vars && typeof vars.tenant === 'string') {
+                return `${key}:${vars.tenant}`
+            }
+            return key
+        }) as unknown as TFunction
+        return { t, calls }
+    }
+
+    it('returns errors.TENANT_MISMATCH_INLINE with tenant interpolated for 403 + TENANT_MISMATCH', () => {
+        const { t, calls } = makeT()
+        const err = axiosError({
+            status: 403,
+            url: '/auth/login',
+            body: {
+                error: 'TENANT_MISMATCH',
+                errorCode: 'TENANT_MISMATCH',
+                message: 'Account does not belong to the requested tenant',
+                requiredTenant: 'Marmara University',
+            },
+        })
+        expect(formatApiError(err, t)).toBe('errors.TENANT_MISMATCH_INLINE:Marmara University')
+        expect(calls[0]).toEqual({
+            key: 'errors.TENANT_MISMATCH_INLINE',
+            vars: { tenant: 'Marmara University' },
+        })
+    })
+
+    it('falls back to TENANT_MISMATCH_INLINE_NOTENANT when requiredTenant is missing/blank', () => {
+        const { t } = makeT()
+        const err = axiosError({
+            status: 403,
+            url: '/auth/login',
+            body: { error: 'TENANT_MISMATCH', requiredTenant: '   ' },
+        })
+        expect(formatApiError(err, t)).toBe('errors.TENANT_MISMATCH_INLINE_NOTENANT')
+    })
+
+    it('TENANT_MISMATCH wins over plain 403 fallback', () => {
+        // Without the dedicated branch, a 403 would map to errors.forbidden.
+        const { t } = makeT()
+        const err = axiosError({
+            status: 403,
+            url: '/auth/login',
+            body: { errorCode: 'TENANT_MISMATCH', requiredTenant: 'Acme' },
+        })
+        expect(formatApiError(err, t)).toBe('errors.TENANT_MISMATCH_INLINE:Acme')
+    })
+})
+
 describe('formatApiError — status fallbacks', () => {
     it('returns errors.serverError for 500', () => {
         const err = axiosError({ status: 500, url: '/anything' })
