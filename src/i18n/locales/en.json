@@ -1572,7 +1572,9 @@
     "enrollmentSyncFailed": "Enrollment sync failed",
     "sessionExpired": "Session expired. Please login again.",
     "unexpectedRetry": "An unexpected error occurred. Please try again.",
-    "unexpected": "An unexpected error occurred."
+    "unexpected": "An unexpected error occurred.",
+    "TENANT_MISMATCH_INLINE": "This account is not a {{tenant}} member. Please use a {{tenant}} email.",
+    "TENANT_MISMATCH_INLINE_NOTENANT": "This account does not belong to the requested organization. Please use an account registered with this organization."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "That email or password didn't match. Please try again.",

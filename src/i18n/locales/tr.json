@@ -1572,7 +1572,9 @@
     "enrollmentSyncFailed": "Kayıt senkronizasyonu başarısız",
     "sessionExpired": "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.",
     "unexpectedRetry": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
-    "unexpected": "Beklenmeyen bir hata oluştu."
+    "unexpected": "Beklenmeyen bir hata oluştu.",
+    "TENANT_MISMATCH_INLINE": "Bu hesap {{tenant}} üyesi değil. Lütfen {{tenant}} kurumuna ait e-posta ile giriş yapın.",
+    "TENANT_MISMATCH_INLINE_NOTENANT": "Bu hesap istenen kuruma ait değil. Lütfen bu kuruma kayıtlı bir hesapla giriş yapın."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "E-posta veya parola eşleşmedi. Lütfen tekrar deneyin.",
