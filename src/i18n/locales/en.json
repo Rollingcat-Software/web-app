@@ -1583,7 +1583,19 @@
     "unexpectedRetry": "An unexpected error occurred. Please try again.",
     "unexpected": "An unexpected error occurred.",
     "TENANT_MISMATCH_INLINE": "This account is not a {{tenant}} member. Please use a {{tenant}} email.",
-    "TENANT_MISMATCH_INLINE_NOTENANT": "This account does not belong to the requested organization. Please use an account registered with this organization."
+    "TENANT_MISMATCH_INLINE_NOTENANT": "This account does not belong to the requested organization. Please use an account registered with this organization.",
+    "mfaStepFailed": "This verification step failed. Please try again or choose another method.",
+    "oauth": {
+      "invalidGrant": "Your sign-in is no longer valid. Please start the sign-in flow again.",
+      "invalidRequest": "The sign-in request was malformed. Please start the sign-in flow again.",
+      "invalidClient": "This application is not authorized to sign you in. Please contact support.",
+      "unauthorizedClient": "This application is not authorized to use this sign-in method. Please contact support.",
+      "unsupportedGrantType": "This sign-in method is not supported. Please contact support.",
+      "invalidScope": "The requested permissions are not allowed for this application.",
+      "accessDenied": "Access was denied. Please contact your administrator if you believe this is an error.",
+      "serverError": "The sign-in service ran into an error. Please try again in a moment.",
+      "temporarilyUnavailable": "The sign-in service is temporarily unavailable. Please try again in a moment."
+    }
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "That email or password didn't match. Please try again.",

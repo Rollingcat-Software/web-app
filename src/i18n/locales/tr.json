@@ -1583,7 +1583,19 @@
     "unexpectedRetry": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
     "unexpected": "Beklenmeyen bir hata oluştu.",
     "TENANT_MISMATCH_INLINE": "Bu hesap {{tenant}} üyesi değil. Lütfen {{tenant}} kurumuna ait e-posta ile giriş yapın.",
-    "TENANT_MISMATCH_INLINE_NOTENANT": "Bu hesap istenen kuruma ait değil. Lütfen bu kuruma kayıtlı bir hesapla giriş yapın."
+    "TENANT_MISMATCH_INLINE_NOTENANT": "Bu hesap istenen kuruma ait değil. Lütfen bu kuruma kayıtlı bir hesapla giriş yapın.",
+    "mfaStepFailed": "Bu doğrulama adımı başarısız oldu. Lütfen tekrar deneyin veya başka bir yöntem seçin.",
+    "oauth": {
+      "invalidGrant": "Oturum açma isteğiniz artık geçerli değil. Lütfen oturum açma akışını yeniden başlatın.",
+      "invalidRequest": "Oturum açma isteği hatalı biçimlendirildi. Lütfen oturum açma akışını yeniden başlatın.",
+      "invalidClient": "Bu uygulama sizi oturum açmak için yetkili değil. Lütfen destek ile iletişime geçin.",
+      "unauthorizedClient": "Bu uygulamanın bu oturum açma yöntemini kullanma yetkisi yok. Lütfen destek ile iletişime geçin.",
+      "unsupportedGrantType": "Bu oturum açma yöntemi desteklenmiyor. Lütfen destek ile iletişime geçin.",
+      "invalidScope": "İstenen izinler bu uygulama için geçerli değil.",
+      "accessDenied": "Erişim reddedildi. Bu durumun bir hata olduğunu düşünüyorsanız yöneticinizle iletişime geçin.",
+      "serverError": "Oturum açma hizmetinde bir hata oluştu. Lütfen birazdan tekrar deneyin.",
+      "temporarilyUnavailable": "Oturum açma hizmeti geçici olarak kullanılamıyor. Lütfen birazdan tekrar deneyin."
+    }
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "E-posta veya parola eşleşmedi. Lütfen tekrar deneyin.",
