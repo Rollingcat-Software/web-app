@@ -4,14 +4,27 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
 
 /**
- * Auth Session API Types
+ * Auth Session API Types — wire-aligned with backend
+ * `StartAuthSessionCommand` (record at
+ * `application/dto/command/StartAuthSessionCommand.java`):
+ *   record(tenantSlug, operationType, platform, deviceFingerprint,
+ *          email, ipAddress, userAgent)
+ *
+ * History (P1 audit 2026-05-07): the previous shape sent
+ * `{tenantId, userId, operationType, deviceFingerprint, ipAddress}` and
+ * would have produced a 400 from the backend's `@NotBlank tenantSlug`
+ * validator. There were no live callers, so the contract was repaired
+ * (rather than deleted) so the indirection layer in `AuthSessionService`
+ * stays correct for future wiring.
  */
 export interface StartSessionCommand {
-    tenantId: string
-    userId: string
+    tenantSlug: string
     operationType: string
+    email?: string
+    platform?: string
     deviceFingerprint?: string
     ipAddress?: string
+    userAgent?: string
 }
 
 export interface SessionStepResponse {
@@ -128,9 +141,9 @@ export class AuthSessionRepository {
     async startSession(command: StartSessionCommand): Promise<AuthSessionResponse> {
         try {
             this.logger.info('Starting auth session', {
-                tenantId: command.tenantId,
-                userId: command.userId,
+                tenantSlug: command.tenantSlug,
                 operationType: command.operationType,
+                hasEmail: !!command.email,
             })
 
             const response = await this.httpClient.post<AuthSessionResponse>(

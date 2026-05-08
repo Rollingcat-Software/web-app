@@ -138,10 +138,13 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
 
     return (
         <Dialog open={open} onClose={handleClose} maxWidth="sm" fullWidth>
-            <DialogTitle>Change Password</DialogTitle>
+            <DialogTitle>{t('settings.changePassword')}</DialogTitle>
             <DialogContent>
                 {error && (
-                    <Alert severity="error" sx={{ mb: 2 }}>
+                    <Alert
+                        severity="error"
+                        sx={{ mb: 2, whiteSpace: 'pre-line' }}
+                    >
                         {error}
                     </Alert>
                 )}
@@ -149,7 +152,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
                 <TextField
                     fullWidth
                     margin="normal"
-                    label="Current Password"
+                    label={t('settings.currentPassword')}
                     type={showPasswords.current ? 'text' : 'password'}
                     value={formData.currentPassword}
                     onChange={handleChange('currentPassword')}
@@ -172,7 +175,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
                 <TextField
                     fullWidth
                     margin="normal"
-                    label="New Password"
+                    label={t('settings.newPassword')}
                     type={showPasswords.new ? 'text' : 'password'}
                     value={formData.newPassword}
                     onChange={handleChange('newPassword')}
@@ -195,7 +198,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
                 {formData.newPassword && (
                     <Box sx={{ mt: 1, mb: 2 }}>
                         <Box display="flex" alignItems="center" gap={1}>
-                            <Typography variant="caption">Strength:</Typography>
+                            <Typography variant="caption">{t('settings.passwordStrength')}</Typography>
                             <Box flexGrow={1}>
                                 <LinearProgress
                                     variant="determinate"
@@ -225,7 +228,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
                 <TextField
                     fullWidth
                     margin="normal"
-                    label="Confirm New Password"
+                    label={t('settings.confirmPassword')}
                     type={showPasswords.confirm ? 'text' : 'password'}
                     value={formData.confirmPassword}
                     onChange={handleChange('confirmPassword')}
@@ -237,7 +240,7 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
                     helperText={
                         formData.confirmPassword !== '' &&
                         formData.newPassword !== formData.confirmPassword
-                            ? "Passwords don't match"
+                            ? t('settings.passwordsNoMatch')
                             : ''
                     }
                     InputProps={{
@@ -257,14 +260,14 @@ export function ChangePasswordDialog({ open, onClose }: ChangePasswordDialogProp
             </DialogContent>
             <DialogActions>
                 <Button onClick={handleClose} disabled={loading}>
-                    Cancel
+                    {t('common.cancel')}
                 </Button>
                 <Button
                     variant="contained"
                     onClick={handleSubmit}
                     disabled={isSubmitDisabled}
                 >
-                    {loading ? 'Changing...' : 'Change Password'}
+                    {loading ? t('settings.changingPassword') : t('settings.changePassword')}
                 </Button>
             </DialogActions>
         </Dialog>

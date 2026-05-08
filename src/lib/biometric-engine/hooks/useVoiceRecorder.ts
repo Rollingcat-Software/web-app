@@ -19,6 +19,18 @@ import { encodeToWav16kMono } from '@/features/auth/utils/audioToWav16k';
 const FFT_SIZE = 256;
 /** Waveform update interval (ms). */
 const WAVEFORM_INTERVAL_MS = 50;
+/**
+ * Hard preflight cap on uploaded voice clip duration, in seconds.
+ *
+ * Backend bio endpoint `/biometric/voice/*` accepts up to 10MB / ~5min PCM
+ * @16kHz; that is far more than the speaker-verification model needs and
+ * forms an unnecessary upload-size attack surface. 30s is the agreed P1 cap
+ * (audit 2026-05-07) — VoiceStep already auto-stops at 10s, so 30s is a
+ * defense-in-depth ceiling for any caller that uses this hook directly
+ * (e.g. VoicePuzzle / future tooling) and stays well above the longest
+ * passphrase a user is asked to speak.
+ */
+export const MAX_VOICE_CLIP_SECONDS = 30;
 
 export interface UseVoiceRecorderReturn {
   start: () => Promise<void>;
@@ -137,6 +149,20 @@ export function useVoiceRecorder(): UseVoiceRecorderReturn {
 
         // Build WebM blob
         const webmBlob = new Blob(chunksRef.current, { type: 'audio/webm' });
+
+        // Preflight duration cap — reject before anyone wires this blob
+        // into an upload. Uses the timer-tracked duration (already in
+        // seconds). This is belt-and-braces alongside any UI auto-stop.
+        const elapsed = Math.floor((performance.now() - startTimeRef.current) / 1000);
+        if (elapsed > MAX_VOICE_CLIP_SECONDS) {
+          setError(translate('voice.clipTooLong', { max: MAX_VOICE_CLIP_SECONDS }));
+          setBlob(null);
+          setWav16k(null);
+          stopInternal();
+          resolve();
+          return;
+        }
+
         setBlob(webmBlob);
 
         // Convert WebM → 16kHz mono PCM WAV so Silero VAD can gate the
