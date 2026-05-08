@@ -33,7 +33,7 @@
     "@tensorflow/tfjs-backend-webgl": "^4.22.0",
     "@tensorflow/tfjs-converter": "^4.22.0",
     "@tensorflow/tfjs-core": "^4.22.0",
-    "axios": "^1.15.0",
+    "axios": "^1.15.2",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.2",
     "date-fns": "^3.6.0",
