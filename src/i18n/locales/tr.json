@@ -221,6 +221,8 @@
     "confirmPassword": "Yeni Şifreyi Onayla",
     "passwordHelper": "En az 8 karakter, büyük harf, küçük harf, rakam, özel karakter",
     "passwordsNoMatch": "Şifreler eşleşmiyor",
+    "passwordStrength": "Güç:",
+    "changingPassword": "Değiştiriliyor...",
     "setupTotp": "Doğrulama Uygulaması Kur (TOTP)",
     "otpVerification": "OTP Doğrulama",
     "otpVerificationHelper": "E-posta veya SMS ile tek kullanımlık şifre gönder ve doğrula",
@@ -796,7 +798,13 @@
     "columnPlatform": "Platform",
     "columnFingerprint": "Parmak İzi",
     "columnLastUsed": "Son Kullanım",
-    "columnRegistered": "Kayıt Tarihi"
+    "columnRegistered": "Kayıt Tarihi",
+    "atCap": "En fazla {{max}} kayıtlı cihaz sınırına ulaştınız. Yeni bir cihaz kaydetmeden önce mevcut bir cihazı kaldırın.",
+    "atCapTitle": "Cihaz sınırına ulaşıldı",
+    "atCapManage": "Cihazları yönet"
+  },
+  "voice": {
+    "clipTooLong": "Ses kaydı çok uzun. İzin verilen en fazla süre {{max}} saniye — lütfen daha kısa bir örnek kaydedin."
   },
   "guests": {
     "title": "Misafir Yönetimi",
@@ -1585,6 +1593,21 @@
     "TENANT_MISMATCH_INLINE": "Bu hesap {{tenant}} üyesi değil. Lütfen {{tenant}} kurumuna ait e-posta ile giriş yapın.",
     "TENANT_MISMATCH_INLINE_NOTENANT": "Bu hesap istenen kuruma ait değil. Lütfen bu kuruma kayıtlı bir hesapla giriş yapın.",
     "mfaStepFailed": "Bu doğrulama adımı başarısız oldu. Lütfen tekrar deneyin veya başka bir yöntem seçin.",
+    "USER_DEVICE_LIMIT_REACHED": "En fazla {{max}} kayıtlı cihaz sınırına ulaştınız. Yeni bir cihaz kaydetmeden önce mevcut bir cihazı kaldırın.",
+    "PASSWORD_POLICY_VIOLATION": "Yeni parolanız parola politikasına uymuyor. Lütfen gereksinimleri inceleyin ve tekrar deneyin.",
+    "passwordPolicy": {
+      "tooShort": "En az {{min}} karakter uzunluğunda olmalıdır.",
+      "tooLong": "En fazla {{max}} karakter uzunluğunda olmalıdır.",
+      "missingUppercase": "En az bir büyük harf (A-Z) içermelidir.",
+      "missingLowercase": "En az bir küçük harf (a-z) içermelidir.",
+      "missingDigit": "En az bir rakam (0-9) içermelidir.",
+      "missingSpecial": "En az bir özel karakter içermelidir.",
+      "containsWhitespace": "Boşluk içermemelidir.",
+      "containsUserInfo": "Adınızı veya e-posta adresinizi içermemelidir.",
+      "previouslyUsed": "Son {{count}} parolanızdan biriyle aynı olmamalıdır.",
+      "commonPassword": "Bu parola çok yaygın — lütfen daha tahmin edilemez bir parola seçin.",
+      "unknownRule": "{{rule}}"
+    },
     "oauth": {
       "invalidGrant": "Oturum açma isteğiniz artık geçerli değil. Lütfen oturum açma akışını yeniden başlatın.",
       "invalidRequest": "Oturum açma isteği hatalı biçimlendirildi. Lütfen oturum açma akışını yeniden başlatın.",

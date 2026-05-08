@@ -34,6 +34,76 @@ function errorCodeToI18nKey(code: string | undefined): string | null {
 }
 
 /**
+ * Render a backend `PASSWORD_POLICY_VIOLATION` error envelope into a
+ * localized multi-line string, one line per failed rule.
+ *
+ * Backend (Team A, audit 2026-05-07) returns:
+ *   { errorCode: 'PASSWORD_POLICY_VIOLATION',
+ *     message: '...',
+ *     details: { rules: [{ code: 'TOO_SHORT', params: { min: 12 } }, ...] } }
+ *
+ * `code` is mapped to a key under `errors.passwordPolicy.*`. Unknown codes
+ * fall back to the rule's own message string when present, otherwise to
+ * `errors.passwordPolicy.unknownRule` with the raw code interpolated.
+ */
+interface PasswordPolicyRuleViolation {
+    code?: string
+    message?: string
+    params?: Record<string, unknown>
+}
+function passwordPolicyRuleToI18nKey(code: string | undefined): string | null {
+    switch (code) {
+        case 'TOO_SHORT':
+        case 'MIN_LENGTH':
+            return 'errors.passwordPolicy.tooShort'
+        case 'TOO_LONG':
+        case 'MAX_LENGTH':
+            return 'errors.passwordPolicy.tooLong'
+        case 'MISSING_UPPERCASE':
+        case 'NO_UPPERCASE':
+            return 'errors.passwordPolicy.missingUppercase'
+        case 'MISSING_LOWERCASE':
+        case 'NO_LOWERCASE':
+            return 'errors.passwordPolicy.missingLowercase'
+        case 'MISSING_DIGIT':
+        case 'NO_DIGIT':
+            return 'errors.passwordPolicy.missingDigit'
+        case 'MISSING_SPECIAL':
+        case 'NO_SPECIAL':
+            return 'errors.passwordPolicy.missingSpecial'
+        case 'CONTAINS_WHITESPACE':
+            return 'errors.passwordPolicy.containsWhitespace'
+        case 'CONTAINS_USER_INFO':
+            return 'errors.passwordPolicy.containsUserInfo'
+        case 'PREVIOUSLY_USED':
+        case 'PASSWORD_REUSED':
+            return 'errors.passwordPolicy.previouslyUsed'
+        case 'COMMON_PASSWORD':
+            return 'errors.passwordPolicy.commonPassword'
+        default:
+            return null
+    }
+}
+function formatPasswordPolicyViolation(
+    data: { details?: { rules?: PasswordPolicyRuleViolation[] } } | undefined,
+    t: TFunction
+): string {
+    const rules = data?.details?.rules ?? []
+    const lines: string[] = [t('errors.PASSWORD_POLICY_VIOLATION')]
+    for (const rule of rules) {
+        const key = passwordPolicyRuleToI18nKey(rule.code)
+        if (key) {
+            lines.push('• ' + t(key, (rule.params ?? {}) as Record<string, unknown>))
+        } else if (typeof rule.message === 'string' && rule.message.trim().length > 0) {
+            lines.push('• ' + rule.message)
+        } else if (rule.code) {
+            lines.push('• ' + t('errors.passwordPolicy.unknownRule', { rule: rule.code }))
+        }
+    }
+    return lines.join('\n')
+}
+
+/**
  * Map an OAuth2 RFC-6749 §5.2 error code (lowercase_snake) to an i18n key.
  * Codes are sourced from the OAuth2Controller error contract — keep in sync
  * when new codes are added on the backend.
@@ -145,6 +215,11 @@ export function formatApiError(err: unknown, t: TFunction): string {
                 status?: string
                 /** T-TENANT-GATE 2026-05-07 — present on TENANT_MISMATCH 403. */
                 requiredTenant?: string
+                /** Device-cap 409 (Team A, audit 2026-05-07) — `app.security.max-devices-per-user`. */
+                maxDevices?: number
+                max?: number
+                /** PASSWORD_POLICY_VIOLATION structured details (Team A, audit 2026-05-07). */
+                details?: { rules?: PasswordPolicyRuleViolation[] }
             }
         }
         config?: { url?: string }
@@ -177,6 +252,18 @@ export function formatApiError(err: unknown, t: TFunction): string {
                 return tenant
                     ? t('errors.TENANT_MISMATCH_INLINE', { tenant })
                     : t('errors.TENANT_MISMATCH_INLINE_NOTENANT')
+            }
+            // Device-cap 409 — Team A is shipping `app.security.max-devices-per-user`.
+            // Backend may surface the cap as `maxDevices` or `max`; tolerate
+            // either spelling. Until the backend lands, this branch is dead
+            // code at runtime but the wire is in place.
+            if (springCode === 'USER_DEVICE_LIMIT_REACHED' || springCode === 'DEVICE_LIMIT_REACHED') {
+                const max = data?.maxDevices ?? data?.max
+                return t('errors.USER_DEVICE_LIMIT_REACHED', { max: max ?? '' })
+            }
+            // Password-policy structured rendering — see `formatPasswordPolicyViolation`.
+            if (springCode === 'PASSWORD_POLICY_VIOLATION') {
+                return formatPasswordPolicyViolation(data, t)
             }
             const codeKey = errorCodeToI18nKey(springCode)
             if (codeKey) return t(codeKey)

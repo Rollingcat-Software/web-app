@@ -136,6 +136,27 @@ describe('BiometricService — multipart wire contract', () => {
             expect(fd.get('tenant_id')).toBe('tenant-x')
         })
 
+        it('returns null distance/threshold when backend omits them (not the legacy 1/0.4 sentinels)', async () => {
+            post.mockResolvedValue({
+                data: { verified: false, confidence: 0.32 },
+            })
+            const result = await service.verifyFace('user-1', 'data:image/jpeg;base64,Zm9v', 'tenant-x')
+
+            expect(result.verified).toBe(false)
+            expect(result.distance).toBeNull()
+            expect(result.threshold).toBeNull()
+        })
+
+        it('passes through distance/threshold when backend surfaces them', async () => {
+            post.mockResolvedValue({
+                data: { verified: true, confidence: 0.91, distance: 0.27, threshold: 0.42 },
+            })
+            const result = await service.verifyFace('user-1', 'data:image/jpeg;base64,Zm9v', 'tenant-x')
+
+            expect(result.distance).toBe(0.27)
+            expect(result.threshold).toBe(0.42)
+        })
+
         it('forwards client_embeddings on verify when provided', async () => {
             post.mockResolvedValue({
                 data: { verified: true, confidence: 0.9 },

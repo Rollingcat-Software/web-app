@@ -221,6 +221,8 @@
     "confirmPassword": "Confirm New Password",
     "passwordHelper": "Min 8 chars, uppercase, lowercase, number, special character",
     "passwordsNoMatch": "Passwords do not match",
+    "passwordStrength": "Strength:",
+    "changingPassword": "Changing...",
     "setupTotp": "Setup Authenticator App (TOTP)",
     "otpVerification": "OTP Verification",
     "otpVerificationHelper": "Send and verify one-time passwords via email or SMS",
@@ -796,7 +798,13 @@
     "columnPlatform": "Platform",
     "columnFingerprint": "Fingerprint",
     "columnLastUsed": "Last Used",
-    "columnRegistered": "Registered"
+    "columnRegistered": "Registered",
+    "atCap": "You've reached the maximum of {{max}} registered devices. Remove an existing device before registering a new one.",
+    "atCapTitle": "Device limit reached",
+    "atCapManage": "Manage devices"
+  },
+  "voice": {
+    "clipTooLong": "Voice clip is too long. Maximum allowed length is {{max}} seconds — please record a shorter sample."
   },
   "guests": {
     "title": "Guest Management",
@@ -1585,6 +1593,21 @@
     "TENANT_MISMATCH_INLINE": "This account is not a {{tenant}} member. Please use a {{tenant}} email.",
     "TENANT_MISMATCH_INLINE_NOTENANT": "This account does not belong to the requested organization. Please use an account registered with this organization.",
     "mfaStepFailed": "This verification step failed. Please try again or choose another method.",
+    "USER_DEVICE_LIMIT_REACHED": "You've reached the maximum of {{max}} registered devices. Remove an existing device before registering a new one.",
+    "PASSWORD_POLICY_VIOLATION": "Your new password doesn't meet our password policy. Please review the requirements and try again.",
+    "passwordPolicy": {
+      "tooShort": "Must be at least {{min}} characters long.",
+      "tooLong": "Must be at most {{max}} characters long.",
+      "missingUppercase": "Must contain at least one uppercase letter (A-Z).",
+      "missingLowercase": "Must contain at least one lowercase letter (a-z).",
+      "missingDigit": "Must contain at least one number (0-9).",
+      "missingSpecial": "Must contain at least one special character.",
+      "containsWhitespace": "Must not contain spaces.",
+      "containsUserInfo": "Must not contain your name or email.",
+      "previouslyUsed": "Must not match any of your last {{count}} passwords.",
+      "commonPassword": "This password is too common — please choose a less guessable one.",
+      "unknownRule": "{{rule}}"
+    },
     "oauth": {
       "invalidGrant": "Your sign-in is no longer valid. Please start the sign-in flow again.",
       "invalidRequest": "The sign-in request was malformed. Please start the sign-in flow again.",

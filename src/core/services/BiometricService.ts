@@ -14,8 +14,19 @@ export interface EnrollmentResult {
 export interface VerificationResult {
     verified: boolean
     confidence: number
-    distance: number
-    threshold: number
+    /**
+     * Cosine distance between the probe and the enrolled centroid (lower = more similar).
+     * `null` when the backend did not surface it on this response — UI should render
+     * "unavailable" rather than a hardcoded fallback. Wired in 2026-05-08 (P1, audit
+     * 2026-05-07) once Team A landed `distance`/`threshold` on the proxy response.
+     */
+    distance: number | null
+    /**
+     * Decision threshold in cosine-distance space (verified iff `distance <= threshold`).
+     * `null` when the backend did not surface it. Treat the same as `distance` above —
+     * never substitute the historical 0.4 sentinel into the UI.
+     */
+    threshold: number | null
     message: string
 }
 
@@ -225,13 +236,17 @@ export class BiometricService {
             { headers: { 'Content-Type': 'multipart/form-data' } },
         )
 
+        // Read distance/threshold defensively. Team A is shipping these on the
+        // proxy response; until the backend rebuild lands they may be absent.
+        // Use `?? null` (NOT a hardcoded `1`/`0.4`) so the UI can render
+        // "unavailable" instead of a fabricated decision boundary.
+        const distance = typeof response.data.distance === 'number' ? response.data.distance : null
+        const threshold = typeof response.data.threshold === 'number' ? response.data.threshold : null
         return {
             verified: response.data.verified ?? false,
             confidence: response.data.confidence ?? 0,
-            // Proxy's BiometricVerificationResponse does not currently surface
-            // distance/threshold; default to safe sentinels.
-            distance: response.data.distance ?? 1,
-            threshold: response.data.threshold ?? 0.4,
+            distance,
+            threshold,
             message: response.data.message ?? (response.data.verified ? 'Face verified' : 'Face not recognized'),
         }
     }

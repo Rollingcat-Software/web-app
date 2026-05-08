@@ -313,3 +313,94 @@ describe('formatApiError — non-axios shapes', () => {
         expect(formatApiError(undefined, tIdentity)).toBe('errors.unknown')
     })
 })
+
+describe('formatApiError — device cap 409 (Team A, audit 2026-05-07)', () => {
+    // Translator that surfaces interpolated `max` so we can assert it.
+    const tMax = ((key: string, opts?: Record<string, unknown>) => {
+        if (opts && 'max' in opts) return `${key}|${opts.max}`
+        return key
+    }) as unknown as TFunction
+
+    it('maps USER_DEVICE_LIMIT_REACHED with `maxDevices` field', () => {
+        const err = axiosError({
+            status: 409,
+            url: '/devices',
+            body: { errorCode: 'USER_DEVICE_LIMIT_REACHED', maxDevices: 5 },
+        })
+        expect(formatApiError(err, tMax)).toBe('errors.USER_DEVICE_LIMIT_REACHED|5')
+    })
+
+    it('also accepts the alternate `max` field name', () => {
+        const err = axiosError({
+            status: 409,
+            url: '/devices',
+            body: { errorCode: 'USER_DEVICE_LIMIT_REACHED', max: 3 },
+        })
+        expect(formatApiError(err, tMax)).toBe('errors.USER_DEVICE_LIMIT_REACHED|3')
+    })
+
+    it('also accepts the alias DEVICE_LIMIT_REACHED', () => {
+        const err = axiosError({
+            status: 409,
+            body: { errorCode: 'DEVICE_LIMIT_REACHED', maxDevices: 10 },
+        })
+        expect(formatApiError(err, tMax)).toBe('errors.USER_DEVICE_LIMIT_REACHED|10')
+    })
+})
+
+describe('formatApiError — password policy structured rendering', () => {
+    // Translator that emits "key" or "key|param=value" for assertions.
+    const tWithParams = ((key: string, opts?: Record<string, unknown>) => {
+        if (!opts) return key
+        const parts = Object.entries(opts).map(([k, v]) => `${k}=${v}`)
+        return parts.length === 0 ? key : `${key}|${parts.join(',')}`
+    }) as unknown as TFunction
+
+    it('renders multi-line failure detail from a PASSWORD_POLICY_VIOLATION envelope', () => {
+        const err = axiosError({
+            status: 400,
+            url: '/users/me/password',
+            body: {
+                errorCode: 'PASSWORD_POLICY_VIOLATION',
+                message: 'Password does not meet policy',
+                details: {
+                    rules: [
+                        { code: 'TOO_SHORT', params: { min: 12 } },
+                        { code: 'MISSING_DIGIT' },
+                        { code: 'PREVIOUSLY_USED', params: { count: 5 } },
+                    ],
+                },
+            },
+        })
+        const out = formatApiError(err, tWithParams)
+        expect(out).toContain('errors.PASSWORD_POLICY_VIOLATION')
+        expect(out).toContain('errors.passwordPolicy.tooShort|min=12')
+        expect(out).toContain('errors.passwordPolicy.missingDigit')
+        expect(out).toContain('errors.passwordPolicy.previouslyUsed|count=5')
+    })
+
+    it('falls back to backend message string for unmapped codes', () => {
+        const err = axiosError({
+            status: 400,
+            body: {
+                errorCode: 'PASSWORD_POLICY_VIOLATION',
+                details: {
+                    rules: [
+                        { code: 'EXOTIC_CUSTOM_RULE', message: 'No emoji allowed' },
+                    ],
+                },
+            },
+        })
+        const out = formatApiError(err, tWithParams)
+        expect(out).toContain('No emoji allowed')
+    })
+
+    it('renders the headline alone when rules array is empty', () => {
+        const err = axiosError({
+            status: 400,
+            body: { errorCode: 'PASSWORD_POLICY_VIOLATION', details: { rules: [] } },
+        })
+        const out = formatApiError(err, tWithParams)
+        expect(out).toBe('errors.PASSWORD_POLICY_VIOLATION')
+    })
+})
