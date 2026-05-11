@@ -1,4 +1,6 @@
-# FIVUCSAS Admin Dashboard
+# FIVUCSAS — Face and Identity Verification Using Cloud-based SaaS
+
+## Admin Dashboard
 
 ![React](https://img.shields.io/badge/React-18-blue.svg)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
