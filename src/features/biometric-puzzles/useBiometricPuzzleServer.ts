@@ -140,7 +140,6 @@ export function useBiometricPuzzleServer() {
                 if (status === 404) {
                     if (!not_deployed_warned_ref.current) {
                         not_deployed_warned_ref.current = true
-                        // eslint-disable-next-line no-console
                         console.warn(
                             '[biometric-puzzles] /biometric/puzzles/verify-challenge ' +
                                 'proxy not deployed yet — running in soft-pass mode. ' +
