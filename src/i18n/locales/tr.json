@@ -1808,6 +1808,9 @@
     "promptLabel": "Görev",
     "handFingerCountPrompt": "{{count}} parmağınızı gösterip tutun.",
     "handMathPrompt": "{{expr}} işleminin sonucunu parmaklarınızla gösterip tutun.",
+    "verifyingServer": "Sunucu ile doğrulanıyor…",
+    "serverRejected": "Sunucu doğrulamayı reddetti.",
+    "serverError": "Sunucu doğrulaması başarısız oldu. Lütfen tekrar deneyin.",
     "difficulty": {
       "beginner": "Başlangıç",
       "intermediate": "Orta",

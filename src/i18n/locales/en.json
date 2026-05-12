@@ -1808,6 +1808,9 @@
     "promptLabel": "Your prompt",
     "handFingerCountPrompt": "Show {{count}} finger(s) and hold.",
     "handMathPrompt": "Show the answer to {{expr}} on your fingers and hold.",
+    "verifyingServer": "Verifying with server…",
+    "serverRejected": "Server rejected the challenge.",
+    "serverError": "Server validation failed. Please try again.",
     "difficulty": {
       "beginner": "Beginner",
       "intermediate": "Intermediate",
