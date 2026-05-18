@@ -1696,7 +1696,11 @@
     "verify": "Verify"
   },
   "sidebar": {
-    "systemStatus": "All systems operational"
+    "systemStatus": "All systems operational",
+    "suite": "FIVUCSAS suite",
+    "suiteHome": "Home",
+    "suiteDemo": "Demo",
+    "suiteWidget": "Widget"
   },
   "authMethodsTesting": {
     "pageTitle": "Auth Methods Testing",

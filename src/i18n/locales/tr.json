@@ -1696,7 +1696,11 @@
     "verify": "Doğrula"
   },
   "sidebar": {
-    "systemStatus": "Tüm sistemler çalışıyor"
+    "systemStatus": "Tüm sistemler çalışıyor",
+    "suite": "FIVUCSAS paketi",
+    "suiteHome": "Anasayfa",
+    "suiteDemo": "Demo",
+    "suiteWidget": "Widget"
   },
   "authMethodsTesting": {
     "pageTitle": "Kimlik Doğrulama Yöntemi Denemeleri",
