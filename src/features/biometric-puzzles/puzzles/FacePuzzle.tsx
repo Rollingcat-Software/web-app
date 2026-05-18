@@ -41,6 +41,8 @@ import {
 } from '@/lib/biometric-engine/core/BiometricPuzzle'
 import { ChallengeType } from '@/lib/biometric-engine/types'
 import type { BiometricPuzzleProps } from '../biometricPuzzleRegistry'
+import { useBiometricPuzzleServer } from '../useBiometricPuzzleServer'
+import { faceChallengeToServerAction } from '../puzzleServerAction'
 
 // Lazily import DrawingUtils + FaceLandmarker statics from MediaPipe so the
 // puzzle bundle can render the 468-point mesh + named contours over the
@@ -86,12 +88,19 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
     const { engine, isReady, isLoading, error: engineError } = useBiometricEngine()
     const puzzleEngineRef = useRef<BiometricPuzzleEngine | null>(null)
 
+    // Bug 4 (2026-05-12) — server validation client. We post the completion to
+    // /biometric/puzzles/verify-challenge before resolving onSuccess. See
+    // useBiometricPuzzleServer.ts for the graceful-degradation behavior when
+    // the proxy endpoint isn't deployed yet.
+    const { verifyChallenge } = useBiometricPuzzleServer()
+
     const [cameraActive, setCameraActive] = useState(false)
     const [videoReady, setVideoReady] = useState(false)
     const [cameraError, setCameraError] = useState<string | null>(null)
     const [progress, setProgress] = useState(0)
     const [detected, setDetected] = useState(false)
     const [running, setRunning] = useState(false)
+    const [serverVerifying, setServerVerifying] = useState(false)
 
     // Build the per-challenge puzzle instance once the engine is ready.
     useEffect(() => {
@@ -299,7 +308,48 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                         completedRef.current = true
                         setRunning(false)
                         setProgress(100)
-                        onSuccess()
+
+                        // Bug 4 (2026-05-12) — round-trip the completion through
+                        // the server before resolving onSuccess. The mapper
+                        // returns null for face variants without a 1:1 server
+                        // enum (CLOSE_LEFT/RIGHT, LOOK_UP/DOWN, individual
+                        // brow raises, NOD, SHAKE_HEAD) — in that case the
+                        // local verdict is final because the server can't
+                        // express the same challenge today.
+                        const serverAction = faceChallengeToServerAction(challengeType)
+                        if (!serverAction) {
+                            onSuccess()
+                            return
+                        }
+                        const endTs = performance.now()
+                        setServerVerifying(true)
+                        verifyChallenge(
+                            {
+                                action: serverAction,
+                                startTimestampMs: startTsRef.current,
+                                endTimestampMs: endTs,
+                                confidence: result.detected ? 0.9 : 0.5,
+                                metrics: { progress: result.progress },
+                            },
+                            t,
+                        )
+                            .then((outcome) => {
+                                setServerVerifying(false)
+                                if (outcome.kind === 'success' || outcome.kind === 'soft_pass') {
+                                    onSuccess()
+                                } else {
+                                    onError(outcome.message)
+                                }
+                            })
+                            .catch(() => {
+                                setServerVerifying(false)
+                                onError(
+                                    t('biometricPuzzle.serverError', {
+                                        defaultValue:
+                                            'Server validation failed. Please try again.',
+                                    }),
+                                )
+                            })
                         return
                     }
                 } else {
@@ -319,7 +369,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 animFrameRef.current = 0
             }
         }
-    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected])
+    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected, verifyChallenge])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 
@@ -466,6 +516,18 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                             </Box>
                         </Box>
                     </Box>
+                )}
+
+                {serverVerifying && (
+                    <Alert
+                        severity="info"
+                        variant="outlined"
+                        sx={{ width: '100%', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                        {t('biometricPuzzle.verifyingServer', {
+                            defaultValue: 'Verifying with server…',
+                        })}
+                    </Alert>
                 )}
 
                 {running && (

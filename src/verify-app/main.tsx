@@ -45,3 +45,12 @@ ReactDOM.createRoot(rootElement).render(
         {isHosted ? <HostedLoginApp /> : <VerifyApp />}
     </React.StrictMode>
 )
+
+// Hide the static landing in index.html once React has painted its first frame.
+// CSS rule `#verify-root[data-mounted="true"] ~ #verify-landing { display: none }`
+// applies for iframe / OAuth consumers and for direct visitors who proceed
+// past the landing into the hosted login surface. rAF avoids a flash of
+// "nothing" between landing-hidden and React's first paint.
+requestAnimationFrame(() => {
+    rootElement.setAttribute('data-mounted', 'true')
+})
