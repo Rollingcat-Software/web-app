@@ -16,7 +16,7 @@ import {
     Typography,
     useTheme,
 } from '@mui/material'
-import {DarkMode, Language, LightMode, Logout, Menu as MenuIcon, Settings,} from '@mui/icons-material'
+import {DarkMode, LightMode, Logout, Menu as MenuIcon, Settings,} from '@mui/icons-material'
 import {useAuth} from '@features/auth/hooks/useAuth'
 import {useThemeMode} from '@app/providers/ThemeModeContext'
 import {useTranslation} from 'react-i18next'
@@ -33,14 +33,14 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     const location = useLocation()
     const { user, logout } = useAuth()
     const { mode, toggleMode } = useThemeMode()
-    const { t, i18n } = useTranslation()
+    const { t } = useTranslation()
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
     const isDark = theme.palette.mode === 'dark'
 
-    const toggleLanguage = () => {
-        const newLang = i18n.language === 'tr' ? 'en' : 'tr'
-        i18n.changeLanguage(newLang)
-    }
+    // Language is driven globally by the shared <fivucsas-launcher> FAB
+    // (public/launcher.js → `fivucsas:languagechange`), so the top bar no
+    // longer carries its own EN/TR toggle. The per-user preference still lives
+    // on the Settings page.
 
     // PRESERVED: path → translated title mapping (unchanged keys)
     const getPageTitle = () => {
@@ -127,31 +127,6 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
 
                 {/* Right cluster */}
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
-                    {/* Language toggle */}
-                    <Tooltip title={t('settings.language')}>
-                        <IconButton
-                            color="inherit"
-                            onClick={toggleLanguage}
-                            aria-label={t('a11y.toggleLanguage')}
-                            sx={{
-                                fontSize: '0.8rem',
-                                fontWeight: 700,
-                                width: 40,
-                                height: 40,
-                                gap: 0.3,
-                            }}
-                        >
-                            <Language sx={{ fontSize: 18 }} />
-                            <Typography
-                                variant="caption"
-                                fontWeight={700}
-                                sx={{ fontSize: '0.68rem', letterSpacing: '0.04em' }}
-                            >
-                                {i18n.language === 'tr' ? 'TR' : 'EN'}
-                            </Typography>
-                        </IconButton>
-                    </Tooltip>
-
                     {/* Dark mode toggle */}
                     <Tooltip title={mode === 'dark' ? t('topbar.lightMode') : t('topbar.darkMode')}>
                         <IconButton color="inherit" onClick={toggleMode} aria-label={t('a11y.toggleDarkMode')}>

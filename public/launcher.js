@@ -723,8 +723,6 @@
 
   // ---- auto-instantiate on load ----
   function autoMount() {
-    // Skip entirely on amispoof — full viewport reserved for webcam analysis.
-    if (currentHostname().indexOf('amispoof') === 0) return;
     if (document.querySelector(TAG)) return;
     var el = document.createElement(TAG);
     (document.body || document.documentElement).appendChild(el);
