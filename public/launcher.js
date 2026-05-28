@@ -83,12 +83,12 @@
   // `key` is used both for i18n lookup and as a stable identifier. `dEn`/`dTr`
   // are the one-line descriptions shown under each name in the panel.
   var SITES = [
-    { key: 'home',      href: 'https://fivucsas.com',          host: 'fivucsas.com',          icon: ICONS.home,      en: 'Home',        tr: 'Ana Sayfa',        dEn: 'product home',         dTr: 'ürün ana sayfası' },
-    { key: 'dashboard', href: 'https://app.fivucsas.com',      host: 'app.fivucsas.com',      icon: ICONS.dashboard, en: 'Dashboard',   tr: 'Panel',            dEn: 'manage tenants & auth', dTr: 'kiracı ve kimlik yönetimi' },
-    { key: 'widget',    href: 'https://verify.fivucsas.com',   host: 'verify.fivucsas.com',   icon: ICONS.widget,    en: 'Auth Widget', tr: 'Doğrulama Aracı',  dEn: 'embeddable login',     dTr: 'gömülebilir giriş' },
-    { key: 'demo',      href: 'https://demo.fivucsas.com',     host: 'demo.fivucsas.com',     icon: ICONS.demo,      en: 'Demo',        tr: 'Demo',             dEn: 'try it live',          dTr: 'canlı dene' },
-    { key: 'amispoof',  href: 'https://amispoof.fivucsas.com', host: 'amispoof.fivucsas.com', icon: ICONS.amispoof,  en: 'amispoof',    tr: 'amispoof',         dEn: 'anti-spoof tester',    dTr: 'sahtelik test aracı' },
-    { key: 'docs',      href: 'https://docs.fivucsas.com',     host: 'docs.fivucsas.com',     icon: ICONS.docs,      en: 'Docs',        tr: 'Belgeler',         dEn: 'guides & API',         dTr: 'kılavuzlar ve API' }
+    { key: 'home',      href: 'https://fivucsas.com',          host: 'fivucsas.com',          icon: ICONS.home,      en: 'Home',        tr: 'Ana Sayfa',        dEn: 'Product home',          dTr: 'Ürün ana sayfası' },
+    { key: 'dashboard', href: 'https://app.fivucsas.com',      host: 'app.fivucsas.com',      icon: ICONS.dashboard, en: 'Dashboard',   tr: 'Panel',            dEn: 'Manage tenants & auth', dTr: 'Kiracı ve kimlik yönetimi' },
+    { key: 'widget',    href: 'https://verify.fivucsas.com',   host: 'verify.fivucsas.com',   icon: ICONS.widget,    en: 'Auth Widget', tr: 'Doğrulama Aracı',  dEn: 'Embeddable login',      dTr: 'Gömülebilir giriş' },
+    { key: 'demo',      href: 'https://demo.fivucsas.com',     host: 'demo.fivucsas.com',     icon: ICONS.demo,      en: 'Demo',        tr: 'Demo',             dEn: 'Try it live',           dTr: 'Canlı dene' },
+    { key: 'amispoof',  href: 'https://amispoof.fivucsas.com', host: 'amispoof.fivucsas.com', icon: ICONS.amispoof,  en: 'amispoof',    tr: 'amispoof',         dEn: 'Anti-spoof tester',     dTr: 'Sahtelik test aracı' },
+    { key: 'docs',      href: 'https://docs.fivucsas.com',     host: 'docs.fivucsas.com',     icon: ICONS.docs,      en: 'Docs',        tr: 'Belgeler',         dEn: 'Guides & API',          dTr: 'Kılavuzlar ve API' }
   ];
 
   // UI strings (everything that isn't a site label).
@@ -102,7 +102,7 @@
     },
     tr: {
       open: 'FIVUCSAS · uygulama değiştir', close: 'Kapat', title: 'FIVUCSAS', langLabel: 'Dil',
-      suiteTitle: 'FIVUCSAS Uygulamaları', tagline: 'Paket uygulamaları arasında geçiş'
+      suiteTitle: 'FIVUCSAS Paketi', tagline: 'Uygulamalar arasında geçiş yap'
     }
   };
 
@@ -285,7 +285,7 @@
         var style = document.createElement('style');
         style.textContent = [
           ':host{all:initial;}',
-          '*{box-sizing:border-box;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}',
+          '*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;font-family:Inter,system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;}',
 
           /* --- design tokens (kept inline so the component is portable) --- */
           ':host{--fv-accent:#6366f1;--fv-accent-2:#8b5cf6;--fv-ring:#818cf8;',
@@ -300,6 +300,7 @@
              can be absolutely placed around it. */
           '.fab{position:relative;margin-left:auto;width:56px;height:56px;pointer-events:auto;}',
           '.btn{position:relative;z-index:2;width:56px;height:56px;border-radius:50%;border:1px solid rgba(255,255,255,0.16);',
+          '-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;outline:none;',
           'background:linear-gradient(145deg,var(--fv-accent) 0%,var(--fv-accent-2) 100%);',
           'color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;',
           'box-shadow:0 8px 22px rgba(79,70,229,0.42),0 2px 6px rgba(0,0,0,0.35);',
@@ -404,7 +405,7 @@
           'white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}',
           '.links a:hover .desc,.links a[aria-current="page"] .desc{color:var(--fv-ink-dim);}',
           /* "current" pill on the active row */
-          '.badge{flex:0 0 auto;font-size:9px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;',
+          '.badge{flex:0 0 auto;font-size:10px;font-weight:700;letter-spacing:.01em;',
           'color:#c7ccff;background:rgba(129,140,248,0.22);border:1px solid rgba(129,140,248,0.4);',
           'padding:2px 6px;border-radius:999px;display:none;}',
           '.links a[aria-current="page"] .badge{display:inline-block;}',
@@ -412,7 +413,7 @@
           /* ---- footer / language toggle ---- */
           '.ft{display:flex;align-items:center;justify-content:space-between;padding:11px 14px;',
           'border-top:1px solid var(--fv-line);background:rgba(255,255,255,0.02);}',
-          '.ft .lbl{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:var(--fv-ink-faint);}',
+          '.ft .lbl{font-size:11px;font-weight:600;letter-spacing:.04em;color:var(--fv-ink-faint);}',
           '.seg{display:inline-flex;border:1px solid rgba(255,255,255,0.16);border-radius:9px;overflow:hidden;',
           'background:rgba(255,255,255,0.04);}',
           '.seg button{appearance:none;background:transparent;border:0;color:var(--fv-ink-dim);cursor:pointer;',
@@ -607,7 +608,7 @@
           var li = e.links[i];
           li.label.textContent = li.site[lang];
           li.desc.textContent = lang === 'tr' ? li.site.dTr : li.site.dEn;
-          li.badge.textContent = lang === 'tr' ? 'şimdi' : 'now';
+          li.badge.textContent = lang === 'tr' ? 'Şimdi' : 'Now';
         }
         e.enBtn.setAttribute('aria-pressed', String(lang === 'en'));
         e.trBtn.setAttribute('aria-pressed', String(lang === 'tr'));
