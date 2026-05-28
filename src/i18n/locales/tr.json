@@ -735,7 +735,7 @@
   },
   "cardDetection": {
     "title": "Kart Algılama",
-    "subtitle": "Kimlik kartı, pasaport veya ehliyet görüntüsü yakalayın. Sunucu tarafı YOLO modeli kart türünü algılayıp sınıflandıracaktır.",
+    "subtitle": "Kimlik kartı, pasaport veya ehliyet görüntüsü yakalayın. YOLO modeli kart türünü doğrudan tarayıcınızda algılayıp sınıflandırır (sunucuya gidiş yok; model yüklenemezse sunucuya geri döner).",
     "detectionResult": "Algılama Sonucu",
     "cardDetected": "Kart Algılandı",
     "noCardFound": "Kart Bulunamadı",

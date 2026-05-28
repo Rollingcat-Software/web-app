@@ -735,7 +735,7 @@
   },
   "cardDetection": {
     "title": "Card Detection",
-    "subtitle": "Capture an image of an ID card, passport, or driver's license. The server-side YOLO model will detect and classify the card type.",
+    "subtitle": "Capture an image of an ID card, passport, or driver's license. A YOLO model runs in your browser to detect and classify the card type (no server round-trip; falls back to the server if the model can't load).",
     "detectionResult": "Detection Result",
     "cardDetected": "Card Detected",
     "noCardFound": "No Card Found",
