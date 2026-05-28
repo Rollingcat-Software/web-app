@@ -17,8 +17,17 @@
  *   - Collapsed: 56px circular button, fixed bottom-right, 16px inset.
  *   - Expanded: ~280px panel sliding up with the 6 suite links + EN|TR toggle.
  *   - Active site highlighted by comparing location.hostname.
- *   - Language toggle mirrors the static sites' pattern: it reads/writes
- *     document.documentElement[data-lang] and [lang] (values 'tr' | 'en').
+ *   - Language toggle drives the HOST page, not just the launcher's own labels:
+ *     it writes document.documentElement[data-lang] and [lang] (values
+ *     'tr' | 'en') — the pattern the static suite sites key their CSS off — AND
+ *       · persists the choice in localStorage['fivucsas-lang'] so it sticks
+ *         across reloads and (on sites that honour it) across the whole suite;
+ *       · re-applies a stored choice to the document on load, after the host's
+ *         own inline lang script has run, so the picked language wins the race;
+ *       · dispatches a 'languagechange' event (window) and a documented
+ *         'fivucsas:languagechange' CustomEvent (detail {lang, source}) so any
+ *         JS-driven host page can re-localise / sync its own toggle button;
+ *       · stays in sync with the host via a MutationObserver on [data-lang].
  *   - Auto-hides on amispoof.* (that site needs the full viewport for webcam).
  *   - A11y: aria-label, keyboard navigable, Esc closes, focus trap into the
  *     panel on open / back to the button on close, prefers-reduced-motion
@@ -30,6 +39,18 @@
   'use strict';
 
   var TAG = 'fivucsas-launcher';
+
+  // Persist the chosen language across the whole suite. localStorage is
+  // per-origin, but every suite site shares this same key + value scheme, so
+  // each site that honours it on load starts in the language the visitor last
+  // picked anywhere in the suite. Stored value is 'tr' | 'en'.
+  var STORAGE_KEY = 'fivucsas-lang';
+
+  // Namespaced custom event the launcher fires after it changes the document
+  // language. Host pages can hook this (or the standard `languagechange`
+  // event, also dispatched) to re-run JS-driven localisation / sync their own
+  // button state. detail = { lang: 'tr' | 'en', source: 'fivucsas-launcher' }.
+  var LANG_EVENT = 'fivucsas:languagechange';
 
   // Don't double-define if the script is included more than once across sites.
   if (typeof window === 'undefined' || window.customElements == null) return;
@@ -83,23 +104,74 @@
     return best ? best.key : null;
   }
 
-  // Read the current language from the document, defaulting to 'en'.
+  function normalizeLang(v) {
+    v = String(v == null ? '' : v).toLowerCase().slice(0, 2);
+    return v === 'tr' ? 'tr' : 'en';
+  }
+
+  // The persisted suite-wide choice, if any. Returns 'tr' | 'en' | null.
+  function readStoredLang() {
+    try {
+      var v = window.localStorage.getItem(STORAGE_KEY);
+      if (v == null) return null;
+      v = String(v).toLowerCase();
+      return v === 'tr' || v === 'en' ? v : null;
+    } catch (e) { return null; }
+  }
+
+  function storeLang(lang) {
+    try { window.localStorage.setItem(STORAGE_KEY, lang); } catch (e) { /* no-op */ }
+  }
+
+  // Read the document's current language from the <html> attributes,
+  // defaulting to 'en'. (The launcher's own state; the stored preference is
+  // resolved separately in resolveInitialLang.)
   function readLang() {
     try {
       var el = document.documentElement;
-      var v = el.getAttribute('data-lang') || el.getAttribute('lang') || 'en';
-      v = String(v).toLowerCase().slice(0, 2);
-      return v === 'tr' ? 'tr' : 'en';
+      return normalizeLang(el.getAttribute('data-lang') || el.getAttribute('lang') || 'en');
     } catch (e) { return 'en'; }
   }
 
-  // Write language using the exact pattern the static suite sites use:
-  //   html.setAttribute('data-lang', lang); html.setAttribute('lang', lang);
+  // What the launcher should start in: a previously stored suite-wide choice
+  // wins (so the picked language sticks across reloads and across sites that
+  // honour the event/storage); otherwise mirror whatever the host page already
+  // rendered. This is what keeps the toggle and the page consistent on load.
+  function resolveInitialLang() {
+    var stored = readStoredLang();
+    return stored || readLang();
+  }
+
+  // Write language using the exact pattern the static suite sites use
+  // (html[data-lang] + [lang] — their CSS keys content visibility off it),
+  // persist the choice suite-wide, and announce it so cooperating pages can
+  // re-run JS-driven localisation or sync their own toggle button.
   function writeLang(lang) {
+    lang = normalizeLang(lang);
     try {
       var el = document.documentElement;
       el.setAttribute('data-lang', lang);
       el.setAttribute('lang', lang);
+    } catch (e) { /* no-op */ }
+    storeLang(lang);
+    dispatchLangEvent(lang);
+  }
+
+  // Fire both a namespaced custom event (documented, carries detail) and the
+  // standard `languagechange` event so host pages have a hook regardless of
+  // which they listen for. Wrapped defensively — never let a listener throw
+  // back into the launcher.
+  function dispatchLangEvent(lang) {
+    var detail = { lang: lang, source: 'fivucsas-launcher' };
+    try {
+      var ev = new CustomEvent(LANG_EVENT, { detail: detail, bubbles: true });
+      (document || window).dispatchEvent(ev);
+    } catch (e) { /* CustomEvent unsupported — fine */ }
+    try {
+      // Standard event name (e.g. used by i18n libs). Attach detail too.
+      var std = new Event('languagechange');
+      try { std.detail = detail; } catch (e2) { /* read-only in some engines */ }
+      window.dispatchEvent(std);
     } catch (e) { /* no-op */ }
   }
 
@@ -131,9 +203,41 @@
         }
         if (this._built) return;
         this._built = true;
-        this._lang = readLang();
+        // Start in the suite-wide stored choice if there is one, else mirror
+        // the language the host page already rendered.
+        this._lang = resolveInitialLang();
         this._render();
         this._bind();
+        this._syncStoredLangToDocument();
+      };
+
+      // If the visitor previously picked a language anywhere in the suite,
+      // apply it to this page's document too — even if the host's own inline
+      // script defaulted the page to a different language. We re-apply after
+      // the current task so we win the race against host scripts that run
+      // their apply(initial) on DOMContentLoaded / at end of <body>.
+      Ctor.prototype._syncStoredLangToDocument = function () {
+        var stored = readStoredLang();
+        if (!stored) return;
+        var self = this;
+        var reapply = function () {
+          if (readLang() !== stored) {
+            // writeLang persists + dispatches the event so cooperating host
+            // pages re-localise; _applyLang keeps our own labels in step.
+            writeLang(stored);
+            self._applyLang(stored);
+          }
+        };
+        // Once now (covers already-applied host state) and once deferred
+        // (covers host scripts that apply their default slightly later).
+        reapply();
+        try {
+          if (window.requestAnimationFrame) {
+            window.requestAnimationFrame(function () { reapply(); });
+          } else {
+            window.setTimeout(reapply, 0);
+          }
+        } catch (e) { /* no-op */ }
       };
 
       Ctor.prototype.disconnectedCallback = function () {
