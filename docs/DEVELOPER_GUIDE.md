@@ -30,8 +30,10 @@ Create a `.env.local` file:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api/v1
-VITE_ENABLE_MOCK_API=true
+VITE_ENABLE_MOCK_API=false
 ```
+
+Set `VITE_ENABLE_MOCK_API=true` to opt into mock repositories and work fully offline without the backend.
 
 ## Development
 
@@ -228,7 +230,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 describe('UserService', () => {
     let service: UserService
-    let mockRepo: jest.Mocked<IUserRepository>
+    let mockRepo: vi.Mocked<IUserRepository>
 
     beforeEach(() => {
         mockRepo = {

@@ -15,7 +15,7 @@ Admin dashboard + hosted login + auth SDK for the **FIVUCSAS** biometric identit
 
 Built with React 18 + TypeScript 5 + Vite 8 on Clean Architecture (InversifyJS DI, repository pattern, Zod validation, i18next en+tr). Deploys two surfaces:
 
-- **Admin dashboard** at `app.fivucsas.com` — user/tenant/role/flow/device/audit management across 17 pages
+- **Admin dashboard** at `app.fivucsas.com` — user/tenant/role/flow/device/audit management across 30+ routes
 - **Hosted login + embeddable widget** at `verify.fivucsas.com` — hosted-first redirective OIDC login (primary) plus iframe widget for inline step-up MFA (secondary); ships `@fivucsas/auth-js` SDK (`loginRedirect({...})`), `@fivucsas/auth-react` components, and `@fivucsas/auth-elements` Web Components
 
 ## Architecture
@@ -71,6 +71,21 @@ See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architecture doc
     - Action history
     - Filterable logs
 
+- **Biometric Surfaces**
+    - Biometric puzzles (23 micro-challenges with face/hand/gesture overlays)
+    - Auth methods testing page (all 10 methods exercisable in-dashboard)
+    - Verification flows builder, dashboard, and session detail
+    - Biometric enrollment and tools pages
+
+- **Hosted Login & Widget**
+    - `widget-auth` hosted login page (OIDC code+PKCE redirect flow)
+    - Embeddable iframe widget for inline step-up MFA
+    - Developer portal and widget demo pages
+
+- **Guests & Sessions**
+    - Guest management (invite / extend / revoke)
+    - Auth sessions listing and detail
+
 ## Technology Stack
 
 ### Core
@@ -100,7 +115,7 @@ See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architecture doc
 
 - **Vitest**: Fast unit test runner
 - **React Testing Library**: Component and hook testing
-- **230+ tests**: Comprehensive test coverage
+- **619 tests**: Comprehensive test coverage
 
 ### Authentication & HTTP
 
@@ -136,12 +151,12 @@ Create a `.env.local` file:
 
 ```env
 VITE_API_BASE_URL=http://localhost:8080/api/v1
-VITE_ENABLE_MOCK_API=true
+VITE_ENABLE_MOCK_API=false
 ```
 
 ### Mock Mode
 
-The app works fully offline with mock data. Set `VITE_ENABLE_MOCK_API=true` to use mock repositories.
+The app works fully offline with mock data. Set `VITE_ENABLE_MOCK_API=true` to opt into mock repositories (default is `false`, which requires the backend to be running).
 
 Mock users included:
 - `admin@fivucsas.com` - Admin user
@@ -151,11 +166,15 @@ Mock users included:
 ## Available Scripts
 
 ```bash
-npm run dev       # Start development server
-npm run build     # Build for production
-npm run preview   # Preview production build
-npm run test      # Run tests in watch mode
-npm run lint      # Run ESLint
+npm run dev            # Start development server
+npm run build          # Build admin dashboard for production
+npm run build:verify   # Build hosted-login / widget surface
+npm run build:sdk      # Build @fivucsas/auth-js SDK
+npm run build:elements # Build @fivucsas/auth-elements Web Components
+npm run build:adapter  # Build adapter bundle
+npm run preview        # Preview production build
+npm run test           # Run tests in watch mode
+npm run lint           # Run ESLint
 ```
 
 ## Project Structure
@@ -298,7 +317,7 @@ The pipeline runs:
 
 Part of the FIVUCSAS platform developed at Marmara University.
 
-Copyright 2025 FIVUCSAS Team. Licensed under MIT License.
+Copyright 2025–2026 FIVUCSAS Team. Licensed under MIT License.
 
 ---
 

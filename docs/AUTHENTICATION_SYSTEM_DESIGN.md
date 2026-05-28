@@ -1,5 +1,8 @@
 # Authentication System Design Document
 
+> **Historical design reference (last updated March 2026) — current status lives in ROADMAP.md.**
+> This document reflects pre-implementation intent; many phases listed below have since shipped. Do not use phase checkboxes here as the source of truth.
+
 ## Overview
 
 This web application is the **Admin Dashboard** for a multi-platform identity verification and authentication system. The system provides comprehensive authentication services across web, mobile, and desktop applications.
@@ -213,15 +216,15 @@ interface TenantAuthConfig {
 Frontend:
 ├── React 18 + TypeScript
 ├── Material-UI 5
-├── Lottie Animations (to add)
-├── Framer Motion (to add)
+├── Lottie Animations (lottie-react — installed)
+├── Framer Motion (framer-motion — installed)
 ├── WebRTC (face capture)
 ├── WebNFC API (if supported)
 └── WebAuthn API (hardware keys)
 
 State Management:
 ├── React Context (auth state)
-├── React Query (server state)
+├── Custom hooks via InversifyJS DI services (server state — @tanstack/react-query is not installed)
 └── Local Storage (tokens)
 ```
 
@@ -332,7 +335,7 @@ A cross-module audit identified gaps between this web-app's auth UI and the back
 - **3 broken auth methods at runtime**: Fingerprint, Voice, NFC (biometric-processor stubs)
 - **5 model/enum mismatches** with identity-core-api (IC1-IC5 in TODO.md)
 
-See [TODO.md](../TODO.md) for full list and [ROADMAP.md](../ROADMAP.md) for implementation plan.
+See [TODO.md](../docs/archive/TODO.md) for full list and [ROADMAP.md](../ROADMAP.md) for implementation plan.
 
 ---
 

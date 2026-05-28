@@ -311,7 +311,7 @@ Test services in isolation with mocked dependencies:
 ```typescript
 describe('UserService', () => {
     let service: UserService
-    let mockRepository: jest.Mocked<IUserRepository>
+    let mockRepository: vi.Mocked<IUserRepository>
 
     beforeEach(() => {
         mockRepository = {

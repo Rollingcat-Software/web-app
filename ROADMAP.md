@@ -1,16 +1,16 @@
 # FIVUCSAS Web App - Roadmap
 
-> Last updated: 2026-04-16. Hosted-first auth pivot + Round-5 hardening.
+> Last updated: 2026-05-28. Wave 1 shipped. Subsequent sessions (2026-04-18 through 2026-05-11) delivered Waves 2–4 incrementally; see CHANGELOG.md and session notes in MEMORY for specifics.
 
 ## Current initiative: Hosted-first auth (PR-1)
 
 **Branch:** `feat/hosted-first-auth-round5`
-**Plan:** `docs/AUDIT_REPORT_2026-04-16.md` + `TODO.md` + `docs/plans/HOSTED_LOGIN_INTEGRATION.md`
+**Plan:** `docs/archive/AUDIT_REPORT_2026-04-16.md` + `docs/archive/TODO.md` + `docs/plans/HOSTED_LOGIN_INTEGRATION.md`
 
 ### Why
 Round-5 testing on Chrome Android surfaced structural iframe limits (Web NFC spec only runs top-level, Safari ITP, 3P cookie death). Industry pattern for serious IdPs is hosted-first redirect (Auth0 Universal Login, Okta, Microsoft Entra, Google, Apple, AWS Cognito, Keycloak, Stripe, all Turkish banks, e-Devlet). Backend OAuth 2.0 + OIDC stack is already production-grade — hosted login is mostly a frontend + deployment lift.
 
-### PR-1 scope (Wave 1)
+### PR-1 scope (Wave 1) — SHIPPED (merged 2026-04-16)
 - **Shared bug fixes:** A1 method-reuse resilience, A2 mobile layout, A4 dashboard typo + notification i18n
 - **New hosted surface:** `verify.fivucsas.com/login` top-level page, full OIDC code+PKCE flow, tenant branding header, RFC 8252 native-app redirect-URI support
 - **Widget repositioning:** demoted to inline step-up MFA; NFC in framed context redirects to hosted
