@@ -4,7 +4,7 @@
 
 If you believe you've found a security vulnerability in web-app — the React admin dashboard, hosted login, and embeddable auth widget of the FIVUCSAS biometric authentication platform — please report it privately so we can fix it before disclosing publicly.
 
-**Email:** info@app.fivucsas.com (subject prefix: `[SECURITY] web-app`)
+**Email:** info@fivucsas.com (primary) or rollingcat.help@gmail.com (alternate) — subject prefix: `[SECURITY] web-app`
 
 Please include:
 - A clear description of the issue and its impact.

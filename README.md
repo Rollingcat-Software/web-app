@@ -16,7 +16,7 @@ Admin dashboard + hosted login + auth SDK for the **FIVUCSAS** biometric identit
 Built with React 18 + TypeScript 5 + Vite 8 on Clean Architecture (InversifyJS DI, repository pattern, Zod validation, i18next en+tr). Deploys two surfaces:
 
 - **Admin dashboard** at `app.fivucsas.com` — user/tenant/role/flow/device/audit management across 30+ routes
-- **Hosted login + embeddable widget** at `verify.fivucsas.com` — hosted-first redirective OIDC login (primary) plus iframe widget for inline step-up MFA (secondary); ships `@fivucsas/auth-js` SDK (`loginRedirect({...})`), `@fivucsas/auth-react` components, and `@fivucsas/auth-elements` Web Components
+- **Hosted login + embeddable widget** at `verify.fivucsas.com` — hosted-first redirective OIDC login (primary) plus iframe widget for inline step-up MFA (secondary); SDK delivered via CDN script-tag at `https://verify.fivucsas.com/sdk/` (`loginRedirect({...})` and Web Components). npm packages `@fivucsas/auth-js`, `@fivucsas/auth-react`, and `@fivucsas/auth-elements` are **not yet published** (coming soon)
 
 ## Architecture
 
