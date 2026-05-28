@@ -111,6 +111,10 @@
 <!-- Mobile console: add ?debug=1 to URL to activate eruda. -->
 <!-- Inline script moved to /eruda-loader.js so CSP can keep script-src strict. -->
 <script src="/eruda-loader.js"></script>
+<!-- Shared floating cross-site nav web component. Single source of truth for
+     suite navigation; CSP script-src 'self' already permits this same-origin
+     load. See public/launcher.js. -->
+<script src="/launcher.js" defer></script>
 <script src="/src/main.tsx" type="module"></script>
 </body>
 </html>
