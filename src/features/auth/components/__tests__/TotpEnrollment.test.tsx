@@ -165,10 +165,13 @@ describe('TotpEnrollment', () => {
                 expect(screen.getByText('JBSWY3DPEHPK3PXP')).toBeInTheDocument()
             })
 
-            // QR code image — i18n is initialized in src/test/setup.ts as of
-            // 2026-05-02 (P0-FE-2 follow-up), so the alt text is the resolved
-            // English string instead of the bare key.
-            expect(screen.getByAltText('TOTP QR Code')).toBeInTheDocument()
+            // QR code is now rendered client-side (S15: never send the raw
+            // TOTP secret to a 3rd-party QR service). qrcode.react emits an
+            // <svg role="img"> with an accessible name from aria-label, so we
+            // query by role/name instead of alt text. i18n is initialized in
+            // src/test/setup.ts as of 2026-05-02 (P0-FE-2 follow-up), so the
+            // accessible name is the resolved English string, not the bare key.
+            expect(screen.getByRole('img', { name: 'TOTP QR Code' })).toBeInTheDocument()
             // Copy button
             expect(screen.getByRole('button', { name: /Copy/i })).toBeInTheDocument()
             // Verification code input

@@ -16,6 +16,7 @@ import {
     Typography,
 } from '@mui/material'
 import { PhonelinkLock, QrCode2, CheckCircle, ContentCopy, DeleteOutline } from '@mui/icons-material'
+import { QRCodeSVG } from 'qrcode.react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -321,11 +322,16 @@ export default function TotpEnrollment({ open, userId, onClose, onSuccess }: Tot
                                                 borderColor: 'divider',
                                             }}
                                         >
-                                            <img
-                                                src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(qrUri)}`}
-                                                alt={t('auth.totp.qrAltText')}
-                                                width={200}
-                                                height={200}
+                                            <QRCodeSVG
+                                                value={qrUri}
+                                                size={200}
+                                                level="M"
+                                                includeMargin={false}
+                                                bgColor="#ffffff"
+                                                fgColor="#000000"
+                                                title={t('auth.totp.qrAltText')}
+                                                role="img"
+                                                aria-label={t('auth.totp.qrAltText')}
                                             />
                                         </Box>
                                         <Typography variant="body2" color="text.secondary" sx={{ mt: 1 }}>
