@@ -6,7 +6,7 @@
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue.svg)
 ![Vite](https://img.shields.io/badge/Vite-8-purple.svg)
 ![MUI](https://img.shields.io/badge/MUI-6-0081cb.svg)
-![Tests](https://img.shields.io/badge/Vitest-619-brightgreen.svg)
+![Tests](https://img.shields.io/badge/Vitest-804-brightgreen.svg)
 ![License](https://img.shields.io/badge/license-MIT-green.svg)
 
 ## Overview
