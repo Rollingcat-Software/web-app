@@ -20,6 +20,14 @@ RewriteRule . /index.html [L]
   <FilesMatch "\.(js|css)$">
     Header set Cache-Control "public, max-age=31536000, immutable"
   </FilesMatch>
+
+  # The shared cross-site launcher is hand-maintained (NOT build-hashed), and is
+  # loaded by every suite site. It must revalidate instead of being cached
+  # immutable, so a central update propagates everywhere without a per-site
+  # edit. Placed after the blanket .js rule so this override wins for this file.
+  <Files "launcher.js">
+    Header set Cache-Control "public, max-age=300, must-revalidate"
+  </Files>
 </IfModule>
 
 # Security Headers
