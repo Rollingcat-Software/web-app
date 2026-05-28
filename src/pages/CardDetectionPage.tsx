@@ -31,8 +31,10 @@ import { useTranslation } from 'react-i18next'
 /**
  * Card Detection Page
  *
- * Uses the server-side YOLO API to detect card types from camera images.
- * Provides camera preview, capture, and detection result display.
+ * Detects card types from the camera. Runs the YOLO model client-side in the
+ * browser (onnxruntime-web) when available — no server round-trip — and falls
+ * back to the server YOLO API otherwise. Provides camera preview, capture, and
+ * detection result display.
  */
 export default function CardDetectionPage() {
     const { videoRef, stream, error: cameraError, requestAccess, captureFrame, stopCamera, flipCamera } = useCamera()
@@ -55,8 +57,10 @@ export default function CardDetectionPage() {
         const url = URL.createObjectURL(blob)
         setCapturedImage(url)
 
-        // Send to detection API
-        await detectCard(blob)
+        // Detect: client-side ONNX model first (no server round-trip), passing
+        // the live video element; falls back to the server YOLO API if the
+        // in-browser model can't load.
+        await detectCard(blob, videoRef.current)
     }
 
     const handleReset = () => {
