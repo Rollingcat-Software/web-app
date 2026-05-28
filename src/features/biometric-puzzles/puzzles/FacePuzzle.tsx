@@ -319,7 +319,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 animFrameRef.current = 0
             }
         }
-    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected])
+    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 

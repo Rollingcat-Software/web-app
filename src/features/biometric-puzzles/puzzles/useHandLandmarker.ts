@@ -10,7 +10,7 @@
  * both already on the CSP allowlist (`script-src` and `connect-src` —
  * see `public/.htaccess`).
  */
-import { useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { HandLandmarker, HandLandmarkerResult } from '@mediapipe/tasks-vision'
 import { MEDIAPIPE_WASM_URL } from '../../../config/cdn'
 
@@ -98,7 +98,7 @@ export function useHandLandmarker(active: boolean): UseHandLandmarkerReturn {
         }
     }, [active])
 
-    const detect = (video: HTMLVideoElement, ts: number): HandLandmarkerResult | null => {
+    const detect = useCallback((video: HTMLVideoElement, ts: number): HandLandmarkerResult | null => {
         const lm = landmarkerRef.current
         if (!lm || !video || video.readyState < 2) return null
         try {
@@ -106,7 +106,10 @@ export function useHandLandmarker(active: boolean): UseHandLandmarkerReturn {
         } catch {
             return null
         }
-    }
+    }, [])
 
-    return { isReady, isLoading, error, detect }
+    return useMemo(
+        () => ({ isReady, isLoading, error, detect }),
+        [isReady, isLoading, error, detect],
+    )
 }
