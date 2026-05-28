@@ -23,6 +23,11 @@ import path from 'path'
 export default defineConfig(({ mode }) => ({
     plugins: [react()],
     root: path.resolve(__dirname, 'src/verify-app'),
+    // Load .env.<mode> from the project root, not from `root` (src/verify-app).
+    // Without this, VITE_API_BASE_URL is undefined at build time and the
+    // fail-fast in src/config/env.ts throws at module load → React never
+    // mounts at /login (regression from PR #62 centralizing the env var).
+    envDir: path.resolve(__dirname),
     resolve: {
         alias: {
             '@': path.resolve(__dirname, './src'),
