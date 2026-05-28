@@ -36,6 +36,13 @@ interface OtpSendResponse {
 interface OtpVerifyResponse {
     success: boolean
     message: string
+    /**
+     * Additive fields from `OtpController.buildVerifyResponse` (HTTP 200 with
+     * `success: false`). `OTP_ATTEMPTS_EXHAUSTED` means the code is burned and
+     * the user must request a fresh one — surfaced as its own message.
+     */
+    errorCode?: string
+    remainingAttempts?: number
 }
 
 function getErrorMessage(err: unknown, t: TFunction, _fallback: string): string {
@@ -113,8 +120,14 @@ export default function OtpManagement({ open, userId, onClose }: OtpManagementPr
             if (response.data.success !== false) {
                 setVerified(true)
                 setSuccess(response.data.message || t('otp.verifySuccess'))
+            } else if (response.data.errorCode === 'OTP_ATTEMPTS_EXHAUSTED') {
+                // Code is burned — back to the "request a new code" state so the
+                // user has an obvious path forward instead of retrying a dead code.
+                setOtpCode('')
+                setOtpSent(false)
+                setError(t('otp.attemptsExhausted'))
             } else {
-                setError(response.data.message || t('otp.verifyFailed'))
+                setError(t('otp.verifyFailed'))
             }
         } catch (err) {
             setError(getErrorMessage(err, t, t('otp.verifyFailed')))

@@ -313,7 +313,8 @@
     "verified": "OTP Doğrulandı!",
     "verifiedDescription": "{{channel}} başarıyla doğrulandı.",
     "userIdRequired": "Kullanıcı kimliği gerekli",
-    "codeTooShort": "Lütfen en az 4 rakam girin"
+    "codeTooShort": "Lütfen en az 4 rakam girin",
+    "attemptsExhausted": "Çok fazla hatalı deneme. Bu kod artık geçerli değil — lütfen yeni bir kod isteyin."
   },
   "stepUp": {
     "title": "Artırılmış Doğrulama Cihaz Kaydı",
@@ -1190,6 +1191,7 @@
     "faceEnrolled": "Yüz Tanıma başarıyla kaydedildi",
     "faceEnrollFailed": "Yüz kaydı başarısız. Lütfen tekrar deneyin.",
     "voiceEnrolled": "Ses Tanıma başarıyla kaydedildi",
+    "voiceEnrollRecordFailed": "Sesiniz alındı ancak kayıt kaydı saklanamadı: {{reason}}",
     "revokeSuccess": "{{method}} kaydı iptal edildi",
     "revokeFailed": "{{method}} iptal edilemedi",
     "phoneError": "Telefon numarası kaydedilemedi",

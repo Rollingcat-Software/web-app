@@ -11,6 +11,7 @@ import VoiceEnrollmentFlow from '../../../VoiceEnrollmentFlow'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import { AuthMethodType } from '@domain/models/AuthMethod'
+import { formatApiError } from '@utils/formatApiError'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ShowSnackbar } from '../../types'
 
@@ -55,11 +56,20 @@ export default function VoiceEnrollmentDialog({
                         })
                         const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
                         await httpClient.put(`/users/${userId}/enrollments/VOICE/complete`, {})
-                    } catch {
-                        /* bio enrollment succeeded even if record creation fails */
+                        onEnrolled()
+                        showSnackbar(t('enrollmentPage.voiceEnrolled'), 'success')
+                    } catch (err) {
+                        // The voice biometric was captured successfully, but persisting
+                        // the enrollment record failed. Refresh so the (possibly created)
+                        // record is reflected, then surface the failure — never swallow it.
+                        onEnrolled()
+                        showSnackbar(
+                            t('enrollmentPage.voiceEnrollRecordFailed', {
+                                reason: formatApiError(err, t),
+                            }),
+                            'error',
+                        )
                     }
-                    onEnrolled()
-                    showSnackbar(t('enrollmentPage.voiceEnrolled'), 'success')
                 }
             }}
         />

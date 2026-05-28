@@ -313,7 +313,8 @@
     "verified": "OTP Verified!",
     "verifiedDescription": "Your {{channel}} has been verified successfully.",
     "userIdRequired": "User ID is required",
-    "codeTooShort": "Please enter at least 4 digits"
+    "codeTooShort": "Please enter at least 4 digits",
+    "attemptsExhausted": "Too many invalid attempts. This code is no longer valid — please request a new one."
   },
   "stepUp": {
     "title": "Step-Up Device Registration",
@@ -1190,6 +1191,7 @@
     "faceEnrolled": "Face Recognition enrolled successfully",
     "faceEnrollFailed": "Face enrollment failed. Please try again.",
     "voiceEnrolled": "Voice Recognition enrolled successfully",
+    "voiceEnrollRecordFailed": "Your voice was captured, but saving the enrollment record failed: {{reason}}",
     "revokeSuccess": "{{method}} enrollment revoked",
     "revokeFailed": "Failed to revoke {{method}}",
     "phoneError": "Failed to save phone number",
