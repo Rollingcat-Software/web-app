@@ -61,6 +61,10 @@ export function useFaceDetection(
 
     // --- BlazeFace (secondary) ---
     const blazeFace = useBlazeFace(active)
+    // Stable reference from useCallback([], []) inside useBlazeFace.
+    // Used as a dep below so detectWithBlazeFace stays stable even when
+    // blazeFace's avgInferenceMs state updates every frame.
+    const blazeFaceDetect = blazeFace.detect
 
     // Performance logging refs
     const perfLogCountRef = useRef(0)
@@ -277,7 +281,7 @@ export function useFaceDetection(
         }
 
         try {
-            const result = await blazeFace.detect(video)
+            const result = await blazeFaceDetect(video)
             if (!result || !result.detected || result.faces.length === 0) {
                 setState({
                     ...INITIAL_STATE,
@@ -325,7 +329,7 @@ export function useFaceDetection(
         }
 
         animFrameRef.current = requestAnimationFrame(detectWithBlazeFace)
-    }, [videoRef, blazeFace, recordOperation])
+    }, [videoRef, blazeFaceDetect, recordOperation])
 
     // ─────────────────────────────────────────────────────────────────────────
     // Detection loop: MediaPipe FaceDetector fallback
