@@ -19,8 +19,5 @@ export type { UseFaceEnrollmentReturn } from './useFaceEnrollment';
 export { useVoiceRecorder } from './useVoiceRecorder';
 export type { UseVoiceRecorderReturn } from './useVoiceRecorder';
 
-export { useCardDetection } from './useCardDetection';
-export type { UseCardDetectionReturn } from './useCardDetection';
-
 export { useHandGestureDetection } from './useHandGestureDetection';
 export type { UseHandGestureDetectionReturn } from './useHandGestureDetection';
