@@ -65,6 +65,7 @@ See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architecture doc
     - Tenant management
     - Per-tenant configuration
     - Isolated data access
+    - Email-domain management (add / remove / set-primary) with an "Enforce domain matching" toggle on the tenant edit page
 
 - **Audit Logging**
     - Activity tracking
@@ -76,6 +77,7 @@ See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architecture doc
     - Auth methods testing page (all 10 methods exercisable in-dashboard)
     - Verification flows builder, dashboard, and session detail
     - Biometric enrollment and tools pages
+    - Enrollment Details page (`/enrollments/:id`) with quality/liveness scores ("N/A" for non-biometric methods) and a set-default lockout guardrail
 
 - **Hosted Login & Widget**
     - `widget-auth` hosted login page (OIDC code+PKCE redirect flow)
@@ -83,7 +85,8 @@ See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architecture doc
     - Developer portal and widget demo pages
 
 - **Guests & Sessions**
-    - Guest management (invite / extend / revoke)
+    - Guest management (invite / extend / revoke / resend invitation)
+    - Public guest invitation acceptance page (`/accept-invite` — set name + password)
     - Auth sessions listing and detail
 
 ## Technology Stack

@@ -2,6 +2,35 @@
 
 ## [Unreleased]
 
+### 2026-05-29 — Admin pages wave: enrollment detail, guest invites, tenant email domains, flow-render fix (5 PRs)
+
+- **PR #114** `fix/2026-05-29-enrollment-detail-and-default-guardrail` — Enrollments page.
+  - New **Enrollment Details** page + `/enrollments/:id` route. The eye ("view")
+    button used to have no matching route and fell through to the dashboard; it now
+    opens a dedicated detail view.
+  - Quality / liveness columns show **"N/A"** for non-biometric methods (those scores
+    only exist for face/voice), instead of empty or misleading cells.
+  - The set-default ("Make Default") dialog now shows a **lockout warning** if making
+    the method default would lock the user out of every configured login path. It
+    calls the backend default-impact endpoint and surfaces the impact before the admin
+    confirms.
+- **PR #115** `fix/2026-05-29-remove-redundant-sidebar-suite-bar` — removed the redundant
+  hardcoded **"FIVUCSAS suite"** bar from the sidebar. The shared `<fivucsas-launcher>`
+  FAB (hosted at `app.fivucsas.com/launcher.js`) already provides cross-site navigation,
+  so the in-sidebar duplicate was dead weight.
+- **PR #116** `feat/guest-accept-invite` — guest invitation acceptance.
+  - New **public** `/accept-invite` page lets an invited guest accept their invitation
+    by setting a name + password (no prior login required).
+  - Added a **"Resend invitation"** action to the Guests page for pending invites.
+- **PR #117** `feat/tenant-email-domain-admin-ui` — tenant edit page.
+  - New **"Email Domains"** management section (add / remove / set-primary).
+  - New **"Enforce domain matching"** toggle to require member emails to match an
+    allowed domain.
+- **PR #118** `fix/2026-05-29-verification-flows-render-crash` — the Verification Flows
+  page no longer crashes. `listFlows` now maps the API response shape
+  (`operationType` / `isActive` / `stepCount`) to the UI shape
+  (`flowType` / `status` / `steps`); the mismatch was throwing on render.
+
 ### 2026-05-29 — MFA dark-mode "black box" fix + safer auth-flow editing
 
 - **Fix: invisible MFA code inputs in dark mode (app.fivucsas dashboard login).**
