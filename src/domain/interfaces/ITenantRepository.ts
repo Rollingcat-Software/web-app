@@ -37,6 +37,28 @@ export interface TenantEmailDomain {
     domain: string
     isPrimary: boolean
     createdAt: string
+    /** DNS-ownership verification state (TXT challenge). */
+    verified?: boolean
+}
+
+/**
+ * The DNS TXT challenge issued for a domain-ownership verification.
+ */
+export interface DomainVerificationChallenge {
+    recordName: string
+    recordType: string
+    recordValue: string
+    verified: boolean
+    instructions?: string
+}
+
+/**
+ * Result of attempting to verify a domain's TXT challenge.
+ */
+export interface DomainVerificationResult {
+    verified: boolean
+    /** Failure reason when not verified, e.g. RECORD_NOT_FOUND / NO_CHALLENGE. */
+    reason?: string
 }
 
 /**
@@ -109,4 +131,20 @@ export interface ITenantRepository {
      * Set the given domain as the tenant's single primary domain.
      */
     setPrimaryDomain(tenantId: string, domain: string): Promise<TenantEmailDomain>
+
+    /**
+     * Issue (or fetch) the DNS TXT challenge proving ownership of a domain.
+     */
+    getDomainVerificationChallenge(
+        tenantId: string,
+        domain: string
+    ): Promise<DomainVerificationChallenge>
+
+    /**
+     * Attempt to verify the domain's TXT challenge.
+     * Resolves to `{ verified: false, reason }` for the documented 4xx
+     * responses (e.g. 422 RECORD_NOT_FOUND, 409 NO_CHALLENGE) rather than
+     * throwing, so the UI can show the reason inline.
+     */
+    verifyDomain(tenantId: string, domain: string): Promise<DomainVerificationResult>
 }

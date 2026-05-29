@@ -15,6 +15,7 @@ import {useUsers, useUser} from '@features/users'
 import {useTenants} from '@features/tenants'
 import {useRoles} from '@features/roles'
 import {UserRole, UserStatus} from '@domain/models/User'
+import {OperationContextBanner} from '@components/OperationContextBanner'
 
 const userSchema = z.object({
     email: z.string().email('Invalid email address'),
@@ -134,6 +135,10 @@ export default function UserFormPage() {
             <Typography variant="body1" color="text.secondary" sx={{mb: 3}}>
                 {isEditMode ? 'Update user information and permissions' : 'Add a new user to the system'}
             </Typography>
+
+            {!isEditMode && (
+                <OperationContextBanner i18nKey="operationContext.addUser" />
+            )}
 
             {error && (
                 <Alert severity="error" sx={{mb: 3}} onClose={() => setError(null)}>

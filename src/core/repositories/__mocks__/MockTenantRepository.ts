@@ -1,6 +1,8 @@
 import { injectable } from 'inversify'
 import type {
     CreateTenantData,
+    DomainVerificationChallenge,
+    DomainVerificationResult,
     ITenantRepository,
     TenantEmailDomain,
     UpdateTenantData,
@@ -186,6 +188,29 @@ export class MockTenantRepository implements ITenantRepository {
             throw new Error(`Email domain not found: ${normalized}`)
         }
         return found
+    }
+
+    async getDomainVerificationChallenge(
+        tenantId: string,
+        domain: string
+    ): Promise<DomainVerificationChallenge> {
+        return {
+            recordName: `_fivucsas-verify.${domain.toLowerCase().trim()}`,
+            recordType: 'TXT',
+            recordValue: `fivucsas-verify=${tenantId}-mock-token`,
+            verified: false,
+            instructions: 'Add this TXT record at your DNS provider, then click verify.',
+        }
+    }
+
+    async verifyDomain(tenantId: string, domain: string): Promise<DomainVerificationResult> {
+        const normalized = domain.toLowerCase().trim()
+        const list = this.domains.get(tenantId) ?? []
+        this.domains.set(
+            tenantId,
+            list.map((d) => (d.domain === normalized ? { ...d, verified: true } : d))
+        )
+        return { verified: true }
     }
 
     async activate(id: string): Promise<Tenant> {

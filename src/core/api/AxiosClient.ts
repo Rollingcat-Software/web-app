@@ -10,6 +10,7 @@ import type { IConfig } from '@domain/interfaces/IConfig'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import { getCsrfToken } from '@utils/auth'
+import { ACTIVE_TENANT_HEADER, getActiveTenantHeader } from '@core/api/activeTenant'
 import i18n from '@/i18n/index'
 
 /**
@@ -155,6 +156,14 @@ export class AxiosClient implements IHttpClient {
                     if (csrfToken) {
                         config.headers['X-CSRF-Token'] = csrfToken
                     }
+                }
+
+                // SUPER_ADMIN tenant scoping: when an operator has switched to
+                // a tenant other than their home tenant, attach the override
+                // header so the backend scopes admin data to that tenant.
+                const activeTenantId = getActiveTenantHeader()
+                if (activeTenantId) {
+                    config.headers[ACTIVE_TENANT_HEADER] = activeTenantId
                 }
 
                 this.logger.debug(`HTTP ${method} ${url}`, {
