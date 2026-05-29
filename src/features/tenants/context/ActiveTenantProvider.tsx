@@ -79,11 +79,13 @@ export function ActiveTenantProvider({ children }: { children: ReactNode }) {
         }
     }, [canSwitch, isAuthenticated, tenantRepo, logger])
 
-    // Bridge the selection to the axios interceptor. Only override when a
-    // SUPER_ADMIN has switched away from their home tenant — otherwise send
-    // no header so the backend uses the caller's own tenant.
+    // Bridge the selection to the axios interceptor. For a SUPER_ADMIN we ALWAYS
+    // send the selected tenant (which initializes to their home tenant), so the
+    // default view is the home tenant and switching narrows to the chosen one —
+    // matching the "switcher defaults to home" product decision. Non-super-admins
+    // never send the header (the backend would ignore it anyway).
     useEffect(() => {
-        if (canSwitch && activeTenantId && activeTenantId !== homeTenantId) {
+        if (canSwitch && activeTenantId) {
             setActiveTenantHeader(activeTenantId)
         } else {
             setActiveTenantHeader(null)
@@ -91,7 +93,7 @@ export function ActiveTenantProvider({ children }: { children: ReactNode }) {
         return () => {
             setActiveTenantHeader(null)
         }
-    }, [canSwitch, activeTenantId, homeTenantId])
+    }, [canSwitch, activeTenantId])
 
     const setActiveTenantId = useCallback(
         (tenantId: string) => {

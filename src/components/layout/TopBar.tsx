@@ -33,7 +33,7 @@ import {useSessionCountdown} from '@features/auth/hooks/useSessionCountdown'
  * currentScope) and covered by adversarial cross-tenant security tests.
  * Flip to true to re-enable. See TopBar switcher block (2026-05-29).
  */
-const TENANT_SWITCHER_ENABLED = false
+const TENANT_SWITCHER_ENABLED = true
 
 interface TopBarProps {
     drawerWidth: number
