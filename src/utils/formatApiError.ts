@@ -35,6 +35,9 @@ function errorCodeToI18nKey(code: string | undefined): string | null {
             return 'errors.cannotRemoveLastDomain'
         case 'EMAIL_DOMAIN_NOT_ALLOWED':
             return 'errors.emailDomainNotAllowed'
+        // Self-service onboarding — admin used a personal/free email provider (422).
+        case 'PERSONAL_EMAIL_NOT_ALLOWED':
+            return 'errors.personalEmailNotAllowed'
         default:
             return null
     }

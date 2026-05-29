@@ -388,6 +388,8 @@
     "forgotPasswordQuestion": "Forgot Password?",
     "noAccountQuestion": "Don't have an account?",
     "register": "Register",
+    "createOrgQuestion": "Bringing your company?",
+    "createOrgLink": "Create an organization",
     "mfaInfo": "After signing in, you may be asked for additional verification (face, fingerprint, TOTP, etc.) depending on your organization's security policy.",
     "noMatchingFace": "No matching face found. Please try again or use password login.",
     "faceVerificationFailed": "Face verification failed",
@@ -870,6 +872,55 @@
       "confirmPasswordRequired": "Please confirm your password",
       "passwordsDoNotMatch": "Passwords don't match"
     }
+  },
+  "onboarding": {
+    "title": "Create your organization",
+    "subtitle": "Set up your FIVUCSAS workspace and invite your team in minutes.",
+    "trialBadge": "Free trial — no credit card",
+    "orgNameLabel": "Organization name",
+    "orgNamePlaceholder": "Acme Inc.",
+    "firstNameLabel": "First name",
+    "lastNameLabel": "Last name",
+    "emailLabel": "Work email",
+    "emailPlaceholder": "you@yourcompany.com",
+    "emailHelp": "Use your organization email — personal/free providers aren't accepted.",
+    "passwordLabel": "Password",
+    "confirmPasswordLabel": "Confirm password",
+    "submitButton": "Create organization",
+    "haveAccountQuestion": "Already have an account?",
+    "signInLink": "Sign in",
+    "successTitle": "Check your email",
+    "successSubtitle": "One last step to activate your organization.",
+    "checkInbox": "We've sent a verification link to your inbox. Click it to verify your email and activate your organization.",
+    "checkInboxWithEmail": "We've sent a verification link to {{email}}. Click it to verify your email and activate your organization.",
+    "checkInboxHint": "Your organization starts on the free trial tier. Didn't get the email? Check your spam folder.",
+    "goToLogin": "Go to sign in",
+    "validation": {
+      "orgNameMin": "Organization name must be at least 2 characters",
+      "orgNameMax": "Organization name must not exceed 100 characters",
+      "firstNameRequired": "First name is required",
+      "firstNameMax": "First name must not exceed 100 characters",
+      "lastNameRequired": "Last name is required",
+      "lastNameMax": "Last name must not exceed 100 characters",
+      "emailRequired": "Work email is required",
+      "emailInvalid": "Enter a valid email address",
+      "passwordMin": "Password must be at least 8 characters",
+      "passwordMax": "Password must not exceed 128 characters",
+      "confirmPasswordRequired": "Please confirm your password",
+      "passwordsDoNotMatch": "Passwords don't match"
+    }
+  },
+  "verifyEmail": {
+    "verifyingTitle": "Verifying your email",
+    "verifyingSubtitle": "This will only take a moment.",
+    "successTitle": "You're all set!",
+    "successMessage": "Your organization is now active. Sign in to start setting up your workspace.",
+    "goToLogin": "Sign in",
+    "errorTitle": "Verification failed",
+    "noToken": "This verification link is invalid or incomplete. Please use the link from your verification email.",
+    "retry": "Try again",
+    "backToLogin": "Back to sign in",
+    "contactSupport": "If the link keeps failing, it may have expired — request a new one or contact support."
   },
   "developerPortal": {
     "title": "Developer Portal",
@@ -1664,7 +1715,8 @@
     },
     "emailDomainAlreadyClaimed": "This email domain is already claimed by another organization.",
     "cannotRemoveLastDomain": "Can't remove the last email domain while domain enforcement is enabled. Disable enforcement or add another domain first.",
-    "emailDomainNotAllowed": "This email domain is not allowed to register with this organization."
+    "emailDomainNotAllowed": "This email domain is not allowed to register with this organization.",
+    "personalEmailNotAllowed": "Please sign up with your organization email, not a personal or free email provider (e.g. Gmail, Outlook)."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "That email or password didn't match. Please try again.",

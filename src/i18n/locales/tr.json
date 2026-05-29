@@ -388,6 +388,8 @@
     "forgotPasswordQuestion": "Şifremi Unuttum?",
     "noAccountQuestion": "Hesabınız yok mu?",
     "register": "Kayıt Ol",
+    "createOrgQuestion": "Şirketinizi mi getiriyorsunuz?",
+    "createOrgLink": "Kuruluş oluşturun",
     "mfaInfo": "Giriş yaptıktan sonra, kuruluşunuzun güvenlik politikasına bağlı olarak ek doğrulama (yüz, parmak izi, TOTP vb.) istenebilir.",
     "noMatchingFace": "Eşleşen yüz bulunamadı. Lütfen tekrar deneyin veya şifre ile giriş yapın.",
     "faceVerificationFailed": "Yüz doğrulama başarısız",
@@ -870,6 +872,55 @@
       "confirmPasswordRequired": "Lütfen parolanızı onaylayın",
       "passwordsDoNotMatch": "Parolalar eşleşmiyor"
     }
+  },
+  "onboarding": {
+    "title": "Kuruluşunuzu oluşturun",
+    "subtitle": "FIVUCSAS çalışma alanınızı kurun ve ekibinizi dakikalar içinde davet edin.",
+    "trialBadge": "Ücretsiz deneme — kredi kartı gerekmez",
+    "orgNameLabel": "Kuruluş adı",
+    "orgNamePlaceholder": "Acme A.Ş.",
+    "firstNameLabel": "Ad",
+    "lastNameLabel": "Soyad",
+    "emailLabel": "Kurumsal e-posta",
+    "emailPlaceholder": "siz@sirketiniz.com",
+    "emailHelp": "Kurumsal e-postanızı kullanın — kişisel/ücretsiz sağlayıcılar kabul edilmez.",
+    "passwordLabel": "Parola",
+    "confirmPasswordLabel": "Parolayı onayla",
+    "submitButton": "Kuruluş oluştur",
+    "haveAccountQuestion": "Zaten hesabınız var mı?",
+    "signInLink": "Giriş yapın",
+    "successTitle": "E-postanızı kontrol edin",
+    "successSubtitle": "Kuruluşunuzu etkinleştirmek için son bir adım.",
+    "checkInbox": "Gelen kutunuza bir doğrulama bağlantısı gönderdik. E-postanızı doğrulamak ve kuruluşunuzu etkinleştirmek için bağlantıya tıklayın.",
+    "checkInboxWithEmail": "{{email}} adresine bir doğrulama bağlantısı gönderdik. E-postanızı doğrulamak ve kuruluşunuzu etkinleştirmek için bağlantıya tıklayın.",
+    "checkInboxHint": "Kuruluşunuz ücretsiz deneme katmanında başlar. E-posta gelmedi mi? Spam klasörünüzü kontrol edin.",
+    "goToLogin": "Girişe git",
+    "validation": {
+      "orgNameMin": "Kuruluş adı en az 2 karakter olmalıdır",
+      "orgNameMax": "Kuruluş adı 100 karakteri aşmamalıdır",
+      "firstNameRequired": "Ad gereklidir",
+      "firstNameMax": "Ad 100 karakteri aşmamalıdır",
+      "lastNameRequired": "Soyad gereklidir",
+      "lastNameMax": "Soyad 100 karakteri aşmamalıdır",
+      "emailRequired": "Kurumsal e-posta gereklidir",
+      "emailInvalid": "Geçerli bir e-posta adresi girin",
+      "passwordMin": "Parola en az 8 karakter olmalıdır",
+      "passwordMax": "Parola 128 karakteri aşmamalıdır",
+      "confirmPasswordRequired": "Lütfen parolanızı onaylayın",
+      "passwordsDoNotMatch": "Parolalar eşleşmiyor"
+    }
+  },
+  "verifyEmail": {
+    "verifyingTitle": "E-postanız doğrulanıyor",
+    "verifyingSubtitle": "Bu yalnızca birkaç saniye sürer.",
+    "successTitle": "Her şey hazır!",
+    "successMessage": "Kuruluşunuz artık etkin. Çalışma alanınızı kurmaya başlamak için giriş yapın.",
+    "goToLogin": "Giriş yap",
+    "errorTitle": "Doğrulama başarısız",
+    "noToken": "Bu doğrulama bağlantısı geçersiz veya eksik. Lütfen doğrulama e-postanızdaki bağlantıyı kullanın.",
+    "retry": "Tekrar dene",
+    "backToLogin": "Girişe dön",
+    "contactSupport": "Bağlantı çalışmaya devam etmiyorsa süresi dolmuş olabilir — yeni bir bağlantı isteyin veya destek ile iletişime geçin."
   },
   "developerPortal": {
     "title": "Geliştirici Portalı",
@@ -1664,7 +1715,8 @@
     },
     "emailDomainAlreadyClaimed": "Bu e-posta alan adı zaten başka bir kuruluş tarafından kullanılıyor.",
     "cannotRemoveLastDomain": "Alan adı zorunluluğu açıkken son e-posta alan adı kaldırılamaz. Önce zorunluluğu kapatın veya başka bir alan adı ekleyin.",
-    "emailDomainNotAllowed": "Bu e-posta alan adının bu kuruluşa kaydolmasına izin verilmiyor."
+    "emailDomainNotAllowed": "Bu e-posta alan adının bu kuruluşa kaydolmasına izin verilmiyor.",
+    "personalEmailNotAllowed": "Lütfen kişisel veya ücretsiz bir e-posta sağlayıcısı (ör. Gmail, Outlook) yerine kurumsal e-postanızla kayıt olun."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "E-posta veya parola eşleşmedi. Lütfen tekrar deneyin.",
