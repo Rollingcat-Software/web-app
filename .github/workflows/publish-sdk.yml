@@ -1,0 +1,75 @@
+# Publish the FIVUCSAS auth SDK npm packages.
+#
+# Triggers on a tag matching `sdk-v*` (e.g. `sdk-v0.1.0`). Builds the
+# `@fivucsas/auth-js` and `@fivucsas/auth-elements` packages and publishes them
+# to npm with provenance.
+#
+# ── OPERATOR PRE-REQUISITES (one-time) ───────────────────────────────────────
+#   1. Create the `@fivucsas` organization (scope) on npmjs.com.
+#   2. Generate an npm automation/granular access token with publish rights to
+#      the `@fivucsas` scope, then add it to this repo as the
+#      `NPM_TOKEN` Actions secret (Settings → Secrets and variables → Actions).
+#   3. Bump the `version` in BOTH packages/*/package.json, commit, then:
+#         git tag sdk-v0.1.0 && git push origin sdk-v0.1.0
+#
+# Provenance (`npm publish --provenance`) requires `id-token: write`. It is
+# supported for public packages built in GitHub Actions; no extra secret needed.
+name: Publish SDK
+
+on:
+  push:
+    tags:
+      - 'sdk-v*'
+  # Allow a manual dry-run from the Actions tab (no publish).
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Build + npm pack only, do not publish'
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  id-token: write # required for npm provenance
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.x'
+          registry-url: 'https://registry.npmjs.org'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build SDK packages
+        run: npm run build:pkgs
+
+      - name: Verify tarball contents (dry-run)
+        run: |
+          echo "::group::@fivucsas/auth-js"
+          npm pack --dry-run --workspaces=false ./packages/auth-js
+          echo "::endgroup::"
+          echo "::group::@fivucsas/auth-elements"
+          npm pack --dry-run --workspaces=false ./packages/auth-elements
+          echo "::endgroup::"
+
+      - name: Publish @fivucsas/auth-js
+        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
+        run: npm publish --provenance --access public
+        working-directory: packages/auth-js
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Publish @fivucsas/auth-elements
+        if: ${{ github.event_name == 'push' || inputs.dry_run == false }}
+        run: npm publish --provenance --access public
+        working-directory: packages/auth-elements
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}

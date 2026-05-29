@@ -1,0 +1,53 @@
+{
+  "name": "@fivucsas/auth-js",
+  "version": "0.1.0",
+  "description": "Lightweight, zero-dependency vanilla SDK for hosted-first OIDC login and embeddable biometric MFA with FIVUCSAS (verify.fivucsas.com).",
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.mjs",
+  "types": "./dist/core.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/core.d.ts",
+      "import": "./dist/index.mjs",
+      "require": "./dist/index.cjs"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "keywords": [
+    "fivucsas",
+    "oidc",
+    "oauth2",
+    "pkce",
+    "authentication",
+    "biometric",
+    "mfa",
+    "passwordless",
+    "sdk",
+    "identity-verification"
+  ],
+  "license": "MIT",
+  "author": "FIVUCSAS Team",
+  "homepage": "https://verify.fivucsas.com",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Rollingcat-Software/web-app.git",
+    "directory": "packages/auth-js"
+  },
+  "bugs": {
+    "url": "https://github.com/Rollingcat-Software/web-app/issues"
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

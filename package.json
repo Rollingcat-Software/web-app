@@ -18,7 +18,10 @@
     "build:verify": "vite build --config vite.verify.config.ts",
     "dev:verify": "vite dev --config vite.verify.config.ts",
     "build:sdk": "vite build --config vite.sdk.config.ts",
-    "build:elements": "vite build --config vite.config.elements.ts"
+    "build:elements": "vite build --config vite.config.elements.ts",
+    "build:pkg:auth-js": "vite build --config vite.package.auth-js.config.ts && tsc -p tsconfig.package.auth-js.json && node scripts/copy-license.mjs auth-js",
+    "build:pkg:auth-elements": "vite build --config vite.package.auth-elements.config.ts && tsc -p tsconfig.package.auth-elements.json && node scripts/copy-license.mjs auth-elements",
+    "build:pkgs": "npm run build:pkg:auth-js && npm run build:pkg:auth-elements"
   },
   "dependencies": {
     "@emotion/react": "^11.13.0",

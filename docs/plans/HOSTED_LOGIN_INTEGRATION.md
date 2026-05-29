@@ -51,7 +51,7 @@ the hosted page via `GET /oauth2/clients/{id}/public` (branding only).
 Or npm (for SPAs that bundle their own JS):
 
 ```bash
-npm install @fivucsas/auth-js  # coming soon
+npm install @fivucsas/auth-js  # package built; publishes via the sdk-v* tag workflow (see docs/SDK_PUBLISHING.md)
 ```
 
 ### Step 3 — wire up the two entry points
