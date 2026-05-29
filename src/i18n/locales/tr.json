@@ -140,6 +140,15 @@
       "tooltip": "Verilerini görüntülediğiniz ve yönettiğiniz kiracıyı değiştirin"
     }
   },
+  "accountSwitcher": {
+    "label": "Hesap değiştir",
+    "tooltip": "Bağlı hesaplarınızdan hangisiyle işlem yaptığınızı değiştirin",
+    "menuHeading": "Hesaplarınız",
+    "current": "Geçerli",
+    "inactive": "Pasif",
+    "unknownTenant": "Bilinmeyen çalışma alanı",
+    "switchSuccess": "{{tenant}} hesabına geçildi"
+  },
   "operationContext": {
     "addUser": "<b>{{tenantName}}</b> kiracısına kullanıcı ekleniyor",
     "inviteGuest": "<b>{{tenantName}}</b> kiracısına misafir davet ediliyor",

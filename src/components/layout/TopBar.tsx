@@ -26,6 +26,7 @@ import {useTranslation} from 'react-i18next'
 import NotificationPanel from '@components/NotificationPanel'
 import {useActiveTenant} from '@features/tenants/context/ActiveTenantContext'
 import {useSessionCountdown} from '@features/auth/hooks/useSessionCountdown'
+import AccountSwitcher from '@features/accountSwitcher/AccountSwitcher'
 
 /**
  * Feature flag: the SUPER_ADMIN tenant switcher is hidden until the backend
@@ -157,6 +158,14 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
 
                 {/* Right cluster */}
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
+                    {/* Account / workspace switcher (Identity Phase 5). Changes WHO
+                        you are — switches between a LINKED person's memberships via
+                        POST /auth/switch-membership. Self-hides unless /identity/me
+                        returns >1 membership. This is DISTINCT from the SUPER_ADMIN
+                        tenant *data* switcher below ("Switch account" vs the tenant
+                        view selector): that one keeps you the SAME user. */}
+                    <AccountSwitcher />
+
                     {/* SUPER_ADMIN tenant switcher — TEMPORARILY HIDDEN (2026-05-29).
                         The backend cross-tenant scoping isn't unified yet (the Users
                         view scopes via the Hibernate tenantFilter / X-Tenant-ID, which

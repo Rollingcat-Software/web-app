@@ -140,6 +140,15 @@
       "tooltip": "Switch the tenant whose data you are viewing and managing"
     }
   },
+  "accountSwitcher": {
+    "label": "Switch account",
+    "tooltip": "Switch which of your linked accounts you are operating as",
+    "menuHeading": "Your accounts",
+    "current": "Current",
+    "inactive": "Inactive",
+    "unknownTenant": "Unknown workspace",
+    "switchSuccess": "Switched to {{tenant}}"
+  },
   "operationContext": {
     "addUser": "Adding a user to <b>{{tenantName}}</b>",
     "inviteGuest": "Inviting a guest to <b>{{tenantName}}</b>",
