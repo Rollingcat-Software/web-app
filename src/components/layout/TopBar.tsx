@@ -27,6 +27,14 @@ import NotificationPanel from '@components/NotificationPanel'
 import {useActiveTenant} from '@features/tenants/context/ActiveTenantContext'
 import {useSessionCountdown} from '@features/auth/hooks/useSessionCountdown'
 
+/**
+ * Feature flag: the SUPER_ADMIN tenant switcher is hidden until the backend
+ * cross-tenant scoping is unified (Hibernate tenantFilter / X-Tenant-ID +
+ * currentScope) and covered by adversarial cross-tenant security tests.
+ * Flip to true to re-enable. See TopBar switcher block (2026-05-29).
+ */
+const TENANT_SWITCHER_ENABLED = false
+
 interface TopBarProps {
     drawerWidth: number
     onMenuClick: () => void
@@ -149,8 +157,15 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
 
                 {/* Right cluster */}
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
-                    {/* SUPER_ADMIN tenant switcher */}
-                    {canSwitch && tenants.length > 0 && (
+                    {/* SUPER_ADMIN tenant switcher — TEMPORARILY HIDDEN (2026-05-29).
+                        The backend cross-tenant scoping isn't unified yet (the Users
+                        view scopes via the Hibernate tenantFilter / X-Tenant-ID, which
+                        currently 403s for SUPER_ADMIN; X-Active-Tenant only covers the
+                        currentScope() endpoints). Shipping a switcher that changes some
+                        pages but not Users would be misleading + a cross-tenant risk.
+                        Flip TENANT_SWITCHER_ENABLED to true once the unified backend fix
+                        + adversarial cross-tenant security tests land. */}
+                    {TENANT_SWITCHER_ENABLED && canSwitch && tenants.length > 0 && (
                         <Tooltip title={t('topbar.tenantSwitcher.tooltip')}>
                             <FormControl size="small" sx={{ minWidth: 150, mr: 0.5, display: { xs: 'none', sm: 'block' } }}>
                                 <Select
