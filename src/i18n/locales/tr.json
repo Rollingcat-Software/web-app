@@ -1698,7 +1698,11 @@
     "verify": "Doğrula"
   },
   "sidebar": {
-    "systemStatus": "Tüm sistemler çalışıyor"
+    "systemStatus": "Tüm sistemler çalışıyor",
+    "suite": "FIVUCSAS paketi",
+    "suiteHome": "Anasayfa",
+    "suiteDemo": "Demo",
+    "suiteWidget": "Widget"
   },
   "authMethodsTesting": {
     "pageTitle": "Kimlik Doğrulama Yöntemi Denemeleri",
@@ -1810,6 +1814,9 @@
     "promptLabel": "Görev",
     "handFingerCountPrompt": "{{count}} parmağınızı gösterip tutun.",
     "handMathPrompt": "{{expr}} işleminin sonucunu parmaklarınızla gösterip tutun.",
+    "verifyingServer": "Sunucu ile doğrulanıyor…",
+    "serverRejected": "Sunucu doğrulamayı reddetti.",
+    "serverError": "Sunucu doğrulaması başarısız oldu. Lütfen tekrar deneyin.",
     "difficulty": {
       "beginner": "Başlangıç",
       "intermediate": "Orta",

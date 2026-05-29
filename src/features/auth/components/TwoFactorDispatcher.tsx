@@ -161,6 +161,16 @@ export default function TwoFactorDispatcher({
                             '& .MuiInputBase-input': { color: '#1a1a2e' },
                             '& .MuiInputLabel-root': { color: 'rgba(0,0,0,0.6)' },
                             '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.23)' },
+                            // The MFA card is intentionally a fixed light surface even in dark
+                            // mode. The step TextFields fill their box from the theme token
+                            // `background.paper` (near-black in dark mode) → black-on-black
+                            // code inputs. Force the input box white to match the card. `&&`
+                            // doubles specificity so it beats the per-step `background.paper`.
+                            '&& .MuiOutlinedInput-root': {
+                                backgroundColor: '#ffffff',
+                                '&:hover': { backgroundColor: '#ffffff' },
+                                '&.Mui-focused': { backgroundColor: '#ffffff' },
+                            },
                         }}
                     >
                         <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
@@ -364,6 +374,16 @@ export default function TwoFactorDispatcher({
                         '& .MuiInputBase-input': { color: '#1a1a2e' },
                         '& .MuiInputLabel-root': { color: 'rgba(0,0,0,0.6)' },
                         '& .MuiOutlinedInput-notchedOutline': { borderColor: 'rgba(0,0,0,0.23)' },
+                        // The MFA card is intentionally a fixed light surface even in dark
+                        // mode. The step TextFields fill their box from the theme token
+                        // `background.paper` (near-black in dark mode) → black-on-black
+                        // code inputs. Force the input box white to match the card. `&&`
+                        // doubles specificity so it beats the per-step `background.paper`.
+                        '&& .MuiOutlinedInput-root': {
+                            backgroundColor: '#ffffff',
+                            '&:hover': { backgroundColor: '#ffffff' },
+                            '&.Mui-focused': { backgroundColor: '#ffffff' },
+                        },
                     }}
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>

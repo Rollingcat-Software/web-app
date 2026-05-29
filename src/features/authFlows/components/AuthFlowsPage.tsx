@@ -134,11 +134,31 @@ export default function AuthFlowsPage() {
             }
 
             if (editingFlow) {
-                // For edit: delete the old flow and create a new one with updated data
-                // (The backend UpdateAuthFlowCommand only supports name/description/isDefault/isActive,
-                // not step changes. So we recreate the flow to apply step changes.)
+                // Step edits require recreation: the backend UpdateAuthFlowCommand only
+                // supports name/description/isDefault/isActive — not step changes.
+                //
+                // SAFETY (was a data-loss bug): the old order deleted the flow FIRST, then
+                // created the replacement. A failed create then left the tenant with the
+                // flow gone — and if it was the default, EVERY login broke ("No default auth
+                // flow"). We now create the replacement FIRST, then delete the old one.
+                //
+                // Two coexistence hazards while both rows exist: (a) a duplicate-name 409,
+                // and (b) two rows is_default=true at once (createFlow does NOT dethrone the
+                // existing default). So we create under a temporary name as non-default,
+                // delete the old flow, then rename back and (re)apply the default flag via
+                // updateFlow — which atomically dethrones any other default.
+                const wantDefault = command.isDefault === true
+                const replacement = await authFlowRepo.createFlow(tenantId, {
+                    ...command,
+                    name: `${command.name} (updating…)`,
+                    isDefault: false,
+                })
                 await authFlowRepo.deleteFlow(tenantId, editingFlow.id)
-                await authFlowRepo.createFlow(tenantId, command)
+                await authFlowRepo.updateFlow(tenantId, replacement.id, {
+                    name: command.name,
+                    isDefault: wantDefault,
+                    isActive: true,
+                })
                 setEditingFlow(null)
             } else {
                 await authFlowRepo.createFlow(tenantId, command)
@@ -428,6 +448,7 @@ export default function AuthFlowsPage() {
                                 initialName={editingFlow?.name}
                                 initialDescription={editingFlow?.description}
                                 initialOperationType={editingFlow?.operationType}
+                                initialIsDefault={editingFlow?.isDefault}
                             />
                         </Box>
                     </DialogContent>

@@ -37,6 +37,8 @@ import {
     type HandFrame,
     type HandPuzzleState,
 } from './handChallenges'
+import { useBiometricPuzzleServer } from '../useBiometricPuzzleServer'
+import { handPuzzleToServerAction } from '../puzzleServerAction'
 
 // Lazily import DrawingUtils + HandLandmarker statics so we can render the
 // 21-point hand skeleton (HAND_CONNECTIONS) over the camera feed.
@@ -82,8 +84,12 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
     const [running, setRunning] = useState(false)
     const [promptText, setPromptText] = useState<string | null>(null)
     const [promptCode, setPromptCode] = useState<string | null>(null)
+    const [serverVerifying, setServerVerifying] = useState(false)
 
     const handLandmarker = useHandLandmarker(cameraActive)
+
+    // Bug 4 (2026-05-12) — server validation client. See useBiometricPuzzleServer.ts.
+    const { verifyChallenge } = useBiometricPuzzleServer()
 
     const startCamera = useCallback(async () => {
         try {
@@ -274,7 +280,46 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                 completedRef.current = true
                 setRunning(false)
                 setProgress(100)
-                onSuccess()
+
+                // Bug 4 (2026-05-12) — round-trip the completion through the
+                // server before resolving onSuccess. The mapper returns null
+                // for hand variants without a 1:1 server enum (currently
+                // HAND_TRACE_TEMPLATE), in which case the local verdict is
+                // final because the server can't express the same challenge.
+                const serverAction = handPuzzleToServerAction(puzzleId)
+                if (!serverAction) {
+                    onSuccess()
+                    return
+                }
+                const endTs = performance.now()
+                setServerVerifying(true)
+                verifyChallenge(
+                    {
+                        action: serverAction,
+                        startTimestampMs: startTsRef.current,
+                        endTimestampMs: endTs,
+                        confidence: 0.9,
+                        metrics: { progress: evalResult.progress ?? 0 },
+                    },
+                    t,
+                )
+                    .then((outcome) => {
+                        setServerVerifying(false)
+                        if (outcome.kind === 'success' || outcome.kind === 'soft_pass') {
+                            onSuccess()
+                        } else {
+                            onError(outcome.message)
+                        }
+                    })
+                    .catch(() => {
+                        setServerVerifying(false)
+                        onError(
+                            t('biometricPuzzle.serverError', {
+                                defaultValue:
+                                    'Server validation failed. Please try again.',
+                            }),
+                        )
+                    })
                 return
             }
 
@@ -288,7 +333,7 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                 animFrameRef.current = 0
             }
         }
-    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t, drawHandLandmarks, clearOverlay])
+    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t, drawHandLandmarks, clearOverlay, verifyChallenge])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 
@@ -500,6 +545,18 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                     <Typography variant="caption" color="text.secondary">
                         {t('biometricPuzzle.engineLoading')}
                     </Typography>
+                )}
+
+                {serverVerifying && (
+                    <Alert
+                        severity="info"
+                        variant="outlined"
+                        sx={{ width: '100%', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                        {t('biometricPuzzle.verifyingServer', {
+                            defaultValue: 'Verifying with server…',
+                        })}
+                    </Alert>
                 )}
 
                 {running && (

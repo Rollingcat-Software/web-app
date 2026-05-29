@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### 2026-05-29 — MFA dark-mode "black box" fix + safer auth-flow editing
+
+- **Fix: invisible MFA code inputs in dark mode (app.fivucsas dashboard login).**
+  The MFA card in `TwoFactorDispatcher` is an intentionally fixed *light* surface
+  (white card, forced `#1a1a2e` input text) even when the app is in dark mode. But
+  the step `TextField`s fill their box from the theme token `background.paper`,
+  which is near-black (`#1a1f33`) in dark mode → black text on a black box (SMS/Email
+  OTP, TOTP, QR code inputs were unreadable). The card now forces the input box white
+  (`&&`-doubled specificity so it beats the per-step `background.paper`), matching the
+  always-light card. Light mode was unaffected; verify.fivucsas (`LoginMfaFlow`) is a
+  theme-aware card and never had the bug.
+- **Fix (data-loss): auth-flow editing could wipe the tenant's default flow.**
+  `AuthFlowsPage` recreates a flow on edit (the backend update can't change steps). It
+  used to `deleteFlow()` **then** `createFlow()`; a failed create left the tenant with
+  the flow gone — and if it was the default, every login broke. Now it creates the
+  replacement first (temp name, non-default) → deletes the old → renames + reapplies
+  the default flag via `updateFlow` (which atomically dethrones any other default).
+- **Fix: `AuthFlowBuilder` ignored the edited flow's default flag.** It hardcoded
+  `isDefault=false`, so editing the default flow silently recreated it as non-default.
+  Added an `initialIsDefault` prop wired from `editingFlow.isDefault`.
+
 ### 2026-05-04 — Quality + hygiene wave (4 PRs)
 
 Squash-merged to `main`:
