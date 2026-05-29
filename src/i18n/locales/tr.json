@@ -74,7 +74,8 @@
       "drag": "Sürükle",
       "showPassword": "Parolayı göster",
       "hidePassword": "Parolayı gizle"
-    }
+    },
+    "notApplicable": "Yok"
   },
   "phoneNumber": {
     "e164Required": "Telefon numarası uluslararası formatta olmalı (örn. +90 555 123 45 67)"
@@ -784,7 +785,9 @@
     "setDefaultConfirm": "\"{{name}}\" akışını varsayılan olarak ayarlamak ister misiniz? Bu işlem, bu işlem tipi için mevcut varsayılanı değiştirir.",
     "setDefaultSuccess": "Varsayılan kimlik doğrulama akışı güncellendi",
     "failedToSetDefault": "Varsayılan kimlik doğrulama akışı ayarlanamadı",
-    "alreadyDefault": "Bu akış zaten varsayılan"
+    "alreadyDefault": "Bu akış zaten varsayılan",
+    "defaultImpactChecking": "Bu değişiklikten etkilenecek kullanıcılar denetleniyor…",
+    "defaultImpactWarning": "⚠️ {{total}} kullanıcıdan {{atRisk}} tanesi bu akışı tamamlayamıyor (eksik: {{missing}}). Bu işlemde erişimleri kilitlenebilir."
   },
   "devices": {
     "title": "Kayıtlı Cihazlar",
@@ -2066,7 +2069,8 @@
     "deleteEnrollment": "Kaydı sil",
     "openNavigationMenu": "Gezinme menüsünü aç",
     "toggleLanguage": "Dili değiştir",
-    "toggleDarkMode": "Karanlık modu değiştir"
+    "toggleDarkMode": "Karanlık modu değiştir",
+    "loadingEnrollmentDetails": "Kayıt ayrıntıları yükleniyor"
   },
   "pageTitles": {
     "dashboard": "Kontrol Paneli",
@@ -2100,5 +2104,24 @@
     "terms": "Kullanım Şartları",
     "privacy": "Gizlilik Politikası",
     "default": "FIVUCSAS"
+  },
+  "enrollments": {
+    "detailsTitle": "Kayıt Ayrıntıları",
+    "detailsSubtitle": "Bu biyometrik kayıt işine ait tam kayıt",
+    "backToList": "Kayıtlara Dön",
+    "notFound": "Kayıt bulunamadı",
+    "userSection": "Kullanıcı",
+    "userName": "İsim",
+    "userEmail": "E-posta",
+    "authMethod": "Kimlik Doğrulama Yöntemi",
+    "resultsSection": "Sonuçlar",
+    "qualityScore": "Kalite Puanı",
+    "livenessScore": "Canlılık Puanı",
+    "createdAt": "Oluşturuldu",
+    "completedAt": "Tamamlandı",
+    "errorSection": "Hata",
+    "errorCode": "Hata Kodu",
+    "errorMessage": "Hata Mesajı",
+    "enrollmentId": "Kayıt ID"
   }
 }

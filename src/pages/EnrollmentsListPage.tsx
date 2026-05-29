@@ -30,6 +30,7 @@ import {useEnrollments} from '@features/enrollments'
 import {EnrollmentStatus} from '@domain/models/Enrollment'
 import {useTranslation} from 'react-i18next'
 import {formatLocale} from '@utils/dateLocale'
+import {nullScoreDisplay} from '@utils/enrollmentScore'
 import {keyframes} from '@mui/system'
 
 const rotate = keyframes`
@@ -247,7 +248,11 @@ export default function EnrollmentsListPage() {
                                                         variant="outlined"
                                                     />
                                                 </Tooltip>
-                                            ) : '-'}
+                                            ) : nullScoreDisplay(enrollment.authMethodType) === 'notApplicable' ? (
+                                                <Typography variant="body2" color="text.disabled">
+                                                    {t('common.notApplicable')}
+                                                </Typography>
+                                            ) : '—'}
                                         </TableCell>
                                         <TableCell>
                                             {enrollment.livenessScore != null ? (
@@ -259,7 +264,11 @@ export default function EnrollmentsListPage() {
                                                         variant="outlined"
                                                     />
                                                 </Tooltip>
-                                            ) : '-'}
+                                            ) : nullScoreDisplay(enrollment.authMethodType) === 'notApplicable' ? (
+                                                <Typography variant="body2" color="text.disabled">
+                                                    {t('common.notApplicable')}
+                                                </Typography>
+                                            ) : '—'}
                                         </TableCell>
                                         <TableCell>
                                             {formatLocale(enrollment.createdAt, i18n.language, 'PPp')}

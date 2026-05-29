@@ -48,6 +48,38 @@ export interface UpdateAuthFlowCommand {
 }
 
 /**
+ * Per-method breakdown of the lock-out impact of making a flow the default.
+ */
+export interface AuthFlowDefaultImpactMethod {
+    /** Auth method enum, e.g. "SMS_OTP". */
+    method: string
+    /** Whether this step is a "choice" (one-of) rather than strictly required. */
+    choice: boolean
+    /** Active users who have already enrolled this method. */
+    enrolledUsers: number
+    /** Active users who have NOT enrolled this method. */
+    missingUsers: number
+}
+
+/**
+ * Advisory impact analysis returned by
+ * GET /tenants/{tenantId}/auth-flows/{flowId}/default-impact.
+ *
+ * Tells the admin how many active users could be locked out if the flow is
+ * made the default for its operation type, broken down per required method.
+ */
+export interface AuthFlowDefaultImpact {
+    flowId: string
+    flowName: string
+    operationType: OperationType
+    /** Total active users subject to this operation type. */
+    activeUsers: number
+    /** Active users who cannot complete at least one required method. */
+    usersAtRisk: number
+    methods: AuthFlowDefaultImpactMethod[]
+}
+
+/**
  * Auth Flow Repository
  * Handles auth flow configuration API calls
  */
@@ -137,6 +169,29 @@ export class AuthFlowRepository {
             return response.data
         } catch (error) {
             this.logger.error(`Failed to update auth flow ${flowId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Fetch the advisory lock-out impact of making a flow the default.
+     *
+     * Backend: GET /tenants/{tenantId}/auth-flows/{flowId}/default-impact.
+     * Used by the "Make Default" confirmation dialog to warn about users who
+     * have not enrolled the methods the flow requires. Advisory only — it never
+     * blocks the operation.
+     */
+    async getDefaultImpact(tenantId: string, flowId: string): Promise<AuthFlowDefaultImpact> {
+        try {
+            this.logger.debug(`Fetching default-impact for auth flow ${flowId}`, { tenantId })
+
+            const response = await this.httpClient.get<AuthFlowDefaultImpact>(
+                `/tenants/${tenantId}/auth-flows/${flowId}/default-impact`
+            )
+
+            return response.data
+        } catch (error) {
+            this.logger.error(`Failed to fetch default-impact for auth flow ${flowId}`, error)
             throw error
         }
     }
