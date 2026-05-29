@@ -41,12 +41,25 @@ import {
     type OperationType,
     type AuthFlowStep,
 } from '@domain/models/AuthMethod'
-import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand } from '@core/repositories/AuthFlowRepository'
+import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand, AuthFlowDefaultImpact } from '@core/repositories/AuthFlowRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import { formatApiError } from '@utils/formatApiError'
 import { useTranslation } from 'react-i18next'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
+
+/** i18n translation keys for each auth method (for the default-impact warning). */
+const METHOD_LABEL_KEYS: Record<string, string> = {
+    FACE: 'methods.face',
+    FINGERPRINT: 'methods.fingerprint',
+    VOICE: 'methods.voice',
+    TOTP: 'methods.totp',
+    EMAIL_OTP: 'methods.emailOtp',
+    SMS_OTP: 'methods.smsOtp',
+    QR_CODE: 'methods.qrCode',
+    HARDWARE_KEY: 'methods.hardwareKey',
+    NFC_DOCUMENT: 'methods.nfcDocument',
+}
 
 export default function AuthFlowsPage() {
     const authFlowRepo = useService<AuthFlowRepository>(TYPES.AuthFlowRepository)
@@ -74,6 +87,10 @@ export default function AuthFlowsPage() {
     const [setDefaultTarget, setSetDefaultTarget] = useState<AuthFlowResponse | null>(null)
     const [setDefaultInFlight, setSetDefaultInFlight] = useState(false)
     const [success, setSuccess] = useState<string | null>(null)
+
+    // Advisory lock-out impact for the flow being promoted to default.
+    const [defaultImpact, setDefaultImpact] = useState<AuthFlowDefaultImpact | null>(null)
+    const [defaultImpactLoading, setDefaultImpactLoading] = useState(false)
 
     // Copilot post-merge round 5: keep a ref to the auto-clear timer so
     // unmount / replacement cancels it, preventing setState-on-unmounted
@@ -211,10 +228,24 @@ export default function AuthFlowsPage() {
         setDeletingFlowName('')
     }
 
-    const handleSetDefaultClick = (flow: AuthFlowResponse) => {
+    const handleSetDefaultClick = async (flow: AuthFlowResponse) => {
         if (flow.isDefault) return
         setSetDefaultTarget(flow)
+        setDefaultImpact(null)
         setSetDefaultDialogOpen(true)
+
+        // Advisory only: fetch the lock-out impact to warn the admin. On any
+        // failure we degrade gracefully and show the plain confirm dialog.
+        setDefaultImpactLoading(true)
+        try {
+            const impact = await authFlowRepo.getDefaultImpact(tenantId, flow.id)
+            setDefaultImpact(impact)
+        } catch (err) {
+            logger.warn('Failed to load default-impact (advisory)', err)
+            setDefaultImpact(null)
+        } finally {
+            setDefaultImpactLoading(false)
+        }
     }
 
     const handleSetDefaultConfirm = async () => {
@@ -233,6 +264,7 @@ export default function AuthFlowsPage() {
             }, 4000)
             setSetDefaultDialogOpen(false)
             setSetDefaultTarget(null)
+            setDefaultImpact(null)
             await loadFlows()
         } catch (err) {
             logger.error('Failed to set default auth flow', err)
@@ -246,6 +278,7 @@ export default function AuthFlowsPage() {
     const handleSetDefaultCancel = () => {
         setSetDefaultDialogOpen(false)
         setSetDefaultTarget(null)
+        setDefaultImpact(null)
     }
 
     // Convert AuthFlowResponse steps to AuthFlowStep[] for the builder
@@ -493,6 +526,29 @@ export default function AuthFlowsPage() {
                         <DialogContentText>
                             {t('authFlows.setDefaultConfirm', { name: setDefaultTarget?.name ?? '' })}
                         </DialogContentText>
+                        {defaultImpactLoading && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 2 }}>
+                                <CircularProgress size={16} />
+                                <Typography variant="body2" color="text.secondary">
+                                    {t('authFlows.defaultImpactChecking')}
+                                </Typography>
+                            </Box>
+                        )}
+                        {!defaultImpactLoading && defaultImpact && defaultImpact.usersAtRisk > 0 && (
+                            <Alert severity="warning" sx={{ mt: 2 }}>
+                                {t('authFlows.defaultImpactWarning', {
+                                    atRisk: defaultImpact.usersAtRisk,
+                                    total: defaultImpact.activeUsers,
+                                    missing: defaultImpact.methods
+                                        .filter((m) => m.missingUsers > 0)
+                                        .map((m) => {
+                                            const key = METHOD_LABEL_KEYS[m.method]
+                                            return key ? t(key) : m.method
+                                        })
+                                        .join(', '),
+                                })}
+                            </Alert>
+                        )}
                     </DialogContent>
                     <DialogActions>
                         <Button onClick={handleSetDefaultCancel} disabled={setDefaultInFlight}>{t('common.cancel')}</Button>

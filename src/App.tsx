@@ -88,6 +88,7 @@ const UserFormPage = lazy(() => import('./pages/UserFormPage'))
 const TenantsListPage = lazy(() => import('./pages/TenantsListPage'))
 const TenantFormPage = lazy(() => import('./pages/TenantFormPage'))
 const EnrollmentsListPage = lazy(() => import('./pages/EnrollmentsListPage'))
+const EnrollmentDetailsPage = lazy(() => import('./pages/EnrollmentDetailsPage'))
 const AuditLogsPage = lazy(() => import('./pages/AuditLogsPage'))
 const SettingsPage = lazy(() => import('./pages/SettingsPage'))
 const RolesListPage = lazy(() => import('./pages/RolesListPage'))
@@ -254,6 +255,7 @@ function App() {
                     <Route path="devices" element={<AdminRoute><ErrorBoundary><DevicesPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="auth-sessions" element={<AdminRoute><ErrorBoundary><AuthSessionsPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="enrollments" element={<AdminRoute><ErrorBoundary><EnrollmentsListPage /></ErrorBoundary></AdminRoute>} />
+                    <Route path="enrollments/:id" element={<AdminRoute><ErrorBoundary><EnrollmentDetailsPage /></ErrorBoundary></AdminRoute>} />
                     <Route path="user-enrollment" element={<Navigate to="/enrollment" replace />} />
                     <Route path="enrollment" element={<ErrorBoundary><BiometricEnrollmentPage /></ErrorBoundary>} />
                     <Route path="biometric-tools" element={<ErrorBoundary><BiometricToolsPage /></ErrorBoundary>} />

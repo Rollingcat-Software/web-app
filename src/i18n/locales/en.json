@@ -74,7 +74,8 @@
       "drag": "Drag",
       "showPassword": "Show password",
       "hidePassword": "Hide password"
-    }
+    },
+    "notApplicable": "N/A"
   },
   "phoneNumber": {
     "e164Required": "Phone number must be in international format (e.g. +90 555 123 45 67)"
@@ -784,7 +785,9 @@
     "setDefaultConfirm": "Set \"{{name}}\" as the default authentication flow? This will replace the current default for this operation type.",
     "setDefaultSuccess": "Default authentication flow updated",
     "failedToSetDefault": "Failed to set default authentication flow",
-    "alreadyDefault": "This flow is already the default"
+    "alreadyDefault": "This flow is already the default",
+    "defaultImpactChecking": "Checking which users this affects…",
+    "defaultImpactWarning": "⚠️ {{atRisk}} of {{total}} users cannot complete this flow (missing: {{missing}}). They may be locked out of this operation."
   },
   "devices": {
     "title": "Registered Devices",
@@ -2066,7 +2069,8 @@
     "deleteEnrollment": "Delete enrollment",
     "openNavigationMenu": "Open navigation menu",
     "toggleLanguage": "Toggle language",
-    "toggleDarkMode": "Toggle dark mode"
+    "toggleDarkMode": "Toggle dark mode",
+    "loadingEnrollmentDetails": "Loading enrollment details"
   },
   "pageTitles": {
     "dashboard": "Dashboard",
@@ -2100,5 +2104,24 @@
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
     "default": "FIVUCSAS"
+  },
+  "enrollments": {
+    "detailsTitle": "Enrollment Details",
+    "detailsSubtitle": "Full record for this biometric enrollment job",
+    "backToList": "Back to Enrollments",
+    "notFound": "Enrollment not found",
+    "userSection": "User",
+    "userName": "Name",
+    "userEmail": "Email",
+    "authMethod": "Auth Method",
+    "resultsSection": "Results",
+    "qualityScore": "Quality Score",
+    "livenessScore": "Liveness Score",
+    "createdAt": "Created",
+    "completedAt": "Completed",
+    "errorSection": "Error",
+    "errorCode": "Error Code",
+    "errorMessage": "Error Message",
+    "enrollmentId": "Enrollment ID"
   }
 }
