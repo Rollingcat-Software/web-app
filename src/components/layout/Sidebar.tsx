@@ -303,50 +303,14 @@ export default function Sidebar({
                 ))}
             </Box>
 
-            {/* FIVUCSAS suite bar — cross-site nav to landing + sister tools */}
-            <Box sx={{ px: 1.5, pt: 1.5, pb: 0 }}>
-                <Typography
-                    variant="caption"
-                    sx={{
-                        display: 'block',
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.06em',
-                        fontSize: '0.62rem',
-                        fontWeight: 700,
-                        color: 'text.secondary',
-                        mb: 0.75,
-                        px: 0.5,
-                    }}
-                >
-                    {t('sidebar.suite', 'FIVUCSAS suite')}
-                </Typography>
-                <Box
-                    sx={{
-                        display: 'flex',
-                        flexWrap: 'wrap',
-                        gap: 0.5,
-                        '& a': {
-                            fontSize: '0.72rem',
-                            fontWeight: 500,
-                            color: 'text.secondary',
-                            textDecoration: 'none',
-                            padding: '4px 8px',
-                            borderRadius: '6px',
-                            border: `1px solid ${alpha('#6366f1', isDark ? 0.18 : 0.12)}`,
-                            transition: 'background-color .15s, color .15s',
-                        },
-                        '& a:hover': {
-                            color: 'text.primary',
-                            backgroundColor: alpha('#6366f1', isDark ? 0.12 : 0.06),
-                        },
-                    }}
-                >
-                    <a href="https://fivucsas.com/">{t('sidebar.suiteHome', 'Home')}</a>
-                    <a href="https://demo.fivucsas.com/">{t('sidebar.suiteDemo', 'Demo')}</a>
-                    <a href="https://verify.fivucsas.com/">{t('sidebar.suiteWidget', 'Widget')}</a>
-                    <a href="https://amispoof.fivucsas.com/">amispoof</a>
-                </Box>
-            </Box>
+            {/*
+             * Cross-site nav (Home / Demo / Widget / amispoof) intentionally
+             * lives ONLY in the shared <fivucsas-launcher> FAB (public/launcher.js,
+             * loaded in index.html) — the single app-switcher across all FIVUCSAS
+             * sites. The bespoke "FIVUCSAS suite" sidebar bar that used to be here
+             * was removed 2026-05-29 as a leftover duplicate (the 2026-05-28
+             * launcher rollout deleted the equivalent bars on every other site).
+             */}
 
             {/* Footer status tile */}
             <Box sx={{ p: 1.5 }}>
