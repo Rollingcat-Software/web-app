@@ -35,6 +35,7 @@ import { AuthFlowBuilder } from './AuthFlowBuilder'
 import { TYPES } from '@core/di/types'
 import { useService } from '@app/providers'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { useActiveTenant } from '@features/tenants/context/ActiveTenantContext'
 import { useAuthMethods } from '@features/authFlows/hooks/useAuthMethods'
 import {
     OPERATION_TYPE_OPTIONS,
@@ -66,6 +67,7 @@ export default function AuthFlowsPage() {
     const authFlowRepo = useService<AuthFlowRepository>(TYPES.AuthFlowRepository)
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
+    const { activeTenantId } = useActiveTenant()
     const { authMethods, warning: authMethodWarning } = useAuthMethods()
     const { t } = useTranslation()
 
@@ -106,7 +108,12 @@ export default function AuthFlowsPage() {
         }
     }, [])
 
-    const tenantId = user?.tenantId ?? ''
+    // Use the ACTIVE (switched) tenant for the path so it matches the X-Tenant-ID
+    // header the AxiosClient sends. Otherwise a SUPER_ADMIN who switched tenants
+    // would request /tenants/{home}/auth-flows while the Hibernate tenantFilter
+    // (driven by X-Tenant-ID = active) scopes to the active tenant → empty list.
+    // Also fixes the latent bug where this page ignored the tenant switcher.
+    const tenantId = activeTenantId ?? user?.tenantId ?? ''
 
     const loadFlows = useCallback(async () => {
         setLoading(true)
