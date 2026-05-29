@@ -14,7 +14,12 @@
  * and the backend falls back to the caller's own tenant.
  */
 
-export const ACTIVE_TENANT_HEADER = 'X-Active-Tenant'
+// Canonical header — MUST be X-Tenant-ID (not X-Active-Tenant): only X-Tenant-ID
+// is read by the backend TenantContextFilter, which drives the Hibernate
+// tenantFilter that scopes /users + roles. X-Active-Tenant only feeds
+// currentScope() (audit-logs/sessions/etc.), so sending it alone would switch
+// some pages but NOT Users. X-Tenant-ID drives both.
+export const ACTIVE_TENANT_HEADER = 'X-Tenant-ID'
 
 let activeTenantId: string | null = null
 
