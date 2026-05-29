@@ -75,7 +75,9 @@
       "showPassword": "Parolayı göster",
       "hidePassword": "Parolayı gizle"
     },
-    "notApplicable": "Yok"
+    "notApplicable": "Yok",
+    "add": "Ekle",
+    "remove": "Kaldır"
   },
   "phoneNumber": {
     "e164Required": "Telefon numarası uluslararası formatta olmalı (örn. +90 555 123 45 67)"
@@ -485,7 +487,21 @@
     "noTenantsFound": "Kiracı bulunamadı",
     "deleteTitle": "Kiracıyı Sil",
     "deleteConfirm": "<strong>{{name}}</strong> kiracısını silmek istediğinize emin misiniz? Bağlı tüm kullanıcılar etkilenecektir. Bu işlem geri alınamaz.",
-    "deleteFailed": "Kiracı silinemedi"
+    "deleteFailed": "Kiracı silinemedi",
+    "emailDomains": {
+      "title": "E-posta Alan Adları",
+      "description": "Bu kiracıya ait e-posta alan adları. E-postası listelenen bir alan adıyla eşleşen yeni kullanıcılar otomatik olarak bu kuruma atanır.",
+      "empty": "Henüz e-posta alan adı tanımlanmadı.",
+      "primary": "Birincil",
+      "setPrimary": "Birincil yap",
+      "addLabel": "E-posta alan adı ekle",
+      "addHelper": "Yalnızca alan adı, küçük harf, \"@\" olmadan (ör. marmara.edu.tr).",
+      "invalidFormat": "Geçerli bir alan adı girin, ör. marmara.edu.tr (\"@\" olmadan).",
+      "removeTitle": "E-posta alan adını kaldır",
+      "removeConfirm": "\"{{domain}}\" bu kiracıdan kaldırılsın mı? Bu e-posta alan adına sahip yeni kullanıcılar artık buraya otomatik atanmaz.",
+      "enforceLabel": "Alan adı eşleşmesini zorunlu kıl",
+      "enforceHelper": "Açıkken yalnızca izin verilen bir e-posta alan adına sahip kişiler bu kiracıya kaydolabilir; diğerleri reddedilir. Kapalıyken kayıt esnektir — eşleşmeyen kullanıcılar varsayılan kiracıya yönlendirilir."
+    }
   },
   "roles": {
     "title": "Roller ve İzinler",
@@ -1645,7 +1661,10 @@
       "accessDenied": "Erişim reddedildi. Bu durumun bir hata olduğunu düşünüyorsanız yöneticinizle iletişime geçin.",
       "serverError": "Oturum açma hizmetinde bir hata oluştu. Lütfen birazdan tekrar deneyin.",
       "temporarilyUnavailable": "Oturum açma hizmeti geçici olarak kullanılamıyor. Lütfen birazdan tekrar deneyin."
-    }
+    },
+    "emailDomainAlreadyClaimed": "Bu e-posta alan adı zaten başka bir kuruluş tarafından kullanılıyor.",
+    "cannotRemoveLastDomain": "Alan adı zorunluluğu açıkken son e-posta alan adı kaldırılamaz. Önce zorunluluğu kapatın veya başka bir alan adı ekleyin.",
+    "emailDomainNotAllowed": "Bu e-posta alan adının bu kuruluşa kaydolmasına izin verilmiyor."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "E-posta veya parola eşleşmedi. Lütfen tekrar deneyin.",

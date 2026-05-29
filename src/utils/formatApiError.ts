@@ -28,6 +28,13 @@ function errorCodeToI18nKey(code: string | undefined): string | null {
             return 'errors.needsEnrollment'
         case 'MFA_REQUIRED':
             return 'errors.mfaRequired'
+        // V62 — tenant email-domain management + enforcement.
+        case 'EMAIL_DOMAIN_ALREADY_CLAIMED':
+            return 'errors.emailDomainAlreadyClaimed'
+        case 'CANNOT_REMOVE_LAST_DOMAIN':
+            return 'errors.cannotRemoveLastDomain'
+        case 'EMAIL_DOMAIN_NOT_ALLOWED':
+            return 'errors.emailDomainNotAllowed'
         default:
             return null
     }

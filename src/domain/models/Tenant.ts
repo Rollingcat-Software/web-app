@@ -26,6 +26,8 @@ export interface TenantJSON {
     sessionTimeoutMinutes?: number
     refreshTokenValidityDays?: number
     mfaRequired?: boolean
+    /** V62 opt-in email-domain enforcement flag. */
+    enforceDomainMatching?: boolean
     createdAt: string
     updatedAt: string
 }
@@ -49,7 +51,8 @@ export class Tenant {
         public readonly refreshTokenValidityDays: number,
         public readonly mfaRequired: boolean,
         public readonly createdAt: Date,
-        public readonly updatedAt: Date
+        public readonly updatedAt: Date,
+        public readonly enforceDomainMatching: boolean = false
     ) {}
 
     /**
@@ -115,6 +118,7 @@ export class Tenant {
             sessionTimeoutMinutes: this.sessionTimeoutMinutes,
             refreshTokenValidityDays: this.refreshTokenValidityDays,
             mfaRequired: this.mfaRequired,
+            enforceDomainMatching: this.enforceDomainMatching,
             createdAt: this.createdAt.toISOString(),
             updatedAt: this.updatedAt.toISOString(),
         }
@@ -139,7 +143,8 @@ export class Tenant {
             data.refreshTokenValidityDays ?? 7,
             data.mfaRequired ?? false,
             new Date(data.createdAt),
-            new Date(data.updatedAt)
+            new Date(data.updatedAt),
+            data.enforceDomainMatching ?? false
         )
     }
 }

@@ -6,6 +6,7 @@ import type {
     ITenantRepository,
     CreateTenantData,
     UpdateTenantData,
+    TenantEmailDomain,
 } from '@domain/interfaces/ITenantRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
 import { Tenant, TenantJSON } from '@domain/models/Tenant'
@@ -198,6 +199,71 @@ export class TenantRepository implements ITenantRepository {
             return Tenant.fromJSON(response.data)
         } catch (error) {
             this.logger.error(`Failed to suspend tenant ${id}`, error)
+            throw error
+        }
+    }
+
+    // ===== Email-domain registry (V44 + V62) =====
+
+    async listDomains(tenantId: string): Promise<TenantEmailDomain[]> {
+        try {
+            this.logger.debug(`Fetching email domains for tenant ${tenantId}`)
+            const response = await this.httpClient.get<TenantEmailDomain[]>(
+                `/tenants/${tenantId}/email-domains`
+            )
+            return response.data
+        } catch (error) {
+            this.logger.error(`Failed to fetch email domains for tenant ${tenantId}`, error)
+            throw error
+        }
+    }
+
+    async addDomain(
+        tenantId: string,
+        domain: string,
+        isPrimary = false
+    ): Promise<TenantEmailDomain> {
+        try {
+            this.logger.info(`Adding email domain '${domain}' to tenant ${tenantId}`)
+            const response = await this.httpClient.post<TenantEmailDomain>(
+                `/tenants/${tenantId}/email-domains`,
+                { domain, isPrimary }
+            )
+            return response.data
+        } catch (error) {
+            this.logger.error(`Failed to add email domain '${domain}' to tenant ${tenantId}`, error)
+            throw error
+        }
+    }
+
+    async removeDomain(tenantId: string, domain: string): Promise<void> {
+        try {
+            this.logger.info(`Removing email domain '${domain}' from tenant ${tenantId}`)
+            await this.httpClient.delete(
+                `/tenants/${tenantId}/email-domains/${encodeURIComponent(domain)}`
+            )
+        } catch (error) {
+            this.logger.error(
+                `Failed to remove email domain '${domain}' from tenant ${tenantId}`,
+                error
+            )
+            throw error
+        }
+    }
+
+    async setPrimaryDomain(tenantId: string, domain: string): Promise<TenantEmailDomain> {
+        try {
+            this.logger.info(`Setting email domain '${domain}' primary for tenant ${tenantId}`)
+            const response = await this.httpClient.patch<TenantEmailDomain>(
+                `/tenants/${tenantId}/email-domains/${encodeURIComponent(domain)}/primary`,
+                {}
+            )
+            return response.data
+        } catch (error) {
+            this.logger.error(
+                `Failed to set email domain '${domain}' primary for tenant ${tenantId}`,
+                error
+            )
             throw error
         }
     }
