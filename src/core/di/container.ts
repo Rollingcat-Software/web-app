@@ -43,6 +43,9 @@ import { AuthSessionRepository } from '@core/repositories/AuthSessionRepository'
 import { DeviceRepository } from '@core/repositories/DeviceRepository'
 import { UserEnrollmentRepository } from '@core/repositories/UserEnrollmentRepository'
 import { VerificationRepository } from '@core/repositories/VerificationRepository'
+import { GuestRepository } from '@core/repositories/GuestRepository'
+import type { IGuestRepository } from '@domain/interfaces/IGuestRepository'
+import { GuestService } from '@features/guests/services/GuestService'
 import { AuthService } from '@features/auth/services/AuthService'
 import { UserService } from '@features/users/services/UserService'
 import { TenantService } from '@features/tenants/services/TenantService'
@@ -115,6 +118,7 @@ container.bind<AuthSessionRepository>(TYPES.AuthSessionRepository).to(AuthSessio
 container.bind<DeviceRepository>(TYPES.DeviceRepository).to(DeviceRepository).inSingletonScope()
 container.bind<IUserEnrollmentRepository>(TYPES.UserEnrollmentRepository).to(UserEnrollmentRepository).inSingletonScope()
 container.bind<VerificationRepository>(TYPES.VerificationRepository).to(VerificationRepository).inSingletonScope()
+container.bind<IGuestRepository>(TYPES.GuestRepository).to(GuestRepository).inSingletonScope()
 
 // Bind services
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService).inSingletonScope()
@@ -128,6 +132,7 @@ container.bind<IRoleService>(TYPES.RoleService).to(RoleService).inSingletonScope
 container.bind<AuthFlowService>(TYPES.AuthFlowService).to(AuthFlowService).inSingletonScope()
 container.bind<AuthSessionService>(TYPES.AuthSessionService).to(AuthSessionService).inSingletonScope()
 container.bind<DeviceService>(TYPES.DeviceService).to(DeviceService).inSingletonScope()
+container.bind<GuestService>(TYPES.GuestService).to(GuestService).inSingletonScope()
 container.bind<IUserEnrollmentService>(TYPES.UserEnrollmentService).to(UserEnrollmentService).inSingletonScope()
 container.bind<IPasswordService>(TYPES.PasswordService).to(PasswordService).inSingletonScope()
 

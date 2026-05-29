@@ -21,7 +21,7 @@ import {
     Tooltip,
     Typography,
 } from '@mui/material'
-import { Add, Block, Schedule, PersonAdd } from '@mui/icons-material'
+import { Add, Block, Schedule, PersonAdd, Send } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
 import { useService } from '@app/providers'
@@ -101,6 +101,9 @@ export default function GuestsPage() {
     const [revokeOpen, setRevokeOpen] = useState(false)
     const [revokeGuestId, setRevokeGuestId] = useState('')
     const [revokeLoading, setRevokeLoading] = useState(false)
+
+    // Resend invitation (per-row, no dialog)
+    const [resendingId, setResendingId] = useState<string | null>(null)
 
     const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -204,6 +207,20 @@ export default function GuestsPage() {
             setError(t('guests.revokeFailed'))
         } finally {
             setRevokeLoading(false)
+        }
+    }
+
+    const handleResend = async (invitationId: string) => {
+        setResendingId(invitationId)
+        setError(null)
+        try {
+            await httpClient.post(`/guests/${invitationId}/resend`)
+            showSuccess(t('guests.resendSuccess'))
+        } catch (err) {
+            logger.error('Failed to resend guest invitation', err)
+            setError(formatApiError(err, t) || t('guests.resendFailed'))
+        } finally {
+            setResendingId(null)
         }
     }
 
@@ -314,6 +331,22 @@ export default function GuestsPage() {
                                         </TableCell>
                                         <TableCell align="right">
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
+                                                {guest.status === 'PENDING' && (
+                                                    <Tooltip title={t('guests.resendInvitation')}>
+                                                        <span>
+                                                            <IconButton
+                                                                size="small"
+                                                                onClick={() => handleResend(guest.id)}
+                                                                disabled={resendingId === guest.id}
+                                                                aria-label={t('guests.resendInvitation')}
+                                                            >
+                                                                {resendingId === guest.id
+                                                                    ? <CircularProgress size={16} />
+                                                                    : <Send fontSize="small" />}
+                                                            </IconButton>
+                                                        </span>
+                                                    </Tooltip>
+                                                )}
                                                 {guest.canExtend && (
                                                     <Tooltip title={t('guests.extendAccess')}>
                                                         <IconButton

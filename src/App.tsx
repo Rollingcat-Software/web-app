@@ -101,6 +101,7 @@ const GuestsPage = lazy(() => import('./pages/GuestsPage'))
 const BiometricEnrollmentPage = lazy(() => import('./features/auth/components/EnrollmentPage'))
 const ForgotPasswordPage = lazy(() => import('./pages/ForgotPasswordPage'))
 const ResetPasswordPage = lazy(() => import('./pages/ResetPasswordPage'))
+const AcceptInvitePage = lazy(() => import('./pages/AcceptInvitePage'))
 const BiometricToolsPage = lazy(() => import('./pages/BiometricToolsPage'))
 const BiometricPuzzlesPage = lazy(() => import('./pages/BiometricPuzzlesPage'))
 const AuthMethodsTestingPage = lazy(() => import('./pages/AuthMethodsTestingPage'))
@@ -219,6 +220,7 @@ function App() {
                 <Route path="/register" element={<RegisterPage />} />
                 <Route path="/forgot-password" element={<ForgotPasswordPage />} />
                 <Route path="/reset-password" element={<ResetPasswordPage />} />
+                <Route path="/accept-invite" element={<AcceptInvitePage />} />
                 <Route path="/widget-auth" element={<WidgetAuthPage />} />
                 <Route element={<PublicLayout />}>
                     <Route path="/terms" element={<TermsPage />} />

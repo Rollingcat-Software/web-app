@@ -831,7 +831,29 @@
     "extendFailed": "Misafir erişimi uzatılamadı",
     "revokeFailed": "Misafir erişimi iptal edilemedi",
     "loadFailed": "Misafir davetleri yüklenemedi",
-    "activeCount": "{{count}} aktif"
+    "activeCount": "{{count}} aktif",
+    "resendInvitation": "Daveti yeniden gönder",
+    "resendSuccess": "Davet e-postası başarıyla yeniden gönderildi",
+    "resendFailed": "Davet yeniden gönderilemedi"
+  },
+  "acceptInvite": {
+    "title": "Daveti Kabul Et",
+    "subtitle": "Misafir erişiminizi başlatmak için hesabınızı oluşturun",
+    "firstNameLabel": "Ad",
+    "lastNameLabel": "Soyad",
+    "passwordLabel": "Parola",
+    "confirmPasswordLabel": "Parolayı Onayla",
+    "submitButton": "Hesap Oluştur",
+    "backToLogin": "Girişe Dön",
+    "success": "Hesap oluşturuldu. Lütfen giriş yapın.",
+    "noToken": "Bu davet bağlantısı geçersiz veya eksik. Lütfen davet e-postanızdaki bağlantıyı kullanın ya da sizi davet eden kişiden yeniden göndermesini isteyin.",
+    "validation": {
+      "firstNameRequired": "Ad gereklidir",
+      "lastNameRequired": "Soyad gereklidir",
+      "passwordMin": "Parola en az 8 karakter olmalıdır",
+      "confirmPasswordRequired": "Lütfen parolanızı onaylayın",
+      "passwordsDoNotMatch": "Parolalar eşleşmiyor"
+    }
   },
   "developerPortal": {
     "title": "Geliştirici Portalı",
