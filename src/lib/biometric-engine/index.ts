@@ -221,7 +221,6 @@ export {
   useLivenessPuzzle,
   useFaceEnrollment,
   useVoiceRecorder,
-  useCardDetection,
   useHandGestureDetection,
 } from './hooks';
 
@@ -231,6 +230,5 @@ export type {
   UseLivenessPuzzleReturn,
   UseFaceEnrollmentReturn,
   UseVoiceRecorderReturn,
-  UseCardDetectionReturn,
   UseHandGestureDetectionReturn,
 } from './hooks';
