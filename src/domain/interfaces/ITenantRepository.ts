@@ -23,6 +23,20 @@ export interface UpdateTenantData {
     contactEmail?: string
     contactPhone?: string
     maxUsers?: number
+    /**
+     * V62 opt-in email-domain enforcement. When true, only registrants whose
+     * email domain is in this tenant's registry may join.
+     */
+    enforceDomainMatching?: boolean
+}
+
+/**
+ * A single tenant email-domain registry row (tenant_email_domains, V44).
+ */
+export interface TenantEmailDomain {
+    domain: string
+    isPrimary: boolean
+    createdAt: string
 }
 
 /**
@@ -71,4 +85,28 @@ export interface ITenantRepository {
      * Suspend tenant
      */
     suspend(id: string): Promise<Tenant>
+
+    // ===== Email-domain registry (V44 + V62) =====
+
+    /**
+     * List the tenant's email domains (primary first, then alphabetical).
+     */
+    listDomains(tenantId: string): Promise<TenantEmailDomain[]>
+
+    /**
+     * Add an email domain to the tenant.
+     * @throws on 409 EMAIL_DOMAIN_ALREADY_CLAIMED (owned by another tenant)
+     */
+    addDomain(tenantId: string, domain: string, isPrimary?: boolean): Promise<TenantEmailDomain>
+
+    /**
+     * Remove an email domain from the tenant.
+     * @throws on 409 CANNOT_REMOVE_LAST_DOMAIN (last domain while enforcement on)
+     */
+    removeDomain(tenantId: string, domain: string): Promise<void>
+
+    /**
+     * Set the given domain as the tenant's single primary domain.
+     */
+    setPrimaryDomain(tenantId: string, domain: string): Promise<TenantEmailDomain>
 }

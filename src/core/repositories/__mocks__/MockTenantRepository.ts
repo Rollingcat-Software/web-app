@@ -1,5 +1,10 @@
 import { injectable } from 'inversify'
-import type { CreateTenantData, ITenantRepository, UpdateTenantData } from '@domain/interfaces/ITenantRepository'
+import type {
+    CreateTenantData,
+    ITenantRepository,
+    TenantEmailDomain,
+    UpdateTenantData,
+} from '@domain/interfaces/ITenantRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
 import { Tenant, TenantStatus } from '@domain/models/Tenant'
 
@@ -136,6 +141,51 @@ export class MockTenantRepository implements ITenantRepository {
 
     async delete(id: string): Promise<void> {
         this.tenants.delete(id)
+    }
+
+    private domains = new Map<string, TenantEmailDomain[]>([
+        ['1', [{ domain: 'fivucsas.com', isPrimary: true, createdAt: new Date().toISOString() }]],
+    ])
+
+    async listDomains(tenantId: string): Promise<TenantEmailDomain[]> {
+        return [...(this.domains.get(tenantId) ?? [])]
+    }
+
+    async addDomain(
+        tenantId: string,
+        domain: string,
+        isPrimary = false
+    ): Promise<TenantEmailDomain> {
+        const normalized = domain.toLowerCase().trim()
+        const list = this.domains.get(tenantId) ?? []
+        const row: TenantEmailDomain = {
+            domain: normalized,
+            isPrimary,
+            createdAt: new Date().toISOString(),
+        }
+        const next = isPrimary ? list.map((d) => ({ ...d, isPrimary: false })) : list
+        this.domains.set(tenantId, [...next, row])
+        return row
+    }
+
+    async removeDomain(tenantId: string, domain: string): Promise<void> {
+        const list = this.domains.get(tenantId) ?? []
+        this.domains.set(
+            tenantId,
+            list.filter((d) => d.domain !== domain.toLowerCase().trim())
+        )
+    }
+
+    async setPrimaryDomain(tenantId: string, domain: string): Promise<TenantEmailDomain> {
+        const normalized = domain.toLowerCase().trim()
+        const list = this.domains.get(tenantId) ?? []
+        const updated = list.map((d) => ({ ...d, isPrimary: d.domain === normalized }))
+        this.domains.set(tenantId, updated)
+        const found = updated.find((d) => d.domain === normalized)
+        if (!found) {
+            throw new Error(`Email domain not found: ${normalized}`)
+        }
+        return found
     }
 
     async activate(id: string): Promise<Tenant> {

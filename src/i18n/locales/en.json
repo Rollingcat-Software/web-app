@@ -75,7 +75,9 @@
       "showPassword": "Show password",
       "hidePassword": "Hide password"
     },
-    "notApplicable": "N/A"
+    "notApplicable": "N/A",
+    "add": "Add",
+    "remove": "Remove"
   },
   "phoneNumber": {
     "e164Required": "Phone number must be in international format (e.g. +90 555 123 45 67)"
@@ -485,7 +487,21 @@
     "noTenantsFound": "No tenants found",
     "deleteTitle": "Delete Tenant",
     "deleteConfirm": "Are you sure you want to delete <strong>{{name}}</strong>? All associated users will be affected. This action cannot be undone.",
-    "deleteFailed": "Failed to delete tenant"
+    "deleteFailed": "Failed to delete tenant",
+    "emailDomains": {
+      "title": "Email Domains",
+      "description": "Email domains owned by this tenant. New users whose email matches a listed domain are automatically assigned to this organization.",
+      "empty": "No email domains configured yet.",
+      "primary": "Primary",
+      "setPrimary": "Set as primary",
+      "addLabel": "Add email domain",
+      "addHelper": "Domain only, lowercase, no \"@\" (e.g. marmara.edu.tr).",
+      "invalidFormat": "Enter a valid domain, e.g. marmara.edu.tr (no \"@\").",
+      "removeTitle": "Remove email domain",
+      "removeConfirm": "Remove \"{{domain}}\" from this tenant? New users with this email domain will no longer be auto-assigned here.",
+      "enforceLabel": "Enforce domain matching",
+      "enforceHelper": "When on, only people with an allowed email domain can register into this tenant; everyone else is rejected. When off, registration is graceful — unmatched users fall through to the default tenant."
+    }
   },
   "roles": {
     "title": "Roles & Permissions",
@@ -1645,7 +1661,10 @@
       "accessDenied": "Access was denied. Please contact your administrator if you believe this is an error.",
       "serverError": "The sign-in service ran into an error. Please try again in a moment.",
       "temporarilyUnavailable": "The sign-in service is temporarily unavailable. Please try again in a moment."
-    }
+    },
+    "emailDomainAlreadyClaimed": "This email domain is already claimed by another organization.",
+    "cannotRemoveLastDomain": "Can't remove the last email domain while domain enforcement is enabled. Disable enforcement or add another domain first.",
+    "emailDomainNotAllowed": "This email domain is not allowed to register with this organization."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "That email or password didn't match. Please try again.",

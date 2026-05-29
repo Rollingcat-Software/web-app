@@ -7,6 +7,7 @@ import {Alert, Box, Button, CircularProgress, Paper, TextField, Typography,} fro
 import {Cancel, Save} from '@mui/icons-material'
 import {useTenants, useTenant} from '@features/tenants'
 import TenantAuthMethods from '@features/tenants/components/TenantAuthMethods'
+import TenantEmailDomains from '@features/tenants/components/TenantEmailDomains'
 import {useTranslation} from 'react-i18next'
 import {formatApiError} from '@/utils/formatApiError'
 
@@ -293,6 +294,18 @@ export default function TenantFormPage() {
                     </Box>
                 </form>
             </Paper>
+
+            {isEditMode && id && (
+                <Paper sx={{p: 4, maxWidth: 800, mt: 3}}>
+                    <TenantEmailDomains
+                        tenantId={id}
+                        enforceDomainMatching={existingTenant?.enforceDomainMatching ?? false}
+                        onEnforceChange={async (enforce) => {
+                            await updateTenant(id, {enforceDomainMatching: enforce})
+                        }}
+                    />
+                </Paper>
+            )}
 
             {isEditMode && id && (
                 <Paper sx={{p: 4, maxWidth: 800, mt: 3}}>
