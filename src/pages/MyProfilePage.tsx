@@ -72,6 +72,7 @@ import type { IUserRepository } from '@domain/interfaces/IUserRepository'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import type { Enrollment } from '@domain/models/Enrollment'
 import { formatApiError } from '@utils/formatApiError'
+import BiometricConsentSection from '@features/biometric-consent/BiometricConsentSection'
 import LinkedAccountsSection from '@features/linkedAccounts/LinkedAccountsSection'
 import type { AxiosError } from 'axios'
 
@@ -599,6 +600,14 @@ export default function MyProfilePage() {
                             )}
                         </CardContent>
                     </Card>
+                </Grid>
+
+                {/* ===== Section 3: Cross-tenant biometric consent (Model A, Phase 3) ===== */}
+                <Grid item xs={12} md={6}>
+                    <BiometricConsentSection
+                        currentTenantId={user?.tenantId}
+                        currentTenantName={tenantName}
+                    />
                 </Grid>
 
                 {/* ===== Section 4: Security Status ===== */}
