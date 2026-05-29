@@ -126,7 +126,25 @@
     "notifications": "Bildirimler yakında",
     "userMenu": "Kullanıcı menüsü",
     "profileSettings": "Profil & Ayarlar",
-    "logout": "Çıkış Yap"
+    "logout": "Çıkış Yap",
+    "context": {
+      "platform": "Platform",
+      "tooltip": "İşlem yaptığınız kiracı ve rol"
+    },
+    "session": {
+      "remaining": "Oturum: {{time}}",
+      "tooltip": "Oturumunuzun sona ermesine kalan süre"
+    },
+    "tenantSwitcher": {
+      "label": "Etkin kiracı",
+      "tooltip": "Verilerini görüntülediğiniz ve yönettiğiniz kiracıyı değiştirin"
+    }
+  },
+  "operationContext": {
+    "addUser": "<b>{{tenantName}}</b> kiracısına kullanıcı ekleniyor",
+    "inviteGuest": "<b>{{tenantName}}</b> kiracısına misafir davet ediliyor",
+    "createAuthFlow": "<b>{{tenantName}}</b> için kimlik doğrulama akışı oluşturuluyor",
+    "addEmailDomain": "<b>{{tenantName}}</b> için e-posta alan adları yönetiliyor"
   },
   "dashboard": {
     "title": "Kontrol Paneli",
@@ -502,7 +520,22 @@
       "removeTitle": "E-posta alan adını kaldır",
       "removeConfirm": "\"{{domain}}\" bu kiracıdan kaldırılsın mı? Bu e-posta alan adına sahip yeni kullanıcılar artık buraya otomatik atanmaz.",
       "enforceLabel": "Alan adı eşleşmesini zorunlu kıl",
-      "enforceHelper": "Açıkken yalnızca izin verilen bir e-posta alan adına sahip kişiler bu kiracıya kaydolabilir; diğerleri reddedilir. Kapalıyken kayıt esnektir — eşleşmeyen kullanıcılar varsayılan kiracıya yönlendirilir."
+      "enforceHelper": "Açıkken yalnızca izin verilen bir e-posta alan adına sahip kişiler bu kiracıya kaydolabilir; diğerleri reddedilir. Kapalıyken kayıt esnektir — eşleşmeyen kullanıcılar varsayılan kiracıya yönlendirilir.",
+      "verified": "Doğrulandı",
+      "unverified": "Doğrulanmadı",
+      "verifyDomain": "Alan adını doğrula",
+      "verifyTitle": "{{domain}} doğrula",
+      "verifyInstructions": "Aşağıdaki DNS TXT kaydını alan adınızın DNS sağlayıcısına ekleyin, ardından doğrula'ya tıklayın. DNS değişikliklerinin yayılması birkaç dakika sürebilir.",
+      "recordType": "Kayıt türü",
+      "recordName": "Kayıt adı (host)",
+      "recordValue": "Kayıt değeri",
+      "verifyConfirm": "Ekledim — Doğrula",
+      "verifySuccess": "Alan adı sahipliği doğrulandı.",
+      "verifyFailedGeneric": "Doğrulama başarısız oldu. Lütfen TXT kaydını kontrol edip tekrar deneyin.",
+      "verifyReasons": {
+        "RECORD_NOT_FOUND": "TXT kaydı henüz bulunamadı. DNS değişikliklerinin yayılması birkaç dakika sürebilir.",
+        "NO_CHALLENGE": "Bu alan adı için etkin bir doğrulama isteği yok. Yeni bir tane oluşturup tekrar deneyin."
+      }
     }
   },
   "roles": {

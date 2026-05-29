@@ -7,6 +7,8 @@ import type {
     CreateTenantData,
     UpdateTenantData,
     TenantEmailDomain,
+    DomainVerificationChallenge,
+    DomainVerificationResult,
 } from '@domain/interfaces/ITenantRepository'
 import type { PaginatedResult, QueryParams } from '@domain/interfaces/IRepository'
 import { Tenant, TenantJSON } from '@domain/models/Tenant'
@@ -262,6 +264,55 @@ export class TenantRepository implements ITenantRepository {
         } catch (error) {
             this.logger.error(
                 `Failed to set email domain '${domain}' primary for tenant ${tenantId}`,
+                error
+            )
+            throw error
+        }
+    }
+
+    async getDomainVerificationChallenge(
+        tenantId: string,
+        domain: string
+    ): Promise<DomainVerificationChallenge> {
+        try {
+            this.logger.info(`Requesting DNS challenge for '${domain}' (tenant ${tenantId})`)
+            const response = await this.httpClient.post<DomainVerificationChallenge>(
+                `/tenants/${tenantId}/email-domains/${encodeURIComponent(domain)}/verification`,
+                {}
+            )
+            return response.data
+        } catch (error) {
+            this.logger.error(
+                `Failed to request DNS challenge for '${domain}' (tenant ${tenantId})`,
+                error
+            )
+            throw error
+        }
+    }
+
+    async verifyDomain(tenantId: string, domain: string): Promise<DomainVerificationResult> {
+        try {
+            this.logger.info(`Verifying DNS challenge for '${domain}' (tenant ${tenantId})`)
+            const response = await this.httpClient.post<DomainVerificationResult>(
+                `/tenants/${tenantId}/email-domains/${encodeURIComponent(domain)}/verify`,
+                {}
+            )
+            return { verified: response.data?.verified ?? true, reason: response.data?.reason }
+        } catch (error: unknown) {
+            // 422 RECORD_NOT_FOUND / 409 NO_CHALLENGE are expected "not yet"
+            // outcomes, not exceptional failures — surface the reason inline.
+            const axiosError = error as {
+                response?: { status?: number; data?: { verified?: boolean; reason?: string } }
+            }
+            const status = axiosError.response?.status
+            if (status === 422 || status === 409) {
+                return {
+                    verified: axiosError.response?.data?.verified ?? false,
+                    reason: axiosError.response?.data?.reason,
+                }
+            }
+            this.logger.error(
+                `Failed to verify DNS challenge for '${domain}' (tenant ${tenantId})`,
                 error
             )
             throw error

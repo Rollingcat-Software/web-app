@@ -9,6 +9,7 @@ import {SnackbarProvider} from 'notistack'
 import {useTranslation} from 'react-i18next'
 import App from './App'
 import {AuthProvider} from '@features/auth/hooks/useAuth'
+import {ActiveTenantProvider} from '@features/tenants/context/ActiveTenantProvider'
 import {useThemeMode} from '@app/providers/ThemeModeContext'
 import {createAppTheme} from './theme'
 import {PerfProvider} from './contexts/PerfContext'
@@ -31,9 +32,11 @@ export function ThemedApp() {
             <CssBaseline/>
             <SnackbarProvider maxSnack={3} preventDuplicate anchorOrigin={{vertical: 'top', horizontal: 'right'}}>
                 <AuthProvider>
-                    <PerfProvider>
-                        <App/>
-                    </PerfProvider>
+                    <ActiveTenantProvider>
+                        <PerfProvider>
+                            <App/>
+                        </PerfProvider>
+                    </ActiveTenantProvider>
                 </AuthProvider>
             </SnackbarProvider>
         </ThemeProvider>

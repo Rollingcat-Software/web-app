@@ -30,6 +30,7 @@ import {
 import { Add, Delete, Edit, Star, StarBorder } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { PageTransition } from '@components/animations'
+import { OperationContextBanner } from '@components/OperationContextBanner'
 import { AuthFlowBuilder } from './AuthFlowBuilder'
 import { TYPES } from '@core/di/types'
 import { useService } from '@app/providers'
@@ -473,6 +474,9 @@ export default function AuthFlowsPage() {
                     </DialogTitle>
                     <DialogContent>
                         <Box sx={{ pt: 1 }}>
+                            {!editingFlow && (
+                                <OperationContextBanner i18nKey="operationContext.createAuthFlow" />
+                            )}
                             <AuthFlowBuilder
                                 key={editingFlow?.id ?? 'new'}
                                 onSave={handleSave}

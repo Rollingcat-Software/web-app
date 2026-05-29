@@ -30,6 +30,7 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@utils/formatApiError'
+import { OperationContextBanner } from '@components/OperationContextBanner'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -97,9 +98,11 @@ export default function GuestsPage() {
     const [extendHours, setExtendHours] = useState(24)
     const [extendLoading, setExtendLoading] = useState(false)
 
-    // Revoke dialog
+    // Revoke dialog. ACCEPTED rows revoke the guest *user*; PENDING/EXPIRED
+    // rows have no user yet, so they revoke the *invitation* by its row id.
     const [revokeOpen, setRevokeOpen] = useState(false)
     const [revokeGuestId, setRevokeGuestId] = useState('')
+    const [revokeInvitationId, setRevokeInvitationId] = useState('')
     const [revokeLoading, setRevokeLoading] = useState(false)
 
     // Resend invitation (per-row, no dialog)
@@ -196,15 +199,23 @@ export default function GuestsPage() {
 
     const handleRevoke = async () => {
         setRevokeLoading(true)
+        setError(null)
         try {
-            await httpClient.post(`/guests/${revokeGuestId}/revoke`)
+            // PENDING/EXPIRED invitations have no accepted guest user yet, so
+            // the user-revoke endpoint 404s for them — revoke the invitation
+            // by its row id instead. ACCEPTED rows still revoke the user.
+            if (revokeInvitationId) {
+                await httpClient.post(`/guests/invitations/${revokeInvitationId}/revoke`)
+            } else {
+                await httpClient.post(`/guests/${revokeGuestId}/revoke`)
+            }
             setRevokeOpen(false)
             showSuccess(t('guests.revokeSuccess'))
             await loadGuests()
             await loadCount()
         } catch (err) {
             logger.error('Failed to revoke guest access', err)
-            setError(t('guests.revokeFailed'))
+            setError(formatApiError(err, t) || t('guests.revokeFailed'))
         } finally {
             setRevokeLoading(false)
         }
@@ -361,12 +372,19 @@ export default function GuestsPage() {
                                                         </IconButton>
                                                     </Tooltip>
                                                 )}
-                                                {(guest.status === 'ACCEPTED' || guest.status === 'PENDING') && (
+                                                {(guest.status === 'ACCEPTED' || guest.status === 'PENDING' || guest.status === 'EXPIRED') && (
                                                     <Tooltip title={t('guests.revokeAccess')}>
                                                         <IconButton
                                                             size="small"
                                                             onClick={() => {
-                                                                setRevokeGuestId(guest.guestUserId ?? '')
+                                                                if (guest.status === 'ACCEPTED') {
+                                                                    setRevokeGuestId(guest.guestUserId ?? '')
+                                                                    setRevokeInvitationId('')
+                                                                } else {
+                                                                    // PENDING / EXPIRED → revoke the invitation row
+                                                                    setRevokeInvitationId(guest.id)
+                                                                    setRevokeGuestId('')
+                                                                }
                                                                 setRevokeOpen(true)
                                                             }}
                                                             sx={{ color: 'error.main' }}
@@ -389,6 +407,7 @@ export default function GuestsPage() {
                 <Dialog open={inviteOpen} onClose={() => setInviteOpen(false)} maxWidth="sm" fullWidth>
                     <DialogTitle>{t('guests.inviteGuest')}</DialogTitle>
                     <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2, pt: '16px !important' }}>
+                        <OperationContextBanner i18nKey="operationContext.inviteGuest" sx={{ mb: 0 }} />
                         <TextField
                             label={t('common.email')}
                             type="email"

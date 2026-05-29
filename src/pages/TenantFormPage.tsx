@@ -299,6 +299,7 @@ export default function TenantFormPage() {
                 <Paper sx={{p: 4, maxWidth: 800, mt: 3}}>
                     <TenantEmailDomains
                         tenantId={id}
+                        tenantName={existingTenant?.name}
                         enforceDomainMatching={existingTenant?.enforceDomainMatching ?? false}
                         onEnforceChange={async (enforce) => {
                             await updateTenant(id, {enforceDomainMatching: enforce})

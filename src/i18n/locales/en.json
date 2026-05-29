@@ -126,7 +126,25 @@
     "notifications": "Notifications coming soon",
     "userMenu": "User menu",
     "profileSettings": "Profile & Settings",
-    "logout": "Logout"
+    "logout": "Logout",
+    "context": {
+      "platform": "Platform",
+      "tooltip": "The tenant and role you are operating as"
+    },
+    "session": {
+      "remaining": "Session: {{time}}",
+      "tooltip": "Time remaining until your session expires"
+    },
+    "tenantSwitcher": {
+      "label": "Active tenant",
+      "tooltip": "Switch the tenant whose data you are viewing and managing"
+    }
+  },
+  "operationContext": {
+    "addUser": "Adding a user to <b>{{tenantName}}</b>",
+    "inviteGuest": "Inviting a guest to <b>{{tenantName}}</b>",
+    "createAuthFlow": "Creating an auth flow for <b>{{tenantName}}</b>",
+    "addEmailDomain": "Managing email domains for <b>{{tenantName}}</b>"
   },
   "dashboard": {
     "title": "Dashboard",
@@ -502,7 +520,22 @@
       "removeTitle": "Remove email domain",
       "removeConfirm": "Remove \"{{domain}}\" from this tenant? New users with this email domain will no longer be auto-assigned here.",
       "enforceLabel": "Enforce domain matching",
-      "enforceHelper": "When on, only people with an allowed email domain can register into this tenant; everyone else is rejected. When off, registration is graceful — unmatched users fall through to the default tenant."
+      "enforceHelper": "When on, only people with an allowed email domain can register into this tenant; everyone else is rejected. When off, registration is graceful — unmatched users fall through to the default tenant.",
+      "verified": "Verified",
+      "unverified": "Unverified",
+      "verifyDomain": "Verify domain",
+      "verifyTitle": "Verify {{domain}}",
+      "verifyInstructions": "Add the DNS TXT record below at your domain's DNS provider, then click verify. DNS changes can take a few minutes to propagate.",
+      "recordType": "Record type",
+      "recordName": "Record name (host)",
+      "recordValue": "Record value",
+      "verifyConfirm": "I've added it — Verify",
+      "verifySuccess": "Domain ownership verified.",
+      "verifyFailedGeneric": "Verification failed. Please check the TXT record and try again.",
+      "verifyReasons": {
+        "RECORD_NOT_FOUND": "The TXT record was not found yet. DNS changes can take a few minutes to propagate.",
+        "NO_CHALLENGE": "No active challenge for this domain. Request a new one and try again."
+      }
     }
   },
   "roles": {

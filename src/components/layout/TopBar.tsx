@@ -7,20 +7,25 @@ import {
     Box,
     Chip,
     Divider,
+    FormControl,
     IconButton,
     ListItemIcon,
     Menu,
     MenuItem,
+    Select,
     Toolbar,
     Tooltip,
     Typography,
     useTheme,
 } from '@mui/material'
-import {DarkMode, LightMode, Logout, Menu as MenuIcon, Settings,} from '@mui/icons-material'
+import type {SelectChangeEvent} from '@mui/material'
+import {AccessTime, Business, DarkMode, LightMode, Logout, Menu as MenuIcon, Settings,} from '@mui/icons-material'
 import {useAuth} from '@features/auth/hooks/useAuth'
 import {useThemeMode} from '@app/providers/ThemeModeContext'
 import {useTranslation} from 'react-i18next'
 import NotificationPanel from '@components/NotificationPanel'
+import {useActiveTenant} from '@features/tenants/context/ActiveTenantContext'
+import {useSessionCountdown} from '@features/auth/hooks/useSessionCountdown'
 
 interface TopBarProps {
     drawerWidth: number
@@ -34,8 +39,25 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     const { user, logout } = useAuth()
     const { mode, toggleMode } = useThemeMode()
     const { t } = useTranslation()
+    const { canSwitch, tenants, activeTenantId, activeTenantName, setActiveTenantId } = useActiveTenant()
+    const { formatted: sessionRemaining, warning: sessionWarning } = useSessionCountdown()
     const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null)
     const isDark = theme.palette.mode === 'dark'
+
+    // "Who/where/how-long" context label: tenant name (falls back to the
+    // active-tenant id, then a generic Platform label) plus the operator role.
+    const contextScope = activeTenantName
+        || (user?.isSuperAdmin() && !activeTenantName ? t('topbar.context.platform') : null)
+        || user?.tenantName
+        || null
+    const contextRole = user?.role ?? null
+
+    const handleTenantSwitch = (event: SelectChangeEvent) => {
+        setActiveTenantId(event.target.value)
+        // Reload so every already-fetched admin surface re-queries under the
+        // new X-Active-Tenant scope (matches the app's per-page fetch model).
+        window.location.reload()
+    }
 
     // Language is driven globally by the shared <fivucsas-launcher> FAB
     // (public/launcher.js → `fivucsas:languagechange`), so the top bar no
@@ -127,6 +149,83 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
 
                 {/* Right cluster */}
                 <Box sx={{display: 'flex', alignItems: 'center', gap: 0.5}}>
+                    {/* SUPER_ADMIN tenant switcher */}
+                    {canSwitch && tenants.length > 0 && (
+                        <Tooltip title={t('topbar.tenantSwitcher.tooltip')}>
+                            <FormControl size="small" sx={{ minWidth: 150, mr: 0.5, display: { xs: 'none', sm: 'block' } }}>
+                                <Select
+                                    value={activeTenantId ?? ''}
+                                    onChange={handleTenantSwitch}
+                                    displayEmpty
+                                    aria-label={t('topbar.tenantSwitcher.label')}
+                                    startAdornment={<Business sx={{ fontSize: 18, mr: 0.75, color: 'primary.main' }} />}
+                                    sx={{
+                                        fontSize: '0.8rem',
+                                        fontWeight: 600,
+                                        '& .MuiSelect-select': { py: 0.75 },
+                                        backgroundColor: alpha('#6366f1', isDark ? 0.14 : 0.07),
+                                        borderRadius: '8px',
+                                    }}
+                                >
+                                    {tenants.map((tnt) => (
+                                        <MenuItem key={tnt.id} value={tnt.id} sx={{ fontSize: '0.85rem' }}>
+                                            {tnt.name}
+                                        </MenuItem>
+                                    ))}
+                                </Select>
+                            </FormControl>
+                        </Tooltip>
+                    )}
+
+                    {/* Who/where context: tenant · role */}
+                    {(contextScope || contextRole) && (
+                        <Tooltip title={t('topbar.context.tooltip')}>
+                            <Box
+                                sx={{
+                                    display: { xs: 'none', md: 'flex' },
+                                    alignItems: 'center',
+                                    gap: 0.75,
+                                    px: 1.25,
+                                    py: 0.5,
+                                    mr: 0.5,
+                                    borderRadius: '8px',
+                                    backgroundColor: alpha(isDark ? '#fff' : '#000', 0.04),
+                                    maxWidth: 280,
+                                }}
+                            >
+                                <Business sx={{ fontSize: 16, color: 'text.secondary', flexShrink: 0 }} />
+                                <Typography variant="caption" noWrap sx={{ fontWeight: 600, lineHeight: 1.2 }}>
+                                    {contextScope ?? t('topbar.context.platform')}
+                                    {contextRole && (
+                                        <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500 }}>
+                                            {' · '}{contextRole}
+                                        </Box>
+                                    )}
+                                </Typography>
+                            </Box>
+                        </Tooltip>
+                    )}
+
+                    {/* Session time remaining */}
+                    {sessionRemaining && (
+                        <Tooltip title={t('topbar.session.tooltip')}>
+                            <Chip
+                                size="small"
+                                icon={<AccessTime sx={{ fontSize: '16px !important' }} />}
+                                label={t('topbar.session.remaining', { time: sessionRemaining })}
+                                color={sessionWarning ? 'warning' : 'default'}
+                                variant={sessionWarning ? 'filled' : 'outlined'}
+                                aria-label={t('topbar.session.remaining', { time: sessionRemaining })}
+                                sx={{
+                                    mr: 0.5,
+                                    display: { xs: 'none', sm: 'flex' },
+                                    fontWeight: 600,
+                                    fontVariantNumeric: 'tabular-nums',
+                                }}
+                            />
+                        </Tooltip>
+                    )}
+
                     {/* Dark mode toggle */}
                     <Tooltip title={mode === 'dark' ? t('topbar.lightMode') : t('topbar.darkMode')}>
                         <IconButton color="inherit" onClick={toggleMode} aria-label={t('a11y.toggleDarkMode')}>
