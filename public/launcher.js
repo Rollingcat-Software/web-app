@@ -87,7 +87,7 @@
     { key: 'dashboard', href: 'https://app.fivucsas.com',      host: 'app.fivucsas.com',      icon: ICONS.dashboard, en: 'Dashboard',   tr: 'Panel',            dEn: 'Manage tenants & auth', dTr: 'Kiracı ve kimlik yönetimi' },
     { key: 'widget',    href: 'https://verify.fivucsas.com',   host: 'verify.fivucsas.com',   icon: ICONS.widget,    en: 'Auth Widget', tr: 'Doğrulama Aracı',  dEn: 'Embeddable login',      dTr: 'Gömülebilir giriş' },
     { key: 'demo',      href: 'https://demo.fivucsas.com',     host: 'demo.fivucsas.com',     icon: ICONS.demo,      en: 'Demo',        tr: 'Demo',             dEn: 'Try it live',           dTr: 'Canlı dene' },
-    { key: 'amispoof',  href: 'https://amispoof.fivucsas.com', host: 'amispoof.fivucsas.com', icon: ICONS.amispoof,  en: 'amispoof',    tr: 'amispoof',         dEn: 'Anti-spoof tester',     dTr: 'Sahtelik test aracı' },
+    { key: 'amispoof',  href: 'https://amispoof.fivucsas.com', host: 'amispoof.fivucsas.com', icon: ICONS.amispoof,  en: 'Am I Spoof?', tr: 'Am I Spoof?',      dEn: 'Anti-spoof tester',     dTr: 'Sahtelik test aracı' },
     { key: 'docs',      href: 'https://docs.fivucsas.com',     host: 'docs.fivucsas.com',     icon: ICONS.docs,      en: 'Docs',        tr: 'Belgeler',         dEn: 'Guides & API',          dTr: 'Kılavuzlar ve API' }
   ];
 
