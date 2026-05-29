@@ -831,7 +831,29 @@
     "extendFailed": "Failed to extend guest access",
     "revokeFailed": "Failed to revoke guest access",
     "loadFailed": "Failed to load guest invitations",
-    "activeCount": "{{count}} active"
+    "activeCount": "{{count}} active",
+    "resendInvitation": "Resend invitation",
+    "resendSuccess": "Invitation email resent successfully",
+    "resendFailed": "Failed to resend the invitation"
+  },
+  "acceptInvite": {
+    "title": "Accept Invitation",
+    "subtitle": "Create your account to start your guest access",
+    "firstNameLabel": "First Name",
+    "lastNameLabel": "Last Name",
+    "passwordLabel": "Password",
+    "confirmPasswordLabel": "Confirm Password",
+    "submitButton": "Create Account",
+    "backToLogin": "Back to Login",
+    "success": "Account created. Please sign in.",
+    "noToken": "This invitation link is invalid or incomplete. Please use the link from your invitation email, or ask your host to resend it.",
+    "validation": {
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "passwordMin": "Password must be at least 8 characters",
+      "confirmPasswordRequired": "Please confirm your password",
+      "passwordsDoNotMatch": "Passwords don't match"
+    }
   },
   "developerPortal": {
     "title": "Developer Portal",

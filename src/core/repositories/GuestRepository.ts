@@ -8,6 +8,7 @@ import type {
     InviteGuestData,
     ExtendGuestData,
     GuestFilters,
+    AcceptInvitationData,
 } from '@domain/interfaces/IGuestRepository'
 
 /**
@@ -102,6 +103,39 @@ export class GuestRepository implements IGuestRepository {
             this.logger.info('Guest access revoked successfully', { guestId })
         } catch (error) {
             this.logger.error(`Failed to revoke guest access ${guestId}`, error)
+            throw error
+        }
+    }
+
+    /**
+     * Accept a guest invitation using the emailed token. Public endpoint —
+     * no Authorization header required.
+     */
+    async acceptInvitation(data: AcceptInvitationData): Promise<void> {
+        try {
+            this.logger.info('Accepting guest invitation')
+
+            await this.httpClient.post('/guests/accept', data)
+
+            this.logger.info('Guest invitation accepted successfully')
+        } catch (error) {
+            this.logger.error('Failed to accept guest invitation', error)
+            throw error
+        }
+    }
+
+    /**
+     * Re-send the invitation email for a PENDING invitation.
+     */
+    async resendInvitation(invitationId: string): Promise<void> {
+        try {
+            this.logger.info(`Resending guest invitation ${invitationId}`)
+
+            await this.httpClient.post(`/guests/${invitationId}/resend`)
+
+            this.logger.info('Guest invitation resent successfully', { invitationId })
+        } catch (error) {
+            this.logger.error(`Failed to resend guest invitation ${invitationId}`, error)
             throw error
         }
     }

@@ -38,6 +38,16 @@ export interface ExtendGuestData {
 }
 
 /**
+ * Accept guest invitation request data (public — no auth).
+ */
+export interface AcceptInvitationData {
+    token: string
+    firstName: string
+    lastName: string
+    password: string
+}
+
+/**
  * Guest list filters
  */
 export interface GuestFilters {
@@ -73,4 +83,15 @@ export interface IGuestRepository {
      * Revoke a guest's access
      */
     revokeAccess(guestId: string): Promise<void>
+
+    /**
+     * Accept a guest invitation (public — uses the emailed token to create
+     * the guest user account).
+     */
+    acceptInvitation(data: AcceptInvitationData): Promise<void>
+
+    /**
+     * Re-send the invitation email for a PENDING invitation.
+     */
+    resendInvitation(invitationId: string): Promise<void>
 }
