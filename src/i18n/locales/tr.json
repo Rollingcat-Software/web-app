@@ -1217,6 +1217,14 @@
     "s9Title": "9. İletişim ve Kişisel Verileri Koruma Görevlisi",
     "s9Body": "Gizlilik ile ilgili sorularınız, veri haklarınızı kullanmak veya Kişisel Verileri Koruma Görevlimizle iletişime geçmek için lütfen şu adrese e-posta gönderin: bilgisayar@marmara.edu.tr. KVKK'nın gerektirdiği şekilde tüm veri sahibi taleplerine 30 gün içinde yanıt vereceğiz."
   },
+  "biometricConsent": {
+    "title": "Biyometrik Onay",
+    "description": "Başka bir kuruluşun, mevcut FIVUCSAS biyometriklerinizle sizi doğrulamasına izin verin — yeniden kayıt gerekmez. Biyometrik şablonunuzu asla almazlar; yalnızca bir doğrulama sonucu alırlar ve yalnızca onay verildiği sürece.",
+    "useForTenant": "Mevcut FIVUCSAS biyometriklerimi {{tenant}} için kullan",
+    "thisTenant": "bu kuruluş",
+    "grantedTenants": "Onay verilen kuruluşlar",
+    "none": "Henüz hiçbir kuruluşa biyometrik onay vermediniz."
+  },
   "myProfile": {
     "title": "Profilim",
     "subtitle": "Tüm hesap bilgilerinizi tek bir yerde görüntüleyip yönetin.",

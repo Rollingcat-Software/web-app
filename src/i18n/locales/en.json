@@ -1217,6 +1217,14 @@
     "s9Title": "9. Contact and Data Protection Officer",
     "s9Body": "For privacy-related inquiries, to exercise your data rights, or to contact our Data Protection Officer, please email: bilgisayar@marmara.edu.tr. We will respond to all data subject requests within 30 days as required by KVKK."
   },
+  "biometricConsent": {
+    "title": "Biometric Consent",
+    "description": "Let another organization verify you with your existing FIVUCSAS biometrics — no need to re-enroll. They never receive your biometric template, only a verification decision, and only while consent is granted.",
+    "useForTenant": "Use my existing FIVUCSAS biometrics for {{tenant}}",
+    "thisTenant": "this organization",
+    "grantedTenants": "Organizations with consent",
+    "none": "You have not granted biometric consent to any organization yet."
+  },
   "myProfile": {
     "title": "My Profile",
     "subtitle": "View and manage all your account information in one place.",
