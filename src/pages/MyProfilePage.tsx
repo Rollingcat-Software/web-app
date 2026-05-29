@@ -73,6 +73,7 @@ import type { ILogger } from '@domain/interfaces/ILogger'
 import type { Enrollment } from '@domain/models/Enrollment'
 import { formatApiError } from '@utils/formatApiError'
 import BiometricConsentSection from '@features/biometric-consent/BiometricConsentSection'
+import LinkedAccountsSection from '@features/linkedAccounts/LinkedAccountsSection'
 import type { AxiosError } from 'axios'
 
 /** Map auth method type to icon */
@@ -474,6 +475,11 @@ export default function MyProfilePage() {
                             </Box>
                         </CardContent>
                     </Card>
+                </Grid>
+
+                {/* ===== Linked accounts (Phase 2 account linking) ===== */}
+                <Grid item xs={12}>
+                    <LinkedAccountsSection currentUserId={userId} />
                 </Grid>
 
                 {/* ===== Section 5: Account Statistics ===== */}
