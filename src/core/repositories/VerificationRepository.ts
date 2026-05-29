@@ -99,6 +99,32 @@ export class VerificationRepository {
     ) {}
 
     /**
+     * Normalizes a raw verification-flow object from the API into the
+     * {@link VerificationFlow} shape the UI expects. The backend emits
+     * `operationType`/`isActive`/`stepCount`; the UI reads `flowType`/`status`.
+     * Tolerates either shape so the table never renders `undefined`.
+     */
+    private static toVerificationFlow(raw: Record<string, unknown>): VerificationFlow {
+        const r = raw ?? {}
+        const isActive = r.isActive
+        const status =
+            (r.status as VerificationFlow['status']) ??
+            (isActive === false ? 'inactive' : 'active')
+        return {
+            id: String(r.id ?? ''),
+            tenantId: String(r.tenantId ?? ''),
+            name: String(r.name ?? ''),
+            flowType: String(r.flowType ?? r.operationType ?? ''),
+            templateId: (r.templateId as string) ?? undefined,
+            templateName: (r.templateName as string) ?? (r.industryTemplate as string) ?? undefined,
+            steps: (Array.isArray(r.steps) ? r.steps : []) as VerificationStepSpec[],
+            status,
+            createdAt: String(r.createdAt ?? ''),
+            updatedAt: String(r.updatedAt ?? ''),
+        }
+    }
+
+    /**
      * Fetch available industry templates
      */
     async getTemplates(): Promise<VerificationTemplate[]> {
@@ -138,11 +164,18 @@ export class VerificationRepository {
                 )
             }
 
-            const response = await this.httpClient.get<VerificationFlow[]>(
+            const response = await this.httpClient.get<unknown[]>(
                 `/verification/flows`,
                 tenantId ? { params: { tenantId } } : undefined
             )
-            return response.data
+            // The API serializes flows as { operationType, isActive, stepCount, steps }
+            // — NOT the { flowType, status } shape this interface declares. Map here
+            // so the UI never reads undefined: flow.flowType.toUpperCase() previously
+            // crashed VerificationFlowBuilderPage into the ErrorBoundary whenever a
+            // tenant actually had flows. Found via the admin UI sweep 2026-05-29.
+            return (response.data ?? []).map((raw) =>
+                VerificationRepository.toVerificationFlow(raw as Record<string, unknown>)
+            )
         } catch (error) {
             this.logger.error('Failed to fetch verification flows', error)
             throw error
