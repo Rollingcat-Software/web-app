@@ -96,6 +96,10 @@ interface AuthFlowBuilderProps {
     initialOperationType?: string
     initialName?: string
     initialDescription?: string
+    /** When editing, preserve the flow's current default flag (else editing the
+     *  default flow would silently recreate it as non-default → the tenant loses
+     *  its default flow and all logins fail). */
+    initialIsDefault?: boolean
 }
 
 export function AuthFlowBuilder({
@@ -105,12 +109,13 @@ export function AuthFlowBuilder({
     initialOperationType = 'APP_LOGIN',
     initialName = 'My Authentication Flow',
     initialDescription = '',
+    initialIsDefault = false,
 }: AuthFlowBuilderProps) {
     const { t } = useTranslation()
     const [steps, setSteps] = useState<AuthFlowStep[]>(initialSteps)
     const [flowName, setFlowName] = useState(initialName)
     const [flowDescription, setFlowDescription] = useState(initialDescription)
-    const [isDefault, setIsDefault] = useState(false)
+    const [isDefault, setIsDefault] = useState(initialIsDefault)
     const [showMethodPicker, setShowMethodPicker] = useState(false)
     const [operationType, setOperationType] = useState<OperationType>(normalizeOperationType(initialOperationType))
 
