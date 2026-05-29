@@ -45,6 +45,8 @@ import { UserEnrollmentRepository } from '@core/repositories/UserEnrollmentRepos
 import { VerificationRepository } from '@core/repositories/VerificationRepository'
 import { GuestRepository } from '@core/repositories/GuestRepository'
 import type { IGuestRepository } from '@domain/interfaces/IGuestRepository'
+import { OnboardingRepository } from '@core/repositories/OnboardingRepository'
+import type { IOnboardingRepository } from '@domain/interfaces/IOnboardingRepository'
 import { GuestService } from '@features/guests/services/GuestService'
 import { AuthService } from '@features/auth/services/AuthService'
 import { UserService } from '@features/users/services/UserService'
@@ -119,6 +121,7 @@ container.bind<DeviceRepository>(TYPES.DeviceRepository).to(DeviceRepository).in
 container.bind<IUserEnrollmentRepository>(TYPES.UserEnrollmentRepository).to(UserEnrollmentRepository).inSingletonScope()
 container.bind<VerificationRepository>(TYPES.VerificationRepository).to(VerificationRepository).inSingletonScope()
 container.bind<IGuestRepository>(TYPES.GuestRepository).to(GuestRepository).inSingletonScope()
+container.bind<IOnboardingRepository>(TYPES.OnboardingRepository).to(OnboardingRepository).inSingletonScope()
 
 // Bind services
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService).inSingletonScope()

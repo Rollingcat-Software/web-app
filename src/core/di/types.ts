@@ -29,6 +29,7 @@ export const TYPES = {
     AuthSessionRepository: Symbol.for('AuthSessionRepository'),
     DeviceRepository: Symbol.for('DeviceRepository'),
     GuestRepository: Symbol.for('GuestRepository'),
+    OnboardingRepository: Symbol.for('OnboardingRepository'),
 
     // Services
     AuthService: Symbol.for('AuthService'),

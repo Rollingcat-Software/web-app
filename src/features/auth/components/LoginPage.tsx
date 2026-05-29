@@ -855,6 +855,27 @@ export default function LoginPage() {
                                         {t('auth.register')}
                                     </Link>
                                 </Typography>
+                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mt: 0.5 }}>
+                                    {t('auth.createOrgQuestion')}{' '}
+                                    <Link
+                                        href="/onboarding"
+                                        onClick={(e: React.MouseEvent) => {
+                                            e.preventDefault()
+                                            navigate('/onboarding')
+                                        }}
+                                        underline="hover"
+                                        sx={{
+                                            fontWeight: 600,
+                                            color: 'primary.main',
+                                            cursor: 'pointer',
+                                            '&:hover': {
+                                                color: 'primary.dark',
+                                            },
+                                        }}
+                                    >
+                                        {t('auth.createOrgLink')}
+                                    </Link>
+                                </Typography>
                             </Box>
                         </motion.div>
 
