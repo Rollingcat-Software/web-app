@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": false,
+    "incremental": false,
+    "noEmit": false,
+    "emitDeclarationOnly": true,
+    "declaration": true,
+    "declarationMap": true,
+    "outDir": "packages/auth-elements/dist",
+    "rootDir": "src/verify-app/sdk",
+    "allowImportingTsExtensions": false,
+    "paths": {}
+  },
+  "include": [
+    "src/verify-app/sdk/elements.ts",
+    "src/verify-app/sdk/FivucsasAuthElement.ts",
+    "src/verify-app/sdk/FivucsasAuth.ts"
+  ],
+  "exclude": ["src/verify-app/sdk/__tests__"],
+  "references": []
+}

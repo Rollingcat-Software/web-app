@@ -16,7 +16,12 @@ Admin dashboard + hosted login + auth SDK for the **FIVUCSAS** biometric identit
 Built with React 18 + TypeScript 5 + Vite 8 on Clean Architecture (InversifyJS DI, repository pattern, Zod validation, i18next en+tr). Deploys two surfaces:
 
 - **Admin dashboard** at `app.fivucsas.com` — user/tenant/role/flow/device/audit management across 30+ routes
-- **Hosted login + embeddable widget** at `verify.fivucsas.com` — hosted-first redirective OIDC login (primary) plus iframe widget for inline step-up MFA (secondary); SDK delivered via CDN script-tag at `https://verify.fivucsas.com/sdk/` (`loginRedirect({...})` and Web Components). npm packages `@fivucsas/auth-js`, `@fivucsas/auth-react`, and `@fivucsas/auth-elements` are **not yet published** (coming soon)
+- **Hosted login + embeddable widget** at `verify.fivucsas.com` — hosted-first redirective OIDC login (primary) plus iframe widget for inline step-up MFA (secondary); SDK delivered via CDN script-tag at `https://verify.fivucsas.com/sdk/` (`loginRedirect({...})` and Web Components) **or** as npm packages:
+  - [`@fivucsas/auth-js`](packages/auth-js) — vanilla, zero-dependency core SDK (`npm install @fivucsas/auth-js`)
+  - [`@fivucsas/auth-elements`](packages/auth-elements) — the `<fivucsas-verify>` Web Component (`npm install @fivucsas/auth-elements`)
+  - `@fivucsas/auth-react` — thin React wrapper, **coming soon**
+
+  The packages live under [`packages/`](packages) and are built from the canonical SDK source at `src/verify-app/sdk/`. See [SDK packaging & publishing](docs/SDK_PUBLISHING.md). (A token-gated GitHub Actions workflow publishes them on an `sdk-v*` tag; they are not yet on the public npm registry until an operator completes the one-time setup in that doc.)
 
 ## Architecture
 
@@ -172,8 +177,11 @@ Mock users included:
 npm run dev            # Start development server
 npm run build          # Build admin dashboard for production
 npm run build:verify   # Build hosted-login / widget surface
-npm run build:sdk      # Build @fivucsas/auth-js SDK
-npm run build:elements # Build @fivucsas/auth-elements Web Components
+npm run build:sdk      # Build the CDN script-tag SDK bundle (dist-sdk/)
+npm run build:elements # Build the CDN Web Components bundle (dist-elements/)
+npm run build:pkgs     # Build BOTH npm packages (ESM + CJS + .d.ts) under packages/*/dist
+npm run build:pkg:auth-js        # Build only @fivucsas/auth-js
+npm run build:pkg:auth-elements  # Build only @fivucsas/auth-elements
 npm run build:adapter  # Build adapter bundle
 npm run preview        # Preview production build
 npm run test           # Run tests in watch mode
