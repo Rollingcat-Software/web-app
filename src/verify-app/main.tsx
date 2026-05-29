@@ -54,6 +54,22 @@ const hasWidgetContext =
     params.has('flow') ||
     params.has('user_id')
 
+// Shared suite launcher — show ONLY on the public, non-authentication surfaces:
+//   • the bare product landing (verify.fivucsas.com/, no widget context), and
+//   • the integrator explainer (/login reached WITHOUT OAuth params).
+// NEVER during active authentication (a real `/login?client_id=…` redirect or an
+// embedded/session widget) — a cross-site app-switcher mid-login is a distraction
+// and a trust/embedding smell. Injected dynamically (not a static <script> in
+// index.html) precisely so it can be withheld from the auth surfaces.
+const isActiveAuth = hasWidgetContext            // client_id / session_id / framed / flow / user_id
+const showSuiteLauncher = (isHosted && !params.has('client_id')) || (!isHosted && !isActiveAuth)
+if (showSuiteLauncher) {
+    const s = document.createElement('script')
+    s.src = 'https://app.fivucsas.com/launcher.js?v=2026-05-29'
+    s.defer = true
+    document.body.appendChild(s)
+}
+
 if (isHosted || hasWidgetContext) {
     ReactDOM.createRoot(rootElement).render(
         <React.StrictMode>
