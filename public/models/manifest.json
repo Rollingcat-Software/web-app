@@ -1,12 +1,12 @@
 {
-  "version": "2026.04.18",
+  "version": "2026.05.29",
   "base_url_default": "https://app.fivucsas.com/models",
   "files": [
     {
       "name": "yolo-card-nano.onnx",
-      "sha256": "1b0db1183de768b1f0a7ab3d280b79ad84b653c433cc6a7ee55ac9c73e0b1863",
-      "bytes": 51865658,
-      "purpose": "Card detection overlay (YOLOv8 FP16 from trained best_fp16.onnx). NOTE: 50 MB is larger than plan-spec 6.2 MB; consider re-exporting a true YOLOv8n backbone if bandwidth is a concern."
+      "sha256": "2df291954cd3dc265e9be45478baa104fadb750ef09292f10bf611cb0db0f67b",
+      "bytes": 12268876,
+      "purpose": "Card detection overlay — true YOLOv8n nano (12.3 MB, opset 12), retrained + exported by Ayşenur 2026-05-29. Replaces the 50 MB YOLOv8m mislabeled as nano. Identical I/O contract: input images[1,3,640,640] f32 NCHW [0,1], output output0[1,9,8400] (4 bbox + 5 classes), same class order as labels.json."
     },
     {
       "name": "silero-vad.onnx",

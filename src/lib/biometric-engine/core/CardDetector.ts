@@ -5,7 +5,10 @@
  * driver licenses, and student/academic cards directly in the browser.
  * Falls back to a "not available" result when the ONNX model cannot be loaded.
  *
- * Model: yolo-card-nano.onnx (~50 MB FP16)
+ * Model: yolo-card-nano.onnx (~12.3 MB, true YOLOv8n, opset 12) — retrained +
+ *   exported by Ayşenur 2026-05-29, replacing the earlier 50 MB YOLOv8m that
+ *   was mislabeled "nano". Same I/O contract + class order, so this file is
+ *   unchanged apart from this note. SHA256 tracked in public/models/manifest.json.
  * Input: 640×640×3 float32, normalized [0,1], NCHW layout
  * Output: YOLOv8 format [1, 4+C, 8400]
  *
