@@ -8,7 +8,7 @@ Model files are **fetched at build time** from a Hostinger static bucket. They a
 
 | File | Size | Purpose |
 |------|------|---------|
-| yolo-card-nano.onnx | ~50 MB (trained FP16) | Card detection overlay — crop sent to server for OCR/MRZ |
+| yolo-card-nano.onnx | ~12.3 MB (true YOLOv8n, opset 12) | Card detection overlay — runs in-browser only (onnxruntime-web); no server round-trip |
 | silero-vad.onnx | ~2.2 MB | Voice activity detection — skip upload on silent captures |
 | labels.json | <1 KB | Canonical class index → name mapping for `yolo-card-nano.onnx` (committed; loaded at runtime) |
 
@@ -16,7 +16,7 @@ Client face embedding is produced by `EmbeddingComputer.geometryEmbedding()` fro
 
 ## YOLO Card Class Labels (READ BEFORE TOUCHING)
 
-The deployed `yolo-card-nano.onnx` was trained with a NON-alphabetical class order. The canonical mapping is embedded in the model's `metadata_props.names` field and mirrored on disk in `labels.json`:
+The `yolo-card-nano.onnx` (true YOLOv8n, 12.3 MB, opset 12) was trained with a NON-alphabetical class order. The canonical mapping is embedded in the model's `metadata_props.names` field and mirrored on disk in `labels.json`:
 
 | Index | Slug | EN | TR |
 |------:|------|----|----|
@@ -61,10 +61,10 @@ Then update `labels.json` and `FALLBACK_CLASS_NAMES` and run `npm run test -- Ca
 
 1. Generate / download the models locally:
    ```bash
-   # Card model from training checkpoint:
-   cd biometric-processor/app/core/card_type_model
-   python -c "from ultralytics import YOLO; m=YOLO('best.pt'); m.export(format='onnx', imgsz=640, half=False, simplify=True)"
-   # mv best.onnx /tmp/yolo-card-nano.onnx
+   # Card model: Ayşenur's true YOLOv8n best.onnx is now committed in-repo at
+   # biometric-processor/app/core/card_type_model/best.onnx (best.pt was dropped, bio #116).
+   # Copy it directly; do NOT re-export from best.pt:
+   cp biometric-processor/app/core/card_type_model/best.onnx /tmp/yolo-card-nano.onnx
 
    # Silero VAD: https://github.com/snakers4/silero-vad (export or pre-built ONNX)
    ```
@@ -87,8 +87,8 @@ Then update `labels.json` and `FALLBACK_CLASS_NAMES` and run `npm run test -- Ca
 ## Env Overrides
 
 - `MODELS_BASE_URL` — override the bucket URL (useful for staging/local CDN).
-- `SKIP_MODEL_FETCH=1` — skip downloads entirely (leaves the dir empty; client falls back to server inference).
+- `SKIP_MODEL_FETCH=1` — skip downloads entirely (leaves the dir empty; card detection then has no model and is unavailable — there is no server fallback as of web-app #111).
 
 ## Why Log-Only?
 
-Per D1-D2 decisions (2026-04-14, reaffirmed 2026-04-18): the server has no GPU; client pre-filtering helps latency and upload bandwidth, but auth verdicts stay server-side. The client landmark-geometry embedding cannot be directly compared to server DeepFace Facenet512 — we log it for offline divergence analysis, not to gate authentication. See `docs/plans/CLIENT_SIDE_ML_PLAN.md` v2.0.
+Per D1-D2 decisions (2026-04-14, reaffirmed 2026-04-18): the server has no GPU; client pre-filtering helps latency and upload bandwidth, but face/voice auth verdicts stay server-side. (Card-type detection is the exception — it is now fully client-side with no server path, per web-app #111.) The client landmark-geometry embedding cannot be directly compared to server DeepFace Facenet512 — we log it for offline divergence analysis, not to gate authentication. See `docs/plans/CLIENT_SIDE_ML_PLAN.md` v2.0.
