@@ -31,7 +31,11 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
   step components, and DI wiring under its own subdirectory.
 - `src/features/auth/constants.ts` - Centralized enums: AuthMethodType, MfaStepStatus, WEBAUTHN, AUTH_API
 - `src/features/auth/webauthn-utils.ts` - Shared WebAuthn: resolveChallenge, mapWebAuthnError, base64 helpers
-- `src/features/authFlows/` - Auth flow builder and management
+- `src/features/authFlows/` - Auth flow builder and management. The builder
+  (`AuthFlowBuilder.tsx`) treats **password as a normal removable + reorderable
+  method** (no mandatory-password lock), supports **CHOICE steps** (pick N
+  one-of alternative methods per step → `alternativeMethodTypes`) and a
+  **usernameless Layer-1 toggle** gated by `AuthMethod.supportsUsernameless`.
 - `src/core/repositories/` - API repository implementations
 - `src/domain/models/` - Domain models
 - `src/core/di/` - InversifyJS DI container and TYPES
@@ -54,6 +58,34 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
 Step components in `src/features/auth/components/`:
 PasswordStep, EmailOtpStep, SmsOtpStep, TotpStep, QrCodeStep,
 FaceCaptureStep, FingerprintStep, VoiceStep, NfcStep, HardwareKeyStep
+
+## Config-driven login (feature-flagged `app.auth.config-driven-login`, default OFF)
+
+The login surface renders its **Layer 1 STRICTLY from the backend
+`GET /auth/login-config` response** — never hardcode the password-first form.
+
+- `features/auth/login-config.ts` → `fetchLoginConfig(httpClient, clientId?)`
+  fetches + normalizes via `domain/models/LoginConfig.ts` (tolerant of
+  `type`/`methodType`, `usernameless`/`supportsUsernameless`,
+  `order`/`stepOrder` deltas). Returns **`null` on ANY failure** (404 / network
+  / malformed) so the UI degrades to the legacy email+password screen.
+- `LoginMfaFlow.tsx` shows the **password step only when `PASSWORD ∈
+  layer1.methods`**; otherwise an **identifier-first** entry opens an MFA
+  session via `AuthRepository.beginIdentifierLogin` (`POST /auth/login/begin`),
+  then drives Layers 2..N through the existing step components.
+- `LoginPage.tsx` (dashboard) gates the password form the same way; the
+  no-password path routes through `TwoFactorDispatcher`.
+- `Layer1Shortcuts.tsx` renders the usernameless shortcuts (passkey / approve)
+  **strictly per the config when it positively declares a usernameless Layer-1
+  method**; when it declares none (null config OR the flag-OFF password-first
+  shape) `fallbackAll` keeps today's passkey + approve buttons.
+- **Reversibility**: the UI is 100% config-driven + always has the
+  email+password fallback, so flipping the API flag OFF (which returns the
+  current password-first shape) reverts the whole feature with **no web
+  redeploy**. Don't bake the new behaviour into the components.
+
+Contract is provisional (api task #16): the client normalizer absorbs
+field/casing deltas and never hard-fails.
 
 ## Key Patterns
 
