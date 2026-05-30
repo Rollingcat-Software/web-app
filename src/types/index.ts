@@ -20,7 +20,7 @@ export enum UserRole {
     USER = 'USER',
     ADMIN = 'ADMIN',
     TENANT_ADMIN = 'TENANT_ADMIN',
-    SUPER_ADMIN = 'SUPER_ADMIN',
+    ROOT = 'ROOT',
 }
 
 export enum UserStatus {

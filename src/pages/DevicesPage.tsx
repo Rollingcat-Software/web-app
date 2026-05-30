@@ -62,14 +62,14 @@ export default function DevicesPage() {
     // devices; tenant-scoped admins always pin to their own tenant.
     // Without this, SUPER_ADMIN saw only the system-tenant's (empty)
     // list because user.tenantId is the system tenant id.
-    const isSuperAdmin = !!user?.isSuperAdmin?.()
-    const tenantId = isSuperAdmin ? '' : (user?.tenantId ?? '')
+    const isRoot = !!user?.isRoot?.()
+    const tenantId = isRoot ? '' : (user?.tenantId ?? '')
 
     const loadDevices = useCallback(async () => {
         // Copilot post-merge round 5: only pass crossTenant for an actual
         // SUPER_ADMIN; otherwise wait for the tenantId to be present rather
         // than triggering an accidental platform-wide fetch with `''`.
-        if (!tenantId && !isSuperAdmin) {
+        if (!tenantId && !isRoot) {
             setDevices([])
             setError(null)
             setLoading(false)
@@ -80,7 +80,7 @@ export default function DevicesPage() {
         try {
             const data = await deviceRepo.listDevices(
                 tenantId,
-                isSuperAdmin ? { crossTenant: true } : undefined
+                isRoot ? { crossTenant: true } : undefined
             )
             setDevices(data)
         } catch (err) {
@@ -89,7 +89,7 @@ export default function DevicesPage() {
         } finally {
             setLoading(false)
         }
-    }, [deviceRepo, logger, tenantId, isSuperAdmin, t])
+    }, [deviceRepo, logger, tenantId, isRoot, t])
 
     useEffect(() => {
         loadDevices()
@@ -124,7 +124,7 @@ export default function DevicesPage() {
                 </motion.div>
 
                 {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
-                {isSuperAdmin && (
+                {isRoot && (
                     <Alert severity="info" sx={{ mb: 2 }}>
                         {t('devices.platformWideNotice')}
                     </Alert>

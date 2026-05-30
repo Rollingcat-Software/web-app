@@ -7,8 +7,16 @@ export enum UserRole {
     USER = 'USER',
     ADMIN = 'ADMIN',
     TENANT_ADMIN = 'TENANT_ADMIN',
-    SUPER_ADMIN = 'SUPER_ADMIN',
+    ROOT = 'ROOT',
 }
+
+/**
+ * Platform-level (FIVUCSAS) tier — the SINGLE authority for cross-tenant /
+ * can-manage-tenant capability. Comes from the backend `userType` field on
+ * `/auth/me`; it is independent of the within-tenant RBAC `role`.
+ * See docs/IDENTITY_ROLE_UNIFICATION.md.
+ */
+export type UserType = 'ROOT' | 'TENANT_ADMIN' | 'TENANT_MEMBER' | 'GUEST'
 
 export enum UserStatus {
     PENDING_ENROLLMENT = 'PENDING_ENROLLMENT',
@@ -45,7 +53,14 @@ export class User {
         public readonly verificationCount?: number,
         public readonly emailVerified: boolean = false,
         public readonly phoneVerified: boolean = false,
-        public readonly tenantName?: string
+        public readonly tenantName?: string,
+        /**
+         * Platform-level tier from the backend `/auth/me` `userType` field.
+         * Authoritative source for {@link isRoot}. May be undefined for older
+         * tokens issued before the backend exposed it — callers fall back to
+         * the RBAC `role`.
+         */
+        public readonly userType?: UserType
     ) {}
 
     /**
@@ -63,17 +78,24 @@ export class User {
     }
 
     /**
-     * Check if user is admin (ADMIN, TENANT_ADMIN, or SUPER_ADMIN)
+     * Check if user is admin (ADMIN, TENANT_ADMIN, or ROOT)
      */
     isAdmin(): boolean {
-        return this.role === UserRole.ADMIN || this.role === UserRole.TENANT_ADMIN || this.role === UserRole.SUPER_ADMIN
+        return this.role === UserRole.ADMIN || this.role === UserRole.TENANT_ADMIN || this.role === UserRole.ROOT
     }
 
     /**
-     * Check if user is super admin
+     * Check if user is the platform-level Root tier.
+     *
+     * Authoritative: the backend `userType` (matches the backend `isRoot`
+     * gate). Falls back to the RBAC `role` ONLY when `userType` is absent
+     * (older tokens issued before `/auth/me` exposed `userType`).
      */
-    isSuperAdmin(): boolean {
-        return this.role === UserRole.SUPER_ADMIN
+    isRoot(): boolean {
+        if (this.userType !== undefined) {
+            return this.userType === 'ROOT'
+        }
+        return this.role === UserRole.ROOT
     }
 
     /**
@@ -117,6 +139,7 @@ export class User {
             emailVerified: this.emailVerified,
             phoneVerified: this.phoneVerified,
             tenantName: this.tenantName,
+            userType: this.userType,
         }
     }
 
@@ -129,13 +152,31 @@ export class User {
         // Backend sends role as string, map to enum
         const roleStr = (data.role ?? 'USER').toUpperCase()
         const roleMap: Record<string, UserRole> = {
-            'SUPER_ADMIN': UserRole.SUPER_ADMIN,
-            'ROOT': UserRole.SUPER_ADMIN,
+            'ROOT': UserRole.ROOT,
+            // Back-compat: tokens minted before the V69 role rename still send
+            // SUPER_ADMIN — it maps to the same top tier (ROOT).
+            'SUPER_ADMIN': UserRole.ROOT,
             'TENANT_ADMIN': UserRole.TENANT_ADMIN,
             'ADMIN': UserRole.ADMIN,
             'USER': UserRole.USER,
         }
         const role = roleMap[roleStr] ?? UserRole.USER
+
+        // Platform tier from the backend `userType` (authoritative for isRoot).
+        // Tolerate absence (older tokens) — undefined makes isRoot() fall back
+        // to the role. Also tolerate the legacy SUPER_ADMIN spelling.
+        const userTypeRaw = data.userType
+            ? String(data.userType).toUpperCase()
+            : undefined
+        const userType: UserType | undefined =
+            userTypeRaw === 'SUPER_ADMIN'
+                ? 'ROOT'
+                : (userTypeRaw === 'ROOT' ||
+                   userTypeRaw === 'TENANT_ADMIN' ||
+                   userTypeRaw === 'TENANT_MEMBER' ||
+                   userTypeRaw === 'GUEST')
+                    ? (userTypeRaw as UserType)
+                    : undefined
 
         // Map status, with fallback
         const statusStr = (data.status ?? 'ACTIVE').toUpperCase()
@@ -165,7 +206,8 @@ export class User {
             data.verificationCount ?? 0,
             data.emailVerified ?? false,
             data.phoneVerified ?? false,
-            data.tenantName
+            data.tenantName,
+            userType
         )
     }
 }
@@ -197,4 +239,5 @@ export interface UserJSON {
     emailVerified?: boolean
     phoneVerified?: boolean
     tenantName?: string
+    userType?: UserType
 }

@@ -5,6 +5,7 @@ import {zodResolver} from '@hookform/resolvers/zod'
 import {z} from 'zod'
 import {useTranslation} from 'react-i18next'
 import {formatApiError} from '@/utils/formatApiError'
+import {roleLabel} from '@utils/roleLabel'
 import {
     Alert, Box, Button, Checkbox, Chip, CircularProgress, FormControl, FormHelperText,
     InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, TextField, Typography,
@@ -244,10 +245,10 @@ export default function UserFormPage() {
                                     FormHelperTextProps={{id: 'user-form-role-helper'}}
                                     SelectProps={{'aria-describedby': 'user-form-role-helper'}}
                                 >
-                                    <MenuItem value={UserRole.USER}>User</MenuItem>
-                                    <MenuItem value={UserRole.TENANT_ADMIN}>Tenant Admin</MenuItem>
-                                    <MenuItem value={UserRole.ADMIN}>Admin</MenuItem>
-                                    <MenuItem value={UserRole.SUPER_ADMIN}>Super Admin</MenuItem>
+                                    <MenuItem value={UserRole.USER}>{roleLabel(UserRole.USER, t)}</MenuItem>
+                                    <MenuItem value={UserRole.TENANT_ADMIN}>{roleLabel(UserRole.TENANT_ADMIN, t)}</MenuItem>
+                                    <MenuItem value={UserRole.ADMIN}>{roleLabel(UserRole.ADMIN, t)}</MenuItem>
+                                    <MenuItem value={UserRole.ROOT}>{roleLabel(UserRole.ROOT, t)}</MenuItem>
                                 </TextField>
                             )}
                         />

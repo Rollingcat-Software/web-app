@@ -27,7 +27,7 @@ export function ActiveTenantProvider({ children }: { children: ReactNode }) {
     const tenantRepo = useService<ITenantRepository>(TYPES.TenantRepository)
     const logger = useService<ILogger>(TYPES.Logger)
 
-    const canSwitch = !!user?.isSuperAdmin()
+    const canSwitch = !!user?.isRoot()
     const homeTenantId = user?.tenantId ?? null
 
     const [tenants, setTenants] = useState<Tenant[]>([])

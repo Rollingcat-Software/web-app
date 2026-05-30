@@ -27,6 +27,7 @@ import { ConfirmDialog } from '@components/ConfirmDialog'
 import { useTranslation } from 'react-i18next'
 import { formatLocale } from '@utils/dateLocale'
 import { formatApiError } from '@utils/formatApiError'
+import { roleLabel } from '@utils/roleLabel'
 
 function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | 'default' {
     switch (status) {
@@ -44,7 +45,7 @@ function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | '
 
 function getRoleColor(role: UserRole): 'primary' | 'secondary' | 'default' {
     switch (role) {
-        case UserRole.SUPER_ADMIN:
+        case UserRole.ROOT:
             return 'secondary'
         case UserRole.ADMIN:
             return 'primary'
@@ -223,7 +224,7 @@ export default function UsersListPage() {
                                             <TableCell>{user.email}</TableCell>
                                             <TableCell>
                                                 <Chip
-                                                    label={user.role}
+                                                    label={roleLabel(user.role, t)}
                                                     size="small"
                                                     color={getRoleColor(user.role)}
                                                 />

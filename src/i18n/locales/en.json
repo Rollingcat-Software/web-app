@@ -321,7 +321,7 @@
     "loadingAriaLabel": "Loading authentication sessions",
     "countLabel": "{{count}} session(s)",
     "tenantUnavailable": "Tenant context unavailable — sign in again.",
-    "platformWideNotice": "Showing sessions across all tenants (super-admin view).",
+    "platformWideNotice": "Showing sessions across all tenants (Root view).",
     "ipUnknown": "—"
   },
   "otp": {
@@ -548,6 +548,12 @@
     }
   },
   "roles": {
+    "labels": {
+      "root": "Root",
+      "admin": "Admin",
+      "tenantAdmin": "Tenant Admin",
+      "user": "User"
+    },
     "title": "Roles & Permissions",
     "subtitle": "Manage roles and their permissions",
     "addRole": "Add Role",
@@ -857,7 +863,7 @@
     "loadFailed": "Failed to load devices",
     "deleteFailed": "Failed to remove device",
     "removeDevice": "Remove device",
-    "platformWideNotice": "Showing devices across all tenants (super-admin view).",
+    "platformWideNotice": "Showing devices across all tenants (Root view).",
     "columnDevice": "Device",
     "columnPlatform": "Platform",
     "columnFingerprint": "Fingerprint",

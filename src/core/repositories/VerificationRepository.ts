@@ -160,7 +160,7 @@ export class VerificationRepository {
             // platform-wide mode is explicit via `{ crossTenant: true }`.
             if (!tenantId && !options.crossTenant) {
                 throw new Error(
-                    'listFlows: tenantId is required (pass { crossTenant: true } for SUPER_ADMIN platform-wide listing).'
+                    'listFlows: tenantId is required (pass { crossTenant: true } for Root platform-wide listing).'
                 )
             }
 

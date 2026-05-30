@@ -27,12 +27,12 @@ export function useVerification() {
     // SUPER_ADMIN sends '' + crossTenant so the backend lists/aggregates
     // platform-wide; tenant-scoped admins always pin to their own tenant.
     // Without this, the SUPER_ADMIN saw only the (empty) system-tenant slice.
-    // Copilot post-merge round 5: derive a dedicated isSuperAdmin so
+    // Copilot post-merge round 5: derive a dedicated isRoot so
     // listFlows() can request platform-wide mode explicitly instead of
     // relying on a falsy tenantId (which used to be ambiguous with "auth
     // hasn't finished loading").
-    const isSuperAdmin = !!user?.isSuperAdmin?.()
-    const tenantId = isSuperAdmin ? '' : (user?.tenantId ?? '')
+    const isRoot = !!user?.isRoot?.()
+    const tenantId = isRoot ? '' : (user?.tenantId ?? '')
 
     const [templates, setTemplates] = useState<VerificationTemplate[]>([])
     const [flows, setFlows] = useState<VerificationFlow[]>([])
@@ -65,7 +65,7 @@ export function useVerification() {
         // the caller is. Tenant-scoped users without a tenantId yet (auth
         // still loading) get an empty flow list rather than accidentally
         // triggering a SUPER_ADMIN cross-tenant request.
-        if (!tenantId && !isSuperAdmin) {
+        if (!tenantId && !isRoot) {
             setFlows([])
             setError(null)
             setLoading(false)
@@ -76,7 +76,7 @@ export function useVerification() {
         try {
             const data = await verificationRepo.listFlows(
                 tenantId,
-                isSuperAdmin ? { crossTenant: true } : undefined
+                isRoot ? { crossTenant: true } : undefined
             )
             setFlows(data)
         } catch (err) {
@@ -85,7 +85,7 @@ export function useVerification() {
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger, tenantId, isSuperAdmin, t])
+    }, [verificationRepo, logger, tenantId, isRoot, t])
 
     const createFlow = useCallback(async (command: CreateVerificationFlowCommand): Promise<VerificationFlow | null> => {
         setLoading(true)
@@ -95,7 +95,7 @@ export function useVerification() {
             logger.info('Verification flow created', { flowId: created.id })
             const updated = await verificationRepo.listFlows(
                 tenantId,
-                isSuperAdmin ? { crossTenant: true } : undefined
+                isRoot ? { crossTenant: true } : undefined
             )
             setFlows(updated)
             return created
@@ -106,7 +106,7 @@ export function useVerification() {
         } finally {
             setLoading(false)
         }
-    }, [verificationRepo, logger, tenantId, isSuperAdmin, t])
+    }, [verificationRepo, logger, tenantId, isRoot, t])
 
     const deleteFlow = useCallback(async (flowId: string): Promise<boolean> => {
         setError(null)

@@ -122,13 +122,13 @@ describe('PermissionGuard', () => {
         })
     })
 
-    describe('super admin access', () => {
-        it('should allow super admin access to all permissions', () => {
+    describe('root access', () => {
+        it('should allow Root access to all permissions', () => {
             renderWithProvider(
                 <PermissionGuard permission={Permission.TENANTS_DELETE}>
                     <div>Protected Content</div>
                 </PermissionGuard>,
-                'SUPER_ADMIN'
+                'ROOT'
             )
 
             expect(screen.getByText('Protected Content')).toBeInTheDocument()

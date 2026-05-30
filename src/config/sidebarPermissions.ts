@@ -12,8 +12,8 @@
  *     console 403 spam in prod.
  *
  * Role semantics:
- *   - SUPER_ADMIN  — platform owner (us). Sees everything.
- *   - ADMIN        — legacy "global admin" (treated like SUPER_ADMIN for
+ *   - ROOT         — platform owner (us). Sees everything.
+ *   - ADMIN        — legacy "global admin" (treated like ROOT for
  *                    read-only surfaces). Still can't see Tenants list
  *                    (that's a platform-owner concept).
  *   - TENANT_ADMIN — admin of one tenant (e.g. Marmara). Tenant-scoped
@@ -48,10 +48,10 @@ export interface SidebarEntry {
 
 // Convenience role buckets — keep them here so changing the role hierarchy
 // in one place updates every sidebar row.
-export const PLATFORM_OWNER_ROLES: UserRole[] = [UserRole.SUPER_ADMIN]
-export const ADMIN_ROLES: UserRole[] = [UserRole.SUPER_ADMIN, UserRole.ADMIN, UserRole.TENANT_ADMIN]
+export const PLATFORM_OWNER_ROLES: UserRole[] = [UserRole.ROOT]
+export const ADMIN_ROLES: UserRole[] = [UserRole.ROOT, UserRole.ADMIN, UserRole.TENANT_ADMIN]
 export const AUTHENTICATED_ROLES: UserRole[] = [
-    UserRole.SUPER_ADMIN,
+    UserRole.ROOT,
     UserRole.ADMIN,
     UserRole.TENANT_ADMIN,
     UserRole.USER,

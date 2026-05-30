@@ -147,9 +147,9 @@ export class UserService implements IUserService {
             throw new NotFoundError(`User with ID ${id} not found`)
         }
 
-        // Business rule: Cannot delete super admin users
-        if (existingUser.isSuperAdmin()) {
-            throw new BusinessError('Cannot delete super admin users')
+        // Business rule: Cannot delete Root users
+        if (existingUser.isRoot()) {
+            throw new BusinessError('Cannot delete Root users')
         }
 
         try {
@@ -191,9 +191,9 @@ export class UserService implements IUserService {
             throw new BusinessError('User is already suspended')
         }
 
-        // Business rule: Cannot suspend super admin
-        if (user.isSuperAdmin()) {
-            throw new BusinessError('Cannot suspend super admin users')
+        // Business rule: Cannot suspend Root users
+        if (user.isRoot()) {
+            throw new BusinessError('Cannot suspend Root users')
         }
 
         this.logger.info(`Suspending user ${id}`, { reason })

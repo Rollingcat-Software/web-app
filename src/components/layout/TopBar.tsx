@@ -27,6 +27,7 @@ import NotificationPanel from '@components/NotificationPanel'
 import {useActiveTenant} from '@features/tenants/context/ActiveTenantContext'
 import {useSessionCountdown} from '@features/auth/hooks/useSessionCountdown'
 import AccountSwitcher from '@features/accountSwitcher/AccountSwitcher'
+import {roleLabel} from '@utils/roleLabel'
 
 /**
  * Feature flag: the SUPER_ADMIN tenant switcher is hidden until the backend
@@ -56,7 +57,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     // "Who/where/how-long" context label: tenant name (falls back to the
     // active-tenant id, then a generic Platform label) plus the operator role.
     const contextScope = activeTenantName
-        || (user?.isSuperAdmin() && !activeTenantName ? t('topbar.context.platform') : null)
+        || (user?.isRoot() && !activeTenantName ? t('topbar.context.platform') : null)
         || user?.tenantName
         || null
     const contextRole = user?.role ?? null
@@ -222,7 +223,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                                     {contextScope ?? t('topbar.context.platform')}
                                     {contextRole && (
                                         <Box component="span" sx={{ color: 'text.secondary', fontWeight: 500 }}>
-                                            {' · '}{contextRole}
+                                            {' · '}{roleLabel(contextRole, t)}
                                         </Box>
                                     )}
                                 </Typography>

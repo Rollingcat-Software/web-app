@@ -24,15 +24,21 @@ export function PermissionProvider({ children }: PermissionProviderProps) {
         return {
             permissions,
             role,
-            isSuperAdmin: role === 'SUPER_ADMIN',
-            isAdmin: role === 'SUPER_ADMIN' || role === 'ADMIN' || role === 'TENANT_ADMIN',
+            // Platform tier is authoritative via user.isRoot() (userType-driven,
+            // role fallback) — matches the backend isRoot gate. Guard the method
+            // call: some call sites/tests supply a plain user object without the
+            // User-class methods, in which case fall back to the role.
+            isRoot: typeof user?.isRoot === 'function'
+                ? user.isRoot()
+                : role === UserRole.ROOT,
+            isAdmin: role === UserRole.ROOT || role === UserRole.ADMIN || role === UserRole.TENANT_ADMIN,
             hasPermission: (permission: Permission) => permissions.includes(permission),
             hasAnyPermission: (perms: Permission[]) =>
                 perms.some((p) => permissions.includes(p)),
             hasAllPermissions: (perms: Permission[]) =>
                 perms.every((p) => permissions.includes(p)),
         }
-    }, [user?.role])
+    }, [user])
 
     return (
         <PermissionContext.Provider value={value}>

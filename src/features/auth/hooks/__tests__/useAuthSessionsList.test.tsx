@@ -225,7 +225,7 @@ describe('useAuthSessionsList', () => {
         expect(mockErrorHandler.handle).toHaveBeenCalledWith(networkErr)
     })
 
-    it('fetches platform-wide when crossTenant=true even with empty tenantId (SUPER_ADMIN)', async () => {
+    it('fetches platform-wide when crossTenant=true even with empty tenantId (Root)', async () => {
         // Copilot post-merge round 5: cover the new crossTenant behavior so a
         // future regression that re-introduces the "empty tenantId skips fetch"
         // shortcut for cross-tenant callers is caught.
