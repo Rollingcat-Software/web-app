@@ -2,6 +2,14 @@
 
 ## [Unreleased]
 
+### 2026-05-30 — Frontend edge-case test hardening (suite green)
+
+- **PR #133/#134** — added **+80 edge-case specs** across the identity surfaces
+  (account linking / per-tenant biometric consent / account-workspace switcher /
+  `formatApiError`), plus `isRoot` mock + banner stub fixes to green the suite.
+  Full Vitest suite now **914 passing, 0 failing**. Part of the 2026-05-30
+  stabilize-&-harden backlog.
+
 ### 2026-05-30 — Identity & account-linking UI surfaces (Phases 2/3/5) + consent-path / mobile-switcher fixes
 
 - **PR #128** `feat/profile-linked-accounts` — **Linked Accounts** section in
