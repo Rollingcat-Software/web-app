@@ -92,4 +92,36 @@ describe('LoginMfaFlow — config-driven Layer 1', () => {
         // Password login MUST NOT be used on the identifier-first path.
         expect(mockLogin).not.toHaveBeenCalled()
     })
+
+    it('opens IDENTIFIER-FIRST (email only, no password yet) when engineActive + PASSWORD Layer-1', () => {
+        const config = normalizeLoginConfig({
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        render(<LoginMfaFlow {...baseProps} loginConfig={config} />)
+        // Engine ON ⇒ screen 1 collects identity only; the password comes after.
+        expect(screen.queryByLabelText('Password')).toBeNull()
+        expect(screen.getByLabelText('Email Address')).toBeInTheDocument()
+    })
+
+    it('re-syncs to identifier-first when the engineActive config arrives AFTER mount (async fetch)', async () => {
+        // Parent (HostedLoginApp) mounts us with a null config while login-config
+        // is still being fetched → legacy combined password screen.
+        const { rerender } = render(<LoginMfaFlow {...baseProps} loginConfig={null} />)
+        expect(screen.getByLabelText('Password')).toBeInTheDocument()
+
+        // The fetch resolves: an engineActive, PASSWORD-Layer-1 config lands.
+        const config = normalizeLoginConfig({
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        rerender(<LoginMfaFlow {...baseProps} loginConfig={config} />)
+
+        // The opening screen must flip to identifier-first (regression: the
+        // useState-frozen phase used to stay on the null-config password screen).
+        await waitFor(() => {
+            expect(screen.queryByLabelText('Password')).toBeNull()
+            expect(screen.getByLabelText('Email Address')).toBeInTheDocument()
+        })
+    })
 })
