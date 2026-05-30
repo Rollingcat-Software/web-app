@@ -50,12 +50,224 @@ function dist(a: HandLandmark, b: HandLandmark): number {
     return Math.sqrt(dist2(a, b))
 }
 
+/** 3D Euclidean distance (z defaults to 0 when MediaPipe omits depth). */
+function dist3(a: HandLandmark, b: HandLandmark): number {
+    const dx = a.x - b.x
+    const dy = a.y - b.y
+    const dz = (a.z ?? 0) - (b.z ?? 0)
+    return Math.sqrt(dx * dx + dy * dy + dz * dz)
+}
+
 /**
  * Approximate hand "scale" — the wrist→middle-MCP distance — used to
  * normalise pinch/tap thresholds across camera distances.
  */
 function handScale(lms: HandLandmark[]): number {
     return dist(lms[0], lms[9]) || 0.0001
+}
+
+/**
+ * 3D hand scale: Dist(Wrist, MiddleMCP) in 3D. Normalisation baseline for
+ * the finger-ratio metric ported from gesture_validator.py:hand_scale.
+ */
+function handScale3D(lms: HandLandmark[]): number {
+    return dist3(lms[0], lms[9]) || 1e-4
+}
+
+// ============================================================================
+// 4-LAYER FINGER PIPELINE (port of gesture_validator.py v6b)
+//   Layer 1: Adaptive normalisation (3D hand_scale)
+//   Layer 2: Hysteresis dual-threshold per finger
+//   Layer 3: EWMA temporal smoothing
+//   Layer 4: Moving-median of the per-frame count
+// Plus a 2-second auto-calibration helper.
+// ============================================================================
+
+/** Finger indices 0..4 = thumb, index, middle, ring, pinky. */
+const FINGERS = [0, 1, 2, 3, 4] as const
+type FingerIdx = (typeof FINGERS)[number]
+
+/** Per-finger (PIP, TIP) landmark indices for index..pinky. @see gesture_validator.py:_FINGER_JOINTS */
+const FINGER_JOINTS: Record<Exclude<FingerIdx, 0>, [number, number]> = {
+    1: [6, 8], // index
+    2: [10, 12], // middle
+    3: [14, 16], // ring
+    4: [18, 20], // pinky
+}
+
+const THUMB_TIP = 4
+const PINKY_MCP = 17
+const WRIST = 0
+
+/** Default open/close thresholds (tightened v6b values to reject the fist). */
+const FINGER_OPEN_TH = 0.2
+const FINGER_CLOSE_TH = 0.12
+const THUMB_OPEN_TH = 0.75
+const THUMB_CLOSE_TH = 0.6
+
+/**
+ * Normalised openness metric for one finger (v5 proven method).
+ *   Index..Pinky: (Dist(Wrist,Tip) - Dist(Wrist,PIP)) / hand_scale
+ *   Thumb:        Dist(ThumbTip, PinkyMCP) / hand_scale
+ * @see gesture_validator.py:finger_ratio
+ */
+export function fingerRatio(lms: HandLandmark[], finger: FingerIdx): number {
+    const hs = handScale3D(lms)
+    if (hs < 1e-9) return 0
+    if (finger === 0) {
+        return dist3(lms[THUMB_TIP], lms[PINKY_MCP]) / hs
+    }
+    const [pip, tip] = FINGER_JOINTS[finger]
+    const distTip = dist3(lms[WRIST], lms[tip])
+    const distPip = dist3(lms[WRIST], lms[pip])
+    return (distTip - distPip) / hs
+}
+
+/** Layer 2: per-finger hysteresis state machine. @see gesture_validator.py:_HysteresisState */
+class HysteresisState {
+    private state: Record<FingerIdx, boolean> = { 0: false, 1: false, 2: false, 3: false, 4: false }
+
+    update(lms: HandLandmark[]): Record<FingerIdx, boolean> {
+        for (const f of FINGERS) {
+            const ratio = fingerRatio(lms, f)
+            const isThumb = f === 0
+            const openTh = isThumb ? THUMB_OPEN_TH : FINGER_OPEN_TH
+            const closeTh = isThumb ? THUMB_CLOSE_TH : FINGER_CLOSE_TH
+            if (this.state[f]) {
+                if (ratio < closeTh) this.state[f] = false
+            } else {
+                if (ratio > openTh) this.state[f] = true
+            }
+        }
+        return { ...this.state }
+    }
+
+    reset(): void {
+        this.state = { 0: false, 1: false, 2: false, 3: false, 4: false }
+    }
+}
+
+/** Layer 3: per-finger EWMA confidence; >0.5 = open. @see gesture_validator.py:_EWMASmoother */
+class EWMASmoother {
+    private conf: Record<FingerIdx, number> = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 }
+    constructor(private alpha = 0.35) {}
+
+    update(hyst: Record<FingerIdx, boolean>): Record<FingerIdx, boolean> {
+        const out = {} as Record<FingerIdx, boolean>
+        for (const f of FINGERS) {
+            const sample = hyst[f] ? 1 : 0
+            this.conf[f] = this.alpha * sample + (1 - this.alpha) * this.conf[f]
+            out[f] = this.conf[f] > 0.5
+        }
+        return out
+    }
+
+    reset(): void {
+        this.conf = { 0: 0, 1: 0, 2: 0, 3: 0, 4: 0 }
+    }
+}
+
+/** Layer 4: moving median of recent counts. @see gesture_validator.py:_MedianFilter */
+class MedianFilter {
+    private buf: number[] = []
+    constructor(private window = 5) {}
+
+    filter(count: number): number {
+        this.buf.push(count)
+        if (this.buf.length > this.window) this.buf.shift()
+        const sorted = [...this.buf].sort((a, b) => a - b)
+        return sorted[Math.floor(sorted.length / 2)]
+    }
+
+    reset(): void {
+        this.buf = []
+    }
+}
+
+/**
+ * Full 4-layer finger validator. Stateful across frames — the caller keeps
+ * one instance per puzzle session. `countFingersStable` runs the whole
+ * pipeline; `detectFingers` exposes the post-EWMA boolean vector.
+ * @see gesture_validator.py:GestureValidator
+ */
+export class GestureValidator {
+    private hysteresis = new HysteresisState()
+    private smoother: EWMASmoother
+    private median: MedianFilter
+
+    constructor(ewmaAlpha = 0.35, medianWindow = 5) {
+        this.smoother = new EWMASmoother(ewmaAlpha)
+        this.median = new MedianFilter(medianWindow)
+    }
+
+    /** Hysteresis + EWMA boolean vector (no median). */
+    detectFingers(lms: HandLandmark[]): Record<FingerIdx, boolean> {
+        const hyst = this.hysteresis.update(lms)
+        return this.smoother.update(hyst)
+    }
+
+    /** Full pipeline finger count (Adaptive + Hysteresis + EWMA + Median). */
+    countFingersStable(lms: HandLandmark[]): number {
+        const open = this.detectFingers(lms)
+        let raw = 0
+        for (const f of FINGERS) if (open[f]) raw += 1
+        return this.median.filter(raw)
+    }
+
+    reset(): void {
+        this.hysteresis.reset()
+        this.smoother.reset()
+        this.median.reset()
+    }
+}
+
+/**
+ * 2-second auto-calibration: collects per-finger ratio samples while the user
+ * shows an open hand then a fist, then stores the per-finger average for
+ * diagnostics. A lightweight port of gesture_validator.py:HandCalibrator —
+ * the engine still uses the tightened default thresholds; calibration just
+ * confirms the user's ratios separate cleanly.
+ */
+export class HandCalibrator {
+    private start: number | null = null
+    private samples: Record<FingerIdx, number[]> = { 0: [], 1: [], 2: [], 3: [], 4: [] }
+    private done = false
+    private _offsets: Record<string, number> = {}
+
+    constructor(private durationMs = 2000) {}
+
+    get isDone(): boolean {
+        return this.done
+    }
+
+    progress(now: number): number {
+        if (this.start === null) return 0
+        return Math.min((now - this.start) / this.durationMs, 1)
+    }
+
+    get offsets(): Record<string, number> {
+        return this._offsets
+    }
+
+    feed(lms: HandLandmark[], now: number): void {
+        if (this.done) return
+        if (this.start === null) this.start = now
+        for (const f of FINGERS) this.samples[f].push(fingerRatio(lms, f))
+        if (now - this.start >= this.durationMs) {
+            for (const f of FINGERS) {
+                const vals = this.samples[f]
+                if (vals.length) this._offsets[String(f)] = vals.reduce((a, b) => a + b, 0) / vals.length
+            }
+            this.done = true
+        }
+    }
+
+    reset(): void {
+        this.start = null
+        this.samples = { 0: [], 1: [], 2: [], 3: [], 4: [] }
+        this.done = false
+        this._offsets = {}
+    }
 }
 
 /**
@@ -148,52 +360,111 @@ export function palmFacingCamera(frame: HandFrame): boolean {
 }
 
 /**
- * Detect a wave by tracking horizontal oscillation of the wrist over
- * a sliding window. Returns true once we've seen at least
- * `minSwings` direction changes within `windowMs`.
+ * Frequency-gated wave detector (port of motion_analyzer.py:WaveDetector).
+ *
+ * A wave is valid only when ALL of these hold over the buffer:
+ *   1. Total wrist-X displacement > `minTotalDisp` (default 0.20 of frame).
+ *   2. At least `minReversals` direction changes, each with a swing
+ *      ≥ `minSwing` (after 3-sample moving-average smoothing).
+ *   3. The oscillation frequency falls in [`minFreqHz`, `maxFreqHz`] — this
+ *      rejects both a slow drift and frantic random shaking, which the old
+ *      swing-count-only detector accepted.
  */
 export class WaveDetector {
-    private history: { x: number; ts: number }[] = []
-    private windowMs: number
-    private minSwings: number
-    private amplitudeThreshold: number
+    private data: { t: number; x: number }[] = []
+    private bufferSize: number
+    private minSwing: number
+    private minTotalDisp: number
+    private minReversals: number
+    private minFreq: number
+    private maxFreq: number
 
-    constructor(windowMs = 1500, minSwings = 3, amplitudeThreshold = 0.05) {
-        this.windowMs = windowMs
-        this.minSwings = minSwings
-        this.amplitudeThreshold = amplitudeThreshold
+    constructor(
+        bufferSize = 40,
+        minSwing = 0.1,
+        minTotalDisp = 0.2,
+        minReversals = 2,
+        minFreqHz = 1.0,
+        maxFreqHz = 4.0,
+    ) {
+        this.bufferSize = bufferSize
+        this.minSwing = minSwing
+        this.minTotalDisp = minTotalDisp
+        this.minReversals = minReversals
+        this.minFreq = minFreqHz
+        this.maxFreq = maxFreqHz
     }
 
     push(frame: HandFrame): boolean {
         const lms = frame.landmarks
         if (lms.length < 21) return false
-        const wristX = lms[0].x
-        const ts = frame.timestamp
-        this.history.push({ x: wristX, ts })
-        // Drop entries older than window
-        while (this.history.length && ts - this.history[0].ts > this.windowMs) {
-            this.history.shift()
-        }
-        if (this.history.length < 6) return false
+        // Store seconds for the frequency calc.
+        this.data.push({ t: frame.timestamp / 1000, x: lms[0].x })
+        if (this.data.length > this.bufferSize) this.data.shift()
+        return this.isWaving()
+    }
 
-        // Count direction changes whose amplitude exceeds threshold
-        let swings = 0
-        let dir = 0
-        let lastExtreme = this.history[0].x
-        for (let i = 1; i < this.history.length; i++) {
-            const dx = this.history[i].x - this.history[i - 1].x
-            const newDir = Math.sign(dx)
-            if (newDir !== 0 && newDir !== dir && Math.abs(this.history[i].x - lastExtreme) > this.amplitudeThreshold) {
-                swings += 1
-                dir = newDir
-                lastExtreme = this.history[i].x
+    isWaving(): boolean {
+        const [nReversals, extremaTimes] = this.findExtrema()
+        if (nReversals < this.minReversals) return false
+
+        // Total displacement gate.
+        const xs = this.data.map((d) => d.x)
+        const totalDisp = Math.max(...xs) - Math.min(...xs)
+        if (totalDisp < this.minTotalDisp) return false
+
+        // Frequency gate.
+        if (extremaTimes.length >= 2) {
+            const duration = extremaTimes[extremaTimes.length - 1] - extremaTimes[0]
+            if (duration > 0) {
+                const halfCycleFreq = nReversals / duration // reversals/sec
+                const fullFreq = halfCycleFreq / 2
+                if (fullFreq < this.minFreq || fullFreq > this.maxFreq) return false
             }
         }
-        return swings >= this.minSwings
+        return true
+    }
+
+    /** @returns [reversalCount, extremaTimestamps] */
+    private findExtrema(): [number, number[]] {
+        if (this.data.length < 5) return [0, []]
+        const raw = this.data.map((d) => d.x)
+        const times = this.data.map((d) => d.t)
+
+        // 3-sample moving-average smoothing.
+        const smoothed: number[] = [raw[0]]
+        for (let i = 1; i < raw.length - 1; i++) {
+            smoothed.push((raw[i - 1] + raw[i] + raw[i + 1]) / 3)
+        }
+        smoothed.push(raw[raw.length - 1])
+
+        const extremaTs: number[] = []
+        let lastExtremeVal = smoothed[0]
+        let goingPositive: boolean | null = null
+
+        for (let i = 1; i < smoothed.length; i++) {
+            const dx = smoothed[i] - smoothed[i - 1]
+            if (Math.abs(dx) < 0.002) continue
+            const currentDir = dx > 0
+            if (goingPositive === null) {
+                goingPositive = currentDir
+                continue
+            }
+            if (currentDir !== goingPositive) {
+                const peakVal = smoothed[i - 1]
+                const swing = Math.abs(peakVal - lastExtremeVal)
+                if (swing >= this.minSwing) {
+                    extremaTs.push(times[i - 1])
+                    lastExtremeVal = peakVal
+                }
+                goingPositive = currentDir
+            }
+        }
+        return [extremaTs.length, extremaTs]
     }
 
     reset() {
-        this.history = []
+        this.data = []
     }
 }
 
@@ -316,6 +587,207 @@ export class PeekABooDetector {
         this.state = 'idle'
         this.coveredStartTs = 0
         this.lastCoveredTs = 0
+    }
+}
+
+// ============================================================================
+// DTW SHAPE MATCHING (port of shape_tracer.py)
+//   Resample → centroid-normalise → DTW alignment cost → accept if ≤ threshold.
+//   Used by HAND_TRACE_TEMPLATE to match a specific random target shape, which
+//   differentiates it from HAND_SHAPE_TRACE's free-form "draw any closed loop".
+// ============================================================================
+
+type Point = [number, number]
+
+export type ShapeTemplateId = 'CIRCLE' | 'SQUARE' | 'TRIANGLE' | 'S_CURVE'
+
+export interface ShapeTemplate {
+    id: ShapeTemplateId
+    /** Ordered waypoints in normalised [0,1]² screen coords. */
+    waypoints: Point[]
+}
+
+/** Circle traced clockwise from the 3-o'clock position. @see shape_tracer.py:_circle_template */
+function circleTemplate(cx = 0.5, cy = 0.5, r = 0.18, n = 48): ShapeTemplate {
+    const pts: Point[] = []
+    for (let i = 0; i <= n; i++) {
+        const a = (2 * Math.PI * i) / n
+        pts.push([cx + r * Math.cos(a), cy + r * Math.sin(a)])
+    }
+    return { id: 'CIRCLE', waypoints: pts }
+}
+
+/** Closed rectangle traced clockwise from top-left. @see shape_tracer.py:_square_template */
+function squareTemplate(l = 0.32, t = 0.3, r = 0.68, b = 0.7): ShapeTemplate {
+    return { id: 'SQUARE', waypoints: [[l, t], [r, t], [r, b], [l, b], [l, t]] }
+}
+
+/** Isosceles triangle: top → bottom-right → bottom-left → top. @see shape_tracer.py:_triangle_template */
+function triangleTemplate(cx = 0.5, ty = 0.25, by = 0.72, hw = 0.22): ShapeTemplate {
+    return { id: 'TRIANGLE', waypoints: [[cx, ty], [cx + hw, by], [cx - hw, by], [cx, ty]] }
+}
+
+/** S-curve from two opposing quarter-arcs, top-to-bottom. @see shape_tracer.py:_s_curve_template */
+function sCurveTemplate(): ShapeTemplate {
+    const pts: Point[] = []
+    for (let i = 0; i < 9; i++) {
+        const a = Math.PI + (Math.PI / 2) * (i / 8)
+        pts.push([0.62 + 0.14 * Math.cos(a), 0.375 + 0.125 * Math.sin(a)])
+    }
+    for (let i = 0; i < 9; i++) {
+        const a = Math.PI * 2 + (Math.PI / 2) * (i / 8)
+        pts.push([0.38 + 0.14 * Math.cos(a), 0.625 + 0.125 * Math.sin(a)])
+    }
+    return { id: 'S_CURVE', waypoints: pts }
+}
+
+export const SHAPE_TEMPLATES: ShapeTemplate[] = [
+    circleTemplate(),
+    squareTemplate(),
+    triangleTemplate(),
+    sCurveTemplate(),
+]
+
+/** Pick one of the four templates at random (for HAND_TRACE_TEMPLATE). */
+export function randomShapeTemplate(): ShapeTemplate {
+    return SHAPE_TEMPLATES[Math.floor(Math.random() * SHAPE_TEMPLATES.length)]
+}
+
+/** Resample a polyline to exactly n arc-length-even points. @see shape_tracer.py:_resample */
+export function resamplePath(path: Point[], n: number): Point[] {
+    if (path.length === 0) return Array.from({ length: n }, () => [0, 0] as Point)
+    if (path.length === 1) return Array.from({ length: n }, () => path[0])
+
+    const dists: number[] = [0]
+    for (let i = 1; i < path.length; i++) {
+        const dx = path[i][0] - path[i - 1][0]
+        const dy = path[i][1] - path[i - 1][1]
+        dists.push(dists[dists.length - 1] + Math.sqrt(dx * dx + dy * dy))
+    }
+    const total = dists[dists.length - 1]
+    if (total < 1e-9) return Array.from({ length: n }, () => path[0])
+
+    const out: Point[] = []
+    let j = 0
+    for (let k = 0; k < n; k++) {
+        const target = (k * total) / (n - 1)
+        while (j < dists.length - 2 && dists[j + 1] < target) j += 1
+        const seg = dists[j + 1] - dists[j]
+        const t = seg > 1e-9 ? (target - dists[j]) / seg : 0
+        out.push([
+            path[j][0] + t * (path[j + 1][0] - path[j][0]),
+            path[j][1] + t * (path[j + 1][1] - path[j][1]),
+        ])
+    }
+    return out
+}
+
+/** Translate to centroid, scale by max radius → translation+scale invariant. @see shape_tracer.py:_centroid_normalise */
+export function centroidNormalise(path: Point[]): Point[] {
+    const n = path.length
+    if (n === 0) return []
+    const cx = path.reduce((s, p) => s + p[0], 0) / n
+    const cy = path.reduce((s, p) => s + p[1], 0) / n
+    const centred: Point[] = path.map((p) => [p[0] - cx, p[1] - cy])
+    let maxR = 0
+    for (const [x, y] of centred) maxR = Math.max(maxR, Math.sqrt(x * x + y * y))
+    if (maxR < 1e-9) maxR = 1
+    return centred.map(([x, y]) => [x / maxR, y / maxR])
+}
+
+/**
+ * DTW alignment cost normalised by path length (per-point average distance).
+ * Both inputs should already be resampled to the same length. @see shape_tracer.py:dtw_normalised_cost
+ */
+export function dtwNormalisedCost(a: Point[], b: Point[]): number {
+    const n = a.length
+    const m = b.length
+    if (n === 0 || m === 0) return Infinity
+
+    const INF = Infinity
+    // (n+1) x (m+1) DP table with INF borders.
+    const prev = new Array<number>(m + 1).fill(INF)
+    const curr = new Array<number>(m + 1).fill(INF)
+    prev[0] = 0
+
+    for (let i = 1; i <= n; i++) {
+        curr.fill(INF)
+        for (let j = 1; j <= m; j++) {
+            const dx = a[i - 1][0] - b[j - 1][0]
+            const dy = a[i - 1][1] - b[j - 1][1]
+            const cost = Math.sqrt(dx * dx + dy * dy)
+            curr[j] = cost + Math.min(prev[j], curr[j - 1], prev[j - 1])
+        }
+        for (let j = 0; j <= m; j++) prev[j] = curr[j]
+    }
+    return prev[m] / Math.max(n, m)
+}
+
+/** Default normalised per-point DTW cost accepted as a valid trace. @see shape_tracer.py:DEFAULT_DTW_THRESH */
+const DEFAULT_DTW_THRESH = 0.25
+/** Number of resampled points for DTW. @see shape_tracer.py:DEFAULT_RESAMPLE_N */
+const DEFAULT_RESAMPLE_N = 50
+
+/**
+ * Compute the normalised DTW cost between a traced path and a template,
+ * applying resample + centroid-normalise to both. Lower is better;
+ * a result ≤ `DEFAULT_DTW_THRESH` is a match.
+ */
+export function shapeTraceCost(tracedPath: Point[], template: ShapeTemplate): number {
+    const a = centroidNormalise(resamplePath(tracedPath, DEFAULT_RESAMPLE_N))
+    const b = centroidNormalise(resamplePath(template.waypoints, DEFAULT_RESAMPLE_N))
+    return dtwNormalisedCost(a, b)
+}
+
+/**
+ * Template-trace detector (HAND_TRACE_TEMPLATE): the user must trace a SPECIFIC
+ * target shape (circle / square / triangle / S-curve). Records the
+ * index-fingertip path while pointing and, once enough points are collected,
+ * accepts when the DTW cost against the assigned template is below threshold.
+ *
+ * This is deliberately stricter than the free-form ShapeTraceDetector
+ * (HAND_SHAPE_TRACE) — it checks the SHAPE, not just "drew a closed loop".
+ */
+export class TemplateTraceDetector {
+    private path: Point[] = []
+    private windowMs: number
+    readonly template: ShapeTemplate
+    private dtwThreshold: number
+    private minPoints: number
+
+    constructor(template?: ShapeTemplate, windowMs = 10000, dtwThreshold = DEFAULT_DTW_THRESH, minPoints = 25) {
+        this.template = template ?? randomShapeTemplate()
+        this.windowMs = windowMs
+        this.dtwThreshold = dtwThreshold
+        this.minPoints = minPoints
+    }
+
+    /** Last computed DTW cost (for UI / progress). Infinity until evaluated. */
+    lastCost = Infinity
+
+    push(frame: HandFrame): boolean {
+        const lms = frame.landmarks
+        if (lms.length < 21) return false
+        if (!isIndexExtended(frame)) {
+            // Not pointing — discard the partial trace.
+            this.path = []
+            return false
+        }
+        const tip = lms[8]
+        this.path.push([tip.x, tip.y])
+        // Bound the buffer by time via a coarse point cap (~windowMs at 30fps).
+        const maxPoints = Math.ceil((this.windowMs / 1000) * 30)
+        if (this.path.length > maxPoints) this.path.shift()
+
+        if (this.path.length < this.minPoints) return false
+
+        this.lastCost = shapeTraceCost(this.path, this.template)
+        return this.lastCost <= this.dtwThreshold
+    }
+
+    reset() {
+        this.path = []
+        this.lastCost = Infinity
     }
 }
 
@@ -443,10 +915,14 @@ export interface HandPuzzleState {
     flip?: FlipDetector
     tap?: TapDetector
     peek?: PeekABooDetector
+    /** Free-form closed-loop trace (HAND_SHAPE_TRACE). */
     shape?: ShapeTraceDetector
-    /** Smooths per-frame finger counts so single-frame jitter doesn't
-     *  reset the hold timer. Used by FINGER_COUNT and MATH. */
-    countSmoother?: FingerCountSmoother
+    /** DTW match against a specific target shape (HAND_TRACE_TEMPLATE). */
+    templateTrace?: TemplateTraceDetector
+    /** 4-layer finger validator (Adaptive + Hysteresis + EWMA + Median). Used
+     *  by FINGER_COUNT and MATH — replaces the old per-frame countFingers +
+     *  FingerCountSmoother with the full gesture_validator.py pipeline. */
+    validator?: GestureValidator
     /** Random target finger count for FINGER_COUNT / MATH puzzles. */
     targetFingerCount?: number
     /** For MATH: the human-readable prompt ("2 + 3"). */
@@ -478,7 +954,7 @@ export function initialHandState(id: BiometricPuzzleId): HandPuzzleState {
         case BiometricPuzzleId.HAND_FINGER_COUNT:
             // Pick a target between 1..5 inclusive.
             s.targetFingerCount = 1 + Math.floor(Math.random() * 5)
-            s.countSmoother = new FingerCountSmoother()
+            s.validator = new GestureValidator()
             break
         case BiometricPuzzleId.HAND_MATH: {
             // Constrain so a+b lands in [2, 5] — one hand's 5 fingers max.
@@ -486,7 +962,7 @@ export function initialHandState(id: BiometricPuzzleId): HandPuzzleState {
             const b = 1 + Math.floor(Math.random() * (5 - a))
             s.targetFingerCount = a + b
             s.mathPrompt = `${a} + ${b}`
-            s.countSmoother = new FingerCountSmoother()
+            s.validator = new GestureValidator()
             break
         }
         case BiometricPuzzleId.HAND_WAVE:
@@ -502,8 +978,12 @@ export function initialHandState(id: BiometricPuzzleId): HandPuzzleState {
             s.peek = new PeekABooDetector()
             break
         case BiometricPuzzleId.HAND_SHAPE_TRACE:
-        case BiometricPuzzleId.HAND_TRACE_TEMPLATE:
+            // Free-form: draw any closed loop.
             s.shape = new ShapeTraceDetector()
+            break
+        case BiometricPuzzleId.HAND_TRACE_TEMPLATE:
+            // Specific target shape matched via DTW.
+            s.templateTrace = new TemplateTraceDetector()
             break
         default:
             break
@@ -556,14 +1036,19 @@ export function evaluateHandPuzzle(
             // positive target, so this branch only fires if a caller
             // forgot to call it.
             if (target < 0) return { detected: false, completed: false }
-            const smoother = state.countSmoother
-            // Push -1 for no-hand frames so the dominance ratio drops; once
-            // a hand reappears the smoother fills back up.
-            const count = frame ? countFingers(frame) : -1
-            const matched = smoother
-                ? smoother.push(count, now, target)
-                : count === target
-            return holdResult(matched)
+            // 4-layer validator (Adaptive + Hysteresis + EWMA + Median). When a
+            // hand is present we run the full pipeline; a missing hand feeds a
+            // -1 raw count so the median decays and never matches a real target.
+            const validator = state.validator
+            let count: number
+            if (frame) {
+                count = validator
+                    ? validator.countFingersStable(frame.landmarks)
+                    : countFingers(frame)
+            } else {
+                count = -1
+            }
+            return holdResult(count === target)
         }
         case BiometricPuzzleId.HAND_PINCH: {
             if (!frame) return holdResult(false)
@@ -589,10 +1074,16 @@ export function evaluateHandPuzzle(
             const ok = state.peek.push(frame)
             return { detected: ok, completed: ok }
         }
-        case BiometricPuzzleId.HAND_SHAPE_TRACE:
-        case BiometricPuzzleId.HAND_TRACE_TEMPLATE: {
+        case BiometricPuzzleId.HAND_SHAPE_TRACE: {
+            // Free-form: any closed loop with enough arc length.
             if (!frame || !state.shape) return { detected: false, completed: false }
             const ok = state.shape.push(frame)
+            return { detected: ok, completed: ok }
+        }
+        case BiometricPuzzleId.HAND_TRACE_TEMPLATE: {
+            // Specific target shape matched via DTW.
+            if (!frame || !state.templateTrace) return { detected: false, completed: false }
+            const ok = state.templateTrace.push(frame)
             return { detected: ok, completed: ok }
         }
         default:

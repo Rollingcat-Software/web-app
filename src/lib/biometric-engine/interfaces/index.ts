@@ -62,7 +62,19 @@ export interface IPassiveLivenessDetector {
  * @see demo_local_fast.py lines 1415-1440 (estimate_head_pose)
  */
 export interface IHeadPoseEstimator {
-  estimate(landmarks: PixelLandmark[], frameSize: { width: number; height: number }): HeadPose;
+  /**
+   * Estimate head pose. When a 4x4 facial transformation matrix is supplied
+   * (MediaPipe `outputFacialTransformationMatrixes`), true yaw/pitch/roll are
+   * decomposed from it. Otherwise it falls back to a landmark-geometry
+   * approximation that yields yaw/pitch only.
+   */
+  estimate(
+    landmarks: PixelLandmark[],
+    frameSize: { width: number; height: number },
+    transformationMatrix?: number[] | null,
+  ): HeadPose;
+  /** Decompose yaw/pitch/roll directly from a 4x4 transformation matrix (16 floats, column-major). */
+  estimateFromMatrix(transformationMatrix: number[]): HeadPose;
   isAvailable(): boolean;
 }
 

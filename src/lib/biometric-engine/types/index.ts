@@ -65,6 +65,14 @@ export interface FaceDetection {
   landmarks478: NormalizedLandmark[];
   /** Same landmarks in pixel coordinates */
   pixelLandmarks: PixelLandmark[];
+  /**
+   * 4x4 facial transformation matrix from MediaPipe FaceLandmarker
+   * (`outputFacialTransformationMatrixes: true`), in column-major order
+   * (16 numbers). Encodes the rigid rotation + translation of the metric
+   * 3D face relative to the camera. Used by HeadPoseEstimator to decompose
+   * true yaw/pitch/roll Euler angles. Null when the matrix is unavailable.
+   */
+  transformationMatrix: number[] | null;
 }
 
 // ===== Quality Types =====
@@ -247,10 +255,16 @@ export interface PuzzleResult {
  * @see demo_local_fast.py lines 1415-1440 (estimate_head_pose)
  */
 export interface HeadPose {
-  /** Yaw in degrees. -45 to +45. Negative = left, positive = right. */
+  /** Yaw in degrees. Negative = head turned to user's left, positive = right. */
   yaw: number;
-  /** Pitch in degrees. -35 to +35. Negative = up, positive = down. */
+  /** Pitch in degrees. Negative = looking up (chin up), positive = looking down. */
   pitch: number;
+  /**
+   * Roll in degrees (head tilt toward a shoulder). Negative = tilt left,
+   * positive = tilt right. Optional for backward compatibility — the legacy
+   * nose-ratio estimator did not compute roll.
+   */
+  roll?: number;
 }
 
 // ===== Metric Types =====

@@ -2,6 +2,38 @@
 
 ## [Unreleased]
 
+### 2026-05-30 — Biometric quality + liveness hardening (client)
+
+- **Real head pose** — `FaceDetector` now requests the MediaPipe 4x4 facial
+  transformation matrix (`outputFacialTransformationMatrixes: true`).
+  `HeadPoseEstimator` decomposes true **yaw / pitch / roll** Euler angles from
+  it (falling back to the old landmark-ratio approximation only when the matrix
+  is absent), so the head-rotation puzzles (turn left/right, look up/down, nod,
+  shake) finally track real rotation. Added **EWMA smoothing + release-debounce
+  hysteresis** in `BiometricPuzzle` so directional gestures don't flicker.
+- **Liveness as a real gate** — the client passive-liveness pre-filter in
+  `useFaceChallenge` is now **fail-CLOSED**: a capture is only accepted when the
+  detector is available AND the score clears the threshold (detector missing,
+  bad ROI, or an exception all reject + reset). `FacePuzzle` now enforces
+  `face.liveness` before resolving success, so a photo/replay performing the
+  gesture is rejected.
+- **Face-enroll quality gate** — `QualityAssessor` is wired into the enrollment
+  capture flow: a blurry / dark / over-bright / too-small frame is **rejected +
+  re-prompted** (with a specific hint) instead of being enrolled, including on
+  the 6 s soft-timeout path.
+- **Hand puzzles** — ported the Python 4-layer hand pipeline into
+  `handChallenges.ts`: `GestureValidator` (3D finger ratios + per-finger
+  hysteresis + EWMA + moving-median) with a `HandCalibrator`; a **frequency-gated**
+  `WaveDetector` (1–4 Hz band); and **DTW** shape matching (resample +
+  centroid-normalise + DTW cost). The two trace puzzles are now distinct:
+  `HAND_SHAPE_TRACE` = free-form closed loop, `HAND_TRACE_TEMPLATE` = DTW match
+  against a random target shape (circle / square / triangle / S-curve).
+- **Capture quality** — camera raised to **1280×720** and the face crop to
+  **320 px @ JPEG q0.92** (from 224 px @ q0.85) for a sharper server embedding.
+- **Tests** — new vitest suites for matrix→Euler head pose (`HeadPoseEstimator`),
+  the `QualityAssessor` gate, and the hand pipeline (validator + frequency gate +
+  DTW); `handChallenges` grew 23→35 specs. All i18n strings via `t()` (en + tr).
+
 ### 2026-05-30 — Frontend edge-case test hardening (suite green)
 
 - **PR #133/#134** — added **+80 edge-case specs** across the identity surfaces

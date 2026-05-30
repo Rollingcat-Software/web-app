@@ -100,7 +100,11 @@ export class FaceDetector implements IFaceDetector {
           minFacePresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
           outputFaceBlendshapes: false, // Not needed for detection
-          outputFacialTransformationMatrixes: false, // Not needed
+          // Request the 4x4 facial transformation matrix so HeadPoseEstimator
+          // can decompose true yaw/pitch/roll Euler angles (replaces the old
+          // nose-ratio approximation). MediaPipe computes this from the metric
+          // 3D face geometry, so it tracks real head rotation in degrees.
+          outputFacialTransformationMatrixes: true,
         });
       } catch {
         // GPU delegate failed — fallback to CPU/WASM
@@ -119,7 +123,7 @@ export class FaceDetector implements IFaceDetector {
           minFacePresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
           outputFaceBlendshapes: false,
-          outputFacialTransformationMatrixes: false,
+          outputFacialTransformationMatrixes: true,
         });
       }
 
@@ -233,12 +237,21 @@ export class FaceDetector implements IFaceDetector {
         y: lm.y * videoHeight,
       }));
 
+      // Extract the 4x4 facial transformation matrix (column-major, 16 floats)
+      // for this face when MediaPipe provides it. Used for real Euler head pose.
+      let transformationMatrix: number[] | null = null;
+      const matrixes = result.facialTransformationMatrixes;
+      if (matrixes && matrixes[i] && Array.isArray(matrixes[i].data)) {
+        transformationMatrix = matrixes[i].data as number[];
+      }
+
       detections.push({
         id: -1, // Tracker assigns real IDs later
         boundingBox,
         confidence,
         landmarks478,
         pixelLandmarks,
+        transformationMatrix,
       });
     }
 

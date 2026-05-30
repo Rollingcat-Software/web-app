@@ -55,6 +55,32 @@ export const MOTION_HISTORY_SIZE = 30;
 export const MOTION_MIN_FRAMES = 20;
 
 // =============================================================================
+// HEAD-POSE SMOOTHING + HYSTERESIS (real-degree puzzle calibration)
+// =============================================================================
+//
+// With the real Euler head pose (decomposed from the MediaPipe transformation
+// matrix) the per-frame yaw/pitch is far less jittery than the old nose-ratio
+// hack, but raw frames still wobble ±2-3°. Two stabilisers are applied in
+// BiometricPuzzle before a gesture is accepted:
+//
+//   1. EWMA temporal smoothing of yaw/pitch/roll (ported from the Python hand
+//      pipeline's Layer 3, gesture_validator.py _EWMASmoother).
+//   2. Hysteresis dual-threshold on the detected boolean: the gesture must
+//      cross the (stricter) ENTER threshold to register, and only drops once
+//      it falls back below the (looser) EXIT threshold. This stops the
+//      progress bar flickering when the user hovers right at the boundary.
+
+/** EWMA smoothing factor for head-pose angles. Higher = more responsive. @see gesture_validator.py:210 */
+export const HEAD_POSE_EWMA_ALPHA = 0.4;
+
+/**
+ * Hysteresis margin (degrees) subtracted from a directional threshold to form
+ * the EXIT threshold. e.g. TURN_LEFT enters at yaw < -20° and only releases
+ * once yaw rises back above -(20 - 6) = -14°.
+ */
+export const POSE_HYSTERESIS_MARGIN = 6;
+
+// =============================================================================
 // QUALITY ASSESSMENT THRESHOLDS
 // @see demo_local_fast.py lines 335-366
 // =============================================================================

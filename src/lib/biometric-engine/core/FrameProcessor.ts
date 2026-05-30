@@ -236,10 +236,14 @@ export class FrameProcessor {
         this.headPoseEstimator.isAvailable()
       ) {
         try {
-          tracked.headPose = this.headPoseEstimator.estimate(pixelLandmarks, {
-            width: video.videoWidth || video.width,
-            height: video.videoHeight || video.height,
-          });
+          tracked.headPose = this.headPoseEstimator.estimate(
+            pixelLandmarks,
+            {
+              width: video.videoWidth || video.width,
+              height: video.videoHeight || video.height,
+            },
+            detection.transformationMatrix,
+          );
         } catch {
           tracked.headPose = null;
         }

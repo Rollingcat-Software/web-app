@@ -235,6 +235,7 @@ export function useFaceDetection(
                     const pose = headPoseEstimator.estimate(
                         face.pixelLandmarks,
                         { width: vw, height: vh },
+                        face.transformationMatrix,
                     )
                     if (Math.abs(pose.yaw) > YAW_STRAIGHT_THRESHOLD) {
                         hint = 'faceChallenge.lookStraight'
@@ -440,17 +441,17 @@ export function useFaceDetection(
     }, [])
 
     /**
-     * Always-client-crop: crops the current face bounding box to a 224×224 JPEG.
+     * Always-client-crop: crops the current face bounding box to a 320×320 JPEG.
      * The `canvas` parameter is accepted for API compatibility but unused.
      *
-     * @returns Base64 JPEG data-URL (~8-18KB), or null if no face is detected.
+     * @returns Base64 JPEG data-URL (~20-35KB), or null if no face is detected.
      */
     const cropFace = useCallback(
         (_canvas: HTMLCanvasElement): string | null => {
             const video = videoRef.current
             if (!video || !state.boundingBox) return null
 
-            return cropFaceToDataURL(video, state.boundingBox, 224, 0.2)
+            return cropFaceToDataURL(video, state.boundingBox, 320, 0.2)
         },
         [videoRef, state.boundingBox]
     )
