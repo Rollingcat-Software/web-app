@@ -770,11 +770,13 @@ export default function HostedLoginApp() {
                                 />
 
                                 {/* Config-driven usernameless shortcuts (G-web).
-                                    Each shortcut renders ONLY when the tenant's
-                                    login-config marks a Layer-1 method as
-                                    usernameless. When the config failed to load
-                                    (loginConfig === null) we fall back to showing
-                                    all shortcuts, preserving the legacy surface. */}
+                                    When the login-config declares usernameless
+                                    Layer-1 methods (flag ON) each shortcut renders
+                                    strictly per the config. When it declares none
+                                    — null config OR the flag-OFF password-first
+                                    shape — `fallbackAll` keeps today's passkey +
+                                    approve buttons, so the API flag fully reverts
+                                    this with no web redeploy. */}
                                 <Layer1Shortcuts<LoginSuccessResponse>
                                     config={loginConfig}
                                     fallbackAll

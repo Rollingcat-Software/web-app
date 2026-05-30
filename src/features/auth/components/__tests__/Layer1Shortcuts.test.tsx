@@ -69,6 +69,35 @@ describe('Layer1Shortcuts', () => {
         expect(screen.getByRole('button', { name: /approve on another device/i })).toBeInTheDocument()
     })
 
+    it('flag-OFF: a legacy password-first config with fallbackAll keeps today\'s shortcuts', () => {
+        // When app.auth.config-driven-login is OFF the API returns the current
+        // password-first shape (no usernameless semantics). With fallbackAll the
+        // existing passkey + approve buttons must NOT be dropped.
+        const config = normalizeLoginConfig({
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        renderShortcuts(config, true)
+        expect(screen.getByTestId('passkey-button')).toBeInTheDocument()
+        expect(screen.getByRole('button', { name: /approve on another device/i })).toBeInTheDocument()
+    })
+
+    it('flag-ON config that declares usernameless methods renders strictly (ignores fallbackAll)', () => {
+        // PASSWORD-first BUT with a usernameless QR explicitly declared → only the
+        // approve/QR shortcut shows; the passkey one stays hidden even with
+        // fallbackAll true, because the config positively declares the surface.
+        const config = normalizeLoginConfig({
+            layer1: {
+                methods: [
+                    { type: 'PASSWORD' },
+                    { type: 'QR_CODE', usernameless: true },
+                ],
+            },
+        })
+        renderShortcuts(config, true)
+        expect(screen.queryByTestId('passkey-button')).toBeNull()
+        expect(screen.getByRole('button', { name: /approve on another device/i })).toBeInTheDocument()
+    })
+
     it('renders nothing when config is null and fallbackAll is false', () => {
         const { container } = renderShortcuts(null, false)
         expect(container).toBeEmptyDOMElement()

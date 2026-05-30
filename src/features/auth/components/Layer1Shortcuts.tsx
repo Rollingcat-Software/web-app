@@ -27,9 +27,17 @@ interface Layer1ShortcutsProps<T> {
     /** Tenant login config; null while loading or after a fetch failure. */
     config: LoginConfig | null
     /**
-     * When `config` is null (fetch failed), show all shortcuts as the legacy
-     * surface did. When `config` is present, shortcuts are gated strictly by it
-     * and this flag is ignored.
+     * Fallback policy for when the config does NOT positively declare any
+     * usernameless Layer-1 method. This covers two states that must look
+     * identical to the user:
+     *   1. `config === null` — the login-config fetch failed.
+     *   2. A "legacy"/password-first config (e.g. the `app.auth.config-driven-login`
+     *      flag is OFF, so the API returns the current shape that carries no
+     *      usernameless semantics).
+     * In both cases `fallbackAll` decides whether today's passkey + approve
+     * shortcuts still render. When the config DOES declare usernameless methods
+     * (flag ON), they are rendered strictly per the config and this flag is
+     * ignored — the screen is then 100% config-driven.
      */
     fallbackAll?: boolean
     onPasskeySuccess: (login: T) => void
@@ -53,10 +61,21 @@ export default function Layer1Shortcuts<T = unknown>({
 }: Layer1ShortcutsProps<T>) {
     const { t } = useTranslation()
 
-    // Gate each shortcut. With a config we obey it strictly; without one we use
-    // the caller's fallback policy.
-    const showPasskey = config ? hasUsernamelessPasskey(config) : fallbackAll
-    const showApprove = config ? hasUsernamelessApprove(config) : fallbackAll
+    // When the config positively declares any usernameless Layer-1 method, the
+    // screen is rendered STRICTLY from it (flag-ON behaviour). Otherwise — null
+    // config OR a legacy/password-first config that carries no usernameless
+    // semantics (flag-OFF) — fall back to the caller's policy so today's
+    // shortcuts are not silently dropped. This keeps the whole feature instantly
+    // revertible by the API flag with no web redeploy.
+    const configDeclaresUsernameless =
+        config !== null && (hasUsernamelessPasskey(config) || hasUsernamelessApprove(config))
+
+    const showPasskey = configDeclaresUsernameless
+        ? hasUsernamelessPasskey(config!)
+        : fallbackAll
+    const showApprove = configDeclaresUsernameless
+        ? hasUsernamelessApprove(config!)
+        : fallbackAll
 
     if (!showPasskey && !showApprove) return null
 
