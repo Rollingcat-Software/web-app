@@ -2327,5 +2327,35 @@
     "errorCode": "Hata Kodu",
     "errorMessage": "Hata Mesajı",
     "enrollmentId": "Kayıt ID"
+  },
+  "passkeyLogin": {
+    "button": "Geçiş anahtarı ile giriş yap",
+    "buttonHint": "Parmak izinizi, yüzünüzü, ekran kilidinizi veya başka bir cihazdaki geçiş anahtarını kullanın",
+    "or": "veya",
+    "prompting": "Geçiş anahtarınız bekleniyor…",
+    "verifying": "Giriş yapılıyor…",
+    "notSupported": "Bu tarayıcı geçiş anahtarlarını desteklemiyor. Lütfen e-posta ve parola kullanın.",
+    "noCredential": "Geçiş anahtarı seçilmedi. Lütfen tekrar deneyin.",
+    "failed": "Geçiş anahtarı ile giriş başarısız oldu. Lütfen tekrar deneyin veya başka bir yöntem kullanın."
+  },
+  "approveLogin": {
+    "button": "Başka bir cihazdan onayla",
+    "buttonHint": "Bu girişi, zaten giriş yapmış olduğunuz bir cihazdan onaylayın",
+    "emailLabel": "E-posta",
+    "emailPlaceholder": "siz@ornek.com",
+    "start": "Devam et",
+    "title": "Diğer cihazınızdan onaylayın",
+    "instruction": "Diğer cihazınızda FIVUCSAS'ı açın ve onaylamak için bu numaraya dokunun:",
+    "matchAria": "Onay numarası {{number}}",
+    "waiting": "Onay bekleniyor…",
+    "expiresIn": "Süre: {{time}}",
+    "expired": "Bu istek sona erdi. Yeni bir numara almak için yeniden başlayın.",
+    "denied": "Giriş isteği diğer cihazınızda reddedildi.",
+    "restart": "Yeniden başla",
+    "cancel": "İptal",
+    "back": "Geri",
+    "approved": "Onaylandı — giriş yapılıyor…",
+    "startFailed": "Onay isteği başlatılamadı. Lütfen tekrar deneyin.",
+    "emailRequired": "Devam etmek için e-postanızı girin."
   }
 }

@@ -21,22 +21,35 @@ import {
     Button,
     CircularProgress,
     CssBaseline,
+    Divider,
     Link,
     Paper,
     Stack,
     ThemeProvider,
     Typography,
 } from '@mui/material'
-import { ArrowForwardOutlined, MenuBookOutlined, VerifiedUserOutlined } from '@mui/icons-material'
+import { ArrowForwardOutlined, MenuBookOutlined, PhonelinkLock, VerifiedUserOutlined } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { createAppTheme } from '../theme'
 import { DependencyProvider } from '@app/providers'
 import { createVerifyContainer } from './verifyContainer'
 import LoginMfaFlow from './LoginMfaFlow'
+import PasskeyLoginButton from '@features/auth/components/PasskeyLoginButton'
+import ApproveLoginPanel, {
+    type ApproveLoginResult,
+} from '@features/auth/components/ApproveLoginPanel'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
 import { config as envConfig } from '@config/env'
+
+/** Server login response shape shared by password, passkey, and approve-login. */
+interface LoginSuccessResponse {
+    accessToken?: string
+    refreshToken?: string
+    expiresIn?: number
+    user?: { id?: string | number; email?: string } | null
+}
 
 // ─── URL Parameter Parsing ───────────────────────────────────────
 
@@ -240,6 +253,10 @@ export default function HostedLoginApp() {
     const [metaReloadKey, setMetaReloadKey] = useState(0)
     const [redirecting, setRedirecting] = useState(false)
     const [finalError, setFinalError] = useState<string | null>(null)
+    // Alternate sign-in surfaces shown alongside the password/MFA flow. Only one
+    // can be active at a time; `null` means the default email/password+MFA flow.
+    const [altFlow, setAltFlow] = useState<'approveLogin' | null>(null)
+    const [altError, setAltError] = useState<string | null>(null)
 
     // Frame-bust redirect (B9): runs as an effect so hook order stays stable
     // regardless of whether the page happens to be framed. The early render
@@ -521,6 +538,41 @@ export default function HostedLoginApp() {
         ]
     )
 
+    // Passkey and approve-login both yield a normal login (an access token for an
+    // already-authenticated principal — no MFA session). Funnel them through the
+    // single-step branch of `handleLoginComplete`, which mints the OIDC code by
+    // re-hitting GET /oauth2/authorize with the Bearer token. We pass a synthetic
+    // userId since the single-step path only needs `accessToken`.
+    const handlePasskeySuccess = useCallback(
+        (login: LoginSuccessResponse) => {
+            setAltError(null)
+            if (!login.accessToken) {
+                setFinalError(t('hosted.sessionLost'))
+                return
+            }
+            void handleLoginComplete({
+                accessToken: login.accessToken,
+                refreshToken: login.refreshToken,
+                userId: String(login.user?.id ?? ''),
+                email: login.user?.email,
+            })
+        },
+        [handleLoginComplete, t],
+    )
+
+    const handleApproveLoginApproved = useCallback(
+        (result: ApproveLoginResult) => {
+            setAltError(null)
+            setAltFlow(null)
+            void handleLoginComplete({
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+                userId: '',
+            })
+        },
+        [handleLoginComplete],
+    )
+
     const handleCancel = useCallback(() => {
         // Best-effort: return user to the origin of the redirect URI.
         if (config.redirectUri) {
@@ -680,12 +732,64 @@ export default function HostedLoginApp() {
                                     {t('hosted.returnToApp')}
                                 </Button>
                             </Stack>
-                        ) : (
-                            <LoginMfaFlow
-                                clientId={config.clientId}
-                                onComplete={handleLoginComplete}
-                                onCancel={handleCancel}
+                        ) : altFlow === 'approveLogin' ? (
+                            <ApproveLoginPanel
+                                onApproved={handleApproveLoginApproved}
+                                onCancel={() => {
+                                    setAltError(null)
+                                    setAltFlow(null)
+                                }}
                             />
+                        ) : (
+                            <Stack spacing={2.5}>
+                                {altError && (
+                                    <Alert severity="error" sx={{ borderRadius: 2 }}>
+                                        {altError}
+                                    </Alert>
+                                )}
+
+                                <LoginMfaFlow
+                                    clientId={config.clientId}
+                                    onComplete={handleLoginComplete}
+                                    onCancel={handleCancel}
+                                />
+
+                                {/* Alternate sign-in methods. Additive: the
+                                    email/password+MFA flow above is unchanged.
+                                    The passkey button self-disables (with a
+                                    tooltip) when WebAuthn is unsupported. */}
+                                <Divider sx={{ '&::before, &::after': { borderColor: 'divider' } }}>
+                                    <Typography variant="caption" color="text.secondary" sx={{ px: 1 }}>
+                                        {t('passkeyLogin.or')}
+                                    </Typography>
+                                </Divider>
+
+                                <PasskeyLoginButton<LoginSuccessResponse>
+                                    onSuccess={handlePasskeySuccess}
+                                    onError={(msg) => setAltError(msg)}
+                                    disabled={redirecting}
+                                />
+
+                                <Button
+                                    fullWidth
+                                    variant="text"
+                                    size="large"
+                                    startIcon={<PhonelinkLock />}
+                                    onClick={() => {
+                                        setAltError(null)
+                                        setAltFlow('approveLogin')
+                                    }}
+                                    disabled={redirecting}
+                                    sx={{
+                                        py: 1.25,
+                                        borderRadius: '12px',
+                                        textTransform: 'none',
+                                        fontWeight: 600,
+                                    }}
+                                >
+                                    {t('approveLogin.button')}
+                                </Button>
+                            </Stack>
                         )}
                     </Stack>
                 </HostedFrame>

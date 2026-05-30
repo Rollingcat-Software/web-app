@@ -28,7 +28,9 @@ import {
     EmailOutlined,
     ArrowForward,
     VerifiedUser,
+    PhonelinkLock,
 } from '@mui/icons-material'
+import { Divider } from '@mui/material'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -38,6 +40,8 @@ import { useAuth } from '../hooks/useAuth'
 // face login removed 2026-04-29 — see /opt/projects/fivucsas/MULTI_EMAIL_TENANT_DESIGN_2026-04-28.md follow-up; needs public /auth/face-login endpoint
 import TwoFactorDispatcher from './TwoFactorDispatcher'
 import MethodPickerStep from './steps/MethodPickerStep'
+import PasskeyLoginButton from './PasskeyLoginButton'
+import ApproveLoginPanel, { type ApproveLoginResult } from './ApproveLoginPanel'
 import type { AvailableMfaMethod, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import { useService } from '@app/providers'
@@ -151,6 +155,8 @@ export default function LoginPage() {
     // the picker can hide them and the dispatcher can refuse a redundant
     // dispatch even before the round-trip.
     const [completedMfaMethods, setCompletedMfaMethods] = useState<string[]>([])
+    // Approve-login (number-matching) panel toggle for the dashboard login.
+    const [showApproveLogin, setShowApproveLogin] = useState(false)
 
     // Mark page ready after initial render
     useEffect(() => {
@@ -393,6 +399,94 @@ export default function LoginPage() {
         setCompletedMfaMethods([])
         await logout()
     }, [logout])
+
+    // Passkey + approve-login both complete a full sign-in (the principal is
+    // already authenticated server-side and we receive access/refresh tokens).
+    // Store them and route to the dashboard, mirroring the AUTHENTICATED branch
+    // of handleMfaResult. Tokens are required; a missing access token surfaces
+    // a generic error rather than navigating into a half-authenticated state.
+    const completeTokenLogin = useCallback(
+        async (tokens: { accessToken?: string | null; refreshToken?: string | null }) => {
+            if (!tokens.accessToken) {
+                setLoginError(t('passkeyLogin.failed'))
+                return
+            }
+            await tokenService.storeTokens({
+                accessToken: tokens.accessToken,
+                refreshToken: tokens.refreshToken ?? '',
+            })
+            setShowApproveLogin(false)
+            await refreshUser()
+            navigate('/')
+        },
+        [tokenService, refreshUser, navigate, t],
+    )
+
+    const handlePasskeySuccess = useCallback(
+        (login: { accessToken?: string | null; refreshToken?: string | null }) => {
+            setLoginError(null)
+            void completeTokenLogin(login)
+        },
+        [completeTokenLogin],
+    )
+
+    const handleApproveLoginApproved = useCallback(
+        (result: ApproveLoginResult) => {
+            setLoginError(null)
+            void completeTokenLogin({
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+            })
+        },
+        [completeTokenLogin],
+    )
+
+    // Approve-login (number-matching) panel — full-screen, same glass card shell
+    // as the other interstitials so the surface reads consistently.
+    if (showApproveLogin) {
+        return (
+            <Box
+                sx={{
+                    minHeight: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflowY: 'auto',
+                    py: 4,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 15s ease infinite',
+                    '@keyframes gradientShift': {
+                        '0%': { backgroundPosition: '0% 50%' },
+                        '50%': { backgroundPosition: '100% 50%' },
+                        '100%': { backgroundPosition: '0% 50%' },
+                    },
+                }}
+            >
+                <Card
+                    sx={{
+                        maxWidth: 480,
+                        width: '100%',
+                        mx: 2,
+                        borderRadius: '24px',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        color: '#1a1a2e',
+                        '& .MuiTypography-root': { color: '#1a1a2e' },
+                        '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                    }}
+                >
+                    <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                        <ApproveLoginPanel
+                            onApproved={handleApproveLoginApproved}
+                            onCancel={() => setShowApproveLogin(false)}
+                        />
+                    </CardContent>
+                </Card>
+            </Box>
+        )
+    }
 
     // Show method picker when multiple MFA methods are available
     if (showMethodPicker && user) {
@@ -808,6 +902,45 @@ export default function LoginPage() {
                                 </Button>
                             </motion.div>
                         </form>
+
+                        {/* Alternate sign-in methods. Additive — the email/password
+                            form above is unchanged. The passkey button self-disables
+                            (with a tooltip) when WebAuthn is unsupported. */}
+                        <motion.div variants={itemVariants}>
+                            <Divider sx={{ my: 2, '&::before, &::after': { borderColor: 'rgba(0,0,0,0.12)' } }}>
+                                <Typography variant="caption" sx={{ px: 1, color: 'rgba(0,0,0,0.6)' }}>
+                                    {t('passkeyLogin.or')}
+                                </Typography>
+                            </Divider>
+
+                            <PasskeyLoginButton
+                                onSuccess={handlePasskeySuccess}
+                                onError={(msg) => setLoginError(msg)}
+                                disabled={loading}
+                            />
+
+                            <Button
+                                fullWidth
+                                variant="text"
+                                size="large"
+                                startIcon={<PhonelinkLock />}
+                                onClick={() => {
+                                    setLoginError(null)
+                                    setShowApproveLogin(true)
+                                }}
+                                disabled={loading}
+                                sx={{
+                                    mt: 1,
+                                    py: 1.25,
+                                    borderRadius: '12px',
+                                    textTransform: 'none',
+                                    fontWeight: 600,
+                                    color: 'primary.main',
+                                }}
+                            >
+                                {t('approveLogin.button')}
+                            </Button>
+                        </motion.div>
 
                         {/* Multi-factor auth info */}
                         <motion.div variants={itemVariants}>

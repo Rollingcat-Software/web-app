@@ -2327,5 +2327,35 @@
     "errorCode": "Error Code",
     "errorMessage": "Error Message",
     "enrollmentId": "Enrollment ID"
+  },
+  "passkeyLogin": {
+    "button": "Sign in with a passkey",
+    "buttonHint": "Use your fingerprint, face, screen lock, or a passkey on another device",
+    "or": "or",
+    "prompting": "Waiting for your passkey…",
+    "verifying": "Signing you in…",
+    "notSupported": "Passkeys aren't supported in this browser. Use email and password instead.",
+    "noCredential": "No passkey was selected. Please try again.",
+    "failed": "Passkey sign-in failed. Please try again or use another method."
+  },
+  "approveLogin": {
+    "button": "Approve on another device",
+    "buttonHint": "Confirm this sign-in from a device where you're already signed in",
+    "emailLabel": "Email",
+    "emailPlaceholder": "you@example.com",
+    "start": "Continue",
+    "title": "Approve on your other device",
+    "instruction": "Open FIVUCSAS on your other device and tap this number to approve:",
+    "matchAria": "Approval number {{number}}",
+    "waiting": "Waiting for approval…",
+    "expiresIn": "Expires in {{time}}",
+    "expired": "This request expired. Start again to get a new number.",
+    "denied": "The sign-in request was declined on your other device.",
+    "restart": "Start again",
+    "cancel": "Cancel",
+    "back": "Back",
+    "approved": "Approved — signing you in…",
+    "startFailed": "Couldn't start the approval request. Please try again.",
+    "emailRequired": "Enter your email to continue."
   }
 }
