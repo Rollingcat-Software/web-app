@@ -49,7 +49,7 @@ function cspPlugin(): Plugin {
                         "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
                         "font-src 'self' https://fonts.gstatic.com",
                         "img-src 'self' data: https:",
-                        "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:*",
+                        "connect-src 'self' http://localhost:8080 http://116.203.222.213:8080 ws://localhost:* https://cdn.jsdelivr.net https://storage.googleapis.com",
                         frameAncestors,
                         "base-uri 'self'",
                         "form-action 'self'",
@@ -61,7 +61,7 @@ function cspPlugin(): Plugin {
                 // X-Frame-Options removed: CSP frame-ancestors supersedes it
                 res.setHeader('X-XSS-Protection', '1; mode=block')
                 res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-                res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+                res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()')
 
                 next()
             })
@@ -163,11 +163,14 @@ export default defineConfig(({ mode }) => ({
             '@test': path.resolve(__dirname, './src/test'),
         },
     },
+    optimizeDeps: {
+        exclude: ['@mediapipe/tasks-vision'],
+    },
     server: {
         port: 3000,
         proxy: {
             '/api': {
-                target: 'http://localhost:8080',
+                target: 'https://api.fivucsas.com',
                 changeOrigin: true,
             },
         },
