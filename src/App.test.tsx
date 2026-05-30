@@ -90,7 +90,7 @@ describe('App', () => {
         it('should render dashboard when authenticated', async () => {
             mockAuthReturn = {
                 ...mockAuthReturn,
-                user: { id: '1', firstName: 'Admin', isAdmin: () => true },
+                user: { id: '1', firstName: 'Admin', isAdmin: () => true, isRoot: () => false },
                 isAuthenticated: true,
             }
 
@@ -106,7 +106,7 @@ describe('App', () => {
         it('should redirect unknown routes to dashboard when authenticated', async () => {
             mockAuthReturn = {
                 ...mockAuthReturn,
-                user: { id: '1', firstName: 'Admin', isAdmin: () => true },
+                user: { id: '1', firstName: 'Admin', isAdmin: () => true, isRoot: () => false },
                 isAuthenticated: true,
             }
 
@@ -131,7 +131,7 @@ describe('App', () => {
         it('should allow access to users page when authenticated', async () => {
             mockAuthReturn = {
                 ...mockAuthReturn,
-                user: { id: '1', firstName: 'Admin', isAdmin: () => true },
+                user: { id: '1', firstName: 'Admin', isAdmin: () => true, isRoot: () => false },
                 isAuthenticated: true,
             }
 

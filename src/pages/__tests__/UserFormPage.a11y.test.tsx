@@ -24,6 +24,12 @@ vi.mock('@features/roles', () => ({
     useRoles: () => ({ roles: [], loading: false }),
 }))
 
+// OperationContextBanner pulls in useAuth/useActiveTenant (needs AuthProvider) and is
+// irrelevant to the aria-describedby field wiring under test — stub it out.
+vi.mock('@components/OperationContextBanner', () => ({
+    OperationContextBanner: () => null,
+}))
+
 import UserFormPage from '@/pages/UserFormPage'
 
 describe('UserFormPage — a11y aria-describedby wiring', () => {
