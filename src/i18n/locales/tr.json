@@ -853,7 +853,32 @@
     "failedToSetDefault": "Varsayılan kimlik doğrulama akışı ayarlanamadı",
     "alreadyDefault": "Bu akış zaten varsayılan",
     "defaultImpactChecking": "Bu değişiklikten etkilenecek kullanıcılar denetleniyor…",
-    "defaultImpactWarning": "⚠️ {{total}} kullanıcıdan {{atRisk}} tanesi bu akışı tamamlayamıyor (eksik: {{missing}}). Bu işlemde erişimleri kilitlenebilir."
+    "defaultImpactWarning": "⚠️ {{total}} kullanıcıdan {{atRisk}} tanesi bu akışı tamamlayamıyor (eksik: {{missing}}). Bu işlemde erişimleri kilitlenebilir.",
+    "defaultImpactUsernamelessOnly": "⚠️ Bu akıştaki her ilk adım yöntemi kullanıcı adı gerektirmez (parola anahtarı / cihaz onayı). Kayıtlı keşfedilebilir kimlik bilgisi olmayan kullanıcılar oturum açmaya başlayamaz.",
+    "defaultImpactNoRecovery": "⚠️ Bu akışın kurtarma yöntemi yok (örneğin e-posta veya SMS kodu). Cihazını kaybeden bir kullanıcı kalıcı olarak kilitlenebilir."
+  },
+  "authFlowBuilder": {
+    "title": "Kimlik Doğrulama Akışı Oluşturucu",
+    "subtitle": "Kullanıcılarınız için özel kimlik doğrulama dizileri oluşturun",
+    "defaultFlowName": "Kimlik Doğrulama Akışım",
+    "setDefaultForNewUsers": "Yeni kullanıcılar için varsayılan akış yap",
+    "addAuthStep": "Kimlik Doğrulama Adımı Ekle",
+    "selectMethod": "Kimlik Doğrulama Yöntemi Seç",
+    "preview": "Akış Önizlemesi",
+    "previewEmpty": "Akışınızı önizlemek için adım ekleyin",
+    "saveFlow": "Akışı Kaydet",
+    "testFlow": "Akışı Test Et",
+    "editChoices": "Alternatif yöntemleri düzenle",
+    "choiceEditorTitle": "Bu adım için alternatif yöntemler",
+    "choiceEditorHint": "Kullanıcı, seçili yöntemlerden herhangi birini tamamlayarak bu adımı geçer.",
+    "choiceBadge": "{{count}} yöntemden 1'i",
+    "choiceDescription": "Kullanıcı şunlardan herhangi birini tamamlar: {{methods}}",
+    "usernamelessFirstStep": "Bu adımın önce kimlik girilmeden çalışmasına izin ver (kullanıcı adsız)",
+    "usernamelessBadge": "Kullanıcı adsız",
+    "usernamelessCapable": "Kullanıcı adsız desteklenir"
+  },
+  "login": {
+    "identifierFirstSubtitle": "Devam etmek için e-postanızı girin. Gerisinde size yol göstereceğiz."
   },
   "devices": {
     "title": "Kayıtlı Cihazlar",

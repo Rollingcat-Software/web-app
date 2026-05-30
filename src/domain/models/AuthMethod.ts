@@ -42,6 +42,26 @@ export interface AuthMethod {
     platforms: Platform[]
     isActive: boolean
     category: AuthMethodCategory
+    /**
+     * True when this method can be used WITHOUT the user first typing an
+     * identifier (discoverable passkey, cross-device QR/approve). Drives which
+     * methods may be selected as a usernameless Layer-1 step in the flow builder.
+     */
+    supportsUsernameless: boolean
+}
+
+/**
+ * Methods that can authenticate without an identifier typed first.
+ * Discoverable WebAuthn (platform/cross-platform) + device-to-device QR.
+ */
+const USERNAMELESS_CAPABLE_TYPES: ReadonlySet<AuthMethodType> = new Set([
+    AuthMethodType.HARDWARE_KEY,
+    AuthMethodType.FINGERPRINT,
+    AuthMethodType.QR_CODE,
+])
+
+export function isUsernamelessCapable(type: AuthMethodType): boolean {
+    return USERNAMELESS_CAPABLE_TYPES.has(type)
 }
 
 export function isAuthMethodType(value: string): value is AuthMethodType {
@@ -61,6 +81,19 @@ export interface AuthFlowStep {
     timeout: number // seconds
     maxAttempts: number
     fallbackMethodId?: string
+    /**
+     * CHOICE step (E): when present and non-empty, the user satisfies this step
+     * by completing ANY ONE of these methods. `methodType` is the step's primary
+     * method; `alternativeMethodTypes` lists the additional accepted methods.
+     * An empty/absent list = a single-method (strict) step.
+     */
+    alternativeMethodTypes?: AuthMethodType[]
+    /**
+     * Usernameless Layer-1 (E): when true, this step can run before any
+     * identifier is typed. Only valid for the first step and for methods whose
+     * {@link AuthMethod.supportsUsernameless} is true.
+     */
+    usernameless?: boolean
 }
 
 /**
@@ -119,8 +152,11 @@ export function normalizeOperationType(value: string): OperationType {
  * Default authentication methods available in the system.
  * NOTE: These are fallback defaults. Auth methods should ideally be fetched
  * from the backend via GET /api/v1/auth-methods when available.
+ *
+ * `supportsUsernameless` is derived from the method type (see
+ * {@link isUsernamelessCapable}) so the catalog stays single-sourced.
  */
-export const DEFAULT_AUTH_METHODS: AuthMethod[] = [
+const DEFAULT_AUTH_METHODS_BASE: Omit<AuthMethod, 'supportsUsernameless'>[] = [
     {
         id: 'PASSWORD',
         name: 'Password',
@@ -233,6 +269,11 @@ export const DEFAULT_AUTH_METHODS: AuthMethod[] = [
     },
 ]
 
+export const DEFAULT_AUTH_METHODS: AuthMethod[] = DEFAULT_AUTH_METHODS_BASE.map((m) => ({
+    ...m,
+    supportsUsernameless: isUsernamelessCapable(m.type),
+}))
+
 const DEFAULT_METHOD_BY_TYPE = new Map<AuthMethodType, AuthMethod>(
     DEFAULT_AUTH_METHODS.map((method) => [method.type, method])
 )
@@ -246,6 +287,8 @@ export interface AuthMethodApiResponse {
     platforms: string[]
     requiresEnrollment: boolean
     isActive: boolean
+    /** Optional backend flag; when absent it is derived from the method type. */
+    supportsUsernameless?: boolean
 }
 
 function normalizeCategory(value: string, fallback: AuthMethodCategory): AuthMethodCategory {
@@ -282,6 +325,9 @@ export function mapAuthMethodResponseToModel(response: AuthMethodApiResponse): A
         platforms: normalizePlatforms(response.platforms, fallback.platforms),
         isActive: typeof response.isActive === 'boolean' ? response.isActive : fallback.isActive,
         category: normalizeCategory(response.category, fallback.category),
+        supportsUsernameless: typeof response.supportsUsernameless === 'boolean'
+            ? response.supportsUsernameless
+            : isUsernamelessCapable(response.type),
     }
 }
 

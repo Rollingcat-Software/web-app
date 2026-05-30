@@ -155,6 +155,12 @@ export default function AuthFlowsPage() {
                     timeoutSeconds: s.timeout,
                     maxAttempts: s.maxAttempts,
                     allowsDelegation: false,
+                    // CHOICE + usernameless (E): persist only when set so legacy
+                    // single-method strict steps keep the same payload shape.
+                    ...(s.alternativeMethodTypes && s.alternativeMethodTypes.length > 0
+                        ? { alternativeMethodTypes: s.alternativeMethodTypes.map((m) => m.toUpperCase()) }
+                        : {}),
+                    ...(s.usernameless ? { usernameless: true } : {}),
                 })),
             }
 
@@ -300,6 +306,9 @@ export default function AuthFlowsPage() {
             isRequired: s.isRequired,
             timeout: s.timeoutSeconds ?? 120,
             maxAttempts: s.maxAttempts ?? 3,
+            // Hydrate CHOICE alternatives + usernameless flag (E) when present.
+            alternativeMethodTypes: (s.alternativeMethodTypes ?? []) as unknown as AuthFlowStep['alternativeMethodTypes'],
+            usernameless: s.usernameless ?? false,
         }))
     }
 
@@ -558,6 +567,17 @@ export default function AuthFlowsPage() {
                                         })
                                         .join(', '),
                                 })}
+                            </Alert>
+                        )}
+                        {/* F-web: usernameless-only + no-recovery advisories. */}
+                        {!defaultImpactLoading && defaultImpact?.usernamelessOnly && (
+                            <Alert severity="warning" sx={{ mt: 2 }}>
+                                {t('authFlows.defaultImpactUsernamelessOnly')}
+                            </Alert>
+                        )}
+                        {!defaultImpactLoading && defaultImpact?.noRecoveryMethod && (
+                            <Alert severity="warning" sx={{ mt: 2 }}>
+                                {t('authFlows.defaultImpactNoRecovery')}
                             </Alert>
                         )}
                     </DialogContent>

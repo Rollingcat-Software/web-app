@@ -34,6 +34,7 @@ interface AuthApiResponse {
         preferred: boolean
         requiresEnrollment: boolean
     }>
+    completedMethods?: string[]
 }
 
 /**
@@ -88,6 +89,40 @@ export class AuthRepository implements IAuthRepository {
             return authResponse
         } catch (error) {
             this.logger.error('Login failed', error)
+            throw error
+        }
+    }
+
+    /**
+     * Begin an identifier-first (password-less) login flow.
+     *
+     * Companion to GET /auth/login-config: when Layer 1 has no PASSWORD method,
+     * the user types only their identifier and the backend opens an MFA session
+     * for it. POST /auth/login/begin (provisional — agent-api3 task #16).
+     */
+    async beginIdentifierLogin(identifier: string, clientId?: string): Promise<AuthResponse> {
+        try {
+            this.logger.info('Beginning identifier-first login', { email: identifier })
+            const body: { email: string; clientId?: string } = { email: identifier }
+            if (clientId) body.clientId = clientId
+            const response = await this.httpClient.post<AuthApiResponse>('/auth/login/begin', body)
+            const data = response.data
+
+            return {
+                accessToken: data.accessToken,
+                refreshToken: data.refreshToken,
+                expiresIn: data.expiresIn || 3600,
+                user: User.fromJSON(data.user),
+                // An identifier-first flow is always multi-step (no password
+                // authenticates outright); default to true if the backend omits it.
+                twoFactorRequired: data.twoFactorRequired ?? data.mfaRequired ?? true,
+                twoFactorMethod: data.twoFactorMethod,
+                mfaSessionToken: data.mfaSessionToken,
+                availableMethods: data.availableMethods,
+                completedMethods: data.completedMethods,
+            }
+        } catch (error) {
+            this.logger.error('Identifier-first login failed', error)
             throw error
         }
     }

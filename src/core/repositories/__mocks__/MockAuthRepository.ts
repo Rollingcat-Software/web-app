@@ -33,6 +33,26 @@ export class MockAuthRepository implements IAuthRepository {
         }
     }
 
+    async beginIdentifierLogin(identifier: string, _clientId?: string): Promise<AuthResponse> {
+        if (!identifier) {
+            throw new Error('Invalid identifier')
+        }
+        const user = this.currentUser ?? this.createDefaultUser()
+        this.currentUser = user
+        return {
+            accessToken: null,
+            refreshToken: null,
+            user,
+            expiresIn: 3600,
+            twoFactorRequired: true,
+            twoFactorMethod: 'EMAIL_OTP',
+            mfaSessionToken: 'mock-mfa-session',
+            availableMethods: [
+                { methodType: 'EMAIL_OTP', name: 'Email OTP', category: 'BASIC', enrolled: true, preferred: true, requiresEnrollment: false },
+            ],
+        }
+    }
+
     async logout(): Promise<void> {
         this.currentUser = null
     }

@@ -271,7 +271,7 @@ describe('useAuthFlowBuilder', () => {
         expect(result.current.steps[1].order).toBe(2)
     })
 
-    it('should not remove mandatory password step for APP_LOGIN', () => {
+    it('removes the password step like any other (E: password no longer mandatory)', () => {
         const { result } = renderHook(() => useAuthFlowBuilder(), {
             wrapper: createWrapper(),
         })
@@ -287,9 +287,9 @@ describe('useAuthFlowBuilder', () => {
             result.current.removeStep(passwordStepId, 'APP_LOGIN')
         })
 
-        // Password step should still be there
-        expect(result.current.steps).toHaveLength(2)
-        expect(result.current.steps[0].methodType).toBe(AuthMethodType.PASSWORD)
+        // E: password is a normal removable method — removing it leaves FACE.
+        expect(result.current.steps).toHaveLength(1)
+        expect(result.current.steps[0].methodType).toBe(AuthMethodType.FACE)
     })
 
     it('should toggle step required flag', () => {

@@ -14,9 +14,11 @@ import {
     Button,
     Card,
     CardContent,
+    InputAdornment,
+    TextField,
     Typography,
 } from '@mui/material'
-import { Close, ArrowBack } from '@mui/icons-material'
+import { Close, ArrowBack, EmailOutlined } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@utils/formatApiError'
@@ -38,22 +40,42 @@ import QrCodeStep from '@features/auth/components/steps/QrCodeStep'
 import HardwareKeyStep from '@features/auth/components/steps/HardwareKeyStep'
 import NfcStep from '@features/auth/components/steps/NfcStep'
 import StepProgress from './StepProgress'
+import { hasPasswordLayer1, needsIdentifier, type LoginConfig } from '@domain/models/LoginConfig'
 
-type FlowPhase = 'password' | 'method-picker' | 'mfa-step' | 'complete'
+type FlowPhase = 'password' | 'identifier' | 'method-picker' | 'mfa-step' | 'complete'
 
 interface LoginMfaFlowProps {
     clientId: string
     onComplete: (result: { accessToken: string; refreshToken?: string; userId: string; email?: string; completedMethods?: string[]; mfaSessionToken?: string; timestamp?: number }) => void
     onCancel: () => void
     onStepChange?: (stepIndex: number, methodType: string, totalSteps: number) => void
+    /**
+     * Tenant Layer-1 config (D). When present, the first phase is rendered
+     * STRICTLY from it: the password field appears ONLY if PASSWORD is a
+     * Layer-1 method; otherwise an identifier-first entry is shown that starts
+     * the flow with the configured non-password methods. `null`/undefined ⇒
+     * legacy behaviour (always start on the password step).
+     */
+    loginConfig?: LoginConfig | null
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, loginConfig }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
 
-    const [phase, setPhase] = useState<FlowPhase>('password')
+    // Layer-1 rendering decision (D). With a config that omits PASSWORD we never
+    // show the password field; if an identifier is still required we collect it
+    // first, otherwise we go straight to picking a Layer-1 method.
+    const passwordIsLayer1 = !loginConfig || hasPasswordLayer1(loginConfig)
+    const identifierRequired = loginConfig ? needsIdentifier(loginConfig) : true
+    const initialPhase: FlowPhase = passwordIsLayer1
+        ? 'password'
+        : identifierRequired
+            ? 'identifier'
+            : 'method-picker'
+
+    const [phase, setPhase] = useState<FlowPhase>(initialPhase)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | undefined>(undefined)
     const [mfaSessionToken, setMfaSessionToken] = useState<string>('')
@@ -62,6 +84,8 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     const [currentStep, setCurrentStep] = useState(1)
     const [totalSteps, setTotalSteps] = useState(1)
     const [usedMethods, setUsedMethods] = useState<string[]>([])
+    // Identifier-first entry (config without PASSWORD): the typed email.
+    const [identifier, setIdentifier] = useState('')
 
     // Perf (USER-BUG-7): warm MediaPipe FaceLandmarker in the background while
     // the user is still on the password step. By the time MFA dispatches the
@@ -96,8 +120,8 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         if (!onStepChange) return
         // Map login flow phases to step indices for the postMessage bridge
         // password=0, method-picker=1, mfa-step=1 (step 2 of 2 when MFA is active)
-        if (phase === 'password') {
-            onStepChange(0, 'PASSWORD', totalSteps > 1 ? totalSteps : 1)
+        if (phase === 'password' || phase === 'identifier') {
+            onStepChange(0, phase === 'password' ? 'PASSWORD' : 'IDENTIFIER', totalSteps > 1 ? totalSteps : 1)
         } else if (phase === 'method-picker' || phase === 'mfa-step') {
             const stepIdx = currentStep - 1
             onStepChange(stepIdx, selectedMethod || 'MFA', totalSteps)
@@ -164,6 +188,57 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         }
     }, [authRepository, clientId, onComplete, t])
 
+    // ─── Identifier-first Submit (config without PASSWORD) ──────
+
+    // Seed the method picker from the tenant's Layer-1 config when there is no
+    // password factor. Non-usernameless Layer-1 methods (EMAIL_OTP, SMS_OTP, …)
+    // are surfaced here; usernameless ones are handled by the shortcut buttons.
+    const configLayer1Methods: AvailableMfaMethod[] = (loginConfig?.layer1.methods ?? [])
+        .filter((m) => m.type !== AuthMethodType.PASSWORD && !m.usernameless)
+        .map((m) => ({
+            methodType: m.type,
+            name: m.type,
+            category: '',
+            enrolled: true,
+            preferred: false,
+            requiresEnrollment: m.requiresEnrollment,
+        }))
+
+    const handleIdentifierSubmit = useCallback(async () => {
+        if (!identifier.trim()) {
+            setError(t('auth.validation.emailRequired'))
+            return
+        }
+        setLoading(true)
+        setError(undefined)
+        try {
+            const result = await authRepository.beginIdentifierLogin(
+                identifier.trim(),
+                clientId || undefined,
+            )
+            const token = result.mfaSessionToken ?? ''
+            setMfaSessionToken(token)
+            const methods = result.availableMethods ?? configLayer1Methods
+            setAvailableMethods(methods)
+            if (result.completedMethods?.length) {
+                setUsedMethods((prev) => Array.from(new Set([...prev, ...result.completedMethods!])))
+            }
+            const enrolled = methods.filter((m) => m.enrolled)
+            if (enrolled.length > 1) {
+                setPhase('method-picker')
+            } else if (enrolled.length === 1) {
+                setSelectedMethod(enrolled[0].methodType)
+                setPhase('mfa-step')
+            } else {
+                setPhase('method-picker')
+            }
+        } catch (err) {
+            setError(formatApiError(err, t))
+        } finally {
+            setLoading(false)
+        }
+    }, [authRepository, identifier, clientId, configLayer1Methods, t])
+
     // ─── Method Selection ───────────────────────────────────────
 
     const handleMethodSelected = useCallback((methodType: string) => {
@@ -183,8 +258,10 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         setAvailableMethods([])
         setSelectedMethod('')
         setUsedMethods([])
-        setPhase('password')
-    }, [])
+        // Return to whichever entry phase this flow started on (password vs
+        // identifier-first), not unconditionally to password.
+        setPhase(initialPhase)
+    }, [initialPhase])
 
     // ─── MFA Step Verification ──────────────────────────────────
 
@@ -435,8 +512,8 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                     backend hasn't reported one yet. */}
                 <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                     {(() => {
-                        if (phase === 'password') {
-                            return <StepProgress current={1} total={0} />
+                        if (phase === 'password' || phase === 'identifier') {
+                            return <StepProgress current={1} total={loginConfig?.totalSteps ?? 0} />
                         }
                         // Authoritative-total takes precedence; otherwise infer at least
                         // 2 (PASSWORD + 1 MFA step). `currentStep` is clamped inside
@@ -478,7 +555,9 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                 WebkitTextFillColor: 'transparent',
                             }}
                         >
-                            {phase === 'password' ? t('widget.loginTitle') : t('widget.verifyIdentity')}
+                            {phase === 'password' || phase === 'identifier'
+                                ? t('widget.loginTitle')
+                                : t('widget.verifyIdentity')}
                         </Typography>
                         <Button
                             variant="text"
@@ -513,6 +592,55 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                     loading={loading}
                                     error={error}
                                 />
+                            )}
+
+                            {phase === 'identifier' && (
+                                <Box>
+                                    {error && (
+                                        <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
+                                            {error}
+                                        </Alert>
+                                    )}
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        {t('login.identifierFirstSubtitle')}
+                                    </Typography>
+                                    <TextField
+                                        fullWidth
+                                        type="email"
+                                        label={t('auth.emailLabel')}
+                                        value={identifier}
+                                        onChange={(e) => setIdentifier(e.target.value)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' && !loading) {
+                                                e.preventDefault()
+                                                void handleIdentifierSubmit()
+                                            }
+                                        }}
+                                        autoFocus
+                                        disabled={loading}
+                                        InputProps={{
+                                            startAdornment: (
+                                                <InputAdornment position="start">
+                                                    <EmailOutlined sx={{ color: 'text.secondary' }} />
+                                                </InputAdornment>
+                                            ),
+                                        }}
+                                        sx={{
+                                            mb: 2,
+                                            '& .MuiOutlinedInput-root': { borderRadius: '12px' },
+                                        }}
+                                    />
+                                    <Button
+                                        fullWidth
+                                        variant="contained"
+                                        size="large"
+                                        onClick={() => void handleIdentifierSubmit()}
+                                        disabled={loading || !identifier.trim()}
+                                        sx={{ py: 1.5, borderRadius: '12px', fontWeight: 600 }}
+                                    >
+                                        {t('auth.continue')}
+                                    </Button>
+                                </Box>
                             )}
 
                             {phase === 'method-picker' && (

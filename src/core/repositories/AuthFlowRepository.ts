@@ -16,6 +16,15 @@ export interface FlowStepSpec {
     allowsDelegation?: boolean
     fallbackMethodType?: string
     config?: string
+    /**
+     * CHOICE step (E): additional accepted method types. When present and
+     * non-empty, the user satisfies the step by completing `authMethodType` OR
+     * any of these. Backend treats `[authMethodType, ...alternativeMethodTypes]`
+     * as a one-of set.
+     */
+    alternativeMethodTypes?: string[]
+    /** Usernameless Layer-1 step (E) — valid only for stepOrder === 1. */
+    usernameless?: boolean
 }
 
 export interface AuthFlowResponse {
@@ -77,6 +86,15 @@ export interface AuthFlowDefaultImpact {
     /** Active users who cannot complete at least one required method. */
     usersAtRisk: number
     methods: AuthFlowDefaultImpactMethod[]
+    /**
+     * F-web advisory flags (optional — present once agent-api3 emits them):
+     *  - usernamelessOnly: every Layer-1 entry is usernameless, so users with
+     *    no enrolled discoverable credential cannot start the flow.
+     *  - noRecoveryMethod: the flow offers no recovery/fallback factor (e.g.
+     *    EMAIL_OTP), so a lost device locks the user out permanently.
+     */
+    usernamelessOnly?: boolean
+    noRecoveryMethod?: boolean
 }
 
 /**
