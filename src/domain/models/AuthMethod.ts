@@ -64,13 +64,18 @@ export interface AuthMethod {
 /**
  * Methods that can authenticate without an identifier typed first.
  * Discoverable WebAuthn (platform/cross-platform) + device-to-device QR.
+ *
+ * NOTE: APPROVE_LOGIN is intentionally NOT here. Number-matching approve-login
+ * requires the initiator to enter their email first (so the server knows whose
+ * device to push the prompt to) — it is identifier-first, not usernameless.
+ * Including it made the login UI promise "no email needed" and then demand email.
+ * See API migration V74. PASSKEY + QR_CODE are the true no-email cross-device methods.
  */
 const USERNAMELESS_CAPABLE_TYPES: ReadonlySet<AuthMethodType> = new Set([
     AuthMethodType.HARDWARE_KEY,
     AuthMethodType.FINGERPRINT,
     AuthMethodType.QR_CODE,
     AuthMethodType.PASSKEY,
-    AuthMethodType.APPROVE_LOGIN,
 ])
 
 export function isUsernamelessCapable(type: AuthMethodType): boolean {
