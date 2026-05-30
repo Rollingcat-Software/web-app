@@ -229,6 +229,11 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
         } else if (puzzleId === BiometricPuzzleId.HAND_MATH && s.mathPrompt) {
             setPromptText(t('biometricPuzzle.handMathPrompt', { expr: s.mathPrompt }))
             setPromptCode(s.mathPrompt)
+        } else if (puzzleId === BiometricPuzzleId.HAND_TRACE_TEMPLATE && s.templateTrace) {
+            // Tell the user which specific shape to trace (DTW target).
+            const shapeName = t(`biometricPuzzle.shape.${s.templateTrace.template.id}`)
+            setPromptText(t('biometricPuzzle.handTraceTemplatePrompt', { shape: shapeName }))
+            setPromptCode(shapeName)
         } else {
             setPromptText(null)
             setPromptCode(null)

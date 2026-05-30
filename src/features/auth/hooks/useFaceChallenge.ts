@@ -12,6 +12,50 @@ import { dataURLToImageData } from '../utils/faceCropper'
  */
 const PASSIVE_LIVENESS_THRESHOLD = 0.45
 
+/**
+ * Minimum overall QualityAssessor score (0-100) required to accept an
+ * enrollment capture. Below this the frame is rejected and the user is
+ * re-prompted to improve framing / lighting / sharpness rather than enrolling
+ * a blurry, dark, or too-small face. Matches the engine's ENROLLMENT_QUALITY_MIN.
+ *
+ * @see lib/biometric-engine/core/constants.ts ENROLLMENT_QUALITY_MIN
+ */
+const ENROLLMENT_QUALITY_MIN = 65
+
+/**
+ * Assess the quality of the current face ROI synchronously from the live video
+ * frame, bounded by the normalized detection bbox. Returns the QualityAssessor
+ * report, or null when no usable ROI / assessor is available.
+ */
+function assessCurrentQuality(
+    boundingBox: { x: number; y: number; width: number; height: number } | null,
+): import('../../../lib/biometric-engine/types').QualityReport | null {
+    try {
+        const engine = BiometricEngine.getInstance()
+        const assessor = engine.qualityAssessor
+        if (!assessor || !assessor.isAvailable() || !boundingBox) return null
+        const video = document.querySelector('video') as HTMLVideoElement | null
+        if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) return null
+        const vw = video.videoWidth
+        const vh = video.videoHeight
+        const px = Math.max(0, Math.round(boundingBox.x * vw))
+        const py = Math.max(0, Math.round(boundingBox.y * vh))
+        const pw = Math.min(vw - px, Math.round(boundingBox.width * vw))
+        const ph = Math.min(vh - py, Math.round(boundingBox.height * vh))
+        if (pw <= 2 || ph <= 2) return null
+        const offscreen = document.createElement('canvas')
+        offscreen.width = pw
+        offscreen.height = ph
+        const ctx2d = offscreen.getContext('2d')
+        if (!ctx2d) return null
+        ctx2d.drawImage(video, px, py, pw, ph, 0, 0, pw, ph)
+        const roi = ctx2d.getImageData(0, 0, pw, ph)
+        return assessor.assess(roi)
+    } catch {
+        return null
+    }
+}
+
 export type ChallengeStage =
     | 'position'      // Center face in oval
     | 'frontal'       // Look straight
@@ -220,67 +264,108 @@ export function useFaceChallenge() {
                     return
                 }
                 {
-                    // ── Passive liveness pre-filter (client-side, D2 compliant) ──────────
-                    // Extract face ROI as ImageData synchronously from the current video
-                    // frame (bounded by detection.boundingBox). Run PassiveLivenessDetector
-                    // synchronously (pure canvas math, no async needed).
-                    // If score is below threshold, reset the challenge and skip submission.
-                    // If livenessDetector is unavailable (not loaded), skip silently.
-                    // Server still makes the final auth decision — this is a client pre-filter.
-                    try {
-                        const engine = BiometricEngine.getInstance()
-                        const livenessDetector = engine.livenessDetector
-                        if (livenessDetector && livenessDetector.isAvailable() && detection.boundingBox) {
-                            const video = document.querySelector('video') as HTMLVideoElement | null
-                            if (video && video.videoWidth > 0 && video.videoHeight > 0) {
-                                const vw = video.videoWidth
-                                const vh = video.videoHeight
-                                const bb = detection.boundingBox
-                                // Convert normalized bbox to pixel coords
-                                const px = Math.max(0, Math.round(bb.x * vw))
-                                const py = Math.max(0, Math.round(bb.y * vh))
-                                const pw = Math.min(vw - px, Math.round(bb.width * vw))
-                                const ph = Math.min(vh - py, Math.round(bb.height * vh))
+                    // ── Quality gate (blur / lighting / size) ────────────────────────────
+                    // Assess the captured face ROI before accepting it. A low score
+                    // (blurry, too dark/bright, or too small) does NOT enroll — instead
+                    // we reset the hold for THIS stage (not the whole challenge) and
+                    // re-prompt the user to improve framing. When the assessor is
+                    // unavailable we skip the gate (the server still scores quality);
+                    // unlike liveness, a missing quality model should not hard-block
+                    // enrollment because quality is advisory, not anti-spoof.
+                    const quality = assessCurrentQuality(detection.boundingBox)
+                    if (quality && quality.score < ENROLLMENT_QUALITY_MIN) {
+                        holdStartRef.current = null
+                        stageStartRef.current = Date.now()
+                        // Pick a specific hint from the worst detected issue.
+                        let instruction = 'faceChallenge.qualityTooLow'
+                        if (quality.issues.includes('Blurry')) instruction = 'faceChallenge.qualityBlurry'
+                        else if (quality.issues.includes('Dark')) instruction = 'faceChallenge.qualityDark'
+                        else if (quality.issues.includes('Bright')) instruction = 'faceChallenge.qualityBright'
+                        else if (quality.issues.includes('Small')) instruction = 'faceChallenge.qualitySmall'
+                        setChallengeState(prev => ({
+                            ...prev,
+                            stageProgress: 0,
+                            progress: (idx + 1) / ENROLLMENT_STAGES.length,
+                            instruction,
+                        }))
+                        return
+                    }
+                    // ─────────────────────────────────────────────────────────────────────
 
-                                if (pw > 2 && ph > 2) {
-                                    const offscreen = document.createElement('canvas')
-                                    offscreen.width = pw
-                                    offscreen.height = ph
-                                    const ctx2d = offscreen.getContext('2d')
-                                    if (ctx2d) {
-                                        ctx2d.drawImage(video, px, py, pw, ph, 0, 0, pw, ph)
-                                        const faceROI = ctx2d.getImageData(0, 0, pw, ph)
-                                        const livenessResult = livenessDetector.check(faceROI)
-                                        console.log('[PassiveLiveness]', livenessResult.score)
-                                        if (livenessResult.score < PASSIVE_LIVENESS_THRESHOLD * 100) {
-                                            // Score is on 0-100 scale in PassiveLivenessDetector
-                                            // Reset challenge — liveness check failed
-                                            stageIndexRef.current = 0
-                                            capturesRef.current = []
-                                            clientEmbeddingsRef.current = []
-                                            holdStartRef.current = null
-                                            prevConfidenceRef.current = 0
-                                            blinkDetectedRef.current = false
-                                            stageStartRef.current = Date.now()
-                                            setChallengeState({
-                                                stage: 'position',
-                                                stageIndex: 0,
-                                                totalStages: ENROLLMENT_STAGES.length,
-                                                progress: 1 / ENROLLMENT_STAGES.length,
-                                                stageProgress: 0,
-                                                instruction: 'faceChallenge.livenessCheckFailed',
-                                                captures: [],
-                                                clientEmbeddings: [],
-                                            })
-                                            return
-                                        }
-                                    }
-                                }
+                    // ── Passive liveness pre-filter (client-side, D2 compliant) ──────────
+                    // FAIL-CLOSED gate. The face capture is only accepted when the
+                    // PassiveLivenessDetector is available AND returns a score at or
+                    // above PASSIVE_LIVENESS_THRESHOLD. Any of the following resets the
+                    // challenge instead of letting a frame through:
+                    //   • detector unavailable / not yet loaded
+                    //   • no usable face ROI (missing bbox, video not ready, degenerate crop)
+                    //   • liveness score below threshold
+                    //   • an exception during ROI extraction or the check itself
+                    //
+                    // Rationale: failing OPEN here let printed-photo / screen-replay
+                    // attacks pass the client pre-filter whenever the model hadn't
+                    // loaded. The server still makes the final auth decision, but the
+                    // client must not advance a capture it could not vouch for.
+                    const livenessPassed = (() => {
+                        try {
+                            const engine = BiometricEngine.getInstance()
+                            const livenessDetector = engine.livenessDetector
+                            if (!livenessDetector || !livenessDetector.isAvailable() || !detection.boundingBox) {
+                                return false
                             }
+                            const video = document.querySelector('video') as HTMLVideoElement | null
+                            if (!video || video.videoWidth <= 0 || video.videoHeight <= 0) {
+                                return false
+                            }
+                            const vw = video.videoWidth
+                            const vh = video.videoHeight
+                            const bb = detection.boundingBox
+                            // Convert normalized bbox to pixel coords
+                            const px = Math.max(0, Math.round(bb.x * vw))
+                            const py = Math.max(0, Math.round(bb.y * vh))
+                            const pw = Math.min(vw - px, Math.round(bb.width * vw))
+                            const ph = Math.min(vh - py, Math.round(bb.height * vh))
+                            if (pw <= 2 || ph <= 2) {
+                                return false
+                            }
+                            const offscreen = document.createElement('canvas')
+                            offscreen.width = pw
+                            offscreen.height = ph
+                            const ctx2d = offscreen.getContext('2d')
+                            if (!ctx2d) {
+                                return false
+                            }
+                            ctx2d.drawImage(video, px, py, pw, ph, 0, 0, pw, ph)
+                            const faceROI = ctx2d.getImageData(0, 0, pw, ph)
+                            const livenessResult = livenessDetector.check(faceROI)
+                            // Score is on a 0-100 scale in PassiveLivenessDetector.
+                            return livenessResult.score >= PASSIVE_LIVENESS_THRESHOLD * 100
+                        } catch {
+                            // Fail closed on any error.
+                            return false
                         }
-                    } catch {
-                        // Non-critical: liveness pre-filter failure is silently ignored.
-                        // Server will perform its own liveness check.
+                    })()
+
+                    if (!livenessPassed) {
+                        // Reset challenge — liveness gate not satisfied.
+                        stageIndexRef.current = 0
+                        capturesRef.current = []
+                        clientEmbeddingsRef.current = []
+                        holdStartRef.current = null
+                        prevConfidenceRef.current = 0
+                        blinkDetectedRef.current = false
+                        stageStartRef.current = Date.now()
+                        setChallengeState({
+                            stage: 'position',
+                            stageIndex: 0,
+                            totalStages: ENROLLMENT_STAGES.length,
+                            progress: 1 / ENROLLMENT_STAGES.length,
+                            stageProgress: 0,
+                            instruction: 'faceChallenge.livenessCheckFailed',
+                            captures: [],
+                            clientEmbeddings: [],
+                        })
+                        return
                     }
                     // ─────────────────────────────────────────────────────────────────────
 

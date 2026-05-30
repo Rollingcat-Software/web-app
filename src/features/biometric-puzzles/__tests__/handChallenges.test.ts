@@ -17,6 +17,16 @@ import {
     TapDetector,
     PeekABooDetector,
     ShapeTraceDetector,
+    TemplateTraceDetector,
+    GestureValidator,
+    HandCalibrator,
+    fingerRatio,
+    resamplePath,
+    centroidNormalise,
+    dtwNormalisedCost,
+    shapeTraceCost,
+    SHAPE_TEMPLATES,
+    randomShapeTemplate,
     evaluateHandPuzzle,
     initialHandState,
     type HandFrame,
@@ -137,17 +147,32 @@ describe('WaveDetector', () => {
             expect(w.push(f)).toBe(false)
         }
     })
-    it('fires after multiple direction changes', () => {
-        const w = new WaveDetector(5000, 3, 0.05)
-        // Generate strong oscillation: 5 swings spread across 30 frames.
-        const xs = [0.3, 0.7, 0.3, 0.7, 0.3, 0.7]
+    it('fires for an oscillation inside the valid 1-4 Hz band', () => {
+        // New frequency-gated WaveDetector signature:
+        //   (bufferSize, minSwing, minTotalDisp, minReversals, minFreqHz, maxFreqHz)
+        const w = new WaveDetector(40, 0.1, 0.2, 2, 1.0, 4.0)
+        // ~2.5 Hz oscillation: a reversal every 200ms (full cycle 400ms).
+        const xs = [0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.7]
         let detected = false
         for (let i = 0; i < xs.length; i++) {
-            const f = fistFrame(i * 80)
+            const f = fistFrame(i * 200)
             f.landmarks[0] = { x: xs[i], y: 0.9, z: 0 }
             if (w.push(f)) detected = true
         }
         expect(detected).toBe(true)
+    })
+
+    it('rejects an oscillation that is too fast (frequency gate)', () => {
+        const w = new WaveDetector(40, 0.1, 0.2, 2, 1.0, 4.0)
+        // Reversal every 20ms → ~25 Hz, well above the 4 Hz ceiling.
+        const xs = [0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.7]
+        let detected = false
+        for (let i = 0; i < xs.length; i++) {
+            const f = fistFrame(i * 20)
+            f.landmarks[0] = { x: xs[i], y: 0.9, z: 0 }
+            if (w.push(f)) detected = true
+        }
+        expect(detected).toBe(false)
     })
 })
 
@@ -313,21 +338,18 @@ describe('evaluateHandPuzzle (HAND_FINGER_COUNT)', () => {
         expect(completed).toBe(true)
     })
 
-    it('survives single-frame finger-count jitter (regression: HAND_FINGER_COUNT must use the smoother)', () => {
-        // Mirrors the HAND_MATH jitter test but pinned for HAND_FINGER_COUNT
-        // specifically. Pre-fix coverage (Copilot post-merge on PR #51)
-        // exercised only HAND_MATH, so a refactor that quietly stopped
-        // wiring `countSmoother` for HAND_FINGER_COUNT would have slipped
-        // through — this test fails loudly in that scenario.
+    it('survives single-frame finger-count jitter (4-layer validator: hysteresis + EWMA + median)', () => {
+        // The GestureValidator's moving-median + EWMA suppress a single bad
+        // frame so the 700ms hold isn't reset by a thumb that briefly flickers
+        // curled. Frames are at ~30fps (33ms) — the cadence the pipeline is
+        // tuned for — with a 1-frame count=2 jitter injected every 8th frame.
         const state = initialHandState(BiometricPuzzleId.HAND_FINGER_COUNT)
         state.targetFingerCount = 5
         const hold = { detectedSince: null }
         let completed = false
-        // 12 frames at 80ms apart → 960ms total, well over the 700ms hold.
-        // Inject a 1-frame jitter (count=2) every 5th frame.
-        for (let i = 0; i < 12; i++) {
-            const ts = i * 80
-            const frame = i % 5 === 0 ? twoFingerFrame(ts) : openHandFrame(ts)
+        for (let i = 0; i < 40; i++) {
+            const ts = i * 33
+            const frame = i % 8 === 0 ? twoFingerFrame(ts) : openHandFrame(ts)
             const r = evaluateHandPuzzle(
                 BiometricPuzzleId.HAND_FINGER_COUNT,
                 { frame, state },
@@ -404,15 +426,11 @@ describe('evaluateHandPuzzle (HAND_MATH)', () => {
         state.mathPrompt = '2 + 3'
         const hold = { detectedSince: null }
         let completed = false
-        // 12 frames at 80ms apart → 960ms total, well over the 700ms hold.
-        // Inject a 1-frame jitter (2 fingers instead of 5) every 5th frame
-        // — `twoFingerFrame` returns count=2, which is the actual signal we
-        // throw at the smoother below. (Comment was previously off-by-one:
-        // it said "4 fingers" while the code clearly used twoFingerFrame.
-        // Copilot post-merge on PR #51.)
-        for (let i = 0; i < 12; i++) {
-            const ts = i * 80
-            const frame = i % 5 === 0
+        // ~30fps cadence (33ms), with a 1-frame count=2 jitter every 8th frame.
+        // The validator's median + EWMA absorb the jitter so the hold holds.
+        for (let i = 0; i < 40; i++) {
+            const ts = i * 33
+            const frame = i % 8 === 0
                 ? twoFingerFrame(ts)  // wrong-count jitter (count=2)
                 : openHandFrame(ts)   // correct count=5
             const r = evaluateHandPuzzle(
@@ -455,5 +473,117 @@ describe('evaluateHandPuzzle (HAND_SHAPE_TRACE)', () => {
             if (r.completed) completed = true
         }
         expect(completed).toBe(true)
+    })
+})
+
+// ============================================================================
+// 4-layer finger validator (gesture_validator.py port)
+// ============================================================================
+
+describe('GestureValidator (4-layer pipeline)', () => {
+    it('finger_ratio separates a fist from an open hand', () => {
+        const open = openHandFrame()
+        const fist = fistFrame()
+        expect(fingerRatio(open.landmarks, 1)).toBeGreaterThan(0.2)
+        expect(fingerRatio(fist.landmarks, 1)).toBeLessThan(0.12)
+    })
+
+    it('reports a stable count of 5 for a held open hand', () => {
+        const v = new GestureValidator()
+        let last = -1
+        for (let i = 0; i < 8; i++) last = v.countFingersStable(openHandFrame(i * 33).landmarks)
+        expect(last).toBe(5)
+    })
+
+    it('reports 0 for a held fist (no false positive)', () => {
+        const v = new GestureValidator()
+        let last = -1
+        for (let i = 0; i < 8; i++) last = v.countFingersStable(fistFrame(i * 33).landmarks)
+        expect(last).toBe(0)
+    })
+})
+
+describe('HandCalibrator', () => {
+    it('completes after the calibration window and records per-finger averages', () => {
+        const cal = new HandCalibrator(2000)
+        cal.feed(openHandFrame().landmarks, 0)
+        expect(cal.isDone).toBe(false)
+        cal.feed(openHandFrame().landmarks, 1000)
+        cal.feed(openHandFrame().landmarks, 2000)
+        expect(cal.isDone).toBe(true)
+        expect(cal.offsets['1']).toBeGreaterThan(0.2)
+    })
+})
+
+// ============================================================================
+// DTW shape matching (shape_tracer.py port) — HAND_TRACE_TEMPLATE
+// ============================================================================
+
+describe('DTW shape matching', () => {
+    it('resamplePath produces exactly n points', () => {
+        const path: [number, number][] = [[0, 0], [1, 0], [1, 1], [0, 1]]
+        expect(resamplePath(path, 50)).toHaveLength(50)
+        expect(resamplePath([], 10)).toHaveLength(10)
+    })
+
+    it('centroidNormalise centres and scales into ~[-1,1]', () => {
+        const norm = centroidNormalise([[0, 0], [2, 0], [2, 2], [0, 2]])
+        const cx = norm.reduce((s, p) => s + p[0], 0) / norm.length
+        const cy = norm.reduce((s, p) => s + p[1], 0) / norm.length
+        expect(Math.abs(cx)).toBeLessThan(1e-9)
+        expect(Math.abs(cy)).toBeLessThan(1e-9)
+        const maxR = Math.max(...norm.map(([x, y]) => Math.hypot(x, y)))
+        expect(maxR).toBeCloseTo(1, 5)
+    })
+
+    it('dtw cost is ~0 for identical paths', () => {
+        const a: [number, number][] = [[0, 0], [0.5, 0.5], [1, 1]]
+        expect(dtwNormalisedCost(a, a)).toBeLessThan(1e-6)
+    })
+
+    it('matches a faithfully-traced template and rejects a wrong shape', () => {
+        const circle = SHAPE_TEMPLATES.find((s) => s.id === 'CIRCLE')!
+        const square = SHAPE_TEMPLATES.find((s) => s.id === 'SQUARE')!
+        const circleCost = shapeTraceCost(circle.waypoints, circle)
+        expect(circleCost).toBeLessThan(0.25)
+        const wrongCost = shapeTraceCost(square.waypoints, circle)
+        expect(wrongCost).toBeGreaterThan(circleCost)
+    })
+
+    it('randomShapeTemplate returns one of the four templates', () => {
+        const ids = new Set(SHAPE_TEMPLATES.map((s) => s.id))
+        for (let i = 0; i < 20; i++) {
+            expect(ids.has(randomShapeTemplate().id)).toBe(true)
+        }
+    })
+})
+
+describe('TemplateTraceDetector (HAND_TRACE_TEMPLATE)', () => {
+    function tracePoint(x: number, y: number, ts: number): HandFrame {
+        const f = openHandFrame(ts)
+        f.landmarks[6] = { x: 0.48, y: 0.70, z: 0 }
+        f.landmarks[8] = { x, y, z: 0 }
+        return f
+    }
+
+    it('accepts a path that traces the assigned circle template', () => {
+        const circle = SHAPE_TEMPLATES.find((s) => s.id === 'CIRCLE')!
+        const det = new TemplateTraceDetector(circle)
+        let ok = false
+        for (let i = 0; i < circle.waypoints.length; i++) {
+            const [wx, wy] = circle.waypoints[i]
+            const y = 0.2 + (wy - 0.32) * 0.8
+            if (det.push(tracePoint(wx, Math.min(0.65, y), i * 30))) ok = true
+        }
+        expect(det.lastCost).toBeLessThan(0.25)
+        expect(ok).toBe(true)
+    })
+
+    it('does not accept while the index is not extended', () => {
+        const det = new TemplateTraceDetector(SHAPE_TEMPLATES[0])
+        for (let i = 0; i < 40; i++) {
+            const f = fistFrame(i * 30)
+            expect(det.push(f)).toBe(false)
+        }
     })
 })

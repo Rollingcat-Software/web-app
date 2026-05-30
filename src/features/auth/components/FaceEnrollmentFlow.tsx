@@ -57,7 +57,10 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
             setCameraError(null)
             cancelledRef.current = false
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'user', width: { ideal: 640 }, height: { ideal: 480 } },
+                // Request 720p so the face crop carries more detail to the
+                // server embedding round-trip. Browsers gracefully fall back to
+                // the closest supported resolution when 1280x720 is unavailable.
+                video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
             })
             // Guard against late resolution after dialog was closed/retried.
             if (cancelledRef.current) {

@@ -1866,7 +1866,12 @@
     "identityVerified": "Kimlik doğrulandı!",
     "verificationFailed": "Doğrulama başarısız oldu. Tekrar deneyin.",
     "livenessCheckFailed": "Gerçek yüz algılanamadı, lütfen tekrar deneyin.",
-    "noFaceDetected": "Yüz algılanmadı — lütfen yüzünüzü kameraya yerleştirin."
+    "noFaceDetected": "Yüz algılanmadı — lütfen yüzünüzü kameraya yerleştirin.",
+    "qualityTooLow": "Görüntü kalitesi çok düşük — sabit durun ve tekrar deneyin.",
+    "qualityBlurry": "Çok bulanık — telefonu sabit tutun ve yüzünüzü kıpırdatmayın.",
+    "qualityDark": "Çok karanlık — daha aydınlık ve dengeli bir ışığa geçin.",
+    "qualityBright": "Çok parlak — parlamayı azaltın veya güçlü ışıktan uzaklaşın.",
+    "qualitySmall": "Yüzünüz kareyi dolduracak şekilde biraz yaklaşın."
   },
   "register": {
     "verificationFailed": "Doğrulama başarısız oldu. Lütfen tekrar deneyin.",
@@ -1998,6 +2003,7 @@
     "errorMessage": "Bulmaca tamamlanamadı. Lütfen tekrar deneyin.",
     "errorHint": "İpucu: hareketi sabit tutun, yüzünüzün veya elinizin üzerinde iyi ışık olsun ve yavaş hareket edin.",
     "timeoutMessage": "Süre doldu — hareket algılanamadı. Lütfen tekrar deneyin.",
+    "livenessFailed": "Canlı yüz algılanamadı. Lütfen fotoğraf veya ekran değil gerçek bir yüz kullanın ve tekrar deneyin.",
     "engineLoading": "Dedektör yükleniyor…",
     "startCamera": "Kamerayı Başlat",
     "waitingForGesture": "İstenen hareket bekleniyor…",
@@ -2008,6 +2014,13 @@
     "promptLabel": "Görev",
     "handFingerCountPrompt": "{{count}} parmağınızı gösterip tutun.",
     "handMathPrompt": "{{expr}} işleminin sonucunu parmaklarınızla gösterip tutun.",
+    "handTraceTemplatePrompt": "İşaret parmağınızla havada bir {{shape}} çizin.",
+    "shape": {
+      "CIRCLE": "daire",
+      "SQUARE": "kare",
+      "TRIANGLE": "üçgen",
+      "S_CURVE": "S-eğrisi"
+    },
     "verifyingServer": "Sunucu ile doğrulanıyor…",
     "serverRejected": "Sunucu doğrulamayı reddetti.",
     "serverError": "Sunucu doğrulaması başarısız oldu. Lütfen tekrar deneyin.",

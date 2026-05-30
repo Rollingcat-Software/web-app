@@ -81,6 +81,14 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
     const animFrameRef = useRef<number>(0)
     const startTsRef = useRef<number>(0)
     const completedRef = useRef<boolean>(false)
+    /**
+     * Rolling passive-liveness verdict from the frame processor. The puzzle is
+     * only allowed to resolve `onSuccess` when the most recent frames were live
+     * — a printed photo or screen replay performing the gesture must not pass.
+     * Holds the last non-null `face.liveness.isLive`; null until a verdict
+     * arrives (treated as not-yet-live, i.e. fail-closed at completion).
+     */
+    const lastLiveRef = useRef<boolean | null>(null)
 
     // Independent puzzle instance pinned to this challenge type. Sharing the
     // engine's metricsCalculator keeps internal state (eyebrow baseline) in
@@ -297,6 +305,10 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 const face = frame.faces[0]
                 if (face?.detection.landmarks478?.length && face.headPose) {
                     drawFaceLandmarks(face.detection.landmarks478, detected)
+                    // Track the rolling passive-liveness verdict for this frame.
+                    if (face.liveness) {
+                        lastLiveRef.current = face.liveness.isLive
+                    }
                     const result = puzzle.checkChallenge(
                         face.detection.landmarks478,
                         face.headPose.yaw,
@@ -305,6 +317,20 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                     setDetected(result.detected)
                     setProgress(result.progress)
                     if (result.completed && !completedRef.current) {
+                        // Liveness gate (fail-closed): the gesture was performed,
+                        // but only accept it when the latest passive-liveness
+                        // verdict is live. A null verdict (detector unavailable or
+                        // not yet run) does NOT pass. Reset the puzzle so the user
+                        // retries with a real face rather than a photo/replay.
+                        if (lastLiveRef.current !== true) {
+                            puzzle.start([challengeType], 1)
+                            startTsRef.current = performance.now()
+                            setProgress(0)
+                            setDetected(false)
+                            onError(t('biometricPuzzle.livenessFailed'))
+                            animFrameRef.current = requestAnimationFrame(loop)
+                            return
+                        }
                         completedRef.current = true
                         setRunning(false)
                         setProgress(100)

@@ -7,7 +7,10 @@
  *
  * Canvas2D API: supported in all modern browsers including Safari 14+.
  *
- * Performance target: output JPEG < 20KB at quality 0.85.
+ * Output: a square JPEG crop. Defaults raised (2026-05-30) to 320px @ q0.92
+ * from 224px @ q0.85 — the larger, sharper crop measurably improves the
+ * server-side face embedding while a tight face crop keeps the payload small
+ * (~20-35KB).
  *
  * @see CLIENT_SIDE_ML_PLAN.md Phase 4.2.1
  */
@@ -44,7 +47,7 @@ export interface FaceBoundingBox {
 export function cropFaceToDataURL(
   source: HTMLVideoElement | HTMLCanvasElement,
   bbox: FaceBoundingBox,
-  outputSize = 224,
+  outputSize = 320,
   padding = 0.2,
 ): string | null {
   const srcWidth =
@@ -101,7 +104,7 @@ export function cropFaceToDataURL(
   )
 
   // --- 6. Encode to JPEG ---
-  return canvas.toDataURL('image/jpeg', 0.85)
+  return canvas.toDataURL('image/jpeg', 0.92)
 }
 
 /**
@@ -149,7 +152,7 @@ export async function dataURLToImageData(dataURL: string): Promise<ImageData | n
 export function captureAndCropFace(
   videoEl: HTMLVideoElement,
   bbox: FaceBoundingBox | null,
-  outputSize = 224,
+  outputSize = 320,
 ): string | null {
   if (!bbox) return null
   if (videoEl.readyState < 2) return null

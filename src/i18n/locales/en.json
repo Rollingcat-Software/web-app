@@ -1866,7 +1866,12 @@
     "identityVerified": "Identity verified!",
     "verificationFailed": "Verification failed. Try again.",
     "livenessCheckFailed": "Live face not detected, please try again.",
-    "noFaceDetected": "No face detected — please position your face in the frame."
+    "noFaceDetected": "No face detected — please position your face in the frame.",
+    "qualityTooLow": "Image quality too low — hold steady and try again.",
+    "qualityBlurry": "Too blurry — hold your phone steady and keep your face still.",
+    "qualityDark": "Too dark — move to brighter, even lighting.",
+    "qualityBright": "Too bright — reduce glare or move away from strong light.",
+    "qualitySmall": "Move a little closer so your face fills the frame."
   },
   "register": {
     "verificationFailed": "Verification failed. Please try again.",
@@ -1998,6 +2003,7 @@
     "errorMessage": "The puzzle could not be completed. Please try again.",
     "errorHint": "Tip: hold the gesture steady, keep good lighting on your face or hand, and move slowly.",
     "timeoutMessage": "Time's up — the gesture was not detected. Please try again.",
+    "livenessFailed": "Live face not detected. Please use a real face, not a photo or screen, and try again.",
     "engineLoading": "Loading detector…",
     "startCamera": "Start Camera",
     "waitingForGesture": "Waiting for the requested gesture…",
@@ -2008,6 +2014,13 @@
     "promptLabel": "Your prompt",
     "handFingerCountPrompt": "Show {{count}} finger(s) and hold.",
     "handMathPrompt": "Show the answer to {{expr}} on your fingers and hold.",
+    "handTraceTemplatePrompt": "Trace a {{shape}} in the air with your index finger.",
+    "shape": {
+      "CIRCLE": "circle",
+      "SQUARE": "square",
+      "TRIANGLE": "triangle",
+      "S_CURVE": "S-curve"
+    },
     "verifyingServer": "Verifying with server…",
     "serverRejected": "Server rejected the challenge.",
     "serverError": "Server validation failed. Please try again.",

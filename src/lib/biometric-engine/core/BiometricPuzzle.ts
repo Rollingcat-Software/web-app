@@ -24,6 +24,7 @@ import type { IBiometricPuzzle, IChallengeDetector, IFaceMetricsCalculator } fro
 import {
   HOLD_DURATION,
   MOTION_HISTORY_SIZE,
+  HEAD_POSE_EWMA_ALPHA,
 } from './constants';
 
 import {
@@ -136,6 +137,21 @@ export class BiometricPuzzle implements IBiometricPuzzle {
   /** Whether the action was detected in the previous frame. @see demo_local_fast.py line 516 */
   private actionDetected = false;
 
+  // ===== Head-pose smoothing (EWMA) + hysteresis =====
+  /** EWMA-smoothed yaw, or null until the first frame seeds it. */
+  private smoothedYaw: number | null = null;
+  /** EWMA-smoothed pitch, or null until the first frame seeds it. */
+  private smoothedPitch: number | null = null;
+  /**
+   * Last accepted detection state for the current challenge — used for
+   * release-debounce hysteresis so a single boundary-flicker frame does not
+   * reset the hold timer. Counts consecutive "not detected" frames before
+   * the gesture is allowed to drop.
+   */
+  private lostFrames = 0;
+  /** Consecutive lost frames required to release a previously-detected gesture. */
+  private readonly releaseHysteresisFrames = 2;
+
   // ===== Motion History (for nod/shake) =====
   /** Ring buffer of recent yaw/pitch values. @see demo_local_fast.py line 519 */
   private motionHistory: MotionEntry[] = [];
@@ -230,6 +246,9 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     this.actionDetected = false;
     this.motionHistory = [];
     this.results = [];
+    this.smoothedYaw = null;
+    this.smoothedPitch = null;
+    this.lostFrames = 0;
   }
 
   /**
@@ -299,12 +318,26 @@ export class BiometricPuzzle implements IBiometricPuzzle {
 
     // Calculate face metrics from landmarks
     const metrics = this.metricsCalculator.calculateAll(landmarks);
-    const headPose: HeadPose = { yaw, pitch };
 
-    // Update motion history ring buffer
+    // EWMA temporal smoothing of the head-pose angles (Layer 3, ported from
+    // the Python hand pipeline). The real-degree Euler pose still wobbles
+    // ±2-3° per frame; smoothing keeps directional gestures from flickering.
+    this.smoothedYaw =
+      this.smoothedYaw === null
+        ? yaw
+        : HEAD_POSE_EWMA_ALPHA * yaw + (1 - HEAD_POSE_EWMA_ALPHA) * this.smoothedYaw;
+    this.smoothedPitch =
+      this.smoothedPitch === null
+        ? pitch
+        : HEAD_POSE_EWMA_ALPHA * pitch + (1 - HEAD_POSE_EWMA_ALPHA) * this.smoothedPitch;
+
+    const headPose: HeadPose = { yaw: this.smoothedYaw, pitch: this.smoothedPitch };
+
+    // Update motion history ring buffer (with smoothed values so nod/shake
+    // range checks aren't inflated by single-frame spikes).
     // @see demo_local_fast.py line 722
     const now = performance.now() / 1000; // Convert to seconds
-    this.motionHistory.push({ yaw, pitch, time: now });
+    this.motionHistory.push({ yaw: this.smoothedYaw, pitch: this.smoothedPitch, time: now });
     if (this.motionHistory.length > this.motionHistorySize) {
       this.motionHistory.shift();
     }
@@ -317,9 +350,22 @@ export class BiometricPuzzle implements IBiometricPuzzle {
       detector.setMotionHistory(this.motionHistory);
     }
 
-    // Check detection
-    const detected = detector.detect(metrics, headPose);
+    // Check detection on the smoothed pose.
+    const rawDetected = detector.detect(metrics, headPose);
     const message = detector.getMessage(metrics, headPose);
+
+    // Release-debounce hysteresis: once a gesture is registered, tolerate up to
+    // `releaseHysteresisFrames` boundary-flicker frames before dropping it, so
+    // the hold timer isn't reset by a single noisy frame.
+    let detected = rawDetected;
+    if (!rawDetected && this.actionDetected) {
+      this.lostFrames += 1;
+      if (this.lostFrames < this.releaseHysteresisFrames) {
+        detected = true;
+      }
+    } else if (rawDetected) {
+      this.lostFrames = 0;
+    }
 
     // Handle hold timer
     // @see demo_local_fast.py lines 863-881
@@ -341,8 +387,9 @@ export class BiometricPuzzle implements IBiometricPuzzle {
       return { detected: true, progress, message };
     }
 
-    // Detection lost — reset hold timer
+    // Detection lost — reset hold timer + hysteresis counter
     this.actionDetected = false;
+    this.lostFrames = 0;
     this.holdStart = now;
     return { detected: false, progress: 0, message };
   }
@@ -397,6 +444,10 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     this.actionDetected = false;
     this.holdStart = 0;
     this.motionHistory = [];
+    // Reset the pose smoother + hysteresis so the next challenge starts clean.
+    this.smoothedYaw = null;
+    this.smoothedPitch = null;
+    this.lostFrames = 0;
 
     if (this.currentIdx >= this.challenges.length) {
       this.complete = true;
