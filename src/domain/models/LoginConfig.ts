@@ -138,8 +138,14 @@ export function normalizeLoginConfig(raw: RawLoginConfig | null | undefined): Lo
 
 // ─── Layer-1 method classification helpers ─────────────────────────
 
-/** Layer-1 methods that, when usernameless, surface a passkey one-tap button. */
+/**
+ * Layer-1 methods that, when usernameless, surface the passkey one-tap button.
+ * The frozen contract (api task #16) emits a dedicated PASSKEY type for
+ * discoverable WebAuthn; HARDWARE_KEY / FINGERPRINT are kept so a tenant whose
+ * config marks one of those usernameless still gets the passkey affordance.
+ */
 const PASSKEY_TYPES: ReadonlySet<AuthMethodType> = new Set([
+    AuthMethodType.PASSKEY,
     AuthMethodType.HARDWARE_KEY,
     AuthMethodType.FINGERPRINT,
 ])
@@ -161,17 +167,17 @@ export function hasUsernamelessQr(config: LoginConfig): boolean {
 }
 
 /**
- * Does Layer 1 offer a usernameless cross-device approval?
+ * Does Layer 1 offer the usernameless cross-device approval (number-matching)?
  *
- * The backend does not (yet) emit a dedicated AuthMethodType for
- * "approve-on-another-device" — it is a QR/push hybrid. Until agent-api3
- * confirms a concrete enum value, we treat a usernameless QR_CODE method as
- * also enabling the approve shortcut (both are device-to-device, no identifier
- * needed). This is intentionally permissive; once the API emits a distinct
- * type we will narrow it.
+ * The frozen contract (api task #16) emits a dedicated APPROVE_LOGIN type for
+ * this. A usernameless QR_CODE also surfaces the approve affordance since both
+ * are device-to-device with no identifier typed.
  */
 export function hasUsernamelessApprove(config: LoginConfig): boolean {
-    return hasUsernamelessQr(config)
+    return config.layer1.methods.some(
+        (m) => m.usernameless &&
+            (m.type === AuthMethodType.APPROVE_LOGIN || m.type === AuthMethodType.QR_CODE),
+    )
 }
 
 /** Identifier (email) box needed for any identifier-first Layer-1 method? */

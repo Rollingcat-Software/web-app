@@ -9,14 +9,14 @@ the UI renders correctly in both flag states purely from the login-config
 response, so the flag reverts the feature with no web redeploy.
 
 - **Config-driven Layer 1** — `fetchLoginConfig` (`features/auth/login-config.ts`)
-  calls `GET /auth/login-config` and normalizes the result through
-  `domain/models/LoginConfig.ts` (tolerant of camelCase / `methodType` /
-  `supportsUsernameless` / `stepOrder` deltas; returns `null` on any failure).
-  `LoginMfaFlow` and `LoginPage` render the **password field only when
-  `PASSWORD ∈ layer1.methods`**; otherwise an **identifier-first** entry opens
-  an MFA session via the new `AuthRepository.beginIdentifierLogin`
-  (`POST /auth/login/begin`) and drives the rest through the existing step
-  components. Graceful fallback to email+password when the config fails to load.
+  calls `GET /auth/login-config?tenantId=<uuid>` (frozen contract, api PR #163)
+  and normalizes the result through `domain/models/LoginConfig.ts` (tolerant of
+  camelCase / `methodType` / `supportsUsernameless` / `stepOrder` deltas;
+  returns `null` on any failure). Added the new usernameless method types
+  `PASSKEY` + `APPROVE_LOGIN` to `AuthMethodType`. `LoginMfaFlow` and `LoginPage`
+  render the **password field only when `PASSWORD ∈ layer1.methods`**; otherwise
+  an identifier-first entry (when `identifierRequired`) or the usernameless
+  shortcuts. Graceful fallback to email+password when the config fails to load.
 - **Config-driven shortcuts** — replaced the standalone hardcoded passkey /
   "approve on another device" buttons with `Layer1Shortcuts`, gated by the
   per-method `usernameless` flags. When the config declares no usernameless

@@ -362,10 +362,12 @@ export default function HostedLoginApp() {
             .then(() => {
                 // Fetch the tenant Layer-1 login config (D). Non-blocking: a
                 // failure leaves `loginConfig` null and the UI falls back to the
-                // legacy email+password+shortcuts surface. Keyed on the OAuth
-                // client_id (the hosted URL carries client_id, not tenantId).
+                // legacy email+password+shortcuts surface. The hosted URL only
+                // carries client_id (no tenantId), so we forward it as the
+                // fallback identifier — login-config.ts maps it to the query
+                // param the API accepts (pending api task #16 param confirmation).
                 if (cancelled) return
-                void fetchLoginConfig(httpClient, config.clientId).then((cfg) => {
+                void fetchLoginConfig(httpClient, { clientId: config.clientId }).then((cfg) => {
                     if (!cancelled) setLoginConfig(cfg)
                 })
             })

@@ -94,6 +94,21 @@ describe('LoginConfig classification helpers', () => {
         expect(hasUsernamelessQr(passwordConfig)).toBe(false)
     })
 
+    it('recognizes the dedicated PASSKEY + APPROVE_LOGIN types (frozen contract)', () => {
+        const dedicated = normalizeLoginConfig({
+            layer1: {
+                identifierRequired: false,
+                methods: [
+                    { type: 'PASSKEY', usernameless: true },
+                    { type: 'APPROVE_LOGIN', usernameless: true },
+                ],
+            },
+        })!
+        expect(hasUsernamelessPasskey(dedicated)).toBe(true)
+        expect(hasUsernamelessApprove(dedicated)).toBe(true)
+        expect(needsIdentifier(dedicated)).toBe(false)
+    })
+
     it('needsIdentifier: true when flag set OR password present', () => {
         expect(needsIdentifier(passwordConfig)).toBe(true)
         expect(needsIdentifier(otpFirstConfig)).toBe(true)

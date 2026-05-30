@@ -62,17 +62,22 @@ FaceCaptureStep, FingerprintStep, VoiceStep, NfcStep, HardwareKeyStep
 ## Config-driven login (feature-flagged `app.auth.config-driven-login`, default OFF)
 
 The login surface renders its **Layer 1 STRICTLY from the backend
-`GET /auth/login-config` response** — never hardcode the password-first form.
+`GET /auth/login-config?tenantId=<uuid>` response** (frozen contract — api
+task #16 / PR #163) — never hardcode the password-first form.
 
-- `features/auth/login-config.ts` → `fetchLoginConfig(httpClient, clientId?)`
+- `features/auth/login-config.ts` → `fetchLoginConfig(httpClient, {tenantId?|clientId?})`
   fetches + normalizes via `domain/models/LoginConfig.ts` (tolerant of
   `type`/`methodType`, `usernameless`/`supportsUsernameless`,
   `order`/`stepOrder` deltas). Returns **`null` on ANY failure** (404 / network
-  / malformed) so the UI degrades to the legacy email+password screen.
+  / malformed) so the UI degrades to the legacy email+password screen. Method
+  `type` is the `AuthMethodType` enum name — incl. the usernameless
+  login-config entry types **`PASSKEY`** (discoverable WebAuthn) and
+  **`APPROVE_LOGIN`** (number-matching), plus `QR_CODE`.
 - `LoginMfaFlow.tsx` shows the **password step only when `PASSWORD ∈
-  layer1.methods`**; otherwise an **identifier-first** entry opens an MFA
-  session via `AuthRepository.beginIdentifierLogin` (`POST /auth/login/begin`),
-  then drives Layers 2..N through the existing step components.
+  layer1.methods`**; otherwise an **identifier-first** entry (when
+  `identifierRequired`) or the usernameless shortcuts. The usernameless entry
+  points (passkey / approve / qr) may return **MFA_PENDING** for multi-step
+  tenant flows and then continue through `/auth/mfa/step` like a password login.
 - `LoginPage.tsx` (dashboard) gates the password form the same way; the
   no-password path routes through `TwoFactorDispatcher`.
 - `Layer1Shortcuts.tsx` renders the usernameless shortcuts (passkey / approve)

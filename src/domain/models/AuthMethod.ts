@@ -14,6 +14,17 @@ export enum AuthMethodType {
     VOICE = 'VOICE',
     HARDWARE_KEY = 'HARDWARE_KEY',
     GESTURE_LIVENESS = 'GESTURE_LIVENESS',
+    /**
+     * Usernameless login-config entry points (api task #16 frozen contract):
+     *  - PASSKEY: discoverable WebAuthn (no identifier typed) →
+     *    /webauthn/passkey/authenticate-options → /authenticate.
+     *  - APPROVE_LOGIN: number-matching cross-device approval →
+     *    /auth/approve-login/session.
+     * Both can return MFA_PENDING for multi-step tenant flows, then continue via
+     * /auth/mfa/step exactly like a password login.
+     */
+    PASSKEY = 'PASSKEY',
+    APPROVE_LOGIN = 'APPROVE_LOGIN',
 }
 
 /**
@@ -58,6 +69,8 @@ const USERNAMELESS_CAPABLE_TYPES: ReadonlySet<AuthMethodType> = new Set([
     AuthMethodType.HARDWARE_KEY,
     AuthMethodType.FINGERPRINT,
     AuthMethodType.QR_CODE,
+    AuthMethodType.PASSKEY,
+    AuthMethodType.APPROVE_LOGIN,
 ])
 
 export function isUsernamelessCapable(type: AuthMethodType): boolean {
