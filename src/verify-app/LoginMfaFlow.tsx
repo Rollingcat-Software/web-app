@@ -42,7 +42,23 @@ import NfcStep from '@features/auth/components/steps/NfcStep'
 import StepProgress from './StepProgress'
 import { hasPasswordLayer1, needsIdentifier, type LoginConfig } from '@domain/models/LoginConfig'
 
-type FlowPhase = 'password' | 'identifier' | 'method-picker' | 'mfa-step' | 'complete'
+/**
+ * The discrete screens of the login flow. Named constants (not bare string
+ * literals) so call sites read intentionally and a typo is a compile error.
+ */
+const FlowPhase = {
+    /** Legacy single screen: email + password together (engine OFF). */
+    Password: 'password',
+    /** Identifier-first screen 1: collect email only (engine ON). */
+    Identifier: 'identifier',
+    /** Choose which configured factor to use for the current step. */
+    MethodPicker: 'method-picker',
+    /** Verify the selected MFA factor. */
+    MfaStep: 'mfa-step',
+    /** Flow finished. */
+    Complete: 'complete',
+} as const
+type FlowPhase = (typeof FlowPhase)[keyof typeof FlowPhase]
 
 interface LoginMfaFlowProps {
     clientId: string
@@ -69,11 +85,26 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     // first, otherwise we go straight to picking a Layer-1 method.
     const passwordIsLayer1 = !loginConfig || hasPasswordLayer1(loginConfig)
     const identifierRequired = loginConfig ? needsIdentifier(loginConfig) : true
-    const initialPhase: FlowPhase = passwordIsLayer1
-        ? 'password'
-        : identifierRequired
-            ? 'identifier'
-            : 'method-picker'
+    // IDENTIFIER-FIRST (engine ON): screen 1 collects only identity (email /
+    // passkey); EVERY factor — including password — comes afterwards. So even a
+    // password-Layer-1 flow starts on the 'identifier' phase. When the engine is
+    // OFF we keep the legacy single-screen email+password ('password' phase), so
+    // the whole redesign reverts with the engine flag and no web redeploy.
+    const engineActive = Boolean(loginConfig?.engineActive)
+
+    /** Which screen the flow opens on, given the tenant config + engine flag. */
+    function pickInitialPhase(): FlowPhase {
+        // Identifier-first (engine ON): screen 1 collects identity only; password
+        // and every other factor are presented afterwards.
+        if (engineActive && identifierRequired) return FlowPhase.Identifier
+        // Legacy (engine OFF): the single email+password screen.
+        if (passwordIsLayer1) return FlowPhase.Password
+        // Non-password Layer-1 that still needs an identifier (e.g. OTP-first).
+        if (identifierRequired) return FlowPhase.Identifier
+        // All-usernameless Layer-1 (passkey / QR) — go straight to method choice.
+        return FlowPhase.MethodPicker
+    }
+    const initialPhase: FlowPhase = pickInitialPhase()
 
     const [phase, setPhase] = useState<FlowPhase>(initialPhase)
     const [loading, setLoading] = useState(false)
@@ -120,9 +151,9 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         if (!onStepChange) return
         // Map login flow phases to step indices for the postMessage bridge
         // password=0, method-picker=1, mfa-step=1 (step 2 of 2 when MFA is active)
-        if (phase === 'password' || phase === 'identifier') {
-            onStepChange(0, phase === 'password' ? 'PASSWORD' : 'IDENTIFIER', totalSteps > 1 ? totalSteps : 1)
-        } else if (phase === 'method-picker' || phase === 'mfa-step') {
+        if (phase === FlowPhase.Password || phase === FlowPhase.Identifier) {
+            onStepChange(0, phase === FlowPhase.Password ? 'PASSWORD' : 'IDENTIFIER', totalSteps > 1 ? totalSteps : 1)
+        } else if (phase === FlowPhase.MethodPicker || phase === FlowPhase.MfaStep) {
             const stepIdx = currentStep - 1
             onStepChange(stepIdx, selectedMethod || 'MFA', totalSteps)
         }
@@ -163,12 +194,12 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
                 if (enrolledMethods.length > 1) {
                     // Multiple enrolled methods: show picker
-                    setPhase('method-picker')
+                    setPhase(FlowPhase.MethodPicker)
                 } else {
                     // Single method: go directly to step
                     const method = result.twoFactorMethod || enrolledMethods[0]?.methodType || 'EMAIL_OTP'
                     setSelectedMethod(method)
-                    setPhase('mfa-step')
+                    setPhase(FlowPhase.MfaStep)
                 }
             } else {
                 // No MFA — single-factor login complete
@@ -209,6 +240,15 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             setError(t('auth.validation.emailRequired'))
             return
         }
+        // Identifier-first WITH a password factor: we now know who the user is,
+        // so just reveal the password screen. The /auth/login call happens at the
+        // password step (with this email), then any MFA steps follow. No
+        // beginIdentifierLogin here — password is authenticated via /auth/login.
+        if (engineActive && passwordIsLayer1) {
+            setError(undefined)
+            setPhase(FlowPhase.Password)
+            return
+        }
         setLoading(true)
         setError(undefined)
         try {
@@ -225,31 +265,31 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             }
             const enrolled = methods.filter((m) => m.enrolled)
             if (enrolled.length > 1) {
-                setPhase('method-picker')
+                setPhase(FlowPhase.MethodPicker)
             } else if (enrolled.length === 1) {
                 setSelectedMethod(enrolled[0].methodType)
-                setPhase('mfa-step')
+                setPhase(FlowPhase.MfaStep)
             } else {
-                setPhase('method-picker')
+                setPhase(FlowPhase.MethodPicker)
             }
         } catch (err) {
             setError(formatApiError(err, t))
         } finally {
             setLoading(false)
         }
-    }, [authRepository, identifier, clientId, configLayer1Methods, t])
+    }, [authRepository, identifier, clientId, configLayer1Methods, engineActive, passwordIsLayer1, t])
 
     // ─── Method Selection ───────────────────────────────────────
 
     const handleMethodSelected = useCallback((methodType: string) => {
         setSelectedMethod(methodType)
         setError(undefined)
-        setPhase('mfa-step')
+        setPhase(FlowPhase.MfaStep)
     }, [])
 
     const handleBackToMethodSelection = useCallback(() => {
         setError(undefined)
-        setPhase('method-picker')
+        setPhase(FlowPhase.MethodPicker)
     }, [])
 
     const handleBackToPassword = useCallback(() => {
@@ -323,12 +363,12 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
             const enrolled = methods.filter((m) => m.enrolled && !mergedUsed.has(m.methodType))
             if (enrolled.length > 1) {
-                setPhase('method-picker')
+                setPhase(FlowPhase.MethodPicker)
             } else if (enrolled.length === 1) {
                 setSelectedMethod(enrolled[0].methodType)
-                setPhase('mfa-step')
+                setPhase(FlowPhase.MfaStep)
             } else {
-                setPhase('method-picker')
+                setPhase(FlowPhase.MethodPicker)
             }
         } else {
             setError(t('widget.verificationFailed'))
@@ -512,7 +552,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                     backend hasn't reported one yet. */}
                 <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                     {(() => {
-                        if (phase === 'password' || phase === 'identifier') {
+                        if (phase === FlowPhase.Password || phase === FlowPhase.Identifier) {
                             return <StepProgress current={1} total={loginConfig?.totalSteps ?? 0} />
                         }
                         // Authoritative-total takes precedence; otherwise infer at least
@@ -555,7 +595,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                 WebkitTextFillColor: 'transparent',
                             }}
                         >
-                            {phase === 'password' || phase === 'identifier'
+                            {phase === FlowPhase.Password || phase === FlowPhase.Identifier
                                 ? t('widget.loginTitle')
                                 : t('widget.verifyIdentity')}
                         </Typography>
@@ -586,15 +626,28 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                             exit={{ opacity: 0, x: -30 }}
                             transition={{ duration: 0.3, ease: EASE_OUT }}
                         >
-                            {phase === 'password' && (
+                            {phase === FlowPhase.Password && (
                                 <PasswordStep
                                     onSubmit={handlePasswordSubmit}
                                     loading={loading}
                                     error={error}
+                                    presetEmail={
+                                        engineActive && passwordIsLayer1 && identifier.trim()
+                                            ? identifier.trim()
+                                            : undefined
+                                    }
+                                    onChangeIdentity={
+                                        engineActive
+                                            ? () => {
+                                                  setError(undefined)
+                                                  setPhase(FlowPhase.Identifier)
+                                              }
+                                            : undefined
+                                    }
                                 />
                             )}
 
-                            {phase === 'identifier' && (
+                            {phase === FlowPhase.Identifier && (
                                 <Box>
                                     {error && (
                                         <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
@@ -643,7 +696,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                 </Box>
                             )}
 
-                            {phase === 'method-picker' && (
+                            {phase === FlowPhase.MethodPicker && (
                                 <Box>
                                     <MethodPickerStep
                                         availableMethods={availableMethods}
@@ -665,7 +718,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                 </Box>
                             )}
 
-                            {phase === 'mfa-step' && (
+                            {phase === FlowPhase.MfaStep && (
                                 <Box>
                                     {/* Back to method selection — rendered ABOVE the step so it
                                         stays visible even when step content (e.g. Face camera)

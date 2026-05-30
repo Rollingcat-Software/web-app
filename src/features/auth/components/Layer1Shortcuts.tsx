@@ -1,24 +1,24 @@
 /**
- * Layer1Shortcuts — config-driven usernameless sign-in shortcuts.
+ * Layer1Shortcuts — the NO-EMAIL ("usernameless") sign-in cluster.
  *
- * Replaces the previously-hardcoded passkey + "approve on another device"
- * buttons on the hosted login page and the dashboard login. Each shortcut is
- * shown ONLY when the tenant's {@link LoginConfig} marks a corresponding
- * Layer-1 method as `usernameless`:
- *   - passkey  → a usernameless HARDWARE_KEY / FINGERPRINT method
- *   - approve  → a usernameless cross-device method (QR/push hybrid)
+ * Shows the cross-device methods that need NO identifier typed first — the
+ * factor itself resolves the user. Today that is the discoverable **passkey**
+ * ("use your phone" via the OS). A QR scan-to-login is a planned addition.
  *
- * When no login-config is available (fetch failed), `config` is null and the
- * caller decides the fallback: pass `fallbackAll` to show every shortcut as
- * before. This keeps the legacy surface intact on a config outage.
+ * NOTE: "Approve on another device" (number-matching) is deliberately NOT here.
+ * It requires the user's email up front (the server must know whose device to
+ * ping), so it is identifier-first and is rendered by the caller AFTER the email
+ * field — not as a no-email peer of passkey. Listing it here made the login page
+ * promise "no email needed" and then demand an email.
+ *
+ * When no login-config is available (fetch failed) `config` is null and the
+ * caller's `fallbackAll` keeps the passkey shortcut visible (legacy surface).
  */
 
-import { Button, Divider, Typography } from '@mui/material'
-import { PhonelinkLock } from '@mui/icons-material'
+import { Divider, Typography } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import PasskeyLoginButton from './PasskeyLoginButton'
 import {
-    hasUsernamelessApprove,
     hasUsernamelessPasskey,
     type LoginConfig,
 } from '@domain/models/LoginConfig'
@@ -27,22 +27,27 @@ interface Layer1ShortcutsProps<T> {
     /** Tenant login config; null while loading or after a fetch failure. */
     config: LoginConfig | null
     /**
-     * Fallback policy for when the config does NOT positively declare any
+     * Fallback policy for when the config does NOT positively declare a
      * usernameless Layer-1 method. This covers two states that must look
      * identical to the user:
      *   1. `config === null` — the login-config fetch failed.
-     *   2. A "legacy"/password-first config (e.g. the `app.auth.config-driven-login`
-     *      flag is OFF, so the API returns the current shape that carries no
-     *      usernameless semantics).
-     * In both cases `fallbackAll` decides whether today's passkey + approve
-     * shortcuts still render. When the config DOES declare usernameless methods
-     * (flag ON), they are rendered strictly per the config and this flag is
-     * ignored — the screen is then 100% config-driven.
+     *   2. A "legacy"/password-first config (the `app.auth.config-driven-login`
+     *      flag is OFF, so the API returns the current shape with no usernameless
+     *      semantics).
+     * In both cases `fallbackAll` decides whether the passkey shortcut still
+     * renders. When the config DOES declare a usernameless passkey (flag ON) it
+     * is rendered strictly per the config and this flag is ignored.
      */
     fallbackAll?: boolean
     onPasskeySuccess: (login: T) => void
     onPasskeyError: (message: string) => void
-    onApproveClick: () => void
+    /**
+     * @deprecated Approve-on-another-device is identifier-first (needs email), so
+     * it is no longer a no-email shortcut here. Accepted but IGNORED for caller
+     * compatibility; the approve affordance is being re-homed AFTER the email
+     * step. Remove once callers stop passing it.
+     */
+    onApproveClick?: () => void
     disabled?: boolean
     /** Hide the "or" divider (e.g. when there is no primary form above). */
     hideDivider?: boolean
@@ -54,30 +59,21 @@ export default function Layer1Shortcuts<T = unknown>({
     fallbackAll = false,
     onPasskeySuccess,
     onPasskeyError,
-    onApproveClick,
     disabled,
     hideDivider = false,
     passkeySx,
 }: Layer1ShortcutsProps<T>) {
     const { t } = useTranslation()
 
-    // When the config positively declares any usernameless Layer-1 method, the
-    // screen is rendered STRICTLY from it (flag-ON behaviour). Otherwise — null
-    // config OR a legacy/password-first config that carries no usernameless
-    // semantics (flag-OFF) — fall back to the caller's policy so today's
-    // shortcuts are not silently dropped. This keeps the whole feature instantly
-    // revertible by the API flag with no web redeploy.
-    const configDeclaresUsernameless =
-        config !== null && (hasUsernamelessPasskey(config) || hasUsernamelessApprove(config))
+    // When the config-driven engine is ON for this tenant, render the passkey
+    // shortcut STRICTLY from the config (shown only if a usernameless passkey is a
+    // Layer-1 method). When OFF — legacy/null config — fall back to the caller's
+    // policy so the passkey shortcut is not silently dropped. Keeps the feature
+    // instantly revertible by the API engine flag with no web redeploy.
+    const configDriven = config?.engineActive === true
+    const showPasskey = configDriven ? hasUsernamelessPasskey(config!) : fallbackAll
 
-    const showPasskey = configDeclaresUsernameless
-        ? hasUsernamelessPasskey(config!)
-        : fallbackAll
-    const showApprove = configDeclaresUsernameless
-        ? hasUsernamelessApprove(config!)
-        : fallbackAll
-
-    if (!showPasskey && !showApprove) return null
+    if (!showPasskey) return null
 
     return (
         <>
@@ -89,34 +85,12 @@ export default function Layer1Shortcuts<T = unknown>({
                 </Divider>
             )}
 
-            {showPasskey && (
-                <PasskeyLoginButton<T>
-                    onSuccess={onPasskeySuccess}
-                    onError={onPasskeyError}
-                    disabled={disabled}
-                    sx={passkeySx}
-                />
-            )}
-
-            {showApprove && (
-                <Button
-                    fullWidth
-                    variant="text"
-                    size="large"
-                    startIcon={<PhonelinkLock />}
-                    onClick={onApproveClick}
-                    disabled={disabled}
-                    sx={{
-                        mt: showPasskey ? 1 : 0,
-                        py: 1.25,
-                        borderRadius: '12px',
-                        textTransform: 'none',
-                        fontWeight: 600,
-                    }}
-                >
-                    {t('approveLogin.button')}
-                </Button>
-            )}
+            <PasskeyLoginButton<T>
+                onSuccess={onPasskeySuccess}
+                onError={onPasskeyError}
+                disabled={disabled}
+                sx={passkeySx}
+            />
         </>
     )
 }

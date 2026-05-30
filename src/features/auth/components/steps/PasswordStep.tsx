@@ -15,6 +15,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
+import { Button, Typography } from '@mui/material'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
 
@@ -24,11 +25,20 @@ interface PasswordStepProps {
     onSubmit: (data: { email: string; password: string }) => void
     loading: boolean
     error?: string
+    /**
+     * Identifier-first mode: when set, the email was already collected on the
+     * identify screen — hide the email field, password is the only input, and
+     * show "Signing in as <email>" with a "change" affordance.
+     */
+    presetEmail?: string
+    /** Called when the user clicks "change" in presetEmail mode (back to identify). */
+    onChangeIdentity?: () => void
 }
 
-export default function PasswordStep({ onSubmit, loading, error }: PasswordStepProps) {
+export default function PasswordStep({ onSubmit, loading, error, presetEmail, onChangeIdentity }: PasswordStepProps) {
     const { t } = useTranslation()
     const [showPassword, setShowPassword] = useState(false)
+    const identifierFirst = Boolean(presetEmail)
 
     const schema = z.object({
         email: z.string().min(1, t('auth.validation.emailRequired')).email(t('auth.validation.invalidEmail')),
@@ -42,7 +52,7 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
     } = useForm<PasswordFormData>({
         resolver: zodResolver(schema),
         defaultValues: {
-            email: '',
+            email: presetEmail ?? '',
             password: '',
         },
     })
@@ -53,8 +63,8 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
 
     return (
         <StepLayout
-            title={t('auth.enterCredentials')}
-            subtitle={t('auth.signInWithEmail')}
+            title={identifierFirst ? t('auth.enterPassword') : t('auth.enterCredentials')}
+            subtitle={identifierFirst ? t('auth.signInWithPassword') : t('auth.signInWithEmail')}
             icon={<LockOutlined sx={{ fontSize: 28, color: 'white' }} />}
             error={error}
             primaryAction={{
@@ -67,40 +77,62 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
             }}
         >
             <form onSubmit={handleSubmit(handleFormSubmit)}>
-                <motion.div variants={itemVariants}>
-                    <Controller
-                        name="email"
-                        control={control}
-                        render={({ field }) => (
-                            <TextField
-                                {...field}
-                                fullWidth
-                                label={t('auth.emailLabel')}
-                                type="email"
-                                error={!!errors.email}
-                                helperText={errors.email?.message}
-                                margin="normal"
-                                autoFocus
-                                disabled={loading}
-                                InputProps={{
-                                    startAdornment: (
-                                        <InputAdornment position="start">
-                                            <EmailOutlined sx={{ color: 'text.secondary' }} />
-                                        </InputAdornment>
-                                    ),
-                                }}
-                                sx={{
-                                    '& .MuiOutlinedInput-root': {
-                                        borderRadius: '12px',
-                                        backgroundColor: 'background.paper',
-                                        '&:hover': { backgroundColor: 'action.hover' },
-                                        '&.Mui-focused': { backgroundColor: 'background.paper' },
-                                    },
-                                }}
-                            />
-                        )}
-                    />
-                </motion.div>
+                {identifierFirst ? (
+                    // Identity already collected on the identify screen — show it
+                    // read-only with a "change" link, NO email box.
+                    <motion.div variants={itemVariants}>
+                        <Typography
+                            variant="body2"
+                            sx={{ mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}
+                        >
+                            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
+                                <EmailOutlined sx={{ fontSize: 18, color: 'text.secondary' }} />
+                                <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{presetEmail}</strong>
+                            </span>
+                            {onChangeIdentity && (
+                                <Button size="small" variant="text" onClick={onChangeIdentity} disabled={loading}
+                                    sx={{ textTransform: 'none', minWidth: 0 }}>
+                                    {t('auth.changeIdentity')}
+                                </Button>
+                            )}
+                        </Typography>
+                    </motion.div>
+                ) : (
+                    <motion.div variants={itemVariants}>
+                        <Controller
+                            name="email"
+                            control={control}
+                            render={({ field }) => (
+                                <TextField
+                                    {...field}
+                                    fullWidth
+                                    label={t('auth.emailLabel')}
+                                    type="email"
+                                    error={!!errors.email}
+                                    helperText={errors.email?.message}
+                                    margin="normal"
+                                    autoFocus
+                                    disabled={loading}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <EmailOutlined sx={{ color: 'text.secondary' }} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                    sx={{
+                                        '& .MuiOutlinedInput-root': {
+                                            borderRadius: '12px',
+                                            backgroundColor: 'background.paper',
+                                            '&:hover': { backgroundColor: 'action.hover' },
+                                            '&.Mui-focused': { backgroundColor: 'background.paper' },
+                                        },
+                                    }}
+                                />
+                            )}
+                        />
+                    </motion.div>
+                )}
 
                 <motion.div variants={itemVariants}>
                     <Controller
@@ -115,6 +147,7 @@ export default function PasswordStep({ onSubmit, loading, error }: PasswordStepP
                                 error={!!errors.password}
                                 helperText={errors.password?.message}
                                 margin="normal"
+                                autoFocus={identifierFirst}
                                 disabled={loading}
                                 InputProps={{
                                     startAdornment: (
