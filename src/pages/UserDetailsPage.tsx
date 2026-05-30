@@ -16,6 +16,7 @@ import { UserRole, UserStatus } from '@domain/models/User'
 import { useTranslation } from 'react-i18next'
 import { formatLocale } from '@utils/dateLocale'
 import { formatApiError } from '@utils/formatApiError'
+import { roleLabel } from '@utils/roleLabel'
 
 function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | 'default' {
     switch (status) {
@@ -33,7 +34,7 @@ function getStatusColor(status: UserStatus): 'success' | 'warning' | 'error' | '
 
 function getRoleColor(role: UserRole): 'primary' | 'secondary' | 'default' {
     switch (role) {
-        case UserRole.SUPER_ADMIN:
+        case UserRole.ROOT:
             return 'secondary'
         case UserRole.ADMIN:
             return 'primary'
@@ -152,7 +153,7 @@ export default function UserDetailsPage() {
                             {user.email}
                         </Typography>
                         <Box sx={{ display: 'flex', gap: 1, justifyContent: 'center', mt: 2 }}>
-                            <Chip label={user.role} color={getRoleColor(user.role)} size="small" />
+                            <Chip label={roleLabel(user.role, t)} color={getRoleColor(user.role)} size="small" />
                             <Chip
                                 label={user.status.replace('_', ' ')}
                                 color={getStatusColor(user.status)}
@@ -189,7 +190,7 @@ export default function UserDetailsPage() {
                                 <DetailRow
                                     icon={<Shield />}
                                     label="Role"
-                                    value={<Chip label={user.role} color={getRoleColor(user.role)} size="small" />}
+                                    value={<Chip label={roleLabel(user.role, t)} color={getRoleColor(user.role)} size="small" />}
                                 />
                             </Grid>
                             <Grid item xs={12} sm={6}>

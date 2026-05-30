@@ -56,7 +56,7 @@ export class DeviceRepository {
 
             if (!tenantId && !options.crossTenant) {
                 throw new Error(
-                    'listDevices: tenantId is required (pass { crossTenant: true } for SUPER_ADMIN platform-wide listing).'
+                    'listDevices: tenantId is required (pass { crossTenant: true } for Root platform-wide listing).'
                 )
             }
 

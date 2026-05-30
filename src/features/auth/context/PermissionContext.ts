@@ -10,7 +10,7 @@ export interface PermissionContextValue {
     hasAnyPermission: (permissions: Permission[]) => boolean
     hasAllPermissions: (permissions: Permission[]) => boolean
     role: UserRole | null
-    isSuperAdmin: boolean
+    isRoot: boolean
     isAdmin: boolean
 }
 

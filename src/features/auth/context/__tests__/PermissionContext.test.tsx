@@ -4,6 +4,7 @@ import React from 'react'
 import { PermissionProvider } from '../PermissionProvider'
 import { usePermissions } from '../PermissionContext'
 import { Permission } from '@domain/models/Permission'
+import { User } from '@domain/models/User'
 
 // Mock useAuth
 const mockUseAuth = vi.fn()
@@ -18,8 +19,24 @@ function createWrapper() {
 }
 
 function renderPermissions(role: string | undefined) {
+    // Build a real User so PermissionProvider can call user.isRoot()
+    // (userType-driven). ROOT-by-role implies ROOT userType.
+    const user = role
+        ? User.fromJSON({
+              id: '1',
+              email: 't@example.com',
+              firstName: 'T',
+              lastName: 'U',
+              role,
+              userType: role === 'ROOT' || role === 'SUPER_ADMIN' ? 'ROOT' : undefined,
+              status: 'ACTIVE',
+              tenantId: '00000000-0000-0000-0000-000000000000',
+              createdAt: '2026-01-01T00:00:00Z',
+              updatedAt: '2026-01-01T00:00:00Z',
+          })
+        : null
     mockUseAuth.mockReturnValue({
-        user: role ? { id: '1', role } : null,
+        user,
         isAuthenticated: !!role,
         loading: false,
     })
@@ -28,7 +45,12 @@ function renderPermissions(role: string | undefined) {
 
 describe('PermissionContext', () => {
     describe('ROLE_PERMISSIONS mapping', () => {
-        it('should give SUPER_ADMIN all 16 permissions', () => {
+        it('should give ROOT all 16 permissions', () => {
+            const { result } = renderPermissions('ROOT')
+            expect(result.current.permissions).toHaveLength(16)
+        })
+
+        it('should give legacy SUPER_ADMIN (mapped to ROOT) all 16 permissions', () => {
             const { result } = renderPermissions('SUPER_ADMIN')
             expect(result.current.permissions).toHaveLength(16)
         })
@@ -56,30 +78,38 @@ describe('PermissionContext', () => {
     })
 
     describe('role flags', () => {
-        it('should identify SUPER_ADMIN role', () => {
-            const { result } = renderPermissions('SUPER_ADMIN')
-            expect(result.current.isSuperAdmin).toBe(true)
+        it('should identify ROOT role', () => {
+            const { result } = renderPermissions('ROOT')
+            expect(result.current.isRoot).toBe(true)
             expect(result.current.isAdmin).toBe(true)
-            expect(result.current.role).toBe('SUPER_ADMIN')
+            expect(result.current.role).toBe('ROOT')
+        })
+
+        it('should identify legacy SUPER_ADMIN as ROOT', () => {
+            const { result } = renderPermissions('SUPER_ADMIN')
+            expect(result.current.isRoot).toBe(true)
+            expect(result.current.isAdmin).toBe(true)
+            // role string is normalized to ROOT by User.fromJSON
+            expect(result.current.role).toBe('ROOT')
         })
 
         it('should identify ADMIN role', () => {
             const { result } = renderPermissions('ADMIN')
-            expect(result.current.isSuperAdmin).toBe(false)
+            expect(result.current.isRoot).toBe(false)
             expect(result.current.isAdmin).toBe(true)
             expect(result.current.role).toBe('ADMIN')
         })
 
         it('should not flag USER as admin', () => {
             const { result } = renderPermissions('USER')
-            expect(result.current.isSuperAdmin).toBe(false)
+            expect(result.current.isRoot).toBe(false)
             expect(result.current.isAdmin).toBe(false)
         })
 
         it('should return null role when unauthenticated', () => {
             const { result } = renderPermissions(undefined)
             expect(result.current.role).toBeNull()
-            expect(result.current.isSuperAdmin).toBe(false)
+            expect(result.current.isRoot).toBe(false)
             expect(result.current.isAdmin).toBe(false)
         })
     })
@@ -95,8 +125,8 @@ describe('PermissionContext', () => {
             expect(result.current.hasPermission(Permission.USERS_VIEW)).toBe(false)
         })
 
-        it('should return true for SUPER_ADMIN on any permission', () => {
-            const { result } = renderPermissions('SUPER_ADMIN')
+        it('should return true for ROOT on any permission', () => {
+            const { result } = renderPermissions('ROOT')
             expect(result.current.hasPermission(Permission.TENANTS_DELETE)).toBe(true)
             expect(result.current.hasPermission(Permission.ROLES_MANAGE)).toBe(true)
         })

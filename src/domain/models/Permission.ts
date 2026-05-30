@@ -66,10 +66,10 @@ export class Permission {
 
 /**
  * Default role-to-permission mapping
- * SUPER_ADMIN gets all permissions, others get subsets
+ * ROOT gets all permissions, others get subsets
  */
 export const ROLE_PERMISSIONS: Record<UserRole, Permission[]> = {
-    [UserRole.SUPER_ADMIN]: [
+    [UserRole.ROOT]: [
         Permission.USERS_VIEW, Permission.USERS_CREATE, Permission.USERS_EDIT, Permission.USERS_DELETE,
         Permission.TENANTS_VIEW, Permission.TENANTS_CREATE, Permission.TENANTS_EDIT, Permission.TENANTS_DELETE,
         Permission.DASHBOARD_VIEW, Permission.ENROLLMENTS_VIEW, Permission.ENROLLMENTS_MANAGE,

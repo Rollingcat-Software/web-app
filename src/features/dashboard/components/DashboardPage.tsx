@@ -655,15 +655,15 @@ function AdminDashboardContent() {
     const { t, i18n } = useTranslation()
     const { user } = useAuth()
     // Rule 3 (2026-04-24): counters are tenant-scoped for TENANT_ADMIN.
-    // Only SUPER_ADMIN sees the cross-tenant "Total Tenants" card; everyone
+    // Only Root sees the cross-tenant "Total Tenants" card; everyone
     // else sees "Users in your tenant" (backend already scopes the count
     // after #23 + #24, so `stats.totalUsers` is already correct).
     // Guard the method call — `user` in older test mocks is a plain object
-    // without User-class methods. `isSuperAdmin` also exposed on
+    // without User-class methods. `isRoot` also exposed on
     // PermissionContext as a boolean, but keeping local derivation to match
     // the existing auth lookup above.
     const isPlatformOwner =
-        typeof user?.isSuperAdmin === 'function' ? user.isSuperAdmin() : false
+        typeof user?.isRoot === 'function' ? user.isRoot() : false
 
     if (loading) {
         return (

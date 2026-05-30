@@ -65,6 +65,7 @@ import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
 import { formatLocale } from '@utils/dateLocale'
+import { roleLabel } from '@utils/roleLabel'
 import { container } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -439,7 +440,7 @@ export default function MyProfilePage() {
                                         <Typography variant="caption" color="text.secondary">{t('common.role')}</Typography>
                                         <Box>
                                             <Chip
-                                                label={user?.role?.replace(/_/g, ' ')}
+                                                label={roleLabel(user?.role, t)}
                                                 size="small"
                                                 color="primary"
                                                 variant="outlined"

@@ -25,12 +25,12 @@ describe('UserService', () => {
         new Date()
     )
 
-    const mockSuperAdmin = new User(
+    const mockRootUser = new User(
         '99',
         'admin@example.com',
-        'Super',
-        'Admin',
-        UserRole.SUPER_ADMIN,
+        'Root',
+        'User',
+        UserRole.ROOT,
         UserStatus.ACTIVE,
         '1',
         new Date(),
@@ -403,13 +403,13 @@ describe('UserService', () => {
             expect(mockUserRepository.delete).not.toHaveBeenCalled()
         })
 
-        it('should throw BusinessError when attempting to delete super admin', async () => {
+        it('should throw BusinessError when attempting to delete a Root user', async () => {
             // Arrange
-            vi.mocked(mockUserRepository.findById).mockResolvedValue(mockSuperAdmin)
+            vi.mocked(mockUserRepository.findById).mockResolvedValue(mockRootUser)
 
             // Act & Assert
             await expect(userService.deleteUser('99')).rejects.toThrow(BusinessError)
-            await expect(userService.deleteUser('99')).rejects.toThrow('Cannot delete super admin users')
+            await expect(userService.deleteUser('99')).rejects.toThrow('Cannot delete Root users')
             expect(mockUserRepository.delete).not.toHaveBeenCalled()
         })
 

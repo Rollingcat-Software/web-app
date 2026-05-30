@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+### 2026-05-30 — Role/user_type unification: "SUPER_ADMIN" → "Root", trust backend `userType`
+
+- **`feat/2026-05-30-role-unification-root`** — eliminate the "SUPER_ADMIN"
+  label and make the platform tier authoritative from the backend `userType`
+  (see `identity-core-api/docs/IDENTITY_ROLE_UNIFICATION.md`).
+  - `domain/models/User.ts`: `UserRole` top member renamed `SUPER_ADMIN` → `ROOT`
+    (value dropped). New `userType` field (`ROOT | TENANT_ADMIN | TENANT_MEMBER |
+    GUEST`) parsed from `/auth/me`, tolerant of absence. `isSuperAdmin()` →
+    `isRoot()` = `userType === 'ROOT'` (authoritative), role fallback only when
+    `userType` is undefined (older tokens). `fromJSON` role map keeps both
+    `'ROOT'` and legacy `'SUPER_ADMIN'` → `UserRole.ROOT`. `isAdmin()` stays true
+    for ROOT or TENANT_ADMIN.
+  - `ActiveTenantProvider`: `canSwitch = !!user?.isRoot()` (userType-driven →
+    matches the backend cross-tenant gate).
+  - `PermissionProvider`/`PermissionContext`: `isSuperAdmin` flag → `isRoot`,
+    sourced from `user.isRoot()`; `ROLE_PERMISSIONS` key `SUPER_ADMIN` → `ROOT`.
+  - UI now renders the top tier as **"Root"** everywhere (UsersListPage chips,
+    UserDetailsPage, MyProfilePage, UserFormPage role select, TopBar context)
+    via a new shared `utils/roleLabel.ts` (i18n-aware). `PLATFORM_OWNER_ROLES`/
+    `ADMIN_ROLES`/`AUTHENTICATED_ROLES` + `types/index.ts` enum updated.
+  - i18n: new `roles.labels.{root,admin,tenantAdmin,user}` (EN/TR); the
+    "super-admin view" session/device notices now read "Root view" / "Root
+    görünümü".
+  - Tests: new `User.test.ts` (userType authority + back-compat cases);
+    PermissionContext/PermissionGuard/UserService specs updated to ROOT/isRoot.
+
 ### 2026-05-29 — Admin pages wave: enrollment detail, guest invites, tenant email domains, flow-render fix (5 PRs)
 
 - **PR #114** `fix/2026-05-29-enrollment-detail-and-default-guardrail` — Enrollments page.

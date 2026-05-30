@@ -79,8 +79,8 @@ export default function AuthSessionsPage() {
     // sessions; tenant-scoped admins always pin to their own tenant.
     // Without this, SUPER_ADMIN saw only the system-tenant's (empty)
     // list because user.tenantId is the system tenant id.
-    const isSuperAdmin = !!user?.isSuperAdmin?.()
-    const tenantId = isSuperAdmin ? '' : (user?.tenantId ?? '')
+    const isRoot = !!user?.isRoot?.()
+    const tenantId = isRoot ? '' : (user?.tenantId ?? '')
 
     const [statusFilter, setStatusFilter] = useState<string>('')
     const [cancelTarget, setCancelTarget] = useState<string | null>(null)
@@ -103,7 +103,7 @@ export default function AuthSessionsPage() {
         setPage,
         setSize,
         cancelSession,
-    } = useAuthSessionsList(tenantId, statusFilterArr, undefined, 20, isSuperAdmin)
+    } = useAuthSessionsList(tenantId, statusFilterArr, undefined, 20, isRoot)
 
     const handleCancelConfirm = async () => {
         if (!cancelTarget) return
@@ -137,12 +137,12 @@ export default function AuthSessionsPage() {
                     </Box>
                 </motion.div>
 
-                {!tenantId && !isSuperAdmin && (
+                {!tenantId && !isRoot && (
                     <Alert severity="warning" sx={{ mb: 3 }}>
                         {t('authSessionsPage.tenantUnavailable')}
                     </Alert>
                 )}
-                {isSuperAdmin && (
+                {isRoot && (
                     <Alert severity="info" sx={{ mb: 3 }}>
                         {t('authSessionsPage.platformWideNotice')}
                     </Alert>
