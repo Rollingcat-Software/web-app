@@ -62,18 +62,23 @@ export interface AuthMethod {
 }
 
 /**
- * Methods that can authenticate without an identifier typed first.
- * Discoverable WebAuthn (platform/cross-platform) + device-to-device QR.
+ * Methods that authenticate WITHOUT the user typing an identifier first —
+ * the factor itself resolves the user. Exactly two qualify here:
+ *   - PASSKEY  — discoverable / resident-key WebAuthn (registered with
+ *                residentKey="required"); the credential carries the user handle.
+ *   - QR_CODE  — scan-to-approve by an already-authenticated device.
  *
- * NOTE: APPROVE_LOGIN is intentionally NOT here. Number-matching approve-login
- * requires the initiator to enter their email first (so the server knows whose
- * device to push the prompt to) — it is identifier-first, not usernameless.
- * Including it made the login UI promise "no email needed" and then demand email.
- * See API migration V74. PASSKEY + QR_CODE are the true no-email cross-device methods.
+ * Deliberately EXCLUDED (all identifier-first → the login UI must collect email):
+ *   - APPROVE_LOGIN — number-matching needs the initiator's email so the server
+ *     knows whose device to push to (see API migration V74).
+ *   - FINGERPRINT / HARDWARE_KEY — registered NON-discoverable
+ *     (requireResidentKey=false), so the server must send allowCredentials and
+ *     therefore must know the user first. (A discoverable WebAuthn credential is
+ *     surfaced as PASSKEY, which IS usernameless.)
+ * Listing any of these made the login page promise "no email needed" and then
+ * demand an email — the operator-reported contradiction.
  */
 const USERNAMELESS_CAPABLE_TYPES: ReadonlySet<AuthMethodType> = new Set([
-    AuthMethodType.HARDWARE_KEY,
-    AuthMethodType.FINGERPRINT,
     AuthMethodType.QR_CODE,
     AuthMethodType.PASSKEY,
 ])
