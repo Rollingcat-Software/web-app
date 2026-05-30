@@ -69,11 +69,19 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     // first, otherwise we go straight to picking a Layer-1 method.
     const passwordIsLayer1 = !loginConfig || hasPasswordLayer1(loginConfig)
     const identifierRequired = loginConfig ? needsIdentifier(loginConfig) : true
-    const initialPhase: FlowPhase = passwordIsLayer1
-        ? 'password'
-        : identifierRequired
-            ? 'identifier'
-            : 'method-picker'
+    // IDENTIFIER-FIRST (engine ON): screen 1 collects only identity (email /
+    // passkey); EVERY factor — including password — comes afterwards. So even a
+    // password-Layer-1 flow starts on the 'identifier' phase. When the engine is
+    // OFF we keep the legacy single-screen email+password ('password' phase), so
+    // the whole redesign reverts with the engine flag and no web redeploy.
+    const engineActive = Boolean(loginConfig?.engineActive)
+    const initialPhase: FlowPhase = engineActive && identifierRequired
+        ? 'identifier'
+        : passwordIsLayer1
+            ? 'password'
+            : identifierRequired
+                ? 'identifier'
+                : 'method-picker'
 
     const [phase, setPhase] = useState<FlowPhase>(initialPhase)
     const [loading, setLoading] = useState(false)
@@ -209,6 +217,15 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             setError(t('auth.validation.emailRequired'))
             return
         }
+        // Identifier-first WITH a password factor: we now know who the user is,
+        // so just reveal the password screen. The /auth/login call happens at the
+        // password step (with this email), then any MFA steps follow. No
+        // beginIdentifierLogin here — password is authenticated via /auth/login.
+        if (engineActive && passwordIsLayer1) {
+            setError(undefined)
+            setPhase('password')
+            return
+        }
         setLoading(true)
         setError(undefined)
         try {
@@ -237,7 +254,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         } finally {
             setLoading(false)
         }
-    }, [authRepository, identifier, clientId, configLayer1Methods, t])
+    }, [authRepository, identifier, clientId, configLayer1Methods, engineActive, passwordIsLayer1, t])
 
     // ─── Method Selection ───────────────────────────────────────
 
@@ -591,6 +608,19 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                     onSubmit={handlePasswordSubmit}
                                     loading={loading}
                                     error={error}
+                                    presetEmail={
+                                        engineActive && passwordIsLayer1 && identifier.trim()
+                                            ? identifier.trim()
+                                            : undefined
+                                    }
+                                    onChangeIdentity={
+                                        engineActive
+                                            ? () => {
+                                                  setError(undefined)
+                                                  setPhase('identifier')
+                                              }
+                                            : undefined
+                                    }
                                 />
                             )}
 

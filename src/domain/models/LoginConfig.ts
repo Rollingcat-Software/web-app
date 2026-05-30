@@ -52,6 +52,15 @@ export interface LoginConfig {
     }
     totalSteps: number
     laterSteps: LoginConfigLaterStep[]
+    /**
+     * True when the config-driven login engine is ON for this tenant (global flag
+     * or per-tenant canary). Switches on the IDENTIFIER-FIRST experience: screen 1
+     * collects only identity (email / passkey) and every factor — including
+     * password — is presented afterwards. When false the UI keeps the legacy
+     * single-screen email+password form, so the redesign reverts with the engine
+     * flag and no web redeploy.
+     */
+    engineActive: boolean
 }
 
 // ─── Raw API shape (tolerant) ──────────────────────────────────────
@@ -79,6 +88,7 @@ export interface RawLoginConfig {
     }
     totalSteps?: number
     laterSteps?: RawLaterStep[]
+    engineActive?: boolean
 }
 
 function methodType(raw: RawMethod): AuthMethodType | null {
@@ -133,6 +143,7 @@ export function normalizeLoginConfig(raw: RawLoginConfig | null | undefined): Lo
             ? raw.totalSteps
             : 1 + laterSteps.length,
         laterSteps,
+        engineActive: Boolean(raw.engineActive ?? false),
     }
 }
 
