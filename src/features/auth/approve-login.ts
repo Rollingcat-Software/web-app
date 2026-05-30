@@ -13,6 +13,16 @@
  *     → { status, accessToken?, refreshToken?, expiresIn?, role? }
  *
  * Tokens are present only when `status === "APPROVED"`.
+ *
+ * Contract notes (confirmed against identity-core-api PR #161):
+ *  - `matchNumber` is a STRING zero-padded to 2 digits (`"07"`), not an int —
+ *    the server formats it with `%02d` so 00–09 keep their leading zero. Render
+ *    it verbatim; coercing to a number would drop the leading zero.
+ *  - `expiresIn` here is in SECONDS (unlike the passkey-authenticate response,
+ *    where it is milliseconds).
+ *  - When the session is gone the server returns 200 `{status:"EXPIRED"}`
+ *    rather than 404/410; the 404/410 normalization below is a safe extra
+ *    guard that won't normally fire.
  */
 
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -28,7 +38,8 @@ export type ApproveLoginStatus = 'PENDING' | 'APPROVED' | 'DENIED' | 'EXPIRED'
 /** Response from starting an approve-login session. */
 export interface ApproveLoginSession {
     sessionId: string
-    matchNumber: number
+    /** 2-digit zero-padded string ("07"), rendered verbatim — see contract note. */
+    matchNumber: string
     status: ApproveLoginStatus
     expiresAtEpochSeconds: number
 }

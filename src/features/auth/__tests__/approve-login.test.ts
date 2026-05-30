@@ -43,9 +43,11 @@ describe('approve-login', () => {
 
     describe('startApproveLoginSession', () => {
         it('POSTs the email and returns the session + match number', async () => {
+            // matchNumber is a 2-digit zero-padded STRING ("07"), not an int —
+            // the panel renders it verbatim so the leading zero must survive.
             const session: ApproveLoginSession = {
                 sessionId: 'sess-abc',
-                matchNumber: 42,
+                matchNumber: '07',
                 status: 'PENDING',
                 expiresAtEpochSeconds: 1_900_000_000,
             }
@@ -57,6 +59,7 @@ describe('approve-login', () => {
                 email: 'user@example.com',
             })
             expect(result).toEqual(session)
+            expect(result.matchNumber).toBe('07')
         })
     })
 
