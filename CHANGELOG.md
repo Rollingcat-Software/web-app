@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+### 2026-05-30 — Identity & account-linking UI surfaces (Phases 2/3/5) + consent-path / mobile-switcher fixes
+
+- **PR #128** `feat/profile-linked-accounts` — **Linked Accounts** section in
+  Profile (Identity Phase 2). Lists the person's memberships (tenant + role) across
+  accounts via `GET /identity/me`, and lets the user link another account by email
+  (`/identity/link/initiate` → OTP → `/link/confirm` with caller step-up) or unlink
+  a membership (`/unlink`). Linking is additive — login is still per-account.
+- **PR #127** `feat/profile-biometric-consent` — **per-tenant Biometric Consent**
+  toggle in Profile (Identity Phase 3, Model A). Surfaces
+  `GET/POST /identity/biometric/consents` so a person can grant/revoke "use my
+  enrolled biometric for tenant X" per tenant; default-DENY (off = behaves like
+  not-enrolled). The raw template is never shared — consent only authorizes a
+  verify against the person's canonical enrollment.
+- **PR #129** `feat/topbar-account-switcher` — **Account / workspace switcher** in
+  the TopBar (Identity Phase 5), shown when `/identity/me` returns >1 membership.
+  Selecting a membership calls `POST /auth/switch-membership`, stores the new token
+  pair, and reloads context as that membership (new role/tenant/permissions).
+  **Distinct from the ROOT (formerly SUPER_ADMIN) `X-Tenant-ID` data-switcher**:
+  the account switcher changes WHO you are (a different linked membership); the
+  `X-Tenant-ID` switcher keeps you the same ROOT user and only re-scopes which
+  tenant's DATA you read.
+- **PR #130** `fix/2026-05-30-consent-path-and-mobile-switcher` — (1) biometric
+  consent requests hit a **doubled path** (e.g. `/api/v1/api/v1/identity/...`) →
+  normalized to the single API base. (2) The tenant switcher was hidden / unusable
+  on **mobile** layouts → restored in the responsive TopBar.
+
 ### 2026-05-30 — Role/user_type unification: "SUPER_ADMIN" → "Root", trust backend `userType`
 
 - **`feat/2026-05-30-role-unification-root`** — eliminate the "SUPER_ADMIN"
