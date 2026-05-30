@@ -25,6 +25,17 @@ export interface WebAuthnAssertionResult {
     signature: string
 }
 
+/**
+ * Discoverable-credential ("passkey") assertion result. Extends the standard
+ * assertion with the `userHandle` — present only for resident keys — which the
+ * server uses to resolve the account when the client started WITHOUT an email
+ * (usernameless / discoverable login). All byte fields are standard base64
+ * (via {@link arrayBufferToBase64}); `userHandle` is base64url with no padding.
+ */
+export interface PasskeyAssertionResult extends WebAuthnAssertionResult {
+    userHandle: string | null
+}
+
 // ─── Base64 Utilities ───────────────────────────────────────────
 
 /** Encode an ArrayBuffer to standard base64 */

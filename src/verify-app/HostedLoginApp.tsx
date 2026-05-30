@@ -27,16 +27,27 @@ import {
     ThemeProvider,
     Typography,
 } from '@mui/material'
-import { ArrowForwardOutlined, MenuBookOutlined, VerifiedUserOutlined } from '@mui/icons-material'
+import { ArrowForwardOutlined, MenuBookOutlined, PhonelinkLock, VerifiedUserOutlined } from '@mui/icons-material'
+import { Divider } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { createAppTheme } from '../theme'
 import { DependencyProvider } from '@app/providers'
 import { createVerifyContainer } from './verifyContainer'
 import LoginMfaFlow from './LoginMfaFlow'
+import PasskeyLoginButton from '@features/auth/components/PasskeyLoginButton'
+import ApproveLoginPanel from '@features/auth/components/ApproveLoginPanel'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
 import { config as envConfig } from '@config/env'
+
+/** Server login response shape shared by password, passkey, and approve-login. */
+interface LoginSuccessResponse {
+    accessToken?: string
+    refreshToken?: string
+    expiresIn?: number
+    user?: { id?: string | number; email?: string } | null
+}
 
 // ─── URL Parameter Parsing ───────────────────────────────────────
 
