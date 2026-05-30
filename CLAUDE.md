@@ -84,6 +84,27 @@ Profile + TopBar surfaces for the Model-A identity layer (backend:
   account switcher changes WHO you are; `X-Tenant-ID` only re-scopes which tenant's DATA
   a ROOT user reads.
 
+## Cross-device login UI (2026-05-30, PR #137)
+
+Two usernameless login surfaces on the hosted login + dashboard login pages (backend:
+`identity-core-api/docs` + the api CLAUDE.md "Cross-device / authenticator login" note):
+
+- **"Sign in with a passkey"** button on `verify-app/HostedLoginApp.tsx` +
+  `features/auth/components/LoginPage.tsx`. Calls `navigator.credentials.get()` with an EMPTY
+  `allowCredentials` (discoverable/usernameless) against `POST /webauthn/passkey/authenticate-options`,
+  then `POST /webauthn/passkey/authenticate`. The browser/OS handles the cross-device hybrid QR
+  ("use your phone") — no companion app needed. Reuses `webauthn-utils.ts` (resolveChallenge,
+  base64 helpers, mapWebAuthnError).
+- **Approve-login initiator** (number-matching, no Firebase): kicks off
+  `POST /auth/approve-login/session`, displays the **`matchNumber` as a STRING** (it is
+  zero-padded, e.g. "07" — do NOT coerce to a number or leading zeros drop), polls for the
+  approver's decision, then completes login. The approver side lives in the client-apps shared
+  KMP stack (#53); the web side is the initiator.
+
+The config-driven login work (in-flight, feature-flagged `app.auth.config-driven-login` default
+OFF) will fold these into a single config-rendered login screen — internals land with their PRs.
+See `ROADMAP_AUTH_2026-05-30.md`.
+
 ## Production Deployment (Hostinger)
 
 ```bash
