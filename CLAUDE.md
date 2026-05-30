@@ -63,6 +63,26 @@ FaceCaptureStep, FingerprintStep, VoiceStep, NfcStep, HardwareKeyStep
 - **Breadcrumbs**: `BREADCRUMB_I18N_MAP` in DashboardLayout.tsx with `t()` calls.
 - **CSP**: Defined in BOTH `vite.config.ts` AND `public/.htaccess` — keep in sync.
 - **Admin gating**: Sidebar.tsx filters by `user.isAdmin()`. ProtectedRoute for admin pages.
+- **Platform tier (2026-05-30)**: trust the backend `userType` from `/auth/me`, not a
+  role string. `user.isRoot()` = `userType === 'ROOT'` (role fallback only when `userType`
+  is absent). The top tier is `UserRole.ROOT` (the old `SUPER_ADMIN` value is dropped;
+  `fromJSON` still maps legacy `'SUPER_ADMIN'` → `ROOT` for older tokens). UI labels it
+  **"Root"** via `utils/roleLabel.ts`. See `identity-core-api/docs/IDENTITY_ROLE_UNIFICATION.md`.
+
+## Identity & account-linking UI (Phases 2/3/5, 2026-05-30)
+
+Profile + TopBar surfaces for the Model-A identity layer (backend:
+`identity-core-api/docs/IDENTITY_ACCOUNT_LINKING_DESIGN.md`):
+
+- **Linked Accounts** (Profile, Phase 2): list/link/unlink the person's memberships via
+  `GET /identity/me` + `/identity/link/initiate|confirm` + `/unlink`.
+- **Biometric Consent** toggle (Profile, Phase 3, Model A): per-tenant grant/revoke via
+  `GET/POST /identity/biometric/consents`; default-DENY, raw template never shared.
+- **Account / workspace switcher** (TopBar, Phase 5): shown when `/identity/me` has >1
+  membership; calls `POST /auth/switch-membership`, swaps tokens, reloads as the target
+  membership. **Keep this distinct from the ROOT `X-Tenant-ID` data-switcher** — the
+  account switcher changes WHO you are; `X-Tenant-ID` only re-scopes which tenant's DATA
+  a ROOT user reads.
 
 ## Production Deployment (Hostinger)
 
