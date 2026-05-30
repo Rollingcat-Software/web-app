@@ -28,9 +28,7 @@ import {
     EmailOutlined,
     ArrowForward,
     VerifiedUser,
-    PhonelinkLock,
 } from '@mui/icons-material'
-import { Divider } from '@mui/material'
 import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
@@ -40,13 +38,16 @@ import { useAuth } from '../hooks/useAuth'
 // face login removed 2026-04-29 — see /opt/projects/fivucsas/MULTI_EMAIL_TENANT_DESIGN_2026-04-28.md follow-up; needs public /auth/face-login endpoint
 import TwoFactorDispatcher from './TwoFactorDispatcher'
 import MethodPickerStep from './steps/MethodPickerStep'
-import PasskeyLoginButton from './PasskeyLoginButton'
+import Layer1Shortcuts from './Layer1Shortcuts'
 import ApproveLoginPanel, { type ApproveLoginResult } from './ApproveLoginPanel'
-import type { AvailableMfaMethod, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
+import type { AvailableMfaMethod, MfaStepResponse, IAuthRepository } from '@domain/interfaces/IAuthRepository'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
+import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import { config as envConfig } from '@config/env'
+import { fetchLoginConfig } from '../login-config'
+import { hasPasswordLayer1, type LoginConfig } from '@domain/models/LoginConfig'
 
 /**
  * Login form validation schema
@@ -140,7 +141,15 @@ export default function LoginPage() {
     const navigate = useNavigate()
     const { login, loading, error, user, logout, refreshUser } = useAuth()
     const tokenService = useService<ITokenService>(TYPES.TokenService)
+    const httpClient = useService<IHttpClient>(TYPES.HttpClient)
+    const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const [showPassword, setShowPassword] = useState(false)
+    // Tenant Layer-1 login config (D). null while loading / on failure → the UI
+    // falls back to the legacy email+password form + all shortcuts.
+    const [loginConfig, setLoginConfig] = useState<LoginConfig | null>(null)
+    // The identifier typed when Layer 1 has no PASSWORD method (config-driven).
+    const [identifier, setIdentifier] = useState('')
+    const [identifierSubmitting, setIdentifierSubmitting] = useState(false)
     const [loginError, setLoginError] = useState<string | null>(null)
     const [pageReady, setPageReady] = useState(false)
     const [showSecondaryAuth, setShowSecondaryAuth] = useState(false)
@@ -163,6 +172,19 @@ export default function LoginPage() {
         const timer = setTimeout(() => setPageReady(true), 300)
         return () => clearTimeout(timer)
     }, [])
+
+    // Fetch the platform Layer-1 login config (D). Non-blocking: on failure
+    // `loginConfig` stays null and the legacy email+password form is shown. No
+    // clientId — the dashboard is the platform tenant.
+    useEffect(() => {
+        let cancelled = false
+        void fetchLoginConfig(httpClient).then((cfg) => {
+            if (!cancelled) setLoginConfig(cfg)
+        })
+        return () => {
+            cancelled = true
+        }
+    }, [httpClient])
 
     // Perf (USER-BUG-7): warm BiometricEngine / MediaPipe initialization in
     // the background while the user is typing email + password. By the time
@@ -345,6 +367,36 @@ export default function LoginPage() {
         }
     }
 
+    // Identifier-first login (config-driven, Layer 1 has no PASSWORD method).
+    // Opens an MFA session for the typed identifier, then routes into the same
+    // method-picker / TwoFactorDispatcher machinery as the password path.
+    const handleIdentifierSubmit = async () => {
+        if (!identifier.trim()) {
+            setLoginError(t('auth.validation.emailRequired'))
+            return
+        }
+        setLoginError(null)
+        setIdentifierSubmitting(true)
+        try {
+            const result = await authRepository.beginIdentifierLogin(identifier.trim())
+            if (result.mfaSessionToken) setMfaSessionToken(result.mfaSessionToken)
+            setCompletedMfaMethods(result.completedMethods ?? [])
+            const methods = result.availableMethods ?? []
+            const enrolledMethods = methods.filter((m) => m.enrolled)
+            if (enrolledMethods.length > 1) {
+                setAvailableMethods(methods)
+                setShowMethodPicker(true)
+            } else {
+                setTwoFactorMethod(result.twoFactorMethod || enrolledMethods[0]?.methodType || 'EMAIL_OTP')
+                setShowSecondaryAuth(true)
+            }
+        } catch (err) {
+            setLoginError(formatApiError(err, t))
+        } finally {
+            setIdentifierSubmitting(false)
+        }
+    }
+
     const handleMethodSelected = (methodType: string) => {
         setSelectedMethod(methodType)
         setTwoFactorMethod(methodType)
@@ -489,7 +541,11 @@ export default function LoginPage() {
     }
 
     // Show method picker when multiple MFA methods are available
-    if (showMethodPicker && user) {
+    // `user` is set by the password path; the identifier-first (no-password)
+    // path has only an mfaSessionToken. Either is sufficient to show the
+    // interstitials.
+    const hasActiveMfaSession = Boolean(user) || Boolean(_mfaSessionToken)
+    if (showMethodPicker && hasActiveMfaSession) {
         return (
             <Box
                 sx={{
@@ -551,7 +607,7 @@ export default function LoginPage() {
     }
 
     // Show 2FA verification after successful password login
-    if (showSecondaryAuth && user) {
+    if (showSecondaryAuth && hasActiveMfaSession) {
         return (
             <TwoFactorDispatcher
                 method={twoFactorMethod}
@@ -562,6 +618,13 @@ export default function LoginPage() {
             />
         )
     }
+
+    // Layer-1 gating (D): show the password form ONLY when the config includes
+    // PASSWORD as a Layer-1 method. When the config failed to load
+    // (loginConfig === null) we show the password form as the safe default so an
+    // admin is never locked out by a config-endpoint outage.
+    const showPasswordForm = loginConfig ? hasPasswordLayer1(loginConfig) : true
+    const formBusy = loading || identifierSubmitting
 
     return (
         <Box
@@ -678,32 +741,90 @@ export default function LoginPage() {
                             </Box>
                         </motion.div>
 
-                        {/* Login Form */}
-                        <form onSubmit={handleSubmit(onSubmit)} aria-label={t('auth.loginFormLabel')}>
-                            {/* Error Alert */}
-                            {(error || loginError) && (
-                                <motion.div
-                                    initial={{ opacity: 0, scale: 0.95 }}
-                                    animate={{ opacity: 1, scale: 1 }}
-                                    transition={{ duration: 0.3 }}
+                        {/* Error Alert — shown in both password and identifier-first modes */}
+                        {(error || loginError) && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <Alert
+                                    severity={
+                                        error instanceof AxiosError && error.response?.status === 429
+                                            ? 'warning'
+                                            : 'error'
+                                    }
+                                    role="alert"
+                                    sx={{
+                                        mb: 3,
+                                        borderRadius: '12px',
+                                    }}
                                 >
-                                    <Alert
-                                        severity={
-                                            error instanceof AxiosError && error.response?.status === 429
-                                                ? 'warning'
-                                                : 'error'
-                                        }
-                                        role="alert"
-                                        sx={{
-                                            mb: 3,
-                                            borderRadius: '12px',
-                                        }}
-                                    >
-                                        {loginError || (error ? formatApiError(error, t) : t('auth.invalidCredentials'))}
-                                    </Alert>
-                                </motion.div>
-                            )}
+                                    {loginError || (error ? formatApiError(error, t) : t('auth.invalidCredentials'))}
+                                </Alert>
+                            </motion.div>
+                        )}
 
+                        {/* Identifier-first entry (D): rendered when the tenant
+                            login-config has NO password Layer-1 method. Collects
+                            the identifier and opens an MFA session via
+                            beginIdentifierLogin. */}
+                        {!showPasswordForm && (
+                            <motion.div variants={itemVariants}>
+                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                    {t('login.identifierFirstSubtitle')}
+                                </Typography>
+                                <TextField
+                                    fullWidth
+                                    type="email"
+                                    label={t('auth.emailLabel')}
+                                    value={identifier}
+                                    onChange={(e) => setIdentifier(e.target.value)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && !formBusy) {
+                                            e.preventDefault()
+                                            void handleIdentifierSubmit()
+                                        }
+                                    }}
+                                    autoFocus
+                                    disabled={formBusy}
+                                    InputProps={{
+                                        startAdornment: (
+                                            <InputAdornment position="start">
+                                                <EmailOutlined sx={{ color: 'rgba(0,0,0,0.54)' }} />
+                                            </InputAdornment>
+                                        ),
+                                    }}
+                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                />
+                                <Button
+                                    fullWidth
+                                    variant="contained"
+                                    size="large"
+                                    onClick={() => void handleIdentifierSubmit()}
+                                    disabled={formBusy || !identifier.trim()}
+                                    endIcon={!formBusy && <ArrowForward />}
+                                    sx={{
+                                        mt: 3,
+                                        mb: 2,
+                                        py: 1.5,
+                                        borderRadius: '12px',
+                                        fontWeight: 600,
+                                        background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+                                    }}
+                                >
+                                    {identifierSubmitting ? (
+                                        <CircularProgress size={24} sx={{ color: 'white' }} />
+                                    ) : (
+                                        t('auth.continue')
+                                    )}
+                                </Button>
+                            </motion.div>
+                        )}
+
+                        {/* Login Form (password Layer-1) */}
+                        {showPasswordForm && (
+                        <form onSubmit={handleSubmit(onSubmit)} aria-label={t('auth.loginFormLabel')}>
                             {/* Email Field */}
                             <motion.div variants={itemVariants}>
                                 <Controller
@@ -902,44 +1023,25 @@ export default function LoginPage() {
                                 </Button>
                             </motion.div>
                         </form>
+                        )}
 
-                        {/* Alternate sign-in methods. Additive — the email/password
-                            form above is unchanged. The passkey button self-disables
-                            (with a tooltip) when WebAuthn is unsupported. */}
+                        {/* Config-driven usernameless shortcuts (G-web). Shown
+                            strictly per the tenant login-config; on a config
+                            failure (loginConfig === null) `fallbackAll` keeps the
+                            legacy passkey + approve buttons. */}
                         <motion.div variants={itemVariants}>
-                            <Divider sx={{ my: 2, '&::before, &::after': { borderColor: 'rgba(0,0,0,0.12)' } }}>
-                                <Typography variant="caption" sx={{ px: 1, color: 'rgba(0,0,0,0.6)' }}>
-                                    {t('passkeyLogin.or')}
-                                </Typography>
-                            </Divider>
-
-                            <PasskeyLoginButton
-                                onSuccess={handlePasskeySuccess}
-                                onError={(msg) => setLoginError(msg)}
-                                disabled={loading}
-                            />
-
-                            <Button
-                                fullWidth
-                                variant="text"
-                                size="large"
-                                startIcon={<PhonelinkLock />}
-                                onClick={() => {
+                            <Layer1Shortcuts<{ accessToken?: string | null; refreshToken?: string | null }>
+                                config={loginConfig}
+                                fallbackAll
+                                onPasskeySuccess={handlePasskeySuccess}
+                                onPasskeyError={(msg) => setLoginError(msg)}
+                                onApproveClick={() => {
                                     setLoginError(null)
                                     setShowApproveLogin(true)
                                 }}
-                                disabled={loading}
-                                sx={{
-                                    mt: 1,
-                                    py: 1.25,
-                                    borderRadius: '12px',
-                                    textTransform: 'none',
-                                    fontWeight: 600,
-                                    color: 'primary.main',
-                                }}
-                            >
-                                {t('approveLogin.button')}
-                            </Button>
+                                disabled={formBusy}
+                                hideDivider={!showPasswordForm}
+                            />
                         </motion.div>
 
                         {/* Multi-factor auth info */}

@@ -2,6 +2,36 @@
 
 ## [Unreleased]
 
+### 2026-05-30 — Config-driven login UI + usernameless flow builder
+
+Feature-flagged behind the API's `app.auth.config-driven-login` (default OFF);
+the UI renders correctly in both flag states purely from the login-config
+response, so the flag reverts the feature with no web redeploy.
+
+- **Config-driven Layer 1** — `fetchLoginConfig` (`features/auth/login-config.ts`)
+  calls `GET /auth/login-config?tenantId=<uuid>` (frozen contract, api PR #163)
+  and normalizes the result through `domain/models/LoginConfig.ts` (tolerant of
+  camelCase / `methodType` / `supportsUsernameless` / `stepOrder` deltas;
+  returns `null` on any failure). Added the new usernameless method types
+  `PASSKEY` + `APPROVE_LOGIN` to `AuthMethodType`. `LoginMfaFlow` and `LoginPage`
+  render the **password field only when `PASSWORD ∈ layer1.methods`**; otherwise
+  an identifier-first entry (when `identifierRequired`) or the usernameless
+  shortcuts. Graceful fallback to email+password when the config fails to load.
+- **Config-driven shortcuts** — replaced the standalone hardcoded passkey /
+  "approve on another device" buttons with `Layer1Shortcuts`, gated by the
+  per-method `usernameless` flags. When the config declares no usernameless
+  method (null config OR the flag-OFF password-first shape) `fallbackAll`
+  preserves today's shortcuts.
+- **Flow builder** — `AuthFlowBuilder` no longer locks password as a mandatory
+  first step (removed `PASSWORD_MANDATORY_OPS` here and in `useAuthFlowBuilder`):
+  password is a normal removable + reorderable method. Added **CHOICE-step
+  editing** (pick N one-of alternative methods per step → `alternativeMethodTypes`)
+  and a **usernameless Layer-1 toggle** gated by the new
+  `AuthMethod.supportsUsernameless`. i18n'd the builder's hardcoded English
+  (`authFlowBuilder.*`, EN+TR).
+- **Set-Default impact dialog** now surfaces `usernamelessOnly` +
+  `noRecoveryMethod` advisories from the default-impact payload.
+
 ### 2026-05-30 — Biometric quality + liveness hardening (client)
 
 - **Real head pose** — `FaceDetector` now requests the MediaPipe 4x4 facial

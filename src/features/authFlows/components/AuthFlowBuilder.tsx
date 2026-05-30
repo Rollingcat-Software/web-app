@@ -9,8 +9,6 @@ import {
     IconButton,
     Paper,
     TextField,
-    Switch,
-    FormControlLabel,
     Tooltip,
     Alert,
     Grid,
@@ -19,6 +17,8 @@ import {
     Select,
     FormControl,
     InputLabel,
+    Switch,
+    FormControlLabel,
     type SelectChangeEvent,
 } from '@mui/material'
 import {
@@ -27,7 +27,6 @@ import {
     DragIndicator,
     ArrowForward,
     Lock,
-    LockOutlined,
     Email,
     Sms,
     PhonelinkLock,
@@ -39,7 +38,8 @@ import {
     Key,
     Save,
     PlayArrow,
-    Settings,
+    CallSplit,
+    Close,
 } from '@mui/icons-material'
 import { motion, AnimatePresence, Reorder, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -86,8 +86,6 @@ const methodIcons: Record<string, React.ReactNode> = {
     Key: <Key />,
 }
 
-const PASSWORD_MANDATORY_OPS = new Set(['APP_LOGIN', 'API_ACCESS'])
-
 interface AuthFlowBuilderProps {
     initialSteps?: AuthFlowStep[]
     onSave?: (data: { name: string; description: string; operationType: OperationType; isDefault: boolean; steps: AuthFlowStep[] }) => void
@@ -107,19 +105,19 @@ export function AuthFlowBuilder({
     onSave,
     authMethods = DEFAULT_AUTH_METHODS,
     initialOperationType = 'APP_LOGIN',
-    initialName = 'My Authentication Flow',
+    initialName = '',
     initialDescription = '',
     initialIsDefault = false,
 }: AuthFlowBuilderProps) {
     const { t } = useTranslation()
     const [steps, setSteps] = useState<AuthFlowStep[]>(initialSteps)
-    const [flowName, setFlowName] = useState(initialName)
+    const [flowName, setFlowName] = useState(initialName || t('authFlowBuilder.defaultFlowName'))
     const [flowDescription, setFlowDescription] = useState(initialDescription)
     const [isDefault, setIsDefault] = useState(initialIsDefault)
     const [showMethodPicker, setShowMethodPicker] = useState(false)
+    // The step whose CHOICE alternatives are being edited (id), or null.
+    const [choiceEditorStepId, setChoiceEditorStepId] = useState<string | null>(null)
     const [operationType, setOperationType] = useState<OperationType>(normalizeOperationType(initialOperationType))
-
-    const passwordLocked = PASSWORD_MANDATORY_OPS.has(operationType)
 
     const availableMethods = authMethods.filter((m) => m.isActive)
 
@@ -128,24 +126,10 @@ export function AuthFlowBuilder({
         if (!isOperationType(newType)) {
             return
         }
-
+        // E: password is no longer mandatory for any operation type — operation
+        // type now only categorizes the flow; it never injects/locks a step.
         setOperationType(newType)
-        if (PASSWORD_MANDATORY_OPS.has(newType)) {
-            const hasPassword = steps.some(s => s.methodType === AuthMethodType.PASSWORD && s.order === 1)
-            if (!hasPassword) {
-                const passwordStep: AuthFlowStep = {
-                    id: `step-password-${Date.now()}`,
-                    order: 1,
-                    methodId: 'PASSWORD',
-                    methodType: AuthMethodType.PASSWORD,
-                    isRequired: true,
-                    timeout: 120,
-                    maxAttempts: 3,
-                }
-                setSteps(prev => [passwordStep, ...prev.filter(s => s.methodType !== AuthMethodType.PASSWORD)].map((s, i) => ({ ...s, order: i + 1 })))
-            }
-        }
-    }, [steps])
+    }, [])
 
     const addStep = useCallback((methodId: string, methodType: AuthMethodType) => {
         const newStep: AuthFlowStep = {
@@ -162,15 +146,12 @@ export function AuthFlowBuilder({
     }, [steps.length])
 
     const removeStep = useCallback((stepId: string) => {
+        // E: any step is removable now (password included) — no mandatory lock.
         setSteps((prev) => {
-            const step = prev.find(s => s.id === stepId)
-            if (step && step.methodType === AuthMethodType.PASSWORD && step.order === 1 && passwordLocked) {
-                return prev
-            }
             const filtered = prev.filter((s) => s.id !== stepId)
             return filtered.map((s, i) => ({ ...s, order: i + 1 }))
         })
-    }, [passwordLocked])
+    }, [])
 
     const updateStepRequired = useCallback((stepId: string, isRequired: boolean) => {
         setSteps((prev) =>
@@ -179,14 +160,40 @@ export function AuthFlowBuilder({
     }, [])
 
     const handleReorder = useCallback((reordered: AuthFlowStep[]) => {
-        if (passwordLocked) {
-            const passwordIdx = reordered.findIndex(s => s.methodType === AuthMethodType.PASSWORD)
-            if (passwordIdx !== 0) {
-                return
-            }
-        }
-        setSteps(reordered.map((s, i) => ({ ...s, order: i + 1 })))
-    }, [passwordLocked])
+        // E: free reordering — password may sit at any position. After a reorder
+        // a usernameless flag is only valid on the new first step, so clear it
+        // from every other step.
+        setSteps(
+            reordered.map((s, i) => ({
+                ...s,
+                order: i + 1,
+                usernameless: i === 0 ? s.usernameless : false,
+            })),
+        )
+    }, [])
+
+    // Toggle the usernameless flag on the FIRST step (Layer 1). Only valid when
+    // the first step's method supports usernameless.
+    const toggleFirstStepUsernameless = useCallback((checked: boolean) => {
+        setSteps((prev) =>
+            prev.map((s, i) => (i === 0 ? { ...s, usernameless: checked } : s)),
+        )
+    }, [])
+
+    // Add / remove a CHOICE alternative method to a step.
+    const toggleChoiceAlternative = useCallback((stepId: string, methodType: AuthMethodType) => {
+        setSteps((prev) =>
+            prev.map((s) => {
+                if (s.id !== stepId) return s
+                if (methodType === s.methodType) return s // primary can't be an alternative
+                const current = s.alternativeMethodTypes ?? []
+                const next = current.includes(methodType)
+                    ? current.filter((m) => m !== methodType)
+                    : [...current, methodType]
+                return { ...s, alternativeMethodTypes: next }
+            }),
+        )
+    }, [])
 
     const handleSave = useCallback(() => {
         if (onSave) {
@@ -197,7 +204,9 @@ export function AuthFlowBuilder({
     const getMethod = (methodType: AuthMethodType) =>
         authMethods.find((m) => m.type === methodType)
 
-    // Cost summary removed - pricing not managed in frontend
+    const firstStep = steps[0]
+    const firstStepMethod = firstStep ? getMethod(firstStep.methodType) : undefined
+    const firstStepUsernamelessCapable = Boolean(firstStepMethod?.supportsUsernameless)
 
     return (
         <Box>
@@ -219,10 +228,10 @@ export function AuthFlowBuilder({
                             mb: 1,
                         }}
                     >
-                        Authentication Flow Builder
+                        {t('authFlowBuilder.title')}
                     </Typography>
                     <Typography variant="body1" color="text.secondary">
-                        Create custom authentication sequences for your users
+                        {t('authFlowBuilder.subtitle')}
                     </Typography>
                 </Box>
             </motion.div>
@@ -241,14 +250,14 @@ export function AuthFlowBuilder({
                                 <Box sx={{ mb: 4 }}>
                                     <TextField
                                         fullWidth
-                                        label="Flow Name"
+                                        label={t('authFlows.flowName')}
                                         value={flowName}
                                         onChange={(e) => setFlowName(e.target.value)}
                                         sx={{ mb: 2 }}
                                     />
                                     <TextField
                                         fullWidth
-                                        label="Description"
+                                        label={t('authFlows.description')}
                                         value={flowDescription}
                                         onChange={(e) => setFlowDescription(e.target.value)}
                                         multiline
@@ -256,10 +265,10 @@ export function AuthFlowBuilder({
                                         sx={{ mb: 2 }}
                                     />
                                     <FormControl fullWidth sx={{ mb: 2 }}>
-                                        <InputLabel>Operation Type</InputLabel>
+                                        <InputLabel>{t('authFlows.operationType')}</InputLabel>
                                         <Select
                                             value={operationType}
-                                            label="Operation Type"
+                                            label={t('authFlows.operationType')}
                                             onChange={handleOperationTypeChange}
                                         >
                                             {OPERATION_TYPE_OPTIONS.map((op) => (
@@ -269,11 +278,6 @@ export function AuthFlowBuilder({
                                             ))}
                                         </Select>
                                     </FormControl>
-                                    {passwordLocked && (
-                                        <Alert severity="info" icon={<LockOutlined />} sx={{ mb: 2, borderRadius: 2 }}>
-                                            {operationType} flows require Password as the first step. This is enforced for security.
-                                        </Alert>
-                                    )}
                                     <FormControlLabel
                                         control={
                                             <Switch
@@ -282,7 +286,7 @@ export function AuthFlowBuilder({
                                                 color="primary"
                                             />
                                         }
-                                        label="Set as default flow for new users"
+                                        label={t('authFlowBuilder.setDefaultForNewUsers')}
                                     />
                                 </Box>
 
@@ -291,13 +295,28 @@ export function AuthFlowBuilder({
                                 {/* Flow Steps */}
                                 <Box sx={{ mb: 3 }}>
                                     <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                                        Authentication Steps
+                                        {t('authFlows.authSteps')}
                                     </Typography>
+
+                                    {/* Usernameless Layer-1 toggle (E): only when the
+                                        first step's method supports it. */}
+                                    {firstStep && firstStepUsernamelessCapable && (
+                                        <FormControlLabel
+                                            sx={{ mb: 1, display: 'block' }}
+                                            control={
+                                                <Switch
+                                                    checked={Boolean(firstStep.usernameless)}
+                                                    onChange={(e) => toggleFirstStepUsernameless(e.target.checked)}
+                                                    color="primary"
+                                                />
+                                            }
+                                            label={t('authFlowBuilder.usernamelessFirstStep')}
+                                        />
+                                    )}
 
                                     {steps.length === 0 ? (
                                         <Alert severity="info" sx={{ borderRadius: 2 }}>
-                                            No steps added yet. Click "Add Step" to start building your
-                                            authentication flow.
+                                            {t('authFlows.noStepsYet')}
                                         </Alert>
                                     ) : (
                                         <Reorder.Group
@@ -310,6 +329,8 @@ export function AuthFlowBuilder({
                                                 {steps.map((step, index) => {
                                                     const method = getMethod(step.methodType)
                                                     if (!method) return null
+                                                    const alternatives = step.alternativeMethodTypes ?? []
+                                                    const isChoice = alternatives.length > 0
 
                                                     return (
                                                         <Reorder.Item
@@ -360,6 +381,7 @@ export function AuthFlowBuilder({
                                                                             justifyContent: 'center',
                                                                             fontWeight: 700,
                                                                             fontSize: '0.875rem',
+                                                                            flexShrink: 0,
                                                                         }}
                                                                     >
                                                                         {index + 1}
@@ -378,19 +400,46 @@ export function AuthFlowBuilder({
                                                                     </Box>
 
                                                                     {/* Method Info */}
-                                                                    <Box sx={{ flex: 1 }}>
-                                                                        <Typography variant="subtitle1" fontWeight={600}>
-                                                                            {method.name}
-                                                                        </Typography>
+                                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
+                                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
+                                                                            <Typography variant="subtitle1" fontWeight={600}>
+                                                                                {method.name}
+                                                                            </Typography>
+                                                                            {isChoice && (
+                                                                                <Chip
+                                                                                    icon={<CallSplit sx={{ fontSize: 14 }} />}
+                                                                                    label={t('authFlowBuilder.choiceBadge', { count: alternatives.length + 1 })}
+                                                                                    size="small"
+                                                                                    color="secondary"
+                                                                                    variant="outlined"
+                                                                                    sx={{ height: 22 }}
+                                                                                />
+                                                                            )}
+                                                                            {index === 0 && step.usernameless && (
+                                                                                <Chip
+                                                                                    label={t('authFlowBuilder.usernamelessBadge')}
+                                                                                    size="small"
+                                                                                    color="info"
+                                                                                    variant="outlined"
+                                                                                    sx={{ height: 22 }}
+                                                                                />
+                                                                            )}
+                                                                        </Box>
                                                                         <Typography variant="body2" color="text.secondary">
-                                                                            {method.description}
+                                                                            {isChoice
+                                                                                ? t('authFlowBuilder.choiceDescription', {
+                                                                                    methods: [method.type, ...alternatives]
+                                                                                        .map((mt) => getMethod(mt)?.name ?? mt)
+                                                                                        .join(', '),
+                                                                                })
+                                                                                : method.description}
                                                                         </Typography>
                                                                     </Box>
 
                                                                     {/* Required Toggle */}
-                                                                    <Tooltip title={step.isRequired ? 'Required' : 'Optional'}>
+                                                                    <Tooltip title={step.isRequired ? t('authFlows.required') : t('authFlows.optional')}>
                                                                         <Chip
-                                                                            label={step.isRequired ? 'Required' : 'Optional'}
+                                                                            label={step.isRequired ? t('authFlows.required') : t('authFlows.optional')}
                                                                             size="small"
                                                                             color={step.isRequired ? 'primary' : 'default'}
                                                                             onClick={() =>
@@ -400,15 +449,24 @@ export function AuthFlowBuilder({
                                                                         />
                                                                     </Tooltip>
 
-                                                                    {/* Settings */}
-                                                                    <Tooltip title="Step settings">
-                                                                        <IconButton size="small" aria-label={t('common.aria.settings')}>
-                                                                            <Settings fontSize="small" />
+                                                                    {/* Edit CHOICE alternatives */}
+                                                                    <Tooltip title={t('authFlowBuilder.editChoices')}>
+                                                                        <IconButton
+                                                                            size="small"
+                                                                            onClick={() =>
+                                                                                setChoiceEditorStepId(
+                                                                                    choiceEditorStepId === step.id ? null : step.id,
+                                                                                )
+                                                                            }
+                                                                            color={choiceEditorStepId === step.id ? 'primary' : 'default'}
+                                                                            aria-label={t('authFlowBuilder.editChoices')}
+                                                                        >
+                                                                            <CallSplit fontSize="small" />
                                                                         </IconButton>
                                                                     </Tooltip>
 
                                                                     {/* Delete */}
-                                                                    <Tooltip title="Remove step">
+                                                                    <Tooltip title={t('authFlows.removeStep')}>
                                                                         <IconButton
                                                                             size="small"
                                                                             onClick={() => removeStep(step.id)}
@@ -422,6 +480,65 @@ export function AuthFlowBuilder({
                                                                         </IconButton>
                                                                     </Tooltip>
                                                                 </Paper>
+
+                                                                {/* CHOICE editor (E): pick the alternative
+                                                                    methods this step also accepts. */}
+                                                                <AnimatePresence>
+                                                                    {choiceEditorStepId === step.id && (
+                                                                        <motion.div
+                                                                            initial={{ opacity: 0, height: 0 }}
+                                                                            animate={{ opacity: 1, height: 'auto' }}
+                                                                            exit={{ opacity: 0, height: 0 }}
+                                                                            transition={{ duration: 0.25 }}
+                                                                        >
+                                                                            <Paper
+                                                                                elevation={0}
+                                                                                sx={{
+                                                                                    mt: 1,
+                                                                                    p: 2,
+                                                                                    bgcolor: 'background.default',
+                                                                                    borderRadius: 2,
+                                                                                    border: '1px dashed',
+                                                                                    borderColor: 'divider',
+                                                                                }}
+                                                                            >
+                                                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
+                                                                                    <Typography variant="subtitle2" fontWeight={600}>
+                                                                                        {t('authFlowBuilder.choiceEditorTitle')}
+                                                                                    </Typography>
+                                                                                    <IconButton
+                                                                                        size="small"
+                                                                                        onClick={() => setChoiceEditorStepId(null)}
+                                                                                        aria-label={t('common.close')}
+                                                                                    >
+                                                                                        <Close fontSize="small" />
+                                                                                    </IconButton>
+                                                                                </Box>
+                                                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
+                                                                                    {t('authFlowBuilder.choiceEditorHint')}
+                                                                                </Typography>
+                                                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+                                                                                    {availableMethods
+                                                                                        .filter((m) => m.type !== step.methodType)
+                                                                                        .map((m) => {
+                                                                                            const selected = alternatives.includes(m.type)
+                                                                                            return (
+                                                                                                <Chip
+                                                                                                    key={m.id}
+                                                                                                    label={m.name}
+                                                                                                    icon={selected ? undefined : undefined}
+                                                                                                    color={selected ? 'primary' : 'default'}
+                                                                                                    variant={selected ? 'filled' : 'outlined'}
+                                                                                                    onClick={() => toggleChoiceAlternative(step.id, m.type)}
+                                                                                                    sx={{ cursor: 'pointer' }}
+                                                                                                />
+                                                                                            )
+                                                                                        })}
+                                                                                </Box>
+                                                                            </Paper>
+                                                                        </motion.div>
+                                                                    )}
+                                                                </AnimatePresence>
 
                                                                 {/* Arrow connector */}
                                                                 {index < steps.length - 1 && (
@@ -465,7 +582,7 @@ export function AuthFlowBuilder({
                                         },
                                     }}
                                 >
-                                    Add Authentication Step
+                                    {t('authFlowBuilder.addAuthStep')}
                                 </Button>
 
                                 {/* Method Picker */}
@@ -491,7 +608,7 @@ export function AuthFlowBuilder({
                                                     fontWeight={600}
                                                     sx={{ mb: 2 }}
                                                 >
-                                                    Select Authentication Method
+                                                    {t('authFlowBuilder.selectMethod')}
                                                 </Typography>
                                                 <Grid container spacing={1.5}>
                                                     {availableMethods.map((method) => (
@@ -531,6 +648,11 @@ export function AuthFlowBuilder({
                                                                 >
                                                                     {method.name}
                                                                 </Typography>
+                                                                {method.supportsUsernameless && (
+                                                                    <Typography variant="caption" color="text.secondary">
+                                                                        {t('authFlowBuilder.usernamelessCapable')}
+                                                                    </Typography>
+                                                                )}
                                                             </Paper>
                                                         </Grid>
                                                     ))}
@@ -555,17 +677,23 @@ export function AuthFlowBuilder({
                         <Card sx={{ mb: 3 }}>
                             <CardContent sx={{ p: 3 }}>
                                 <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                                    Flow Preview
+                                    {t('authFlowBuilder.preview')}
                                 </Typography>
 
                                 {steps.length === 0 ? (
                                     <Typography variant="body2" color="text.secondary">
-                                        Add steps to preview your flow
+                                        {t('authFlowBuilder.previewEmpty')}
                                     </Typography>
                                 ) : (
                                     <Box>
                                         {steps.map((step, index) => {
                                             const method = getMethod(step.methodType)
+                                            const alternatives = step.alternativeMethodTypes ?? []
+                                            const label = alternatives.length > 0
+                                                ? [step.methodType, ...alternatives]
+                                                    .map((mt) => getMethod(mt)?.name ?? mt)
+                                                    .join(' / ')
+                                                : method?.name
                                             return (
                                                 <Box
                                                     key={step.id}
@@ -588,21 +716,19 @@ export function AuthFlowBuilder({
                                                             justifyContent: 'center',
                                                             fontSize: '0.75rem',
                                                             fontWeight: 700,
+                                                            flexShrink: 0,
                                                         }}
                                                     >
                                                         {index + 1}
                                                     </Box>
-                                                    <Typography variant="body2" fontWeight={500}>
-                                                        {method?.name}
+                                                    <Typography variant="body2" fontWeight={500} sx={{ flex: 1, minWidth: 0 }}>
+                                                        {label}
                                                     </Typography>
                                                     {!step.isRequired && (
                                                         <Chip
-                                                            label="Optional"
+                                                            label={t('authFlows.optional')}
                                                             size="small"
-                                                            sx={{
-                                                                height: 20,
-                                                                fontSize: '0.65rem',
-                                                            }}
+                                                            sx={{ height: 20, fontSize: '0.65rem' }}
                                                         />
                                                     )}
                                                 </Box>
@@ -626,7 +752,7 @@ export function AuthFlowBuilder({
                                     background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                                 }}
                             >
-                                Save Flow
+                                {t('authFlowBuilder.saveFlow')}
                             </Button>
                             <Button
                                 variant="outlined"
@@ -634,7 +760,7 @@ export function AuthFlowBuilder({
                                 startIcon={<PlayArrow />}
                                 disabled={steps.length === 0}
                             >
-                                Test Flow
+                                {t('authFlowBuilder.testFlow')}
                             </Button>
                         </Box>
                     </motion.div>

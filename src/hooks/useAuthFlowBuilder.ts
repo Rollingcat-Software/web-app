@@ -7,8 +7,6 @@ import type { ILogger } from '@domain/interfaces/ILogger'
 import type { OperationType } from '@domain/models/AuthMethod'
 import { AuthMethodType, type AuthFlowStep } from '@domain/models/AuthMethod'
 
-const PASSWORD_MANDATORY_OPS = new Set<string>(['APP_LOGIN', 'API_ACCESS'])
-
 /**
  * useAuthFlowBuilder
  *
@@ -129,24 +127,17 @@ export function useAuthFlowBuilder() {
         })
     }, [])
 
-    const removeStep = useCallback((stepId: string, operationType?: OperationType) => {
+    // E: password is a normal, removable + reorderable method now — no
+    // operation type forces it to stay. `operationType` is accepted for
+    // backward-compatible call sites but no longer gates removal/reorder.
+    const removeStep = useCallback((stepId: string, _operationType?: OperationType) => {
         setSteps(prev => {
-            const step = prev.find(s => s.id === stepId)
-            // Prevent removing password step when it's mandatory
-            if (step?.methodType === AuthMethodType.PASSWORD && step.order === 1 && operationType && PASSWORD_MANDATORY_OPS.has(operationType)) {
-                return prev
-            }
             const filtered = prev.filter(s => s.id !== stepId)
             return filtered.map((s, i) => ({ ...s, order: i + 1 }))
         })
     }, [])
 
-    const reorderSteps = useCallback((reordered: AuthFlowStep[], operationType?: OperationType) => {
-        // Prevent password from leaving position 1 when mandatory
-        if (operationType && PASSWORD_MANDATORY_OPS.has(operationType)) {
-            const passwordIdx = reordered.findIndex(s => s.methodType === AuthMethodType.PASSWORD)
-            if (passwordIdx !== 0) return
-        }
+    const reorderSteps = useCallback((reordered: AuthFlowStep[], _operationType?: OperationType) => {
         setSteps(reordered.map((s, i) => ({ ...s, order: i + 1 })))
     }, [])
 

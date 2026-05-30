@@ -21,25 +21,26 @@ import {
     Button,
     CircularProgress,
     CssBaseline,
-    Divider,
     Link,
     Paper,
     Stack,
     ThemeProvider,
     Typography,
 } from '@mui/material'
-import { ArrowForwardOutlined, MenuBookOutlined, PhonelinkLock, VerifiedUserOutlined } from '@mui/icons-material'
+import { ArrowForwardOutlined, MenuBookOutlined, VerifiedUserOutlined } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { createAppTheme } from '../theme'
 import { DependencyProvider } from '@app/providers'
 import { createVerifyContainer } from './verifyContainer'
 import LoginMfaFlow from './LoginMfaFlow'
-import PasskeyLoginButton from '@features/auth/components/PasskeyLoginButton'
+import Layer1Shortcuts from '@features/auth/components/Layer1Shortcuts'
 import ApproveLoginPanel, {
     type ApproveLoginResult,
 } from '@features/auth/components/ApproveLoginPanel'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { fetchLoginConfig } from '@features/auth/login-config'
+import type { LoginConfig } from '@domain/models/LoginConfig'
 import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
 import { config as envConfig } from '@config/env'
 
@@ -243,6 +244,9 @@ export default function HostedLoginApp() {
     const container = useMemo(() => createVerifyContainer(config.apiBaseUrl), [config.apiBaseUrl])
 
     const [clientMeta, setClientMeta] = useState<ClientPublicMeta | null>(null)
+    // Tenant Layer-1 login config (D). null until fetched or on failure — the
+    // UI falls back to the legacy email+password+shortcuts surface when null.
+    const [loginConfig, setLoginConfig] = useState<LoginConfig | null>(null)
     const [paramError, setParamError] = useState<string | null>(null)
     // Distinguish "no params at all" (developer hits the bare URL) from "wrong params"
     // (active integration handed us a bad client_id). The first deserves an
@@ -354,6 +358,18 @@ export default function HostedLoginApp() {
                 if (cancelled) return
                 setClientMeta(res.data)
                 setMetaLoading(false)
+            })
+            .then(() => {
+                // Fetch the tenant Layer-1 login config (D). Non-blocking: a
+                // failure leaves `loginConfig` null and the UI falls back to the
+                // legacy email+password+shortcuts surface. The hosted URL only
+                // carries client_id (no tenantId), so we forward it as the
+                // fallback identifier — login-config.ts maps it to the query
+                // param the API accepts (pending api task #16 param confirmation).
+                if (cancelled) return
+                void fetchLoginConfig(httpClient, { clientId: config.clientId }).then((cfg) => {
+                    if (!cancelled) setLoginConfig(cfg)
+                })
             })
             .catch((err: unknown) => {
                 if (cancelled) return
@@ -752,43 +768,28 @@ export default function HostedLoginApp() {
                                     clientId={config.clientId}
                                     onComplete={handleLoginComplete}
                                     onCancel={handleCancel}
+                                    loginConfig={loginConfig}
                                 />
 
-                                {/* Alternate sign-in methods. Additive: the
-                                    email/password+MFA flow above is unchanged.
-                                    The passkey button self-disables (with a
-                                    tooltip) when WebAuthn is unsupported. */}
-                                <Divider sx={{ '&::before, &::after': { borderColor: 'divider' } }}>
-                                    <Typography variant="caption" color="text.secondary" sx={{ px: 1 }}>
-                                        {t('passkeyLogin.or')}
-                                    </Typography>
-                                </Divider>
-
-                                <PasskeyLoginButton<LoginSuccessResponse>
-                                    onSuccess={handlePasskeySuccess}
-                                    onError={(msg) => setAltError(msg)}
-                                    disabled={redirecting}
-                                />
-
-                                <Button
-                                    fullWidth
-                                    variant="text"
-                                    size="large"
-                                    startIcon={<PhonelinkLock />}
-                                    onClick={() => {
+                                {/* Config-driven usernameless shortcuts (G-web).
+                                    When the login-config declares usernameless
+                                    Layer-1 methods (flag ON) each shortcut renders
+                                    strictly per the config. When it declares none
+                                    — null config OR the flag-OFF password-first
+                                    shape — `fallbackAll` keeps today's passkey +
+                                    approve buttons, so the API flag fully reverts
+                                    this with no web redeploy. */}
+                                <Layer1Shortcuts<LoginSuccessResponse>
+                                    config={loginConfig}
+                                    fallbackAll
+                                    onPasskeySuccess={handlePasskeySuccess}
+                                    onPasskeyError={(msg) => setAltError(msg)}
+                                    onApproveClick={() => {
                                         setAltError(null)
                                         setAltFlow('approveLogin')
                                     }}
                                     disabled={redirecting}
-                                    sx={{
-                                        py: 1.25,
-                                        borderRadius: '12px',
-                                        textTransform: 'none',
-                                        fontWeight: 600,
-                                    }}
-                                >
-                                    {t('approveLogin.button')}
-                                </Button>
+                                />
                             </Stack>
                         )}
                     </Stack>

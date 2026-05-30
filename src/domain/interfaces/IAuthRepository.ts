@@ -80,6 +80,17 @@ export interface IAuthRepository {
     login(credentials: LoginCredentials): Promise<AuthResponse>
 
     /**
+     * Begin an identifier-first (password-less) login flow.
+     *
+     * Used when the tenant's login-config offers a Layer-1 flow that does NOT
+     * include PASSWORD (e.g. EMAIL_OTP-first). The backend opens an MFA session
+     * for the identifier and returns the available Layer-1 methods +
+     * `mfaSessionToken`, which then drives the existing `/auth/mfa/step`
+     * machinery. POST /auth/login/begin (provisional — agent-api3 task #16).
+     */
+    beginIdentifierLogin(identifier: string, clientId?: string): Promise<AuthResponse>
+
+    /**
      * Logout user (invalidate tokens on server)
      */
     logout(): Promise<void>

@@ -853,7 +853,32 @@
     "failedToSetDefault": "Failed to set default authentication flow",
     "alreadyDefault": "This flow is already the default",
     "defaultImpactChecking": "Checking which users this affects…",
-    "defaultImpactWarning": "⚠️ {{atRisk}} of {{total}} users cannot complete this flow (missing: {{missing}}). They may be locked out of this operation."
+    "defaultImpactWarning": "⚠️ {{atRisk}} of {{total}} users cannot complete this flow (missing: {{missing}}). They may be locked out of this operation.",
+    "defaultImpactUsernamelessOnly": "⚠️ Every first-step method in this flow is usernameless (passkey / device approval). Users without an enrolled discoverable credential won't be able to start signing in.",
+    "defaultImpactNoRecovery": "⚠️ This flow has no recovery factor (such as email or SMS code). A user who loses their device may be locked out permanently."
+  },
+  "authFlowBuilder": {
+    "title": "Authentication Flow Builder",
+    "subtitle": "Create custom authentication sequences for your users",
+    "defaultFlowName": "My Authentication Flow",
+    "setDefaultForNewUsers": "Set as default flow for new users",
+    "addAuthStep": "Add Authentication Step",
+    "selectMethod": "Select Authentication Method",
+    "preview": "Flow Preview",
+    "previewEmpty": "Add steps to preview your flow",
+    "saveFlow": "Save Flow",
+    "testFlow": "Test Flow",
+    "editChoices": "Edit alternative methods",
+    "choiceEditorTitle": "Alternative methods for this step",
+    "choiceEditorHint": "The user satisfies this step by completing any one of the selected methods.",
+    "choiceBadge": "Any 1 of {{count}}",
+    "choiceDescription": "User completes any one of: {{methods}}",
+    "usernamelessFirstStep": "Allow this step without typing an identifier first (usernameless)",
+    "usernamelessBadge": "Usernameless",
+    "usernamelessCapable": "Usernameless-capable"
+  },
+  "login": {
+    "identifierFirstSubtitle": "Enter your email to continue. We'll guide you through the rest."
   },
   "devices": {
     "title": "Registered Devices",
