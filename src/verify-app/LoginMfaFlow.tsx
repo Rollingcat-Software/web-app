@@ -7,7 +7,7 @@
  * Communicates completion via onComplete callback (which sends postMessage to parent).
  */
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import {
     Alert,
     Box,
@@ -158,6 +158,28 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             onStepChange(stepIdx, selectedMethod || 'MFA', totalSteps)
         }
     }, [phase, selectedMethod, currentStep, totalSteps, onStepChange])
+
+    // loginConfig is fetched ASYNCHRONOUSLY by the parent (HostedLoginApp /
+    // LoginPage), so on first mount it is null and the `useState` initializer
+    // derived the legacy 'password' opening screen. Once the real config lands,
+    // re-derive the opening phase ONCE — but only while the user is still on that
+    // opening password screen and hasn't submitted anything, so we never pull
+    // someone out of a flow they already started. This is what actually opens
+    // engine-ON (engineActive) tenants identifier-first: without it the page
+    // stays on the null-config legacy screen even though the config says
+    // otherwise.
+    const openingPhaseSyncedRef = useRef(false)
+    useEffect(() => {
+        if (openingPhaseSyncedRef.current || !loginConfig) return
+        openingPhaseSyncedRef.current = true
+        const intended = pickInitialPhase()
+        setPhase((current) =>
+            current === FlowPhase.Password && !mfaSessionToken && !identifier.trim()
+                ? intended
+                : current,
+        )
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [loginConfig])
 
     // ─── Password Submit ────────────────────────────────────────
 
