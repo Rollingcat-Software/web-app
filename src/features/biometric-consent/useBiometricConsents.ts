@@ -17,7 +17,10 @@ export interface BiometricConsent {
     revokedAt?: string | null
 }
 
-const CONSENTS_URL = '/api/v1/identity/biometric/consents'
+// The HttpClient base URL already includes /api/v1 (VITE_API_BASE_URL), so the
+// path must be relative to it — a leading /api/v1 here doubles to /api/v1/api/v1
+// and 404s (NoResourceFoundException). Match the sibling identity hooks.
+const CONSENTS_URL = '/identity/biometric/consents'
 
 /**
  * Loads + mutates the caller's per-tenant biometric consents. Self-contained

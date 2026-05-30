@@ -176,7 +176,7 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
                         + adversarial cross-tenant security tests land. */}
                     {TENANT_SWITCHER_ENABLED && canSwitch && tenants.length > 0 && (
                         <Tooltip title={t('topbar.tenantSwitcher.tooltip')}>
-                            <FormControl size="small" sx={{ minWidth: 150, mr: 0.5, display: { xs: 'none', sm: 'block' } }}>
+                            <FormControl size="small" sx={{ minWidth: { xs: 116, sm: 150 }, mr: 0.5, display: 'block' }}>
                                 <Select
                                     value={activeTenantId ?? ''}
                                     onChange={handleTenantSwitch}
