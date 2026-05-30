@@ -77,3 +77,6 @@ packages/*/*.tgz
 
 # ONNX models — fetched at build time via scripts/fetch-models.mjs (see public/models/manifest.json)
 public/models/*.onnx
+
+# Claude Code workspace — never commit
+.claude/

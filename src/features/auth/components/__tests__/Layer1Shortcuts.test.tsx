@@ -1,8 +1,12 @@
 /**
- * Layer1Shortcuts tests — config-driven usernameless shortcut gating (G-web).
+ * Layer1Shortcuts tests — the no-email ("usernameless") shortcut cluster.
  *
- * Uses the real i18n runtime. PasskeyLoginButton is stubbed to a simple marker
- * so we assert presence/absence without exercising WebAuthn.
+ * Layer1Shortcuts now renders ONLY the passkey shortcut. "Approve on another
+ * device" is identifier-first (needs email) and is no longer a no-email peer of
+ * passkey, so it must NEVER appear here. Gating uses the config's `engineActive`
+ * flag: engine ON → render strictly per config; engine OFF / null → fallbackAll.
+ *
+ * PasskeyLoginButton is stubbed to a marker so we assert presence without WebAuthn.
  */
 import { describe, it, expect, vi } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -25,77 +29,50 @@ function renderShortcuts(config: Parameters<typeof Layer1Shortcuts>[0]['config']
             fallbackAll={fallbackAll}
             onPasskeySuccess={noop}
             onPasskeyError={noop}
-            onApproveClick={noop}
         />,
     )
 }
 
 describe('Layer1Shortcuts', () => {
-    it('shows passkey + approve when config marks them usernameless', () => {
+    it('engine ON + usernameless passkey → passkey shown, NO approve button', () => {
         const config = normalizeLoginConfig({
+            engineActive: true,
             layer1: {
                 methods: [
-                    { type: 'HARDWARE_KEY', usernameless: true },
+                    { type: 'PASSKEY', usernameless: true },
                     { type: 'QR_CODE', usernameless: true },
                 ],
             },
         })
         renderShortcuts(config)
         expect(screen.getByTestId('passkey-button')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /approve on another device/i })).toBeInTheDocument()
+        // Approve-on-another-device is identifier-first — must never render here.
+        expect(screen.queryByRole('button', { name: /approve on another device/i })).toBeNull()
     })
 
-    it('hides passkey when no usernameless passkey method is offered', () => {
+    it('engine ON but NO usernameless passkey → passkey hidden (renders nothing)', () => {
         const config = normalizeLoginConfig({
-            layer1: { methods: [{ type: 'PASSWORD' }] },
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
         })
-        const { container } = renderShortcuts(config)
+        const { container } = renderShortcuts(config, true) // fallbackAll ignored when engine ON
         expect(screen.queryByTestId('passkey-button')).toBeNull()
-        // No usernameless QR/approve either → component renders nothing.
         expect(container).toBeEmptyDOMElement()
     })
 
-    it('hides passkey shortcut when the hardware key is NOT usernameless', () => {
-        const config = normalizeLoginConfig({
-            layer1: { methods: [{ type: 'HARDWARE_KEY', usernameless: false }] },
-        })
-        renderShortcuts(config)
-        expect(screen.queryByTestId('passkey-button')).toBeNull()
-    })
-
-    it('fallbackAll shows every shortcut when config is null (fetch failed)', () => {
+    it('fallbackAll shows the passkey shortcut when config is null (fetch failed)', () => {
         renderShortcuts(null, true)
         expect(screen.getByTestId('passkey-button')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /approve on another device/i })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /approve on another device/i })).toBeNull()
     })
 
-    it('flag-OFF: a legacy password-first config with fallbackAll keeps today\'s shortcuts', () => {
-        // When app.auth.config-driven-login is OFF the API returns the current
-        // password-first shape (no usernameless semantics). With fallbackAll the
-        // existing passkey + approve buttons must NOT be dropped.
+    it('flag-OFF legacy config (engineActive false) with fallbackAll keeps the passkey shortcut', () => {
         const config = normalizeLoginConfig({
             layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
         })
         renderShortcuts(config, true)
         expect(screen.getByTestId('passkey-button')).toBeInTheDocument()
-        expect(screen.getByRole('button', { name: /approve on another device/i })).toBeInTheDocument()
-    })
-
-    it('flag-ON config that declares usernameless methods renders strictly (ignores fallbackAll)', () => {
-        // PASSWORD-first BUT with a usernameless QR explicitly declared → only the
-        // approve/QR shortcut shows; the passkey one stays hidden even with
-        // fallbackAll true, because the config positively declares the surface.
-        const config = normalizeLoginConfig({
-            layer1: {
-                methods: [
-                    { type: 'PASSWORD' },
-                    { type: 'QR_CODE', usernameless: true },
-                ],
-            },
-        })
-        renderShortcuts(config, true)
-        expect(screen.queryByTestId('passkey-button')).toBeNull()
-        expect(screen.getByRole('button', { name: /approve on another device/i })).toBeInTheDocument()
+        expect(screen.queryByRole('button', { name: /approve on another device/i })).toBeNull()
     })
 
     it('renders nothing when config is null and fallbackAll is false', () => {
