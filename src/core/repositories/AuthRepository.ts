@@ -120,7 +120,10 @@ export class AuthRepository implements IAuthRepository {
                 accessToken: data.accessToken,
                 refreshToken: data.refreshToken,
                 expiresIn: data.expiresIn || 3600,
-                user: User.fromJSON(data.user),
+                // /auth/login/begin returns NO user profile (none is exposed before
+                // a factor is proven — enumeration-safe). fromJSON tolerates a sparse
+                // object; the real identity arrives on the AUTHENTICATED response.
+                user: User.fromJSON(data.user ?? { email: identifier }),
                 // An identifier-first flow is always multi-step (no password
                 // authenticates outright); default to true if the backend omits it.
                 twoFactorRequired: data.twoFactorRequired ?? data.mfaRequired ?? true,
@@ -128,6 +131,8 @@ export class AuthRepository implements IAuthRepository {
                 mfaSessionToken: data.mfaSessionToken,
                 availableMethods: data.availableMethods,
                 completedMethods: data.completedMethods,
+                currentStep: data.currentStep,
+                totalSteps: data.totalSteps,
             }
         } catch (error) {
             this.logger.error('Identifier-first login failed', error)
