@@ -100,6 +100,24 @@ task #16 / PR #163) — never hardcode the password-first form.
 Contract is provisional (api task #16): the client normalizer absorbs
 field/casing deltas and never hard-fails.
 
+## Dashboard login step counter (2026-05-31)
+
+The dashboard (`features/auth/components/LoginPage.tsx`) is cross-tenant and used
+the platform login-config (`totalSteps=1`) + derived the total from live progress
+(`completedMfaMethods.length + 1`), so the total always equalled the current →
+password screen showed NO counter and MFA read "2/2" then "3/3". Fix: prefer the
+**backend-authoritative** flow size. The email (identifier) step calls
+`/auth/login/preflight`, which now returns the caller's resolved tenant
+login-config (api 2026-05-31); its `totalSteps` is stored in `flowTotalSteps` and
+each `/auth/mfa/step` response reaffirms it. `loginTotalSteps` prefers
+`flowTotalSteps → loginConfig.totalSteps → live progress`, so the dashboard reads
+the tenant's REAL flow (1/3, 2/3, 3/3) instead of the platform default. The
+dashboard stays password-first (the `beginIdentifierLogin`→`/auth/login/begin`
+no-password path is dead — no such endpoint); arbitrary first-factor is a future
+feature (verify.fivucsas also falls back to password). `AuthResponse` gained
+`currentStep/totalSteps`; `checkLoginEligibility()` now returns the resolved
+`LoginConfig | null`.
+
 ## Key Patterns
 
 - **i18n**: ALL strings use `t()` with keys in en.json + tr.json. NEVER hardcode English.
