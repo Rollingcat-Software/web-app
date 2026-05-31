@@ -76,11 +76,22 @@ if (isHosted || hasWidgetContext) {
             {isHosted ? <HostedLoginApp /> : <VerifyApp />}
         </React.StrictMode>
     )
-    // Hide the static landing once React has painted (CSS rule
-    // `#verify-root[data-mounted="true"] ~ #verify-landing { display:none }`).
-    // rAF avoids a flash between landing-hidden and React's first paint.
+    // Hide the static loading screen once React has painted (CSS rule
+    // `#verify-root[data-mounted="true"] ~ #verify-loading { display:none }`).
+    // rAF avoids a flash between loader-hidden and React's first paint. The
+    // integrator landing is now React-rendered (HostedLoginApp) on a bare-root
+    // visit, so on the /login + widget surfaces the static marketing landing
+    // never paints — only the loader, then the form.
     requestAnimationFrame(() => {
         rootElement.setAttribute('data-mounted', 'true')
     })
+} else {
+    // Bare direct root visit → no React surface to mount. Reveal the static
+    // integrator landing (no-JS/crawler fallback content) and hide the loading
+    // spinner, which would otherwise spin forever. The marketing landing thus
+    // appears ONLY here (the bare root), never during a /login navigation.
+    const loading = document.getElementById('verify-loading')
+    const landing = document.getElementById('verify-landing')
+    if (loading) loading.style.display = 'none'
+    if (landing) landing.style.display = 'flex'
 }
-// else: bare direct root visit → leave #verify-landing showing; nothing to mount.
