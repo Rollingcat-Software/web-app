@@ -635,6 +635,8 @@ export default function LoginPage() {
                 onAuthenticated={handleMfaResult}
                 onBackToMethodSelection={handleBackToMethodSelection}
                 onCancel={handleTwoFactorCancel}
+                stepCurrent={loginCurrentStep}
+                stepTotal={loginTotalSteps}
             />
         )
     }

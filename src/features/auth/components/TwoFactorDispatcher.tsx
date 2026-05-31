@@ -7,6 +7,7 @@ import {
 } from '@mui/material'
 import { ArrowBack } from '@mui/icons-material'
 import { motion } from 'framer-motion'
+import StepProgress from '../../../verify-app/StepProgress'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IAuthRepository, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
@@ -52,6 +53,10 @@ interface TwoFactorDispatcherProps {
     onAuthenticated: (response: MfaStepResponse) => void
     onBackToMethodSelection: () => void
     onCancel: () => void
+    /** Step/factor progress (parity with verify.fivucsas). Renders a StepProgress
+     *  bar at the top of the MFA card; hidden when total <= 1. */
+    stepCurrent?: number
+    stepTotal?: number
 }
 
 /**
@@ -67,6 +72,8 @@ export default function TwoFactorDispatcher({
     onAuthenticated,
     onBackToMethodSelection,
     onCancel: _onCancel,
+    stepCurrent,
+    stepTotal,
 }: TwoFactorDispatcherProps) {
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -387,6 +394,9 @@ export default function TwoFactorDispatcher({
                     }}
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                        {typeof stepCurrent === 'number' && typeof stepTotal === 'number' && (
+                            <StepProgress current={stepCurrent} total={stepTotal} />
+                        )}
                         {renderStep()}
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button
