@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useRef, useEffect } from 'react'
 import {
     Box,
     Card,
@@ -129,6 +129,14 @@ export function AuthFlowBuilder({
     const [flowDescription, setFlowDescription] = useState(initialDescription)
     const [isDefault, setIsDefault] = useState(initialIsDefault)
     const [showMethodPicker, setShowMethodPicker] = useState(false)
+    // UX: the method picker opens below the steps; auto-scroll it into view so
+    // the user doesn't have to hunt for it after clicking "Add Authentication Step".
+    const methodPickerRef = useRef<HTMLDivElement | null>(null)
+    useEffect(() => {
+        if (showMethodPicker) {
+            methodPickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+        }
+    }, [showMethodPicker])
     // The step whose CHOICE alternatives are being edited (id), or null.
     const [choiceEditorStepId, setChoiceEditorStepId] = useState<string | null>(null)
     const [operationType, setOperationType] = useState<OperationType>(normalizeOperationType(initialOperationType))
@@ -230,21 +238,21 @@ export function AuthFlowBuilder({
                 animate={{ opacity: 1, y: 0 }}
                 transition={{ duration: 0.4, ease: easeOut }}
             >
-                <Box sx={{ mb: 4 }}>
+                <Box sx={{ mb: 2.5 }}>
                     <Typography
-                        variant="h4"
+                        variant="h5"
                         sx={{
                             fontWeight: 700,
                             background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                             backgroundClip: 'text',
                             WebkitBackgroundClip: 'text',
                             WebkitTextFillColor: 'transparent',
-                            mb: 1,
+                            mb: 0.5,
                         }}
                     >
                         {t('authFlowBuilder.title')}
                     </Typography>
-                    <Typography variant="body1" color="text.secondary">
+                    <Typography variant="body2" color="text.secondary">
                         {t('authFlowBuilder.subtitle')}
                     </Typography>
                 </Box>
@@ -624,6 +632,7 @@ export function AuthFlowBuilder({
                                 <AnimatePresence>
                                     {showMethodPicker && (
                                         <motion.div
+                                            ref={methodPickerRef}
                                             initial={{ opacity: 0, height: 0 }}
                                             animate={{ opacity: 1, height: 'auto' }}
                                             exit={{ opacity: 0, height: 0 }}
@@ -703,10 +712,13 @@ export function AuthFlowBuilder({
 
                 {/* Flow Preview & Actions */}
                 <Grid item xs={12} md={4}>
+                    {/* UX: keep the live preview + Save/Test actions visible while the
+                        user scrolls the (often long) steps column. */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
                         transition={{ duration: 0.4, delay: 0.2, ease: easeOut }}
+                        style={{ position: 'sticky', top: 16 }}
                     >
                         {/* Preview Card */}
                         <Card sx={{ mb: 3 }}>
