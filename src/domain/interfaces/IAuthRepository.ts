@@ -1,4 +1,5 @@
 import type { User } from '@domain/models/User'
+import type { LoginConfig } from '@domain/models/LoginConfig'
 
 /**
  * Login credentials
@@ -67,6 +68,10 @@ export interface AuthResponse {
     availableMethods?: AvailableMfaMethod[]
     /** Authoritative list of already-completed AuthMethodType names (after password passes) */
     completedMethods?: string[]
+    /** 1-based index of the step the flow is now ON (backend-authoritative). */
+    currentStep?: number
+    /** Total number of steps in the resolved login flow (backend-authoritative). */
+    totalSteps?: number
 }
 
 /**
@@ -98,8 +103,14 @@ export interface IAuthRepository {
      * different tenant — so the login UI shows "not a {tenant} member" on the
      * EMAIL step instead of one step later at the password step. No password is
      * sent and no lockout counter is touched. POST /auth/login/preflight.
+     *
+     * Resolves with the caller's tenant login-config (Layer-1 methods + step
+     * count) when the backend can resolve the email to a tenant, else `null`
+     * (unknown email / older API). The cross-tenant dashboard uses it to show
+     * the real flow ("1/3") at the email step. Still REJECTS with 403
+     * `TENANT_MISMATCH` on a tenant-locked surface.
      */
-    checkLoginEligibility(identifier: string, clientId?: string): Promise<void>
+    checkLoginEligibility(identifier: string, clientId?: string): Promise<LoginConfig | null>
 
     /**
      * Logout user (invalidate tokens on server)

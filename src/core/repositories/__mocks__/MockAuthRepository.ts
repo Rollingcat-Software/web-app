@@ -53,12 +53,13 @@ export class MockAuthRepository implements IAuthRepository {
         }
     }
 
-    async checkLoginEligibility(identifier: string, _clientId?: string): Promise<void> {
+    async checkLoginEligibility(identifier: string, _clientId?: string): Promise<null> {
         if (!identifier) {
             throw new Error('Invalid identifier')
         }
         // Mock is always eligible; real tenant-mismatch is exercised in unit tests
-        // that stub the repository directly.
+        // that stub the repository directly. Returns null (no resolved config).
+        return null
     }
 
     async logout(): Promise<void> {

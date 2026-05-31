@@ -10,6 +10,11 @@ import type {
     MfaStepResponse,
 } from '@domain/interfaces/IAuthRepository'
 import { User, type UserJSON } from '@domain/models/User'
+import {
+    normalizeLoginConfig,
+    type LoginConfig,
+    type RawLoginConfig,
+} from '@domain/models/LoginConfig'
 
 /**
  * Auth API Response Types
@@ -83,6 +88,9 @@ export class AuthRepository implements IAuthRepository {
                 twoFactorMethod: data.twoFactorMethod,
                 mfaSessionToken: data.mfaSessionToken,
                 availableMethods: data.availableMethods,
+                completedMethods: data.completedMethods,
+                currentStep: data.currentStep,
+                totalSteps: data.totalSteps,
             }
 
             this.logger.info('Login successful', { userId: authResponse.user.id })
@@ -133,10 +141,17 @@ export class AuthRepository implements IAuthRepository {
      * eligibility; rethrows the backend error (HTTP 403 TENANT_MISMATCH) so the
      * caller can surface it on the email step. See T-TENANT-GATE.
      */
-    async checkLoginEligibility(identifier: string, clientId?: string): Promise<void> {
+    async checkLoginEligibility(identifier: string, clientId?: string): Promise<LoginConfig | null> {
         const body: { email: string; clientId?: string } = { email: identifier }
         if (clientId) body.clientId = clientId
-        await this.httpClient.post('/auth/login/preflight', body)
+        const res = await this.httpClient.post<{ eligible?: boolean; loginConfig?: RawLoginConfig }>(
+            '/auth/login/preflight',
+            body,
+        )
+        // The backend now returns the caller's resolved tenant login-config so the
+        // cross-tenant dashboard can render the real flow at the email step. Older
+        // API revisions return only `{eligible}` → normalize handles undefined → null.
+        return normalizeLoginConfig(res.data?.loginConfig)
     }
 
     /**
