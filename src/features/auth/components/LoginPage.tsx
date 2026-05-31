@@ -144,6 +144,8 @@ export default function LoginPage() {
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const [showPassword, setShowPassword] = useState(false)
+    // Identifier-first: false until the user passes the email step (engine ON).
+    const [passwordRevealed, setPasswordRevealed] = useState(false)
     // Tenant Layer-1 login config (D). null while loading / on failure → the UI
     // falls back to the legacy email+password form + all shortcuts.
     const [loginConfig, setLoginConfig] = useState<LoginConfig | null>(null)
@@ -306,6 +308,8 @@ export default function LoginPage() {
     const {
         control,
         handleSubmit,
+        trigger,
+        setFocus,
         formState: { errors },
     } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
@@ -625,6 +629,21 @@ export default function LoginPage() {
     // admin is never locked out by a config-endpoint outage.
     const showPasswordForm = loginConfig ? hasPasswordLayer1(loginConfig) : true
     const formBusy = loading || identifierSubmitting
+    // IDENTIFIER-FIRST (engine ON, platform login-config engineActive): the
+    // password form opens email-only; the password field + Sign in are revealed
+    // after the email step. Engine OFF ⇒ passwordRevealed irrelevant, the combined
+    // legacy form renders exactly as before (reverts with the global flag).
+    const engineActive = Boolean(loginConfig?.engineActive)
+    const identifierFirst = showPasswordForm && engineActive
+    const passwordHidden = identifierFirst && !passwordRevealed
+    // Reveal the password field after the email step (email-first). Validates only
+    // the email field; never submits the login here.
+    const revealPasswordStep = async () => {
+        const emailOk = await trigger('email')
+        if (!emailOk) return
+        setPasswordRevealed(true)
+        setTimeout(() => setFocus('password'), 0)
+    }
 
     return (
         <Box
@@ -824,7 +843,14 @@ export default function LoginPage() {
 
                         {/* Login Form (password Layer-1) */}
                         {showPasswordForm && (
-                        <form onSubmit={handleSubmit(onSubmit)} aria-label={t('auth.loginFormLabel')}>
+                        <form
+                            onSubmit={
+                                passwordHidden
+                                    ? (e) => { e.preventDefault(); void revealPasswordStep() }
+                                    : handleSubmit(onSubmit)
+                            }
+                            aria-label={t('auth.loginFormLabel')}
+                        >
                             {/* Email Field */}
                             <motion.div variants={itemVariants}>
                                 <Controller
@@ -882,7 +908,8 @@ export default function LoginPage() {
                                 />
                             </motion.div>
 
-                            {/* Password Field */}
+                            {/* Password Field — hidden on the email-first step (engine ON) */}
+                            {!passwordHidden && (
                             <motion.div variants={itemVariants}>
                                 <Controller
                                     name="password"
@@ -960,8 +987,10 @@ export default function LoginPage() {
                                     )}
                                 />
                             </motion.div>
+                            )}
 
-                            {/* Forgot Password Link */}
+                            {/* Forgot Password Link — only meaningful once the password field is shown */}
+                            {!passwordHidden && (
                             <motion.div variants={itemVariants}>
                                 <Box sx={{ textAlign: 'right', mt: 1 }}>
                                     <Link
@@ -985,11 +1014,14 @@ export default function LoginPage() {
                                     </Link>
                                 </Box>
                             </motion.div>
+                            )}
 
-                            {/* Submit Button */}
+                            {/* Submit Button — "Continue" on the email-first step (reveals
+                                password), "Sign in" once the password field is shown. */}
                             <motion.div variants={itemVariants}>
                                 <Button
-                                    type="submit"
+                                    type={passwordHidden ? 'button' : 'submit'}
+                                    onClick={passwordHidden ? revealPasswordStep : undefined}
                                     fullWidth
                                     variant="contained"
                                     size="large"
@@ -1017,6 +1049,8 @@ export default function LoginPage() {
                                 >
                                     {loading ? (
                                         <CircularProgress size={24} sx={{ color: 'white' }} />
+                                    ) : passwordHidden ? (
+                                        t('auth.continue')
                                     ) : (
                                         t('auth.signIn')
                                     )}
