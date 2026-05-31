@@ -878,9 +878,22 @@
     "choiceEditorHint": "Kullanıcı, seçili yöntemlerden herhangi birini tamamlayarak bu adımı geçer.",
     "choiceBadge": "{{count}} yöntemden 1'i",
     "choiceDescription": "Kullanıcı şunlardan herhangi birini tamamlar: {{methods}}",
-    "usernamelessFirstStep": "Bu adımın önce kimlik girilmeden çalışmasına izin ver (kullanıcı adsız)",
+    "usernamelessFirstStep": "Kullanıcı adsız girişe izin ver",
     "usernamelessBadge": "Kullanıcı adsız",
-    "usernamelessCapable": "Kullanıcı adsız desteklenir"
+    "usernamelessCapable": "Kullanıcı adsız desteklenir",
+    "usernamelessTooltip": "Geçiş anahtarı, QR kodu veya cihaz onayı, kullanıcı önce bir kimlik girmeden oturum açmayı başlatabilir.",
+    "layersTitle": "Kimlik Doğrulama Katmanları",
+    "layersHint": "Her katman, izin verilen yöntemlerden oluşan bir kümedir. Kullanıcı, herhangi birini tamamlayarak katmanı geçer.",
+    "layerLabel": "Katman {{number}}",
+    "layerAnyOneOf": "Kullanıcı bunlardan herhangi birini tamamlar",
+    "layerSingleMethod": "Zorunlu yöntem",
+    "layerSelectAtLeastOne": "En az bir yöntem seçin",
+    "layerEmptyPreview": "Yöntem seçilmedi",
+    "noLayersYet": "Henüz katman yok. Kimlik doğrulama akışınızı oluşturmaya başlamak için \"Katman Ekle\"ye tıklayın.",
+    "addLayer": "Katman Ekle",
+    "removeLayer": "Katmanı kaldır",
+    "saveDisabledNoLayers": "Kaydetmeden önce seçili bir yöntemi olan en az bir katman ekleyin.",
+    "saveDisabledEmptyLayer": "Kaydetmeden önce her katmanın en az bir seçili yöntemi olmalıdır."
   },
   "login": {
     "identifierFirstSubtitle": "Devam etmek için e-postanızı girin. Gerisinde size yol göstereceğiz."

@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react'
+import { useState, useCallback } from 'react'
 import {
     Box,
     Card,
@@ -19,29 +19,17 @@ import {
     InputLabel,
     Switch,
     FormControlLabel,
+    Checkbox,
+    FormGroup,
     type SelectChangeEvent,
 } from '@mui/material'
 import {
     Add,
     Delete,
-    DragIndicator,
-    ArrowForward,
-    Lock,
-    Email,
-    Sms,
-    PhonelinkLock,
-    QrCode2,
-    Face,
-    Fingerprint,
-    RecordVoiceOver,
-    Nfc,
-    Key,
     Save,
     PlayArrow,
-    CallSplit,
-    Close,
 } from '@mui/icons-material'
-import { motion, AnimatePresence, Reorder, Variants } from 'framer-motion'
+import { motion, AnimatePresence, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import {
     AuthMethodType,
@@ -50,7 +38,6 @@ import {
     AuthFlowStep,
     DEFAULT_AUTH_METHODS,
     OPERATION_TYPE_OPTIONS,
-    getMethodCategoryColor,
     isOperationType,
     normalizeOperationType,
 } from '@domain/models/AuthMethod'
@@ -76,7 +63,7 @@ const itemVariants: Variants = {
  * Humanized fallback label for a method type the catalog doesn't know about
  * (e.g. a backend-only method missing from DEFAULT_AUTH_METHODS). Turns
  * `APPROVE_LOGIN` → `Approve Login`, `TOTP` → `Totp`, so the builder NEVER
- * renders a blank/null step name.
+ * renders a blank/null method name.
  */
 function humanizeMethodType(type: AuthMethodType): string {
     return String(type)
@@ -86,18 +73,34 @@ function humanizeMethodType(type: AuthMethodType): string {
         .join(' ')
 }
 
-// Icon mapping
-const methodIcons: Record<string, React.ReactNode> = {
-    Lock: <Lock />,
-    Email: <Email />,
-    Sms: <Sms />,
-    PhonelinkLock: <PhonelinkLock />,
-    QrCode2: <QrCode2 />,
-    Face: <Face />,
-    Fingerprint: <Fingerprint />,
-    RecordVoiceOver: <RecordVoiceOver />,
-    Nfc: <Nfc />,
-    Key: <Key />,
+/**
+ * The ordered set of auth methods a LAYER (step) accepts. The user satisfies a
+ * layer by completing ANY ONE of these methods. This is the in-memory
+ * source-of-truth; the persisted wire shape derives from it:
+ *   authMethodType        = methods[0]
+ *   alternativeMethodTypes = methods.slice(1)
+ */
+function getLayerMethods(step: AuthFlowStep): AuthMethodType[] {
+    return [step.methodType, ...(step.alternativeMethodTypes ?? [])].filter(
+        (m): m is AuthMethodType => Boolean(m),
+    )
+}
+
+/**
+ * Write a layer's method set back onto the step, keeping the wire contract
+ * (authMethodType = first, alternativeMethodTypes = rest). An empty set leaves
+ * methodType blank — such a layer is blocked from saving (see canSave).
+ */
+function setLayerMethods(step: AuthFlowStep, methods: AuthMethodType[]): AuthFlowStep {
+    const [first, ...rest] = methods
+    return {
+        ...step,
+        methodType: (first ?? ('' as AuthMethodType)),
+        methodId: first ?? '',
+        alternativeMethodTypes: rest.length > 0 ? rest : undefined,
+        // A layer with no usernameless-capable method can't be usernameless.
+        usernameless: step.usernameless,
+    }
 }
 
 interface AuthFlowBuilderProps {
@@ -128,17 +131,6 @@ export function AuthFlowBuilder({
     const [flowName, setFlowName] = useState(initialName || t('authFlowBuilder.defaultFlowName'))
     const [flowDescription, setFlowDescription] = useState(initialDescription)
     const [isDefault, setIsDefault] = useState(initialIsDefault)
-    const [showMethodPicker, setShowMethodPicker] = useState(false)
-    // UX: the method picker opens below the steps; auto-scroll it into view so
-    // the user doesn't have to hunt for it after clicking "Add Authentication Step".
-    const methodPickerRef = useRef<HTMLDivElement | null>(null)
-    useEffect(() => {
-        if (showMethodPicker) {
-            methodPickerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-        }
-    }, [showMethodPicker])
-    // The step whose CHOICE alternatives are being edited (id), or null.
-    const [choiceEditorStepId, setChoiceEditorStepId] = useState<string | null>(null)
     const [operationType, setOperationType] = useState<OperationType>(normalizeOperationType(initialOperationType))
 
     const availableMethods = authMethods.filter((m) => m.isActive)
@@ -148,87 +140,99 @@ export function AuthFlowBuilder({
         if (!isOperationType(newType)) {
             return
         }
-        // E: password is no longer mandatory for any operation type — operation
-        // type now only categorizes the flow; it never injects/locks a step.
+        // Operation type only categorizes the flow; it never injects/locks a step.
         setOperationType(newType)
     }, [])
 
-    const addStep = useCallback((methodId: string, methodType: AuthMethodType) => {
-        const newStep: AuthFlowStep = {
-            id: `step-${Date.now()}`,
-            order: steps.length + 1,
-            methodId,
-            methodType,
-            isRequired: true,
-            timeout: 120,
-            maxAttempts: 3,
-        }
-        setSteps((prev) => [...prev, newStep])
-        setShowMethodPicker(false)
-    }, [steps.length])
-
-    const removeStep = useCallback((stepId: string) => {
-        // E: any step is removable now (password included) — no mandatory lock.
-        setSteps((prev) => {
-            const filtered = prev.filter((s) => s.id !== stepId)
-            return filtered.map((s, i) => ({ ...s, order: i + 1 }))
-        })
+    // Append a new EMPTY layer (no methods selected, required by default).
+    const addLayer = useCallback(() => {
+        setSteps((prev) => [
+            ...prev,
+            {
+                // Date.now() alone collides when two layers are added within the
+                // same millisecond → duplicate React keys + cross-layer edits.
+                id: `step-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+                order: prev.length + 1,
+                methodId: '',
+                methodType: '' as AuthMethodType,
+                isRequired: true,
+                timeout: 120,
+                maxAttempts: 3,
+            },
+        ])
     }, [])
 
-    const updateStepRequired = useCallback((stepId: string, isRequired: boolean) => {
+    const removeLayer = useCallback((stepId: string) => {
         setSteps((prev) =>
-            prev.map((s) => (s.id === stepId ? { ...s, isRequired } : s))
+            prev
+                .filter((s) => s.id !== stepId)
+                .map((s, i) => ({
+                    ...s,
+                    order: i + 1,
+                    // usernameless is only valid on Layer 1.
+                    usernameless: i === 0 ? s.usernameless : false,
+                })),
         )
     }, [])
 
-    const handleReorder = useCallback((reordered: AuthFlowStep[]) => {
-        // E: free reordering — password may sit at any position. After a reorder
-        // a usernameless flag is only valid on the new first step, so clear it
-        // from every other step.
-        setSteps(
-            reordered.map((s, i) => ({
-                ...s,
-                order: i + 1,
-                usernameless: i === 0 ? s.usernameless : false,
-            })),
-        )
+    const updateLayerRequired = useCallback((stepId: string, isRequired: boolean) => {
+        setSteps((prev) => prev.map((s) => (s.id === stepId ? { ...s, isRequired } : s)))
     }, [])
 
-    // Toggle the usernameless flag on the FIRST step (Layer 1). Only valid when
-    // the first step's method supports usernameless.
-    const toggleFirstStepUsernameless = useCallback((checked: boolean) => {
-        setSteps((prev) =>
-            prev.map((s, i) => (i === 0 ? { ...s, usernameless: checked } : s)),
-        )
-    }, [])
-
-    // Add / remove a CHOICE alternative method to a step.
-    const toggleChoiceAlternative = useCallback((stepId: string, methodType: AuthMethodType) => {
+    // Check / uncheck a method within a layer. Recomputes the wire shape
+    // (methodType = first, alternativeMethodTypes = rest) on every edit.
+    const toggleLayerMethod = useCallback((stepId: string, methodType: AuthMethodType) => {
         setSteps((prev) =>
             prev.map((s) => {
                 if (s.id !== stepId) return s
-                if (methodType === s.methodType) return s // primary can't be an alternative
-                const current = s.alternativeMethodTypes ?? []
+                const current = getLayerMethods(s)
                 const next = current.includes(methodType)
                     ? current.filter((m) => m !== methodType)
                     : [...current, methodType]
-                return { ...s, alternativeMethodTypes: next }
+                const updated = setLayerMethods(s, next)
+                // If the layer no longer contains a usernameless-capable method,
+                // drop the usernameless flag so we never persist an invalid combo.
+                const stillUsernamelessCapable = next.some((mt) =>
+                    availableMethods.find((m) => m.type === mt)?.supportsUsernameless,
+                )
+                return stillUsernamelessCapable ? updated : { ...updated, usernameless: false }
             }),
         )
+    }, [availableMethods])
+
+    // Toggle the usernameless flag on Layer 1. Only valid when Layer 1's selected
+    // methods include a usernameless-capable one.
+    const toggleFirstLayerUsernameless = useCallback((checked: boolean) => {
+        setSteps((prev) => prev.map((s, i) => (i === 0 ? { ...s, usernameless: checked } : s)))
     }, [])
 
-    const handleSave = useCallback(() => {
-        if (onSave) {
-            onSave({ name: flowName, description: flowDescription, operationType, isDefault, steps })
-        }
-    }, [onSave, flowName, flowDescription, operationType, isDefault, steps])
+    const getMethod = useCallback(
+        (methodType: AuthMethodType) => authMethods.find((m) => m.type === methodType),
+        [authMethods],
+    )
 
-    const getMethod = (methodType: AuthMethodType) =>
-        authMethods.find((m) => m.type === methodType)
+    const methodName = useCallback(
+        (methodType: AuthMethodType) => getMethod(methodType)?.name ?? humanizeMethodType(methodType),
+        [getMethod],
+    )
+
+    // Validation: every layer must have ≥1 method, and there must be ≥1 layer.
+    const emptyLayer = steps.some((s) => getLayerMethods(s).length === 0)
+    const canSave = steps.length > 0 && !emptyLayer
+
+    const handleSave = useCallback(() => {
+        if (!onSave || !canSave) return
+        // Defensive: never send a 0-method layer (would 400 the backend).
+        const payloadSteps = steps
+            .filter((s) => getLayerMethods(s).length > 0)
+            .map((s, i) => ({ ...s, order: i + 1 }))
+        onSave({ name: flowName, description: flowDescription, operationType, isDefault, steps: payloadSteps })
+    }, [onSave, canSave, flowName, flowDescription, operationType, isDefault, steps])
 
     const firstStep = steps[0]
-    const firstStepMethod = firstStep ? getMethod(firstStep.methodType) : undefined
-    const firstStepUsernamelessCapable = Boolean(firstStepMethod?.supportsUsernameless)
+    const firstLayerUsernamelessCapable = firstStep
+        ? getLayerMethods(firstStep).some((mt) => getMethod(mt)?.supportsUsernameless)
+        : false
 
     return (
         <Box>
@@ -314,306 +318,201 @@ export function AuthFlowBuilder({
 
                                 <Divider sx={{ my: 3 }} />
 
-                                {/* Flow Steps */}
+                                {/* Layers */}
                                 <Box sx={{ mb: 3 }}>
-                                    <Typography variant="h6" fontWeight={600} sx={{ mb: 2 }}>
-                                        {t('authFlows.authSteps')}
+                                    <Typography variant="h6" fontWeight={600} sx={{ mb: 0.5 }}>
+                                        {t('authFlowBuilder.layersTitle')}
                                     </Typography>
-
-                                    {/* Usernameless Layer-1 toggle (E): only when the
-                                        first step's method supports it. */}
-                                    {firstStep && firstStepUsernamelessCapable && (
-                                        <FormControlLabel
-                                            sx={{ mb: 1, display: 'block' }}
-                                            control={
-                                                <Switch
-                                                    checked={Boolean(firstStep.usernameless)}
-                                                    onChange={(e) => toggleFirstStepUsernameless(e.target.checked)}
-                                                    color="primary"
-                                                />
-                                            }
-                                            label={t('authFlowBuilder.usernamelessFirstStep')}
-                                        />
-                                    )}
+                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
+                                        {t('authFlowBuilder.layersHint')}
+                                    </Typography>
 
                                     {steps.length === 0 ? (
                                         <Alert severity="info" sx={{ borderRadius: 2 }}>
-                                            {t('authFlows.noStepsYet')}
+                                            {t('authFlowBuilder.noLayersYet')}
                                         </Alert>
                                     ) : (
-                                        <Reorder.Group
-                                            axis="y"
-                                            values={steps}
-                                            onReorder={handleReorder}
-                                            style={{ listStyle: 'none', padding: 0, margin: 0 }}
-                                        >
-                                            <AnimatePresence>
-                                                {steps.map((step, index) => {
-                                                    // Defensive: a step whose method type isn't in the
-                                                    // catalog (backend-only / newly added) still renders
-                                                    // with a humanized name + generic styling instead of
-                                                    // silently disappearing (or showing a null name).
-                                                    const method = getMethod(step.methodType) ?? {
-                                                        id: step.methodType,
-                                                        name: humanizeMethodType(step.methodType),
-                                                        type: step.methodType,
-                                                        description: humanizeMethodType(step.methodType),
-                                                        icon: 'Lock',
-                                                        platforms: [],
-                                                        isActive: true,
-                                                        category: 'BASIC' as const,
-                                                        supportsUsernameless: false,
-                                                    }
-                                                    const alternatives = step.alternativeMethodTypes ?? []
-                                                    const isChoice = alternatives.length > 0
+                                        <AnimatePresence>
+                                            {steps.map((step, index) => {
+                                                const selected = getLayerMethods(step)
+                                                const isFirst = index === 0
+                                                const hasNone = selected.length === 0
+                                                const isChoice = selected.length >= 2
 
-                                                    return (
-                                                        <Reorder.Item
-                                                            key={step.id}
-                                                            value={step}
-                                                            style={{ marginBottom: 12 }}
+                                                return (
+                                                    <motion.div
+                                                        key={step.id}
+                                                        variants={itemVariants}
+                                                        initial="hidden"
+                                                        animate="visible"
+                                                        exit="exit"
+                                                        layout
+                                                        style={{ marginBottom: 16 }}
+                                                    >
+                                                        <Paper
+                                                            elevation={0}
+                                                            sx={{
+                                                                p: 2.5,
+                                                                border: '2px solid',
+                                                                borderColor: hasNone ? 'error.light' : 'divider',
+                                                                borderRadius: 3,
+                                                            }}
                                                         >
-                                                            <motion.div
-                                                                variants={itemVariants}
-                                                                initial="hidden"
-                                                                animate="visible"
-                                                                exit="exit"
-                                                                layout
+                                                            {/* Layer header */}
+                                                            <Box
+                                                                sx={{
+                                                                    display: 'flex',
+                                                                    alignItems: 'center',
+                                                                    gap: 1.5,
+                                                                    mb: 1.5,
+                                                                }}
                                                             >
-                                                                <Paper
-                                                                    elevation={0}
+                                                                <Box
                                                                     sx={{
-                                                                        p: 2,
-                                                                        border: '2px solid',
-                                                                        borderColor: 'divider',
-                                                                        borderRadius: 3,
+                                                                        width: 32,
+                                                                        height: 32,
+                                                                        borderRadius: '50%',
+                                                                        bgcolor: 'primary.main',
+                                                                        color: 'white',
                                                                         display: 'flex',
                                                                         alignItems: 'center',
-                                                                        gap: 2,
-                                                                        cursor: 'grab',
-                                                                        transition: 'all 0.2s ease',
-                                                                        '&:hover': {
-                                                                            borderColor: 'primary.light',
-                                                                            bgcolor: 'rgba(99, 102, 241, 0.04)',
-                                                                        },
+                                                                        justifyContent: 'center',
+                                                                        fontWeight: 700,
+                                                                        fontSize: '0.875rem',
+                                                                        flexShrink: 0,
                                                                     }}
                                                                 >
-                                                                    {/* Drag Handle */}
-                                                                    <DragIndicator
-                                                                        sx={{ color: 'text.secondary', cursor: 'grab' }}
-                                                                    />
-
-                                                                    {/* Step Number */}
-                                                                    <Box
-                                                                        sx={{
-                                                                            width: 32,
-                                                                            height: 32,
-                                                                            borderRadius: '50%',
-                                                                            bgcolor: 'primary.main',
-                                                                            color: 'white',
-                                                                            display: 'flex',
-                                                                            alignItems: 'center',
-                                                                            justifyContent: 'center',
-                                                                            fontWeight: 700,
-                                                                            fontSize: '0.875rem',
-                                                                            flexShrink: 0,
-                                                                        }}
-                                                                    >
-                                                                        {index + 1}
-                                                                    </Box>
-
-                                                                    {/* Method Icon */}
-                                                                    <Box
-                                                                        sx={{
-                                                                            p: 1.5,
-                                                                            borderRadius: 2,
-                                                                            bgcolor: `${getMethodCategoryColor(method.category)}15`,
-                                                                            color: getMethodCategoryColor(method.category),
-                                                                        }}
-                                                                    >
-                                                                        {methodIcons[method.icon] || <Lock />}
-                                                                    </Box>
-
-                                                                    {/* Method Info */}
-                                                                    <Box sx={{ flex: 1, minWidth: 0 }}>
-                                                                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                                                                            <Typography variant="subtitle1" fontWeight={600}>
-                                                                                {method.name}
-                                                                            </Typography>
-                                                                            {isChoice && (
-                                                                                <Chip
-                                                                                    icon={<CallSplit sx={{ fontSize: 14 }} />}
-                                                                                    label={t('authFlowBuilder.choiceBadge', { count: alternatives.length + 1 })}
-                                                                                    size="small"
-                                                                                    color="secondary"
-                                                                                    variant="outlined"
-                                                                                    sx={{ height: 22 }}
-                                                                                />
-                                                                            )}
-                                                                            {index === 0 && step.usernameless && (
-                                                                                <Chip
-                                                                                    label={t('authFlowBuilder.usernamelessBadge')}
-                                                                                    size="small"
-                                                                                    color="info"
-                                                                                    variant="outlined"
-                                                                                    sx={{ height: 22 }}
-                                                                                />
-                                                                            )}
-                                                                        </Box>
-                                                                        <Typography variant="body2" color="text.secondary">
-                                                                            {isChoice
-                                                                                ? t('authFlowBuilder.choiceDescription', {
-                                                                                    methods: [method.type, ...alternatives]
-                                                                                        .map((mt) => getMethod(mt)?.name ?? humanizeMethodType(mt))
-                                                                                        .join(', '),
-                                                                                })
-                                                                                : method.description}
+                                                                    {index + 1}
+                                                                </Box>
+                                                                <Typography variant="subtitle1" fontWeight={600} sx={{ flex: 1 }}>
+                                                                    {t('authFlowBuilder.layerLabel', { number: index + 1 })}
+                                                                </Typography>
+                                                                <FormControlLabel
+                                                                    sx={{ mr: 0 }}
+                                                                    control={
+                                                                        <Switch
+                                                                            checked={step.isRequired}
+                                                                            onChange={(e) =>
+                                                                                updateLayerRequired(step.id, e.target.checked)
+                                                                            }
+                                                                            color="primary"
+                                                                            size="small"
+                                                                            inputProps={{
+                                                                                'aria-label': t('authFlows.required'),
+                                                                            }}
+                                                                        />
+                                                                    }
+                                                                    label={
+                                                                        <Typography variant="body2">
+                                                                            {t('authFlows.required')}
                                                                         </Typography>
-                                                                    </Box>
-
-                                                                    {/* Required Toggle */}
-                                                                    <Tooltip title={step.isRequired ? t('authFlows.required') : t('authFlows.optional')}>
-                                                                        <Chip
-                                                                            label={step.isRequired ? t('authFlows.required') : t('authFlows.optional')}
-                                                                            size="small"
-                                                                            color={step.isRequired ? 'primary' : 'default'}
-                                                                            onClick={() =>
-                                                                                updateStepRequired(step.id, !step.isRequired)
-                                                                            }
-                                                                            sx={{ cursor: 'pointer' }}
-                                                                        />
-                                                                    </Tooltip>
-
-                                                                    {/* Make this step a CHOICE ("leave choice to
-                                                                        user"). A labeled button — not a bare icon —
-                                                                        so the affordance is discoverable on EVERY
-                                                                        step/layer (incl. a 3rd), per the operator
-                                                                        report that they couldn't turn a 3rd layer
-                                                                        into a user-choice step. */}
-                                                                    <Tooltip title={t('authFlowBuilder.leaveChoiceToUserHint')}>
-                                                                        <Button
-                                                                            size="small"
-                                                                            variant={isChoice || choiceEditorStepId === step.id ? 'contained' : 'outlined'}
-                                                                            color="secondary"
-                                                                            startIcon={<CallSplit fontSize="small" />}
-                                                                            onClick={() =>
-                                                                                setChoiceEditorStepId(
-                                                                                    choiceEditorStepId === step.id ? null : step.id,
-                                                                                )
-                                                                            }
-                                                                            aria-label={t('authFlowBuilder.editChoices')}
-                                                                            sx={{ flexShrink: 0, textTransform: 'none', whiteSpace: 'nowrap' }}
-                                                                        >
-                                                                            {t('authFlowBuilder.leaveChoiceToUser')}
-                                                                        </Button>
-                                                                    </Tooltip>
-
-                                                                    {/* Delete */}
-                                                                    <Tooltip title={t('authFlows.removeStep')}>
-                                                                        <IconButton
-                                                                            size="small"
-                                                                            onClick={() => removeStep(step.id)}
-                                                                            sx={{
-                                                                                color: 'error.main',
-                                                                                '&:hover': { bgcolor: 'error.lighter' },
-                                                                            }}
-                                                                            aria-label={t('common.aria.remove')}
-                                                                        >
-                                                                            <Delete fontSize="small" />
-                                                                        </IconButton>
-                                                                    </Tooltip>
-                                                                </Paper>
-
-                                                                {/* CHOICE editor (E): pick the alternative
-                                                                    methods this step also accepts. */}
-                                                                <AnimatePresence>
-                                                                    {choiceEditorStepId === step.id && (
-                                                                        <motion.div
-                                                                            initial={{ opacity: 0, height: 0 }}
-                                                                            animate={{ opacity: 1, height: 'auto' }}
-                                                                            exit={{ opacity: 0, height: 0 }}
-                                                                            transition={{ duration: 0.25 }}
-                                                                        >
-                                                                            <Paper
-                                                                                elevation={0}
-                                                                                sx={{
-                                                                                    mt: 1,
-                                                                                    p: 2,
-                                                                                    bgcolor: 'background.default',
-                                                                                    borderRadius: 2,
-                                                                                    border: '1px dashed',
-                                                                                    borderColor: 'divider',
-                                                                                }}
-                                                                            >
-                                                                                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 1 }}>
-                                                                                    <Typography variant="subtitle2" fontWeight={600}>
-                                                                                        {t('authFlowBuilder.choiceEditorTitle')}
-                                                                                    </Typography>
-                                                                                    <IconButton
-                                                                                        size="small"
-                                                                                        onClick={() => setChoiceEditorStepId(null)}
-                                                                                        aria-label={t('common.close')}
-                                                                                    >
-                                                                                        <Close fontSize="small" />
-                                                                                    </IconButton>
-                                                                                </Box>
-                                                                                <Typography variant="caption" color="text.secondary" sx={{ display: 'block', mb: 1.5 }}>
-                                                                                    {t('authFlowBuilder.choiceEditorHint')}
-                                                                                </Typography>
-                                                                                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
-                                                                                    {availableMethods
-                                                                                        .filter((m) => m.type !== step.methodType)
-                                                                                        .map((m) => {
-                                                                                            const selected = alternatives.includes(m.type)
-                                                                                            return (
-                                                                                                <Chip
-                                                                                                    key={m.id}
-                                                                                                    label={m.name}
-                                                                                                    icon={selected ? undefined : undefined}
-                                                                                                    color={selected ? 'primary' : 'default'}
-                                                                                                    variant={selected ? 'filled' : 'outlined'}
-                                                                                                    onClick={() => toggleChoiceAlternative(step.id, m.type)}
-                                                                                                    sx={{ cursor: 'pointer' }}
-                                                                                                />
-                                                                                            )
-                                                                                        })}
-                                                                                </Box>
-                                                                            </Paper>
-                                                                        </motion.div>
-                                                                    )}
-                                                                </AnimatePresence>
-
-                                                                {/* Arrow connector */}
-                                                                {index < steps.length - 1 && (
-                                                                    <Box
+                                                                    }
+                                                                />
+                                                                <Tooltip title={t('authFlowBuilder.removeLayer')}>
+                                                                    <IconButton
+                                                                        size="small"
+                                                                        onClick={() => removeLayer(step.id)}
                                                                         sx={{
-                                                                            display: 'flex',
-                                                                            justifyContent: 'center',
-                                                                            py: 1,
+                                                                            color: 'error.main',
+                                                                            '&:hover': { bgcolor: 'error.lighter' },
                                                                         }}
+                                                                        aria-label={t('authFlowBuilder.removeLayer')}
                                                                     >
-                                                                        <ArrowForward
-                                                                            sx={{
-                                                                                color: 'primary.main',
-                                                                                transform: 'rotate(90deg)',
-                                                                            }}
+                                                                        <Delete fontSize="small" />
+                                                                    </IconButton>
+                                                                </Tooltip>
+                                                            </Box>
+
+                                                            {/* Method checkboxes — uniform tidy grid */}
+                                                            <FormGroup>
+                                                                <Grid container spacing={0.5}>
+                                                                    {availableMethods.map((method) => (
+                                                                        <Grid item xs={12} sm={6} md={4} key={method.id}>
+                                                                            <FormControlLabel
+                                                                                sx={{ width: '100%', m: 0 }}
+                                                                                control={
+                                                                                    <Checkbox
+                                                                                        size="small"
+                                                                                        checked={selected.includes(method.type)}
+                                                                                        onChange={() =>
+                                                                                            toggleLayerMethod(step.id, method.type)
+                                                                                        }
+                                                                                    />
+                                                                                }
+                                                                                label={
+                                                                                    <Typography variant="body2" noWrap>
+                                                                                        {method.name}
+                                                                                    </Typography>
+                                                                                }
+                                                                            />
+                                                                        </Grid>
+                                                                    ))}
+                                                                </Grid>
+                                                            </FormGroup>
+
+                                                            {/* Helper text reflecting the current selection */}
+                                                            <Box sx={{ mt: 1, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                                                                {hasNone ? (
+                                                                    <Typography variant="caption" color="error">
+                                                                        {t('authFlowBuilder.layerSelectAtLeastOne')}
+                                                                    </Typography>
+                                                                ) : isChoice ? (
+                                                                    <>
+                                                                        <Chip
+                                                                            label={t('authFlowBuilder.choiceBadge', { count: selected.length })}
+                                                                            size="small"
+                                                                            color="secondary"
+                                                                            variant="outlined"
+                                                                            sx={{ height: 22 }}
                                                                         />
-                                                                    </Box>
+                                                                        <Typography variant="caption" color="text.secondary">
+                                                                            {t('authFlowBuilder.layerAnyOneOf')}
+                                                                        </Typography>
+                                                                    </>
+                                                                ) : (
+                                                                    <Typography variant="caption" color="text.secondary">
+                                                                        {t('authFlowBuilder.layerSingleMethod')}
+                                                                    </Typography>
                                                                 )}
-                                                            </motion.div>
-                                                        </Reorder.Item>
-                                                    )
-                                                })}
-                                            </AnimatePresence>
-                                        </Reorder.Group>
+                                                            </Box>
+
+                                                            {/* Usernameless toggle — Layer 1 only, only when a
+                                                                usernameless-capable method is selected. */}
+                                                            {isFirst && firstLayerUsernamelessCapable && (
+                                                                <Tooltip title={t('authFlowBuilder.usernamelessTooltip')}>
+                                                                    <FormControlLabel
+                                                                        sx={{ mt: 1, display: 'block' }}
+                                                                        control={
+                                                                            <Switch
+                                                                                checked={Boolean(step.usernameless)}
+                                                                                onChange={(e) =>
+                                                                                    toggleFirstLayerUsernameless(e.target.checked)
+                                                                                }
+                                                                                color="primary"
+                                                                                size="small"
+                                                                            />
+                                                                        }
+                                                                        label={
+                                                                            <Typography variant="body2">
+                                                                                {t('authFlowBuilder.usernamelessFirstStep')}
+                                                                            </Typography>
+                                                                        }
+                                                                    />
+                                                                </Tooltip>
+                                                            )}
+                                                        </Paper>
+                                                    </motion.div>
+                                                )
+                                            })}
+                                        </AnimatePresence>
                                     )}
                                 </Box>
 
-                                {/* Add Step Button */}
+                                {/* Add Layer Button */}
                                 <Button
                                     variant="outlined"
                                     startIcon={<Add />}
-                                    onClick={() => setShowMethodPicker(true)}
+                                    onClick={addLayer}
                                     fullWidth
                                     sx={{
                                         py: 1.5,
@@ -625,86 +524,8 @@ export function AuthFlowBuilder({
                                         },
                                     }}
                                 >
-                                    {t('authFlowBuilder.addAuthStep')}
+                                    {t('authFlowBuilder.addLayer')}
                                 </Button>
-
-                                {/* Method Picker */}
-                                <AnimatePresence>
-                                    {showMethodPicker && (
-                                        <motion.div
-                                            ref={methodPickerRef}
-                                            initial={{ opacity: 0, height: 0 }}
-                                            animate={{ opacity: 1, height: 'auto' }}
-                                            exit={{ opacity: 0, height: 0 }}
-                                            transition={{ duration: 0.3 }}
-                                        >
-                                            <Paper
-                                                elevation={0}
-                                                sx={{
-                                                    mt: 2,
-                                                    p: 2,
-                                                    bgcolor: 'background.default',
-                                                    borderRadius: 3,
-                                                }}
-                                            >
-                                                <Typography
-                                                    variant="subtitle2"
-                                                    fontWeight={600}
-                                                    sx={{ mb: 2 }}
-                                                >
-                                                    {t('authFlowBuilder.selectMethod')}
-                                                </Typography>
-                                                <Grid container spacing={1.5}>
-                                                    {availableMethods.map((method) => (
-                                                        <Grid item xs={6} sm={4} key={method.id}>
-                                                            <Paper
-                                                                elevation={0}
-                                                                sx={{
-                                                                    p: 2,
-                                                                    border: '1px solid',
-                                                                    borderColor: 'divider',
-                                                                    borderRadius: 2,
-                                                                    cursor: 'pointer',
-                                                                    transition: 'all 0.2s ease',
-                                                                    '&:hover': {
-                                                                        borderColor: getMethodCategoryColor(
-                                                                            method.category
-                                                                        ),
-                                                                        bgcolor: `${getMethodCategoryColor(method.category)}08`,
-                                                                        transform: 'translateY(-2px)',
-                                                                    },
-                                                                }}
-                                                                onClick={() =>
-                                                                    addStep(method.id, method.type)
-                                                                }
-                                                            >
-                                                                <Box
-                                                                    sx={{
-                                                                        color: getMethodCategoryColor(method.category),
-                                                                        mb: 1,
-                                                                    }}
-                                                                >
-                                                                    {methodIcons[method.icon] || <Lock />}
-                                                                </Box>
-                                                                <Typography
-                                                                    variant="body2"
-                                                                    fontWeight={600}
-                                                                >
-                                                                    {method.name}
-                                                                </Typography>
-                                                                {method.supportsUsernameless && (
-                                                                    <Typography variant="caption" color="text.secondary">
-                                                                        {t('authFlowBuilder.usernamelessCapable')}
-                                                                    </Typography>
-                                                                )}
-                                                            </Paper>
-                                                        </Grid>
-                                                    ))}
-                                                </Grid>
-                                            </Paper>
-                                        </motion.div>
-                                    )}
-                                </AnimatePresence>
                             </CardContent>
                         </Card>
                     </motion.div>
@@ -713,7 +534,7 @@ export function AuthFlowBuilder({
                 {/* Flow Preview & Actions */}
                 <Grid item xs={12} md={4}>
                     {/* UX: keep the live preview + Save/Test actions visible while the
-                        user scrolls the (often long) steps column. */}
+                        user scrolls the (often long) layers column. */}
                     <motion.div
                         initial={{ opacity: 0, y: 20 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -734,13 +555,11 @@ export function AuthFlowBuilder({
                                 ) : (
                                     <Box>
                                         {steps.map((step, index) => {
-                                            const method = getMethod(step.methodType)
-                                            const alternatives = step.alternativeMethodTypes ?? []
-                                            const label = alternatives.length > 0
-                                                ? [step.methodType, ...alternatives]
-                                                    .map((mt) => getMethod(mt)?.name ?? humanizeMethodType(mt))
-                                                    .join(' / ')
-                                                : method?.name
+                                            const selected = getLayerMethods(step)
+                                            const label =
+                                                selected.length > 0
+                                                    ? selected.map(methodName).join(' / ')
+                                                    : t('authFlowBuilder.layerEmptyPreview')
                                             return (
                                                 <Box
                                                     key={step.id}
@@ -756,7 +575,7 @@ export function AuthFlowBuilder({
                                                             width: 28,
                                                             height: 28,
                                                             borderRadius: '50%',
-                                                            bgcolor: 'primary.main',
+                                                            bgcolor: selected.length > 0 ? 'primary.main' : 'error.main',
                                                             color: 'white',
                                                             display: 'flex',
                                                             alignItems: 'center',
@@ -788,12 +607,19 @@ export function AuthFlowBuilder({
 
                         {/* Actions */}
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+                            {!canSave && (
+                                <Alert severity="info" sx={{ borderRadius: 2 }}>
+                                    {steps.length === 0
+                                        ? t('authFlowBuilder.saveDisabledNoLayers')
+                                        : t('authFlowBuilder.saveDisabledEmptyLayer')}
+                                </Alert>
+                            )}
                             <Button
                                 variant="contained"
                                 size="large"
                                 startIcon={<Save />}
                                 onClick={handleSave}
-                                disabled={steps.length === 0}
+                                disabled={!canSave}
                                 sx={{
                                     py: 1.5,
                                     background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
@@ -805,7 +631,7 @@ export function AuthFlowBuilder({
                                 variant="outlined"
                                 size="large"
                                 startIcon={<PlayArrow />}
-                                disabled={steps.length === 0}
+                                disabled={!canSave}
                             >
                                 {t('authFlowBuilder.testFlow')}
                             </Button>

@@ -32,10 +32,18 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
 - `src/features/auth/constants.ts` - Centralized enums: AuthMethodType, MfaStepStatus, WEBAUTHN, AUTH_API
 - `src/features/auth/webauthn-utils.ts` - Shared WebAuthn: resolveChallenge, mapWebAuthnError, base64 helpers
 - `src/features/authFlows/` - Auth flow builder and management. The builder
-  (`AuthFlowBuilder.tsx`) treats **password as a normal removable + reorderable
-  method** (no mandatory-password lock), supports **CHOICE steps** (pick N
-  one-of alternative methods per step → `alternativeMethodTypes`) and a
-  **usernameless Layer-1 toggle** gated by `AuthMethod.supportsUsernameless`.
+  (`AuthFlowBuilder.tsx`, redesigned to a simpler **layer** model) renders a
+  flow as an ordered list of LAYERS. Each layer is a **set of allowed methods**
+  picked via uniform **checkboxes** + a **Required** switch; the user satisfies
+  a layer by completing ANY ONE of its methods (1 method = mandatory single
+  factor, 2+ = a "any one of" choice). There is no special primary method and
+  no method-picker/CallSplit affordance. A **usernameless** switch appears on
+  Layer 1 only when a selected method is `AuthMethod.supportsUsernameless`.
+  The wire contract is unchanged: a layer's method set persists as
+  `authMethodType` = set[0] + `alternativeMethodTypes` = set.slice(1) (mapped in
+  `AuthFlowsPage.tsx`); single-method layers send no `alternativeMethodTypes`.
+  Save is disabled when any layer has 0 methods or there are 0 layers, and a
+  0-method layer is never sent.
 - `src/core/repositories/` - API repository implementations
 - `src/domain/models/` - Domain models
 - `src/core/di/` - InversifyJS DI container and TYPES
