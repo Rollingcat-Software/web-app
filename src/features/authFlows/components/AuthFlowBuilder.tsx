@@ -364,6 +364,11 @@ export function AuthFlowBuilder({
                                                                     alignItems: 'center',
                                                                     gap: 1.5,
                                                                     mb: 1.5,
+                                                                    // Wrap on narrow/mobile screens so the Required switch
+                                                                    // and the remove-layer (trash) button never overflow
+                                                                    // off-screen (mobile Brave: trash was unreachable).
+                                                                    flexWrap: 'wrap',
+                                                                    rowGap: 1,
                                                                 }}
                                                             >
                                                                 <Box
