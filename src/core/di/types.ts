@@ -51,7 +51,6 @@ export const TYPES = {
 
     // User Enrollment
     UserEnrollmentRepository: Symbol.for('UserEnrollmentRepository'),
-    UserEnrollmentService: Symbol.for('UserEnrollmentService'),
 
     // Password
     PasswordService: Symbol.for('PasswordService'),

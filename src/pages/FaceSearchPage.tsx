@@ -13,7 +13,7 @@ import {
     Typography,
 } from '@mui/material'
 import { CameraAlt, CameraswitchOutlined, Face, PersonSearch, Refresh } from '@mui/icons-material'
-import { useCamera } from '@features/userEnrollment/hooks/useCamera'
+import { useCamera } from '@hooks/useCamera'
 import { useFaceSearch } from '@hooks/useFaceSearch'
 import { useAuth } from '@features/auth/hooks/useAuth'
 import { useTranslation } from 'react-i18next'

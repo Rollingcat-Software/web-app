@@ -24,7 +24,7 @@ import {
     Typography,
 } from '@mui/material'
 import { CameraAlt, CameraswitchOutlined, CreditCard, Refresh } from '@mui/icons-material'
-import { useCamera } from '@features/userEnrollment/hooks/useCamera'
+import { useCamera } from '@hooks/useCamera'
 import { useCardDetection } from '@hooks/useCardDetection'
 import { useTranslation } from 'react-i18next'
 
