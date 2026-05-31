@@ -150,6 +150,12 @@ export default function LoginPage() {
     // Tenant Layer-1 login config (D). null while loading / on failure → the UI
     // falls back to the legacy email+password form + all shortcuts.
     const [loginConfig, setLoginConfig] = useState<LoginConfig | null>(null)
+    // Backend-authoritative total step count for the resolved login flow. Set
+    // from the identifier-step preflight (the caller's ACTUAL tenant flow) and
+    // from each /auth/mfa/step response, so the step indicator shows the real
+    // "1/N, 2/N, 3/N" instead of deriving the total from live progress (which
+    // made it read 2/2, 3/3) or the platform login-config (totalSteps=1).
+    const [flowTotalSteps, setFlowTotalSteps] = useState<number | null>(null)
     // The identifier typed when Layer 1 has no PASSWORD method (config-driven).
     const [identifier, setIdentifier] = useState('')
     const [identifierSubmitting, setIdentifierSubmitting] = useState(false)
@@ -410,6 +416,8 @@ export default function LoginPage() {
     }
 
     const handleMfaResult = useCallback(async (response: MfaStepResponse) => {
+        // Keep the step indicator anchored to the backend's authoritative total.
+        if (response.totalSteps) setFlowTotalSteps(response.totalSteps)
         if (response.status === 'AUTHENTICATED' && response.accessToken) {
             // ALL steps complete — store tokens and navigate to dashboard
             await tokenService.storeTokens({
@@ -513,8 +521,13 @@ export default function LoginPage() {
     // paths (password done → showing MFA factor 2; identifier typed → showing factor 1).
     const mfaInProgress = showMethodPicker || showSecondaryAuth
     const loginCurrentStep = mfaInProgress ? completedMfaMethods.length + 1 : 1
+    // Total prefers the backend-authoritative flow size: `flowTotalSteps` is set
+    // from the identifier-step preflight (resolves the caller's real tenant flow)
+    // and from each /auth/mfa/step response. Falls back to the (platform)
+    // login-config, then to the live progress so the bar can never read fewer
+    // steps than we have already taken.
     const loginTotalSteps = Math.max(
-        loginConfig?.totalSteps ?? 1,
+        flowTotalSteps ?? loginConfig?.totalSteps ?? 1,
         mfaInProgress ? completedMfaMethods.length + 1 : 1,
     )
 
@@ -671,6 +684,17 @@ export default function LoginPage() {
         if (!emailOk) return
         setPasswordRevealed(true)
         setTimeout(() => setFocus('password'), 0)
+        // Resolve the caller's ACTUAL tenant flow from their email so the step
+        // indicator shows the real "1/N" (not the platform totalSteps=1) the
+        // moment the password screen appears. Best-effort + non-blocking: the
+        // dashboard is cross-tenant with no tenant-lock, so preflight normally
+        // just succeeds; a failure must never gate the password step.
+        try {
+            const resolved = await authRepository.checkLoginEligibility(getValues('email'))
+            if (resolved?.totalSteps) setFlowTotalSteps(resolved.totalSteps)
+        } catch {
+            /* tenant-mismatch / network — keep the platform default */
+        }
     }
 
     return (
