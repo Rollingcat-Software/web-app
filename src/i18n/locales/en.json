@@ -878,9 +878,22 @@
     "choiceEditorHint": "The user satisfies this step by completing any one of the selected methods.",
     "choiceBadge": "Any 1 of {{count}}",
     "choiceDescription": "User completes any one of: {{methods}}",
-    "usernamelessFirstStep": "Allow this step without typing an identifier first (usernameless)",
+    "usernamelessFirstStep": "Allow usernameless login",
     "usernamelessBadge": "Usernameless",
-    "usernamelessCapable": "Usernameless-capable"
+    "usernamelessCapable": "Usernameless-capable",
+    "usernamelessTooltip": "Passkey, QR code, or device approval can start sign-in without the user typing an identifier first.",
+    "layersTitle": "Authentication Layers",
+    "layersHint": "Each layer is a set of allowed methods. The user satisfies a layer by completing any one of them.",
+    "layerLabel": "Layer {{number}}",
+    "layerAnyOneOf": "User completes any one of these",
+    "layerSingleMethod": "Required method",
+    "layerSelectAtLeastOne": "Select at least one method",
+    "layerEmptyPreview": "No method selected",
+    "noLayersYet": "No layers yet. Click \"Add Layer\" to start building your authentication flow.",
+    "addLayer": "Add Layer",
+    "removeLayer": "Remove layer",
+    "saveDisabledNoLayers": "Add at least one layer with a selected method before saving.",
+    "saveDisabledEmptyLayer": "Every layer must have at least one selected method before saving."
   },
   "login": {
     "identifierFirstSubtitle": "Enter your email to continue. We'll guide you through the rest."
