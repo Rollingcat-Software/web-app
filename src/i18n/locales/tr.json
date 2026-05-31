@@ -1758,7 +1758,8 @@
     "missingParams": "Bu giriş bağlantısı eksik. Lütfen geldiğiniz siteye dönüp yeniden başlayın."
   },
   "hosted": {
-    "loadingApp": "Yükleniyor…",
+    "loadingApp": "Giriş yapılıyor…",
+    "signinLinkIncomplete": "Otomatik olarak yönlendirilmezseniz, geldiğiniz uygulamaya dönüp oradan giriş yapın.",
     "signingInTo": "{{tenant}} hesabına giriş yapılıyor",
     "signingInToClient": "{{client}} uygulamasına giriş yapılıyor",
     "securedBy": "FIVUCSAS tarafından güvence altında",
