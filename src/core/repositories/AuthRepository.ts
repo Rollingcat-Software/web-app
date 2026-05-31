@@ -128,6 +128,18 @@ export class AuthRepository implements IAuthRepository {
     }
 
     /**
+     * Identifier-first pre-flight: ask the backend whether this email may sign in
+     * on the (tenant-bound) hosted surface, WITHOUT a password. Resolves on
+     * eligibility; rethrows the backend error (HTTP 403 TENANT_MISMATCH) so the
+     * caller can surface it on the email step. See T-TENANT-GATE.
+     */
+    async checkLoginEligibility(identifier: string, clientId?: string): Promise<void> {
+        const body: { email: string; clientId?: string } = { email: identifier }
+        if (clientId) body.clientId = clientId
+        await this.httpClient.post('/auth/login/preflight', body)
+    }
+
+    /**
      * Logout (invalidate tokens on server)
      */
     async logout(): Promise<void> {
