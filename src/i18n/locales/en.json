@@ -872,6 +872,8 @@
     "saveFlow": "Save Flow",
     "testFlow": "Test Flow",
     "editChoices": "Edit alternative methods",
+    "leaveChoiceToUser": "Choice",
+    "leaveChoiceToUserHint": "Let the user pick one of several methods for this step",
     "choiceEditorTitle": "Alternative methods for this step",
     "choiceEditorHint": "The user satisfies this step by completing any one of the selected methods.",
     "choiceBadge": "Any 1 of {{count}}",

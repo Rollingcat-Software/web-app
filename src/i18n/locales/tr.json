@@ -872,6 +872,8 @@
     "saveFlow": "Akışı Kaydet",
     "testFlow": "Akışı Test Et",
     "editChoices": "Alternatif yöntemleri düzenle",
+    "leaveChoiceToUser": "Seçim",
+    "leaveChoiceToUserHint": "Bu adım için kullanıcının birkaç yöntemden birini seçmesine izin ver",
     "choiceEditorTitle": "Bu adım için alternatif yöntemler",
     "choiceEditorHint": "Kullanıcı, seçili yöntemlerden herhangi birini tamamlayarak bu adımı geçer.",
     "choiceBadge": "{{count}} yöntemden 1'i",
