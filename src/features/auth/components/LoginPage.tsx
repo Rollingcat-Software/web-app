@@ -48,6 +48,7 @@ import { TYPES } from '@core/di/types'
 import { config as envConfig } from '@config/env'
 import { fetchLoginConfig } from '../login-config'
 import { hasPasswordLayer1, type LoginConfig } from '@domain/models/LoginConfig'
+import StepProgress from '../../../verify-app/StepProgress'
 
 /**
  * Login form validation schema
@@ -498,6 +499,16 @@ export default function LoginPage() {
         [completeTokenLogin],
     )
 
+    // Step/layer progress (parity with verify.fivucsas LoginMfaFlow). Total
+    // comes from the tenant login-config (fallback 1 → StepProgress renders
+    // nothing for single-factor flows). Current step is 1 on the Layer-1
+    // entry screen and advances as MFA factors complete: each entry in
+    // `completedMfaMethods` is a cleared factor, so the user is working on the
+    // next one. Clamped inside StepProgress so it can never exceed total.
+    const loginTotalSteps = loginConfig?.totalSteps ?? 1
+    const mfaInProgress = showMethodPicker || showSecondaryAuth
+    const loginCurrentStep = mfaInProgress ? completedMfaMethods.length + 1 : 1
+
     // Approve-login (number-matching) panel — full-screen, same glass card shell
     // as the other interstitials so the surface reads consistently.
     if (showApproveLogin) {
@@ -591,6 +602,7 @@ export default function LoginPage() {
                     }}
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                        <StepProgress current={loginCurrentStep} total={loginTotalSteps} />
                         <MethodPickerStep
                             availableMethods={availableMethods}
                             onMethodSelected={handleMethodSelected}
@@ -788,6 +800,12 @@ export default function LoginPage() {
                                 </Alert>
                             </motion.div>
                         )}
+
+                        {/* Step/layer progress — parity with verify.fivucsas so
+                            the user sees which layer they're on. Renders nothing
+                            for single-factor flows (total <= 1). Shown on both the
+                            identifier-first and legacy Layer-1 screens. */}
+                        <StepProgress current={loginCurrentStep} total={loginTotalSteps} />
 
                         {/* Identifier-first entry (D): rendered when the tenant
                             login-config has NO password Layer-1 method. Collects
