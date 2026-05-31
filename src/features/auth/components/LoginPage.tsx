@@ -505,11 +505,14 @@ export default function LoginPage() {
     // MFA is active we KNOW there are >=2 steps, so derive the total from the live
     // flow (password + the MFA factor in progress) — otherwise the indicator would
     // never appear on the dashboard (StepProgress hides when total<=1).
+    // completedMfaMethods includes PASSWORD (the completed Layer-1 factor), so its
+    // length already counts the steps done; the factor in progress is the next one.
+    // password = step 1 → EMAIL_OTP = step 2, etc.
     const mfaInProgress = showMethodPicker || showSecondaryAuth
-    const loginCurrentStep = mfaInProgress ? completedMfaMethods.length + 2 : 1
+    const loginCurrentStep = mfaInProgress ? completedMfaMethods.length + 1 : 1
     const loginTotalSteps = Math.max(
         loginConfig?.totalSteps ?? 1,
-        mfaInProgress ? completedMfaMethods.length + 2 : 1,
+        mfaInProgress ? completedMfaMethods.length + 1 : 1,
     )
 
     // Approve-login (number-matching) panel — full-screen, same glass card shell
