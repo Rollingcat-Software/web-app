@@ -634,11 +634,14 @@ export default function LoginPage() {
                 >
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                         <StepProgress current={loginCurrentStep} total={loginTotalSteps} />
+                        {/* Show ALL configured Layer methods; not-yet-enrolled ones
+                            (Hardware Key / Passkey / Approve) render disabled with a
+                            "set up" hint (operator choice — every configured method is
+                            visible). NO hideNonEnrolled. */}
                         <MethodPickerStep
                             availableMethods={availableMethods}
                             onMethodSelected={handleMethodSelected}
                             excludeMethods={completedMfaMethods}
-                            hideNonEnrolled
                         />
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button
@@ -687,6 +690,15 @@ export default function LoginPage() {
     // (like verify.fivucsas) render it read-only with a "Change" affordance and
     // show the password ALONE — NOT a second editable email field above it.
     const showEmailAsChip = identifierFirst && passwordRevealed
+    // Usernameless shortcuts (passkey / approve-on-another-device) are
+    // ALTERNATIVES to typing an identifier, so they belong ONLY on the initial
+    // identity-entry screen: the email-first step (engine ON, before the email is
+    // submitted) or the legacy single email+password form (engine OFF). Once the
+    // user commits to the identifier path (email submitted → passwordRevealed),
+    // they're redundant and confusing, so we hide them. "Change email" resets
+    // passwordRevealed=false, so they correctly reappear on the email screen.
+    const onInitialIdentityEntry = !passwordRevealed
+    const showUsernamelessShortcuts = onInitialIdentityEntry
     // Email step → resolve the tenant's Layer-1 and let the user pick ANY allowed
     // first factor (not just password). Calls /auth/login/begin: when Layer-1 is a
     // CHOICE with >1 method we open a step-1 session and show the method picker;
@@ -1184,14 +1196,9 @@ export default function LoginPage() {
                             strictly per the tenant login-config; on a config
                             failure (loginConfig === null) `fallbackAll` keeps the
                             legacy passkey + approve buttons. */}
-                        {/* Usernameless shortcuts (passkey / approve-on-another-device)
-                            are ALTERNATIVES to typing an identifier — they resolve the
-                            user without an email. Once the user has committed to the
-                            identifier path (passed the email step → passwordRevealed),
-                            they're redundant/confusing, so hide them then. They show on
-                            the initial entry screen (identifier-first email step or the
-                            legacy combined form) only. */}
-                        {!passwordRevealed && (
+                        {/* Usernameless shortcuts only on the initial identity-entry
+                            screen — rationale in `showUsernamelessShortcuts` above. */}
+                        {showUsernamelessShortcuts && (
                         <motion.div variants={itemVariants}>
                             <Layer1Shortcuts<{ accessToken?: string | null; refreshToken?: string | null }>
                                 config={loginConfig}
