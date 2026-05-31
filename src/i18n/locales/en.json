@@ -1758,7 +1758,8 @@
     "missingParams": "This sign-in link is incomplete. Please return to the original site and start again."
   },
   "hosted": {
-    "loadingApp": "Loading…",
+    "loadingApp": "Signing you in…",
+    "signinLinkIncomplete": "If you're not redirected automatically, return to the app you came from and sign in there.",
     "signingInTo": "Signing in to {{tenant}}",
     "signingInToClient": "Signing in to {{client}}",
     "securedBy": "Secured by FIVUCSAS",

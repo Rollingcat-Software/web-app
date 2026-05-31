@@ -149,11 +149,49 @@ describe('HostedLoginApp — B8 surface behavior', () => {
         resetEnv()
     })
 
-    it('missing client_id → renders IntegratorLanding (no API call)', async () => {
-        // P1-1 (SENIOR_UIUX_REVIEW_2026-05-04): cold-load with no/partial OAuth
-        // params now renders the friendly Integrator Landing card instead of a
-        // red "Missing parameters" error. Verifies the title + section copy.
+    it('missing client_id on /login → sign-in loading screen, NOT the integrator landing (no API call)', async () => {
+        // Reaching the /login route without OAuth params means a sign-in was
+        // intended (e.g. a tenant redirect mid-navigation). We show a sign-in
+        // loading screen + recovery hint, NOT the developer integrator landing
+        // (which read as a marketing intro flashing during navigation). The
+        // landing is reserved for the bare root path (see test below).
         setLocation('?redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb')
+
+        render(<HostedLoginApp />)
+
+        await waitFor(() => {
+            expect(screen.getByText(/return to the app you came from/i)).toBeInTheDocument()
+        })
+        expect(screen.queryByText(/Hosted sign-in surface/i)).not.toBeInTheDocument()
+        // No meta fetch should have fired
+        expect(mockHttpGet).not.toHaveBeenCalled()
+    })
+
+    it('missing redirect_uri on /login → sign-in loading screen, not the landing', async () => {
+        setLocation('?client_id=c1')
+
+        render(<HostedLoginApp />)
+
+        await waitFor(() => {
+            expect(screen.getByText(/return to the app you came from/i)).toBeInTheDocument()
+        })
+        expect(screen.queryByText(/Hosted sign-in surface/i)).not.toBeInTheDocument()
+        expect(mockHttpGet).not.toHaveBeenCalled()
+    })
+
+    it('bare ROOT path with no params → renders the integrator landing', async () => {
+        // The developer-facing integrator landing stays on the bare root only.
+        const url = new URL('https://verify.fivucsas.com/')
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            writable: true,
+            value: {
+                href: url.href, origin: url.origin, pathname: url.pathname,
+                search: '', hash: '', host: url.host, hostname: url.hostname,
+                port: url.port, protocol: url.protocol,
+                assign: vi.fn(), replace: vi.fn(), reload: vi.fn(),
+            },
+        })
 
         render(<HostedLoginApp />)
 
@@ -161,18 +199,6 @@ describe('HostedLoginApp — B8 surface behavior', () => {
             expect(screen.getByText(/Hosted sign-in surface/i)).toBeInTheDocument()
         })
         expect(screen.getByText(/What this surface does/i)).toBeInTheDocument()
-        // No meta fetch should have fired
-        expect(mockHttpGet).not.toHaveBeenCalled()
-    })
-
-    it('missing redirect_uri → renders IntegratorLanding', async () => {
-        setLocation('?client_id=c1')
-
-        render(<HostedLoginApp />)
-
-        await waitFor(() => {
-            expect(screen.getByText(/Hosted sign-in surface/i)).toBeInTheDocument()
-        })
         expect(mockHttpGet).not.toHaveBeenCalled()
     })
 

@@ -357,19 +357,25 @@ export default function HostedLoginApp() {
             .then((res) => {
                 if (cancelled) return
                 setClientMeta(res.data)
-                setMetaLoading(false)
             })
             .then(() => {
-                // Fetch the tenant Layer-1 login config (D). Non-blocking: a
-                // failure leaves `loginConfig` null and the UI falls back to the
-                // legacy email+password+shortcuts surface. The hosted URL only
-                // carries client_id (no tenantId), so we forward it as the
-                // fallback identifier — login-config.ts maps it to the query
-                // param the API accepts (pending api task #16 param confirmation).
-                if (cancelled) return
-                void fetchLoginConfig(httpClient, { clientId: config.clientId }).then((cfg) => {
+                // Resolve the tenant Layer-1 login config (D) BEFORE we drop the
+                // loading spinner, so the FIRST painted form is already the correct
+                // shape (identifier-first when the engine is on) instead of flashing
+                // the password-first form and visibly swapping to email-first while
+                // a tenant redirect (demo.fivucsas → here) is "navigating". A config
+                // failure leaves `loginConfig` null → the UI falls back to the legacy
+                // email+password+shortcuts surface. fetchLoginConfig never rejects
+                // (returns null on any failure), so this can't strand the spinner.
+                // The hosted URL only carries client_id (no tenantId), forwarded as
+                // the fallback identifier (login-config.ts maps it to the query param).
+                if (cancelled) return undefined
+                return fetchLoginConfig(httpClient, { clientId: config.clientId }).then((cfg) => {
                     if (!cancelled) setLoginConfig(cfg)
                 })
+            })
+            .then(() => {
+                if (!cancelled) setMetaLoading(false)
             })
             .catch((err: unknown) => {
                 if (cancelled) return
@@ -629,6 +635,36 @@ export default function HostedLoginApp() {
     }
 
     if (paramsMissing) {
+        // The developer-facing integrator landing ("HOSTED SIGN-IN SURFACE / no
+        // OAuth parameters") belongs on the bare ROOT only. Reaching the /login
+        // route (or any non-root path) without OAuth params means a SIGN-IN was
+        // intended — e.g. a tenant redirect mid-navigation or a stale/bookmarked
+        // /login — so show a sign-in loading screen + recovery hint instead of the
+        // marketing landing flashing during navigation to the hosted login.
+        const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
+        const isRootPath = pathname === '/' || pathname === ''
+        if (!isRootPath) {
+            return (
+                <ThemeProvider theme={theme}>
+                    <CssBaseline />
+                    <HostedFrame>
+                        <Stack alignItems="center" spacing={2} sx={{ py: 6 }}>
+                            <CircularProgress size={32} thickness={4} />
+                            <Typography variant="body2" color="text.secondary" fontWeight={500}>
+                                {t('hosted.loadingApp')}
+                            </Typography>
+                            <Typography
+                                variant="caption"
+                                color="text.secondary"
+                                sx={{ textAlign: 'center', maxWidth: 320 }}
+                            >
+                                {t('hosted.signinLinkIncomplete')}
+                            </Typography>
+                        </Stack>
+                    </HostedFrame>
+                </ThemeProvider>
+            )
+        }
         return (
             <ThemeProvider theme={theme}>
                 <CssBaseline />
