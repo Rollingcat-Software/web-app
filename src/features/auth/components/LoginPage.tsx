@@ -310,6 +310,7 @@ export default function LoginPage() {
         handleSubmit,
         trigger,
         setFocus,
+        getValues,
         formState: { errors },
     } = useForm<LoginFormData>({
         resolver: zodResolver(loginSchema),
@@ -636,6 +637,10 @@ export default function LoginPage() {
     const engineActive = Boolean(loginConfig?.engineActive)
     const identifierFirst = showPasswordForm && engineActive
     const passwordHidden = identifierFirst && !passwordRevealed
+    // Step 2 of identifier-first: the email was already collected on step 1, so
+    // (like verify.fivucsas) render it read-only with a "Change" affordance and
+    // show the password ALONE — NOT a second editable email field above it.
+    const showEmailAsChip = identifierFirst && passwordRevealed
     // Reveal the password field after the email step (email-first). Validates only
     // the email field; never submits the login here.
     const revealPasswordStep = async () => {
@@ -851,7 +856,36 @@ export default function LoginPage() {
                             }
                             aria-label={t('auth.loginFormLabel')}
                         >
-                            {/* Email Field */}
+                            {/* Step 2 (identifier-first): read-only identity chip + "Change",
+                                so the password is the only input — mirrors verify.fivucsas. */}
+                            {showEmailAsChip && (
+                                <motion.div variants={itemVariants}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1, mb: 0.5 }}>
+                                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, overflow: 'hidden' }}>
+                                            <EmailOutlined sx={{ fontSize: 18, color: 'rgba(0,0,0,0.54)' }} />
+                                            <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
+                                                {getValues('email')}
+                                            </strong>
+                                        </Box>
+                                        <Button
+                                            size="small"
+                                            variant="text"
+                                            disabled={formBusy}
+                                            onClick={() => {
+                                                setPasswordRevealed(false)
+                                                setLoginError(null)
+                                                setTimeout(() => setFocus('email'), 0)
+                                            }}
+                                            sx={{ textTransform: 'none', minWidth: 0, color: 'primary.main', fontWeight: 600 }}
+                                        >
+                                            {t('auth.changeIdentity')}
+                                        </Button>
+                                    </Box>
+                                </motion.div>
+                            )}
+
+                            {/* Email Field — editable on the email step / legacy mode */}
+                            {!showEmailAsChip && (
                             <motion.div variants={itemVariants}>
                                 <Controller
                                     name="email"
@@ -907,6 +941,8 @@ export default function LoginPage() {
                                     )}
                                 />
                             </motion.div>
+
+                            )}
 
                             {/* Password Field — hidden on the email-first step (engine ON) */}
                             {!passwordHidden && (
