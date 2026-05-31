@@ -638,6 +638,7 @@ export default function LoginPage() {
                             availableMethods={availableMethods}
                             onMethodSelected={handleMethodSelected}
                             excludeMethods={completedMfaMethods}
+                            hideNonEnrolled
                         />
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button

@@ -85,6 +85,11 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     // first, otherwise we go straight to picking a Layer-1 method.
     const passwordIsLayer1 = !loginConfig || hasPasswordLayer1(loginConfig)
     const identifierRequired = loginConfig ? needsIdentifier(loginConfig) : true
+    // CHOICE Layer-1 (>1 configured method) → after the identifier step we show a
+    // method picker so the user can satisfy Layer-1 with ANY of them (incl.
+    // password), instead of forcing the password screen. A lone PASSWORD Layer-1
+    // keeps the classic email→password experience.
+    const layer1IsChoice = (loginConfig?.layer1.methods.length ?? 0) > 1
     // IDENTIFIER-FIRST (engine ON): screen 1 collects only identity (email /
     // passkey); EVERY factor — including password — comes afterwards. So even a
     // password-Layer-1 flow starts on the 'identifier' phase. When the engine is
@@ -204,6 +209,10 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                 // MFA required
                 const token = result.mfaSessionToken ?? ''
                 setMfaSessionToken(token)
+                // Backend-authoritative step counts: PASSWORD satisfied step 1, so
+                // the flow resumes at step 2 of N ("2/N").
+                if (result.totalSteps) setTotalSteps(result.totalSteps)
+                setCurrentStep(result.currentStep ?? 2)
 
                 const methods = result.availableMethods ?? []
                 const enrolledMethods = methods.filter((m) => m.enrolled)
@@ -270,7 +279,8 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         // (e.g. a gmail account on the Marmara hosted surface) is rejected HERE,
         // on the identity step, instead of one step later at the password step
         // (the user reported the "not a {tenant} member" error surfacing too late).
-        if (engineActive && passwordIsLayer1) {
+        if (engineActive && passwordIsLayer1 && !layer1IsChoice) {
+            // Lone PASSWORD Layer-1: preflight, then reveal the password screen.
             setLoading(true)
             setError(undefined)
             try {
@@ -295,6 +305,10 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             )
             const token = result.mfaSessionToken ?? ''
             setMfaSessionToken(token)
+            // Backend-authoritative step counts: begin opens at step 1 of N, so the
+            // picker/first factor reads "1/N" (the chosen factor IS step 1 here).
+            if (result.totalSteps) setTotalSteps(result.totalSteps)
+            setCurrentStep(result.currentStep ?? 1)
             const methods = result.availableMethods ?? configLayer1Methods
             setAvailableMethods(methods)
             if (result.completedMethods?.length) {
@@ -314,13 +328,20 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         } finally {
             setLoading(false)
         }
-    }, [authRepository, identifier, clientId, configLayer1Methods, engineActive, passwordIsLayer1, t])
+    }, [authRepository, identifier, clientId, configLayer1Methods, engineActive, passwordIsLayer1, layer1IsChoice, t])
 
     // ─── Method Selection ───────────────────────────────────────
 
     const handleMethodSelected = useCallback((methodType: string) => {
-        setSelectedMethod(methodType)
         setError(undefined)
+        if (methodType === AuthMethodType.PASSWORD) {
+            // Password keeps its dedicated, lockout-protected /auth/login path —
+            // route to the password screen rather than the begin MFA session.
+            setSelectedMethod('')
+            setPhase(FlowPhase.Password)
+            return
+        }
+        setSelectedMethod(methodType)
         setPhase(FlowPhase.MfaStep)
     }, [])
 
@@ -592,13 +613,14 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                         if (phase === FlowPhase.Password || phase === FlowPhase.Identifier) {
                             return <StepProgress current={1} total={loginConfig?.totalSteps ?? 0} />
                         }
-                        // Authoritative-total takes precedence; otherwise infer at least
-                        // 2 (PASSWORD + 1 MFA step). `currentStep` is clamped inside
-                        // StepProgress so a stale-low `currentStep` cannot exceed total.
+                        // Trust the backend-authoritative `currentStep` (set from the
+                        // login / begin / mfa-step responses): a password-first flow
+                        // resumes MFA at step 2, while an arbitrary-first-factor flow
+                        // (begin → picker) starts at step 1 — so we must NOT floor the
+                        // current step to 2. Infer a total of at least 2 when the
+                        // backend hasn't reported one. StepProgress clamps current≤total.
                         const displayTotal = Math.max(totalSteps, 2, currentStep)
-                        // Display "step 2" minimum once we leave the password phase, so
-                        // the user sees their progression past PASSWORD (step 1) into MFA.
-                        const displayCurrent = Math.max(currentStep, 2)
+                        const displayCurrent = currentStep
                         return (
                             <StepProgress
                                 current={Math.min(displayCurrent, displayTotal)}
