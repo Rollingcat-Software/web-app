@@ -170,23 +170,22 @@ export default function LoginPage() {
     // Approve-login (number-matching) panel toggle for the dashboard login.
     const [showApproveLogin, setShowApproveLogin] = useState(false)
 
-    // Mark page ready after initial render
-    useEffect(() => {
-        const timer = setTimeout(() => setPageReady(true), 300)
-        return () => clearTimeout(timer)
-    }, [])
-
-    // Fetch the platform Layer-1 login config (D). Non-blocking: on failure
-    // `loginConfig` stays null and the legacy email+password form is shown. No
-    // clientId — the dashboard is the platform tenant.
+    // Fetch the platform Layer-1 login config, and only reveal the form (drop the
+    // skeleton) once that fetch has SETTLED. Previously the page flipped to ready
+    // on a fixed 300ms timer, so when the config took longer the form rendered in
+    // its default password shape and then visibly swapped to identifier-first —
+    // the "password ghost/skeleton" flash. Gating pageReady on the fetch removes
+    // it; a safety fallback prevents a hung fetch from pinning the skeleton.
+    // On failure `loginConfig` stays null and the legacy email+password form is
+    // shown (no clientId — the dashboard is the platform tenant).
     useEffect(() => {
         let cancelled = false
-        void fetchLoginConfig(httpClient).then((cfg) => {
-            if (!cancelled) setLoginConfig(cfg)
-        })
-        return () => {
-            cancelled = true
-        }
+        const reveal = () => { if (!cancelled) setPageReady(true) }
+        const fallback = setTimeout(reveal, 2000)
+        void fetchLoginConfig(httpClient)
+            .then((cfg) => { if (!cancelled) setLoginConfig(cfg) })
+            .finally(() => { clearTimeout(fallback); reveal() })
+        return () => { cancelled = true; clearTimeout(fallback) }
     }, [httpClient])
 
     // Perf (USER-BUG-7): warm BiometricEngine / MediaPipe initialization in
