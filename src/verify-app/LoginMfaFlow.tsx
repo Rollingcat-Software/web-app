@@ -263,12 +263,27 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             return
         }
         // Identifier-first WITH a password factor: we now know who the user is,
-        // so just reveal the password screen. The /auth/login call happens at the
+        // so reveal the password screen. The /auth/login call happens at the
         // password step (with this email), then any MFA steps follow. No
         // beginIdentifierLogin here — password is authenticated via /auth/login.
+        // BUT first run a password-less tenant pre-flight so a wrong-tenant email
+        // (e.g. a gmail account on the Marmara hosted surface) is rejected HERE,
+        // on the identity step, instead of one step later at the password step
+        // (the user reported the "not a {tenant} member" error surfacing too late).
         if (engineActive && passwordIsLayer1) {
+            setLoading(true)
             setError(undefined)
-            setPhase(FlowPhase.Password)
+            try {
+                await authRepository.checkLoginEligibility(identifier.trim(), clientId || undefined)
+                setPhase(FlowPhase.Password)
+            } catch (err) {
+                // TENANT_MISMATCH (or any pre-flight error) is shown inline on the
+                // email step via formatApiError; the user never reaches the password
+                // screen for a wrong-tenant account.
+                setError(formatApiError(err, t))
+            } finally {
+                setLoading(false)
+            }
             return
         }
         setLoading(true)

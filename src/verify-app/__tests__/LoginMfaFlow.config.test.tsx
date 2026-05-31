@@ -20,10 +20,12 @@ vi.mock('@/lib/biometric-engine/core/BiometricEngine', () => ({
 const mockLogin = vi.fn()
 const mockBegin = vi.fn()
 const mockVerifyMfaStep = vi.fn()
+const mockCheckEligibility = vi.fn()
 const authRepoStub = {
     login: mockLogin,
     beginIdentifierLogin: mockBegin,
     verifyMfaStep: mockVerifyMfaStep,
+    checkLoginEligibility: mockCheckEligibility,
 }
 const httpStub = { post: vi.fn(), get: vi.fn() }
 
@@ -47,6 +49,8 @@ beforeEach(() => {
     mockLogin.mockReset()
     mockBegin.mockReset()
     mockVerifyMfaStep.mockReset()
+    mockCheckEligibility.mockReset()
+    mockCheckEligibility.mockResolvedValue(undefined)
 })
 
 describe('LoginMfaFlow — config-driven Layer 1', () => {
@@ -101,6 +105,50 @@ describe('LoginMfaFlow — config-driven Layer 1', () => {
         render(<LoginMfaFlow {...baseProps} loginConfig={config} />)
         // Engine ON ⇒ screen 1 collects identity only; the password comes after.
         expect(screen.queryByLabelText('Password')).toBeNull()
+        expect(screen.getByLabelText('Email Address')).toBeInTheDocument()
+    })
+
+    it('runs the tenant pre-flight on email submit, then reveals the password screen (eligible)', async () => {
+        const config = normalizeLoginConfig({
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        render(<LoginMfaFlow {...baseProps} loginConfig={config} />)
+        fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'staff@marmara.edu.tr' } })
+        fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+        await waitFor(() => {
+            expect(mockCheckEligibility).toHaveBeenCalledWith('staff@marmara.edu.tr', 'c1')
+        })
+        // Eligible ⇒ the password screen is revealed; no password was submitted yet.
+        await waitFor(() => {
+            expect(screen.getByLabelText('Password')).toBeInTheDocument()
+        })
+        expect(mockLogin).not.toHaveBeenCalled()
+    })
+
+    it('shows the tenant-mismatch error on the EMAIL step and does NOT reveal the password screen', async () => {
+        mockCheckEligibility.mockRejectedValue(
+            Object.assign(new Error('tenant'), {
+                isAxiosError: true,
+                response: { status: 403, data: { errorCode: 'TENANT_MISMATCH', requiredTenant: 'Marmara University' } },
+            }),
+        )
+        const config = normalizeLoginConfig({
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        render(<LoginMfaFlow {...baseProps} loginConfig={config} />)
+        fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'alice@gmail.com' } })
+        fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+        await waitFor(() => {
+            expect(mockCheckEligibility).toHaveBeenCalled()
+        })
+        // Wrong-tenant ⇒ user stays on the email step; the password field must NOT appear.
+        await waitFor(() => {
+            expect(screen.queryByLabelText('Password')).toBeNull()
+        })
         expect(screen.getByLabelText('Email Address')).toBeInTheDocument()
     })
 

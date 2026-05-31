@@ -91,6 +91,17 @@ export interface IAuthRepository {
     beginIdentifierLogin(identifier: string, clientId?: string): Promise<AuthResponse>
 
     /**
+     * Identifier-first pre-flight: check whether `identifier` (email) is eligible
+     * to sign in on a tenant-bound hosted surface, WITHOUT a password. Resolves
+     * when eligible; REJECTS with the backend's HTTP 403 + errorCode
+     * `TENANT_MISMATCH` (carrying `requiredTenant`) when the email belongs to a
+     * different tenant — so the login UI shows "not a {tenant} member" on the
+     * EMAIL step instead of one step later at the password step. No password is
+     * sent and no lockout counter is touched. POST /auth/login/preflight.
+     */
+    checkLoginEligibility(identifier: string, clientId?: string): Promise<void>
+
+    /**
      * Logout user (invalidate tokens on server)
      */
     logout(): Promise<void>
