@@ -1543,6 +1543,10 @@
     "cancel": "Cancel",
     "verify": "Verify",
     "verificationFailed": "Verification failed",
+    "password": {
+      "title": "Password",
+      "subtitle": "Sign in with your password"
+    },
     "totp": {
       "title": "Authenticator App",
       "subtitle": "Enter the 6-digit code from your authenticator app",

@@ -1543,6 +1543,10 @@
     "cancel": "İptal",
     "verify": "Doğrula",
     "verificationFailed": "Doğrulama başarısız",
+    "password": {
+      "title": "Şifre",
+      "subtitle": "Şifrenizle giriş yapın"
+    },
     "totp": {
       "title": "Kimlik Doğrulama Uygulaması",
       "subtitle": "Kimlik doğrulama uygulamanızdaki 6 haneli kodu girin",
