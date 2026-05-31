@@ -410,15 +410,19 @@ export default function LoginPage() {
 
     const handleMethodSelected = (methodType: string) => {
         setShowMethodPicker(false)
-        if (methodType === 'PASSWORD') {
-            // Password keeps its dedicated, lockout-protected /auth/login path —
-            // route the user to the password field instead of the MFA session.
+        if (methodType === 'PASSWORD' && completedMfaMethods.length === 0) {
+            // PASSWORD as the FIRST factor → the dedicated, lockout-protected
+            // /auth/login password form (email + password).
             setSelectedMethod(null)
             setShowSecondaryAuth(false)
             setPasswordRevealed(true)
             setTimeout(() => setFocus('password'), 0)
             return
         }
+        // Any later factor — INCLUDING password chosen at layer 2+ — completes the
+        // current step of the existing MFA session via /auth/mfa/step (the dispatcher
+        // renders a password-only step for PASSWORD). This is what fixes "picking
+        // password at the 2nd step showed the email-change form / restarted login".
         setSelectedMethod(methodType)
         setTwoFactorMethod(methodType)
         setShowSecondaryAuth(true)
@@ -665,6 +669,7 @@ export default function LoginPage() {
                 onCancel={handleTwoFactorCancel}
                 stepCurrent={loginCurrentStep}
                 stepTotal={loginTotalSteps}
+                email={getValues('email')}
             />
         )
     }

@@ -27,6 +27,7 @@ import HardwareKeyStep from './steps/HardwareKeyStep'
 import NfcStep from './steps/NfcStep'
 import EmailOtpMfaStep from './steps/EmailOtpMfaStep'
 import GestureLivenessStep from './steps/GestureLivenessStep'
+import PasswordStep from './steps/PasswordStep'
 
 /**
  * Decode a `data:...;base64,...` URL into an ArrayBuffer.
@@ -57,6 +58,9 @@ interface TwoFactorDispatcherProps {
      *  bar at the top of the MFA card; hidden when total <= 1. */
     stepCurrent?: number
     stepTotal?: number
+    /** The already-collected identifier — shown read-only on a PASSWORD MFA step
+     *  ("Signing in as <email>"); the password completes the step via /auth/mfa/step. */
+    email?: string
 }
 
 /**
@@ -74,6 +78,7 @@ export default function TwoFactorDispatcher({
     onCancel: _onCancel,
     stepCurrent,
     stepTotal,
+    email,
 }: TwoFactorDispatcherProps) {
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -199,6 +204,20 @@ export default function TwoFactorDispatcher({
     // Verify MFA step using the new public endpoint (no JWT needed)
     const renderStep = () => {
         switch (method) {
+            case AuthMethodType.PASSWORD:
+                // PASSWORD as a (non-first) flow factor: the user is already
+                // identified by the MFA session, so collect ONLY the password and
+                // complete the step via /auth/mfa/step (PasswordVerifyMfaStepHandler).
+                // No "change identity" here — we're mid-flow, the identity is fixed.
+                return (
+                    <PasswordStep
+                        presetEmail={email}
+                        onSubmit={(data) => verifyStep(AuthMethodType.PASSWORD, { password: data.password })}
+                        loading={loading}
+                        error={error}
+                    />
+                )
+
             case AuthMethodType.TOTP:
                 return (
                     <TotpStep
