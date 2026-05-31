@@ -54,8 +54,35 @@
         html, body { width: 100%; min-height: 100%; overflow-x: hidden; }
         body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background: #0e1116; color: #e6edf3; }
 
-        /* Static landing — visible by default for direct visitors + crawlers.
-           Hidden once the React SPA mounts (main.tsx sets data-mounted="true"). */
+        /* Pre-mount LOADING screen — the FIRST paint for every visitor while the
+           SPA bundle downloads and React mounts. Visible by default; hidden the
+           instant React mounts (main.tsx sets data-mounted="true"). This is what
+           shows during a tenant redirect to the hosted login — a clean loader,
+           NOT the marketing landing (which used to paint here and flash). */
+        #verify-loading {
+            min-height: 100vh;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            gap: 18px; background: #0e1116;
+        }
+        #verify-loading .lm {
+            width: 46px; height: 46px; background: #161b22;
+            border: 1px solid #30363d; border-radius: 12px;
+            display: grid; place-items: center;
+            font-size: 24px; font-weight: 800; color: #58a6ff;
+        }
+        #verify-loading .sp {
+            width: 28px; height: 28px; border-radius: 50%;
+            border: 3px solid #30363d; border-top-color: #58a6ff;
+            animation: vspin 0.8s linear infinite;
+        }
+        @keyframes vspin { to { transform: rotate(360deg); } }
+        #verify-root[data-mounted="true"] ~ #verify-loading { display: none; }
+
+        /* The static marketing landing is now a NO-JS / crawler fallback ONLY —
+           hidden for JS users (React renders its own integrator landing on a
+           bare-root visit, after the loader). Revealed via <noscript> below when
+           JS is off, so it never flashes during navigation to the hosted login. */
+        #verify-landing { display: none; }
         #verify-root[data-mounted="true"] ~ #verify-landing { display: none; }
 
         #verify-landing {
@@ -139,6 +166,13 @@
 </head>
 <body>
     <div id="verify-root"></div>
+    <!-- Clean loading screen: the first paint during navigation to the hosted
+         login, replaced by the React UI on mount. -->
+    <div id="verify-loading" aria-busy="true" aria-label="Loading">
+        <div class="lm">F</div>
+        <div class="sp" role="progressbar" aria-label="Loading"></div>
+    </div>
+    <!-- No-JS / crawler fallback only (hidden for JS users; see <noscript> + CSS). -->
     <main id="verify-landing">
       <div class="wrap">
         <div class="brand">
@@ -207,6 +241,14 @@
         </footer>
       </div>
     </main>
+    <noscript>
+      <style>
+        /* JS disabled → no React; show the marketing/integrator landing as the
+           crawler/no-JS fallback and hide the (never-resolving) loader. */
+        #verify-loading { display: none !important; }
+        #verify-landing { display: flex !important; }
+      </style>
+    </noscript>
     <script type="module" src="./main.tsx"></script>
 </body>
 </html>
