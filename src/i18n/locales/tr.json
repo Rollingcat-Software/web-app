@@ -892,6 +892,7 @@
     "noLayersYet": "Henüz katman yok. Kimlik doğrulama akışınızı oluşturmaya başlamak için \"Katman Ekle\"ye tıklayın.",
     "addLayer": "Katman Ekle",
     "removeLayer": "Katmanı kaldır",
+      "requiredHelp": "Zorunlu: kullanıcılar giriş için bu katmanı tamamlamalıdır. Kapatınca katman isteğe bağlı olur — yöntemlerinden hiçbirine kayıtlı olmayan kullanıcılar için atlanır.",
     "saveDisabledNoLayers": "Kaydetmeden önce seçili bir yöntemi olan en az bir katman ekleyin.",
     "saveDisabledEmptyLayer": "Kaydetmeden önce her katmanın en az bir seçili yöntemi olmalıdır."
   },

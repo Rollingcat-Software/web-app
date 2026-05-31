@@ -892,6 +892,7 @@
     "noLayersYet": "No layers yet. Click \"Add Layer\" to start building your authentication flow.",
     "addLayer": "Add Layer",
     "removeLayer": "Remove layer",
+      "requiredHelp": "Required: users must complete this layer to sign in. Turn off to make the layer optional — it's skipped for users not enrolled in any of its methods.",
     "saveDisabledNoLayers": "Add at least one layer with a selected method before saving.",
     "saveDisabledEmptyLayer": "Every layer must have at least one selected method before saving."
   },
