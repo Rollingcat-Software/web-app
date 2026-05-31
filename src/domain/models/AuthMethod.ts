@@ -290,6 +290,26 @@ const DEFAULT_AUTH_METHODS_BASE: Omit<AuthMethod, 'supportsUsernameless'>[] = [
         isActive: true,
         category: 'PREMIUM',
     },
+    {
+        id: 'PASSKEY',
+        name: 'Passkey',
+        type: AuthMethodType.PASSKEY,
+        description: 'Discoverable WebAuthn passkey (usernameless sign-in)',
+        icon: 'Key',
+        platforms: ['web', 'mobile', 'desktop'],
+        isActive: true,
+        category: 'ENTERPRISE',
+    },
+    {
+        id: 'APPROVE_LOGIN',
+        name: 'Approve on another device',
+        type: AuthMethodType.APPROVE_LOGIN,
+        description: 'Number-matching cross-device approval',
+        icon: 'PhonelinkLock',
+        platforms: ['web', 'mobile', 'desktop'],
+        isActive: true,
+        category: 'STANDARD',
+    },
 ]
 
 export const DEFAULT_AUTH_METHODS: AuthMethod[] = DEFAULT_AUTH_METHODS_BASE.map((m) => ({

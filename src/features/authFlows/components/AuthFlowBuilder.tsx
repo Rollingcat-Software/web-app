@@ -72,6 +72,20 @@ const itemVariants: Variants = {
     },
 }
 
+/**
+ * Humanized fallback label for a method type the catalog doesn't know about
+ * (e.g. a backend-only method missing from DEFAULT_AUTH_METHODS). Turns
+ * `APPROVE_LOGIN` → `Approve Login`, `TOTP` → `Totp`, so the builder NEVER
+ * renders a blank/null step name.
+ */
+function humanizeMethodType(type: AuthMethodType): string {
+    return String(type)
+        .toLowerCase()
+        .split('_')
+        .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+        .join(' ')
+}
+
 // Icon mapping
 const methodIcons: Record<string, React.ReactNode> = {
     Lock: <Lock />,
@@ -327,8 +341,21 @@ export function AuthFlowBuilder({
                                         >
                                             <AnimatePresence>
                                                 {steps.map((step, index) => {
-                                                    const method = getMethod(step.methodType)
-                                                    if (!method) return null
+                                                    // Defensive: a step whose method type isn't in the
+                                                    // catalog (backend-only / newly added) still renders
+                                                    // with a humanized name + generic styling instead of
+                                                    // silently disappearing (or showing a null name).
+                                                    const method = getMethod(step.methodType) ?? {
+                                                        id: step.methodType,
+                                                        name: humanizeMethodType(step.methodType),
+                                                        type: step.methodType,
+                                                        description: humanizeMethodType(step.methodType),
+                                                        icon: 'Lock',
+                                                        platforms: [],
+                                                        isActive: true,
+                                                        category: 'BASIC' as const,
+                                                        supportsUsernameless: false,
+                                                    }
                                                     const alternatives = step.alternativeMethodTypes ?? []
                                                     const isChoice = alternatives.length > 0
 
@@ -429,7 +456,7 @@ export function AuthFlowBuilder({
                                                                             {isChoice
                                                                                 ? t('authFlowBuilder.choiceDescription', {
                                                                                     methods: [method.type, ...alternatives]
-                                                                                        .map((mt) => getMethod(mt)?.name ?? mt)
+                                                                                        .map((mt) => getMethod(mt)?.name ?? humanizeMethodType(mt))
                                                                                         .join(', '),
                                                                                 })
                                                                                 : method.description}
@@ -691,7 +718,7 @@ export function AuthFlowBuilder({
                                             const alternatives = step.alternativeMethodTypes ?? []
                                             const label = alternatives.length > 0
                                                 ? [step.methodType, ...alternatives]
-                                                    .map((mt) => getMethod(mt)?.name ?? mt)
+                                                    .map((mt) => getMethod(mt)?.name ?? humanizeMethodType(mt))
                                                     .join(' / ')
                                                 : method?.name
                                             return (
