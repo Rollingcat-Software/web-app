@@ -386,6 +386,7 @@ export function AuthFlowBuilder({
                                                                 <Typography variant="subtitle1" fontWeight={600} sx={{ flex: 1 }}>
                                                                     {t('authFlowBuilder.layerLabel', { number: index + 1 })}
                                                                 </Typography>
+                                                                <Tooltip title={t('authFlowBuilder.requiredHelp')}>
                                                                 <FormControlLabel
                                                                     sx={{ mr: 0 }}
                                                                     control={
@@ -407,6 +408,7 @@ export function AuthFlowBuilder({
                                                                         </Typography>
                                                                     }
                                                                 />
+                                                                </Tooltip>
                                                                 <Tooltip title={t('authFlowBuilder.removeLayer')}>
                                                                     <IconButton
                                                                         size="small"

@@ -1184,6 +1184,14 @@ export default function LoginPage() {
                             strictly per the tenant login-config; on a config
                             failure (loginConfig === null) `fallbackAll` keeps the
                             legacy passkey + approve buttons. */}
+                        {/* Usernameless shortcuts (passkey / approve-on-another-device)
+                            are ALTERNATIVES to typing an identifier — they resolve the
+                            user without an email. Once the user has committed to the
+                            identifier path (passed the email step → passwordRevealed),
+                            they're redundant/confusing, so hide them then. They show on
+                            the initial entry screen (identifier-first email step or the
+                            legacy combined form) only. */}
+                        {!passwordRevealed && (
                         <motion.div variants={itemVariants}>
                             <Layer1Shortcuts<{ accessToken?: string | null; refreshToken?: string | null }>
                                 config={loginConfig}
@@ -1198,6 +1206,7 @@ export default function LoginPage() {
                                 hideDivider={!showPasswordForm}
                             />
                         </motion.div>
+                        )}
 
                         {/* Multi-factor auth info */}
                         <motion.div variants={itemVariants}>
