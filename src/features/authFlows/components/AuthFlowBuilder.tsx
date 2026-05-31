@@ -449,20 +449,28 @@ export function AuthFlowBuilder({
                                                                         />
                                                                     </Tooltip>
 
-                                                                    {/* Edit CHOICE alternatives */}
-                                                                    <Tooltip title={t('authFlowBuilder.editChoices')}>
-                                                                        <IconButton
+                                                                    {/* Make this step a CHOICE ("leave choice to
+                                                                        user"). A labeled button — not a bare icon —
+                                                                        so the affordance is discoverable on EVERY
+                                                                        step/layer (incl. a 3rd), per the operator
+                                                                        report that they couldn't turn a 3rd layer
+                                                                        into a user-choice step. */}
+                                                                    <Tooltip title={t('authFlowBuilder.leaveChoiceToUserHint')}>
+                                                                        <Button
                                                                             size="small"
+                                                                            variant={isChoice || choiceEditorStepId === step.id ? 'contained' : 'outlined'}
+                                                                            color="secondary"
+                                                                            startIcon={<CallSplit fontSize="small" />}
                                                                             onClick={() =>
                                                                                 setChoiceEditorStepId(
                                                                                     choiceEditorStepId === step.id ? null : step.id,
                                                                                 )
                                                                             }
-                                                                            color={choiceEditorStepId === step.id ? 'primary' : 'default'}
                                                                             aria-label={t('authFlowBuilder.editChoices')}
+                                                                            sx={{ flexShrink: 0, textTransform: 'none', whiteSpace: 'nowrap' }}
                                                                         >
-                                                                            <CallSplit fontSize="small" />
-                                                                        </IconButton>
+                                                                            {t('authFlowBuilder.leaveChoiceToUser')}
+                                                                        </Button>
                                                                     </Tooltip>
 
                                                                     {/* Delete */}
