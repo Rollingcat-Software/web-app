@@ -334,16 +334,18 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
     const handleMethodSelected = useCallback((methodType: string) => {
         setError(undefined)
-        if (methodType === AuthMethodType.PASSWORD) {
-            // Password keeps its dedicated, lockout-protected /auth/login path —
-            // route to the password screen rather than the begin MFA session.
+        if (methodType === AuthMethodType.PASSWORD && usedMethods.length === 0) {
+            // PASSWORD as the FIRST factor → dedicated lockout-protected /auth/login
+            // password screen (email + password).
             setSelectedMethod('')
             setPhase(FlowPhase.Password)
             return
         }
+        // Later factor (incl. password at layer 2+) → complete the current step of
+        // the existing MFA session via /auth/mfa/step (renderMfaStep handles PASSWORD).
         setSelectedMethod(methodType)
         setPhase(FlowPhase.MfaStep)
-    }, [])
+    }, [usedMethods])
 
     const handleBackToMethodSelection = useCallback(() => {
         setError(undefined)
@@ -466,6 +468,19 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         }
 
         switch (method) {
+            case AuthMethodType.PASSWORD:
+                // PASSWORD chosen as a non-first factor: identity is fixed by the
+                // session, so collect only the password and complete the step via
+                // /auth/mfa/step. No "change identity" — we're mid-flow.
+                return (
+                    <PasswordStep
+                        presetEmail={identifier || undefined}
+                        onSubmit={(data) => verifyStep(AuthMethodType.PASSWORD, { password: data.password })}
+                        loading={loading}
+                        error={error}
+                    />
+                )
+
             case AuthMethodType.TOTP:
                 return (
                     <TotpStep
