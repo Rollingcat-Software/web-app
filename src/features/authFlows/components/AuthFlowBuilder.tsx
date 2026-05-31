@@ -27,7 +27,6 @@ import {
     Add,
     Delete,
     Save,
-    PlayArrow,
 } from '@mui/icons-material'
 import { motion, AnimatePresence, Variants } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -627,14 +626,11 @@ export function AuthFlowBuilder({
                             >
                                 {t('authFlowBuilder.saveFlow')}
                             </Button>
-                            <Button
-                                variant="outlined"
-                                size="large"
-                                startIcon={<PlayArrow />}
-                                disabled={!canSave}
-                            >
-                                {t('authFlowBuilder.testFlow')}
-                            </Button>
+                            {/* "Test Flow" removed: it had no behaviour (no backend
+                                simulate endpoint) and read as broken. The live Flow
+                                Preview above shows the configured sequence; a real
+                                tester (run the flow on the hosted login) can be added
+                                later behind a dedicated endpoint. */}
                         </Box>
                     </motion.div>
                 </Grid>
