@@ -32,10 +32,20 @@ interface MethodPickerStepProps {
     availableMethods: AvailableMethod[]
     onMethodSelected: (methodType: string) => void
     loading?: boolean
-    /** When true, non-enrolled methods are hidden instead of shown as disabled (useful in widget/login mode) */
-    hideNonEnrolled?: boolean
-    /** Method types to exclude from the list (e.g. already-used methods in multi-step MFA) */
-    excludeMethods?: string[]
+    /**
+     * Method types already completed in an EARLIER layer of this login. They are
+     * shown DISABLED with an "Already used" label (not hidden) — a multi-factor
+     * login requires a different factor per layer. The server enforces this too
+     * (METHOD_ALREADY_USED), this is the visual reflection.
+     */
+    usedMethods?: string[]
+}
+
+/** Display order: selectable (enrolled & not used) → already-used → not-enrolled. */
+function methodRank(m: AvailableMethod, used: string[]): number {
+    if (used.includes(m.methodType)) return 1
+    if (!m.enrolled) return 2
+    return 0
 }
 
 /**
@@ -48,8 +58,7 @@ export default function MethodPickerStep({
     availableMethods,
     onMethodSelected,
     loading = false,
-    hideNonEnrolled = false,
-    excludeMethods = [],
+    usedMethods = [],
 }: MethodPickerStepProps) {
     const { t } = useTranslation()
 
@@ -78,11 +87,14 @@ export default function MethodPickerStep({
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                {/* Show ALL of the layer's configured methods — never hide. Each is
+                    in one of three states: selectable (enrolled & not used), "Already
+                    used" (a prior layer), or "Not enrolled". Order: actionable first,
+                    then used, then not-enrolled. */}
                 {[...availableMethods]
-                .filter((m) => !hideNonEnrolled || m.enrolled)
-                .filter((m) => !excludeMethods.includes(m.methodType))
-                .sort((a, b) => (a.enrolled === b.enrolled ? 0 : a.enrolled ? -1 : 1))
+                .sort((a, b) => methodRank(a, usedMethods) - methodRank(b, usedMethods))
                 .map((method) => {
+                    const used = usedMethods.includes(method.methodType)
                     const iconKey = method.methodType.toLowerCase()
                     const icon = METHOD_ICONS[iconKey]
                     const i18nKey = METHOD_I18N_KEYS[method.methodType]
@@ -90,7 +102,8 @@ export default function MethodPickerStep({
                     const labelKey = `enrollmentPage.methods.${method.methodType}.label`
                     const translatedLabel = t(labelKey)
                     const displayName = translatedLabel === labelKey ? method.name : translatedLabel
-                    const disabled = !method.enrolled
+                    // Used (in a prior layer) OR not enrolled → not selectable.
+                    const disabled = used || !method.enrolled
 
                     return (
                         <Card
@@ -165,16 +178,18 @@ export default function MethodPickerStep({
 
                                 </Box>
 
-                                {/* Status chip — absolutely positioned so it can't wrap into the description text */}
+                                {/* Status chip — three states: Ready / Already used / Not enrolled */}
                                 <Chip
                                     label={
-                                        method.enrolled
-                                            ? t('mfa.enrolled')
-                                            : t('mfa.notEnrolled')
+                                        used
+                                            ? t('mfa.alreadyUsed')
+                                            : method.enrolled
+                                              ? t('mfa.enrolled')
+                                              : t('mfa.notEnrolled')
                                     }
                                     size="small"
-                                    color={method.enrolled ? 'success' : 'default'}
-                                    variant={method.enrolled ? 'filled' : 'outlined'}
+                                    color={used ? 'warning' : method.enrolled ? 'success' : 'default'}
+                                    variant={!used && method.enrolled ? 'filled' : 'outlined'}
                                     sx={{
                                         position: 'absolute',
                                         top: 12,
@@ -185,8 +200,8 @@ export default function MethodPickerStep({
                                     }}
                                 />
 
-                                {/* Setup hint for non-enrolled methods */}
-                                {disabled && (
+                                {/* Setup hint — only for genuinely not-enrolled methods (not for already-used) */}
+                                {!method.enrolled && !used && (
                                     <Typography
                                         variant="caption"
                                         color="text.secondary"

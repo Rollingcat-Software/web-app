@@ -1537,6 +1537,7 @@
     "chooseMethod": "Doğrulama Yöntemi Seçin",
     "chooseMethodSubtitle": "Kimliğinizi nasıl doğrulamak istediğinizi seçin",
     "notEnrolled": "Kayıtlı değil",
+    "alreadyUsed": "Zaten kullanıldı",
     "enrolled": "Hazır",
     "preferred": "Tercih edilen",
     "setupInSettings": "Ayarlardan kur",

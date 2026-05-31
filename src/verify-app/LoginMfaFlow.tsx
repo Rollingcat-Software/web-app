@@ -760,8 +760,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                     <MethodPickerStep
                                         availableMethods={availableMethods}
                                         onMethodSelected={handleMethodSelected}
-                                        hideNonEnrolled
-                                        excludeMethods={usedMethods}
+                                        usedMethods={usedMethods}
                                     />
                                     <Box sx={{ textAlign: 'center', mt: 2 }}>
                                         <Button
