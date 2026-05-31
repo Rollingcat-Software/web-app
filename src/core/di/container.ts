@@ -60,8 +60,6 @@ import { AuthFlowService } from '@features/authFlows/services/AuthFlowService'
 import { AuthSessionService } from '@features/auth/services/AuthSessionService'
 import { DeviceService } from '@features/devices/services/DeviceService'
 import type { IUserEnrollmentRepository } from '@domain/interfaces/IUserEnrollmentRepository'
-import type { IUserEnrollmentService } from '@domain/interfaces/IUserEnrollmentService'
-import { UserEnrollmentService } from '@features/userEnrollment/services/UserEnrollmentService'
 import type { IPasswordService } from '@domain/interfaces/IPasswordService'
 import { PasswordService } from '@features/auth/services/PasswordService'
 import { config as envConfig } from '@config/env'
@@ -136,7 +134,6 @@ container.bind<AuthFlowService>(TYPES.AuthFlowService).to(AuthFlowService).inSin
 container.bind<AuthSessionService>(TYPES.AuthSessionService).to(AuthSessionService).inSingletonScope()
 container.bind<DeviceService>(TYPES.DeviceService).to(DeviceService).inSingletonScope()
 container.bind<GuestService>(TYPES.GuestService).to(GuestService).inSingletonScope()
-container.bind<IUserEnrollmentService>(TYPES.UserEnrollmentService).to(UserEnrollmentService).inSingletonScope()
 container.bind<IPasswordService>(TYPES.PasswordService).to(PasswordService).inSingletonScope()
 
 export { container }
