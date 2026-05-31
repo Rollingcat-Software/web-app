@@ -181,6 +181,9 @@ export default function TwoFactorDispatcher({
                         }}
                     >
                         <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                            {typeof stepCurrent === 'number' && typeof stepTotal === 'number' && (
+                                <StepProgress current={stepCurrent} total={stepTotal} />
+                            )}
                             <EmailOtpMfaStep
                                 mfaSessionToken={mfaSessionToken}
                                 onAuthenticated={onAuthenticated}

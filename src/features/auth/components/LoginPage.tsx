@@ -505,11 +505,17 @@ export default function LoginPage() {
     // MFA is active we KNOW there are >=2 steps, so derive the total from the live
     // flow (password + the MFA factor in progress) — otherwise the indicator would
     // never appear on the dashboard (StepProgress hides when total<=1).
+    //
+    // `completedMfaMethods` already counts the satisfied first factor: the password
+    // path seeds it with ['PASSWORD'] (length 1) and the identifier-first path seeds
+    // it with the server's completedMethods (length 0 — the identifier is not a
+    // verification step). So the step we are CURRENTLY on is `length + 1` for both
+    // paths (password done → showing MFA factor 2; identifier typed → showing factor 1).
     const mfaInProgress = showMethodPicker || showSecondaryAuth
-    const loginCurrentStep = mfaInProgress ? completedMfaMethods.length + 2 : 1
+    const loginCurrentStep = mfaInProgress ? completedMfaMethods.length + 1 : 1
     const loginTotalSteps = Math.max(
         loginConfig?.totalSteps ?? 1,
-        mfaInProgress ? completedMfaMethods.length + 2 : 1,
+        mfaInProgress ? completedMfaMethods.length + 1 : 1,
     )
 
     // Approve-login (number-matching) panel — full-screen, same glass card shell
