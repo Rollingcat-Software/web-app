@@ -1537,6 +1537,7 @@
     "chooseMethod": "Choose Verification Method",
     "chooseMethodSubtitle": "Select how you'd like to verify your identity",
     "notEnrolled": "Not enrolled",
+    "alreadyUsed": "Already used",
     "enrolled": "Ready",
     "preferred": "Preferred",
     "setupInSettings": "Set up in Settings",

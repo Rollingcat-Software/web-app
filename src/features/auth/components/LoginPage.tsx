@@ -438,20 +438,16 @@ export default function LoginPage() {
             await refreshUser()
             navigate('/')
         } else if (response.status === 'STEP_COMPLETED') {
-            // More steps remain — update available methods and show picker.
+            // More steps remain — show the picker for the next layer.
             //
-            // Trust the server's `completedMethods` (authoritative) for the
-            // exclusion list: it is what gates the picker so the user cannot
-            // pick a factor already cleared at an earlier step. The server
-            // also pre-filters `availableMethods` for CHOICE steps, but we
-            // double-check on the client to defend against a stale render.
+            // Keep the FULL method list from the backend and pass the
+            // authoritative `completedMethods` to the picker as `usedMethods`, so
+            // already-used factors render DISABLED ("Already used") rather than
+            // vanishing. The server enforces no-reuse (METHOD_ALREADY_USED); this
+            // is only the display. (Previously we filtered them out client-side.)
             const completed = response.completedMethods ?? completedMfaMethods
             setCompletedMfaMethods(completed)
-            const completedSet = new Set(completed)
-            const filtered = (response.availableMethods ?? []).filter(
-                (m) => !completedSet.has(m.methodType),
-            )
-            setAvailableMethods(filtered)
+            setAvailableMethods(response.availableMethods ?? [])
             setMfaSessionToken(response.mfaSessionToken ?? _mfaSessionToken)
             setSelectedMethod(null)
             setShowSecondaryAuth(false)
@@ -641,7 +637,7 @@ export default function LoginPage() {
                         <MethodPickerStep
                             availableMethods={availableMethods}
                             onMethodSelected={handleMethodSelected}
-                            excludeMethods={completedMfaMethods}
+                            usedMethods={completedMfaMethods}
                         />
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button
