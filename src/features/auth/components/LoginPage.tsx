@@ -409,9 +409,18 @@ export default function LoginPage() {
     }
 
     const handleMethodSelected = (methodType: string) => {
+        setShowMethodPicker(false)
+        if (methodType === 'PASSWORD') {
+            // Password keeps its dedicated, lockout-protected /auth/login path —
+            // route the user to the password field instead of the MFA session.
+            setSelectedMethod(null)
+            setShowSecondaryAuth(false)
+            setPasswordRevealed(true)
+            setTimeout(() => setFocus('password'), 0)
+            return
+        }
         setSelectedMethod(methodType)
         setTwoFactorMethod(methodType)
-        setShowMethodPicker(false)
         setShowSecondaryAuth(true)
     }
 
@@ -677,24 +686,46 @@ export default function LoginPage() {
     // (like verify.fivucsas) render it read-only with a "Change" affordance and
     // show the password ALONE — NOT a second editable email field above it.
     const showEmailAsChip = identifierFirst && passwordRevealed
-    // Reveal the password field after the email step (email-first). Validates only
-    // the email field; never submits the login here.
-    const revealPasswordStep = async () => {
+    // Email step → resolve the tenant's Layer-1 and let the user pick ANY allowed
+    // first factor (not just password). Calls /auth/login/begin: when Layer-1 is a
+    // CHOICE with >1 method we open a step-1 session and show the method picker;
+    // when it's a single non-password method we run it directly; otherwise (single
+    // PASSWORD, decoy, or any failure) we fall through to the classic password
+    // screen — begin is best-effort and must NEVER block login. Password keeps its
+    // own lockout-protected /auth/login path (chosen from the picker → password
+    // form), so we don't route it through the begin session.
+    const handleEmailContinue = async () => {
         const emailOk = await trigger('email')
         if (!emailOk) return
+        const email = getValues('email')
+        setLoginError(null)
+        try {
+            const begin = await authRepository.beginIdentifierLogin(email)
+            if (begin.totalSteps) setFlowTotalSteps(begin.totalSteps)
+            const methods = begin.availableMethods ?? []
+            if (methods.length > 1) {
+                // CHOICE Layer-1 → pick any first factor (incl. password).
+                if (begin.mfaSessionToken) setMfaSessionToken(begin.mfaSessionToken)
+                setCompletedMfaMethods(begin.completedMethods ?? [])
+                setAvailableMethods(methods)
+                setShowMethodPicker(true)
+                return
+            }
+            const only = methods[0]
+            if (only && only.methodType !== 'PASSWORD') {
+                // Single non-password Layer-1 → run that factor straight away.
+                if (begin.mfaSessionToken) setMfaSessionToken(begin.mfaSessionToken)
+                setCompletedMfaMethods(begin.completedMethods ?? [])
+                setTwoFactorMethod(only.methodType)
+                setShowSecondaryAuth(true)
+                return
+            }
+        } catch {
+            /* engine off / decoy / network — fall through to the password screen */
+        }
+        // PASSWORD-only Layer-1 (or any fallback): classic password field.
         setPasswordRevealed(true)
         setTimeout(() => setFocus('password'), 0)
-        // Resolve the caller's ACTUAL tenant flow from their email so the step
-        // indicator shows the real "1/N" (not the platform totalSteps=1) the
-        // moment the password screen appears. Best-effort + non-blocking: the
-        // dashboard is cross-tenant with no tenant-lock, so preflight normally
-        // just succeeds; a failure must never gate the password step.
-        try {
-            const resolved = await authRepository.checkLoginEligibility(getValues('email'))
-            if (resolved?.totalSteps) setFlowTotalSteps(resolved.totalSteps)
-        } catch {
-            /* tenant-mismatch / network — keep the platform default */
-        }
     }
 
     return (
@@ -904,7 +935,7 @@ export default function LoginPage() {
                         <form
                             onSubmit={
                                 passwordHidden
-                                    ? (e) => { e.preventDefault(); void revealPasswordStep() }
+                                    ? (e) => { e.preventDefault(); void handleEmailContinue() }
                                     : handleSubmit(onSubmit)
                             }
                             aria-label={t('auth.loginFormLabel')}
@@ -1110,7 +1141,7 @@ export default function LoginPage() {
                             <motion.div variants={itemVariants}>
                                 <Button
                                     type={passwordHidden ? 'button' : 'submit'}
-                                    onClick={passwordHidden ? revealPasswordStep : undefined}
+                                    onClick={passwordHidden ? handleEmailContinue : undefined}
                                     fullWidth
                                     variant="contained"
                                     size="large"
