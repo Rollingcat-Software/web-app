@@ -29,6 +29,7 @@ import {
   BLINK_EAR_CLOSED,
   EAR_THRESHOLD,
 } from './constants';
+import { LIVENESS_POOL } from './livenessPool';
 
 import {
   BlinkDetector,
@@ -71,23 +72,20 @@ const CHALLENGE_DEFINITIONS: Record<ChallengeType, ChallengeDefinition> = {
 };
 
 /**
- * Simple pool of challenge types for random selection (excludes dynamic).
- * @see demo_local_fast.py lines 533-539
+ * Pool the random active-liveness FACE picker draws from.
+ *
+ * This is the CURATED RELIABLE pool — the single source of truth lives in
+ * `livenessPool.ts` (`LIVENESS_POOL`). It deliberately EXCLUDES single-brow
+ * raises (RAISE_LEFT_BROW / RAISE_RIGHT_BROW), which ~30-40% of people can't
+ * physically perform. The demo's old pool (@see demo_local_fast.py lines
+ * 533-539) included them; the redesign drops them from every liveness flow
+ * while the library/showcase page still lists them (marked experimental).
+ *
+ * Note `start(challengeTypes, …)` with an explicit list bypasses this pool
+ * entirely, so the per-challenge library puzzles can still exercise an
+ * excluded gesture on demand — only the RANDOM flow is curated.
  */
-const SIMPLE_CHALLENGE_POOL: ChallengeType[] = [
-  ChallengeType.BLINK,
-  ChallengeType.CLOSE_LEFT,
-  ChallengeType.CLOSE_RIGHT,
-  ChallengeType.SMILE,
-  ChallengeType.OPEN_MOUTH,
-  ChallengeType.TURN_LEFT,
-  ChallengeType.TURN_RIGHT,
-  ChallengeType.LOOK_UP,
-  ChallengeType.LOOK_DOWN,
-  ChallengeType.RAISE_BOTH_BROWS,
-  ChallengeType.RAISE_LEFT_BROW,
-  ChallengeType.RAISE_RIGHT_BROW,
-];
+const SIMPLE_CHALLENGE_POOL: readonly ChallengeType[] = LIVENESS_POOL;
 
 /**
  * Shuffle an array using Fisher-Yates and return a slice of the requested size.
