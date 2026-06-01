@@ -2,10 +2,13 @@
  * useEnrollmentDispatcher
  *
  * State machine for which enrollment dialog/phase is currently open and the
- * three top-level user actions: Enroll, Test, Revoke. Pulled out of
- * EnrollmentPage.tsx during P1-Q7 decomposition.
+ * three top-level user actions: Enroll, Re-enroll (optimize), Revoke. Pulled
+ * out of EnrollmentPage.tsx during P1-Q7 decomposition.
  *
- * Behavior is unchanged from the inlined version — only the file boundary moved.
+ * 2026-06-01: the enrolled-method secondary action was renamed from a fake
+ * "Test" (it re-opened the enrollment dialog but tested nothing — the real
+ * testing surface is `/auth-methods-testing`) to "Re-enroll" / "Optimize",
+ * which genuinely improves the stored biometric template. See `handleReEnroll`.
  */
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -138,7 +141,31 @@ export function useEnrollmentDispatcher({
         [createEnrollment, tenantId, hasPhoneNumber, userId, t, refetchEnrollments, showSnackbar]
     )
 
-    const handleTest = useCallback(
+    /**
+     * Re-enroll an ALREADY-enrolled method.
+     *
+     * This replaces the old `handleTest` (which only re-opened the enrollment
+     * dialog and tested nothing — the dedicated testing surface lives at
+     * `/auth-methods-testing`). Re-enroll OPTIMIZES the stored template:
+     *
+     *   - FACE / VOICE: re-open the capture dialog. The captured sample is sent
+     *     to the biometric-processor `/enroll` (or `/enroll/multi`), which
+     *     INSERTS it as a new INDIVIDUAL row (never overwrites — see
+     *     `pgvector_embedding_repository.save`, "never overwrite — accumulate"),
+     *     caps individuals at 5 (prunes lowest quality), then RE-AVERAGES the
+     *     CENTROID used for verification. So each pass quality-weights the new
+     *     sample into the existing template. A low-quality / non-live / spoof
+     *     sample is rejected by the server-side liveness + quality + anti-spoof
+     *     gate BEFORE it can touch the centroid, so re-enroll can only improve
+     *     (or no-op), never degrade.
+     *   - FINGERPRINT / HARDWARE_KEY / NFC_DOCUMENT / TOTP: re-register the
+     *     authenticator / secret (there is no averaged template to fuse — a
+     *     fresh registration is the correct "optimize" for these).
+     *   - EMAIL_OTP / SMS_OTP / QR_CODE: stateless / auto-bound — there is NO
+     *     per-user biometric template to optimize, so we surface an
+     *     informational hint instead of pretending to re-enroll.
+     */
+    const handleReEnroll = useCallback(
         (type: AuthMethodType) => {
             switch (type) {
                 case AuthMethodType.FACE:
@@ -168,8 +195,11 @@ export function useEnrollmentDispatcher({
                 case AuthMethodType.EMAIL_OTP:
                 case AuthMethodType.SMS_OTP:
                 case AuthMethodType.QR_CODE:
+                    // Auto-bound / stateless: nothing to optimize. Inform the user.
                     showSnackbar(
-                        t('enrollmentPage.testHint', { method: t(`enrollmentPage.methods.${type}.label`) }),
+                        t('enrollmentPage.reEnrollAutoBoundHint', {
+                            method: t(`enrollmentPage.methods.${type}.label`),
+                        }),
                         'info',
                     )
                     break
@@ -215,7 +245,7 @@ export function useEnrollmentDispatcher({
         setActionLoading,
         // actions
         handleEnroll,
-        handleTest,
+        handleReEnroll,
         handleRevoke,
     }
 }
