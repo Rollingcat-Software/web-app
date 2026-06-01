@@ -49,6 +49,15 @@ export interface SearchResult {
          */
         userName?: string
         userEmail?: string
+        /**
+         * True iff the `GET /users/{userId}` hydration lookup resolved a live
+         * record (HTTP 200). False when the owner is soft-deleted / missing
+         * (404) or the lookup failed — the UI then shows the raw id labelled
+         * "unknown user". Undefined before hydration runs. Mirrors the backend's
+         * lazy-proxy null-safe pattern: a missing owner never throws, it just
+         * degrades the label.
+         */
+        userResolved?: boolean
     }>
 }
 

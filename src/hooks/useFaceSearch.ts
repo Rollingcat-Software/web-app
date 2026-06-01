@@ -59,13 +59,27 @@ export function useFaceSearch(): UseFaceSearchReturn {
                         headers: authHeader,
                     })
                     if (userRes.ok) {
+                        // Live owner record — hydrate name/email and mark resolved
+                        // so the UI shows the human identity. A 200 with no name set
+                        // still counts as resolved (we fall back to email, never the
+                        // "unknown user" label, which is reserved for missing owners).
                         const user = await userRes.json()
                         const firstName = user.firstName || user.data?.firstName || ''
                         const lastName = user.lastName || user.data?.lastName || ''
                         match.userName = `${firstName} ${lastName}`.trim() || undefined
                         match.userEmail = user.email || user.data?.email || undefined
+                        match.userResolved = true
+                    } else {
+                        // 404 (soft-deleted / missing owner) or other non-OK status —
+                        // mirror UserRepository.findById's null-on-404 pattern: don't
+                        // throw, just mark unresolved so the UI shows id + "unknown user".
+                        match.userResolved = false
                     }
-                } catch { /* best-effort — leave name/email undefined, UI shows id */ }
+                } catch {
+                    // Network / parse failure — best-effort, leave name/email
+                    // undefined and flag unresolved so the UI degrades to the id.
+                    match.userResolved = false
+                }
             }))
 
             setResult(searchResult)

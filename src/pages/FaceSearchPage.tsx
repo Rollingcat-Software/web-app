@@ -213,8 +213,10 @@ export default function FaceSearchPage() {
                                         <ListItemText
                                             primary={
                                                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
-                                                    {/* Prefer the resolved human name; fall back to email,
-                                                        then the raw id (soft-deleted / missing owner). */}
+                                                    {/* Prefer the resolved human name; fall back to email.
+                                                        When the owner lookup failed (soft-deleted / missing
+                                                        user) show the raw id labelled "unknown user" — never
+                                                        crash, mirroring the backend's null-safe lazy proxy. */}
                                                     <Typography variant="body1" fontWeight={match.userName ? 600 : 400} sx={{ wordBreak: 'break-word', minWidth: 0 }}>
                                                         {match.userName || match.userEmail || match.userId}
                                                     </Typography>
@@ -222,6 +224,9 @@ export default function FaceSearchPage() {
                                                         <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all', minWidth: 0 }}>
                                                             ({match.userEmail})
                                                         </Typography>
+                                                    )}
+                                                    {!match.userName && !match.userEmail && (
+                                                        <Chip label={t('common.unknownUser')} size="small" variant="outlined" color="default" />
                                                     )}
                                                     {idx === 0 && (
                                                         <Chip label={t('common.bestMatch')} size="small" color="primary" />
