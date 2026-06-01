@@ -327,6 +327,88 @@ export function isPinching(frame: HandFrame): boolean {
     return d < handScale(lms) * 0.35
 }
 
+/**
+ * Thumb-tip ↔ index-tip distance normalised by hand scale. Lower = closer to a
+ * touch. Returns Infinity when landmarks are missing so a no-hand frame never
+ * looks like a touch.
+ */
+export function tapDistance(frame: HandFrame): number {
+    const lms = frame.landmarks
+    if (lms.length < 21) return Infinity
+    return dist(lms[4], lms[8]) / handScale(lms)
+}
+
+/**
+ * TapTransitionTracker — the close→re-open EDGE detector for a finger TAP,
+ * mirroring the face `BlinkTransitionTracker`. A tap is an EVENT, not a hold:
+ * the thumb-tip touches the index-tip (distance drops below TOUCH) and then
+ * RELEASES (distance rises back above RELEASE) within a short window. It fires
+ * exactly once, on the RELEASE edge.
+ *
+ * The dual TOUCH/RELEASE thresholds form a hysteresis band that rejects
+ * boundary chatter (a single jittering threshold counts a held pinch as many
+ * spurious taps). The `maxTouchFrames` window means a sustained PINCH-and-HOLD
+ * (the separate HAND_PINCH challenge) is NOT counted as a tap — a real tap is
+ * brief.
+ *
+ * @see lib/biometric-engine/core/challenges/blinkTransition.ts (BlinkTransitionTracker)
+ */
+/** Distance (normalised by hand scale) below which thumb+index are "touching". */
+export const TAP_TOUCH_THRESHOLD = 0.35
+/** Distance above which a touch is considered RELEASED (hysteresis band). */
+export const TAP_RELEASE_THRESHOLD = 0.6
+/** Min consecutive touching frames before a release can count (rejects 1-frame noise). */
+export const TAP_CONSECUTIVE_FRAMES = 2
+/** Max touching frames still counted as a tap — beyond this it's a PINCH-hold, not a tap. */
+export const TAP_MAX_TOUCH_FRAMES = 20
+
+export class TapTransitionTracker {
+    private touchingFrames = 0
+
+    constructor(
+        private readonly touchThreshold: number = TAP_TOUCH_THRESHOLD,
+        private readonly releaseThreshold: number = TAP_RELEASE_THRESHOLD,
+        private readonly consecutiveFrames: number = TAP_CONSECUTIVE_FRAMES,
+        private readonly maxTouchFrames: number = TAP_MAX_TOUCH_FRAMES,
+    ) {}
+
+    reset(): void {
+        this.touchingFrames = 0
+    }
+
+    /** True while the fingers are currently touching (touch phase). */
+    isTouching(distance: number): boolean {
+        return distance < this.touchThreshold
+    }
+
+    /**
+     * Feed one frame's normalised tap distance. Returns `true` exactly once —
+     * on the frame the fingers RELEASE (distance ≥ releaseThreshold) after
+     * having touched for ≥ consecutiveFrames and ≤ maxTouchFrames.
+     */
+    update(distance: number): boolean {
+        if (distance < this.touchThreshold) {
+            // Touch phase. Cap the counter so a long hold can't satisfy a tap on
+            // release — a hold is the PINCH challenge, not a tap.
+            this.touchingFrames = Math.min(this.touchingFrames + 1, this.maxTouchFrames + 1)
+            return false
+        }
+
+        if (distance >= this.releaseThreshold) {
+            const released =
+                this.touchingFrames >= this.consecutiveFrames &&
+                this.touchingFrames <= this.maxTouchFrames
+            this.touchingFrames = 0
+            return released
+        }
+
+        // In the hysteresis dead-band: neither a clear touch nor a clear
+        // release. Hold the current touch count (don't reset) so boundary
+        // flicker doesn't abort an in-progress tap.
+        return false
+    }
+}
+
 /** Returns the normalised thumb-index distance (0..~1). */
 export function thumbIndexDistance(frame: HandFrame): number {
     const lms = frame.landmarks
@@ -502,45 +584,45 @@ export class FlipDetector {
 }
 
 /**
- * Detect tap: thumb-index distance crossing the pinch threshold from
- * apart→together at least `taps` times within `windowMs`.
+ * Detect a finger TAP — an EVENT, not a hold. A tap is a touch→release EDGE:
+ * thumb-tip and index-tip come together (distance below TOUCH) and then SEPARATE
+ * again (distance back above RELEASE) within a brief window. Counted once per
+ * release edge by `TapTransitionTracker` (the same close→re-open pattern the
+ * face blink detector uses), so it cannot be satisfied by holding a pinch
+ * (that's the separate HAND_PINCH challenge) and isn't fooled by boundary
+ * chatter.
+ *
+ * Completes after `requiredTaps` release edges. Default is a SINGLE deliberate
+ * tap — the previous 0.6s/4-tap models were fiddly; one clean touch-and-release
+ * is enough liveness signal and far more reliable on real webcams.
  */
 export class TapDetector {
-    private events: { close: boolean; ts: number }[] = []
+    private tracker = new TapTransitionTracker()
     private taps = 0
+    private events: number[] = []
     private windowMs: number
     private requiredTaps: number
 
-    constructor(windowMs = 4000, requiredTaps = 3) {
+    constructor(windowMs = 4000, requiredTaps = 1) {
         this.windowMs = windowMs
         this.requiredTaps = requiredTaps
     }
 
     push(frame: HandFrame): boolean {
-        const close = isPinching(frame)
-        const last = this.events[this.events.length - 1]
         const ts = frame.timestamp
-
-        if (!last || last.close !== close) {
-            this.events.push({ close, ts })
-            // Count a tap as an apart→together transition.
-            if (last && !last.close && close) this.taps += 1
+        if (this.tracker.update(tapDistance(frame))) {
+            this.events.push(ts)
         }
-
-        // Drop stale events.
-        while (this.events.length && ts - this.events[0].ts > this.windowMs) {
+        // Keep only release edges inside the rolling window.
+        while (this.events.length && ts - this.events[0] > this.windowMs) {
             this.events.shift()
         }
-        // Recount taps inside the window only.
-        let count = 0
-        for (let i = 1; i < this.events.length; i++) {
-            if (!this.events[i - 1].close && this.events[i].close) count += 1
-        }
-        this.taps = count
+        this.taps = this.events.length
         return this.taps >= this.requiredTaps
     }
 
     reset() {
+        this.tracker.reset()
         this.events = []
         this.taps = 0
     }
