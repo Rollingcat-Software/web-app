@@ -1,13 +1,11 @@
 /**
  * CloseRightDetector — detects a RIGHT-eye wink as a close→re-open EDGE.
  *
- * Like BLINK, a wink is a TRANSIENT (momentary) action, not a sustained hold:
- *   1. user's RIGHT eye drops below BLINK_EAR_CLOSED while the LEFT eye stays
- *      open (> EAR_THRESHOLD) for ≥ BLINK_CONSECUTIVE_FRAMES → "winking"
- *   2. the RIGHT eye then recovers to ≥ BLINK_EAR_REOPEN → RE-OPEN edge → complete
- *
- * `detect()` returns `true` exactly once, on the re-open edge. The engine treats
- * this as a transient challenge (no 0.6s hold), so re-opening completes it.
+ * Like BLINK, a wink is a TRANSIENT (momentary) action, not a sustained hold.
+ * Delegates to the shared {@link BlinkTransitionTracker} on the user's RIGHT eye,
+ * gated on the LEFT eye staying open during the close phase. `detect()` returns
+ * `true` exactly once, on the re-open edge; the engine treats it as transient
+ * (no 0.6s hold), so re-opening completes it.
  *
  * @see spoof-detector/src/infrastructure/analyzers/blink_analyzer.py:244-253
  * @see demo_local_fast.py line 756 (eye-state thresholds)
@@ -16,50 +14,24 @@
 import type { FaceMetrics, HeadPose } from '../../types';
 import { ChallengeType } from '../../types';
 import type { IChallengeDetector } from '../../interfaces';
-import {
-  EAR_CLOSED_THRESHOLD,
-  EAR_THRESHOLD,
-  BLINK_EAR_CLOSED,
-  BLINK_EAR_REOPEN,
-  BLINK_CONSECUTIVE_FRAMES,
-  BLINK_WARMUP_FRAMES,
-} from '../constants';
+import { EAR_CLOSED_THRESHOLD, EAR_THRESHOLD, BLINK_EAR_CLOSED } from '../constants';
+import { BlinkTransitionTracker } from './blinkTransition';
 
 export class CloseRightDetector implements IChallengeDetector {
   readonly type = ChallengeType.CLOSE_RIGHT;
   readonly isTransient = true;
 
-  private frameCount = 0;
-  /** Consecutive frames the RIGHT eye was closed while the LEFT stayed open. */
-  private winkFrames = 0;
+  private readonly tracker = new BlinkTransitionTracker();
 
   reset(): void {
-    this.frameCount = 0;
-    this.winkFrames = 0;
+    this.tracker.reset();
   }
 
-  /** Stateful close→re-open edge for the user's RIGHT eye (left stays open). */
+  /** Close→re-open edge for the user's RIGHT eye (left must stay open). */
   detect(metrics: FaceMetrics, _headPose: HeadPose): boolean {
     const { userLeftEAR, userRightEAR } = metrics.eyes;
-    this.frameCount += 1;
-
-    const rightClosed = userRightEAR < BLINK_EAR_CLOSED;
     const leftOpen = userLeftEAR > EAR_THRESHOLD;
-
-    if (rightClosed && leftOpen) {
-      // Wink close phase (right shut, left open).
-      this.winkFrames += 1;
-      return false;
-    }
-
-    // Right eye is (re)open this frame. Did a valid wink-close just precede it?
-    const reopenedAfterWink =
-      this.winkFrames >= BLINK_CONSECUTIVE_FRAMES &&
-      userRightEAR >= BLINK_EAR_REOPEN &&
-      this.frameCount > BLINK_WARMUP_FRAMES;
-
-    this.winkFrames = 0;
-    return reopenedAfterWink;
+    return this.tracker.update(userRightEAR, leftOpen);
   }
 
   getMessage(metrics: FaceMetrics, _headPose: HeadPose): string {

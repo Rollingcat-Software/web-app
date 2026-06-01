@@ -31,6 +31,13 @@ export interface FaceDetectionState {
     hint: string
     confidence: number
     boundingBox: { x: number; y: number; width: number; height: number } | null
+    /**
+     * Average Eye Aspect Ratio for the primary face, or null when the active
+     * backend does not provide 478-point landmarks (BlazeFace / MediaPipe
+     * FaceDetector fallbacks). Used by the enrollment blink stage to run the
+     * canonical close→re-open transition detector. @see useFaceChallenge.
+     */
+    avgEAR: number | null
 }
 
 const INITIAL_STATE: FaceDetectionState = {
@@ -41,6 +48,7 @@ const INITIAL_STATE: FaceDetectionState = {
     hint: 'faceDetection.positionFace',
     confidence: 0,
     boundingBox: null,
+    avgEAR: null,
 }
 
 /** Yaw threshold (degrees) beyond which the user is prompted to look straight. */
@@ -242,6 +250,18 @@ export function useFaceDetection(
                     }
                 }
 
+                // Compute the canonical avg EAR from the 478-pt landmarks so the
+                // enrollment blink stage can run the same close→re-open transition
+                // detector the puzzles use (one blink implementation everywhere).
+                let avgEAR: number | null = null
+                if (face.landmarks478 && face.landmarks478.length >= 468) {
+                    try {
+                        avgEAR = engine.metricsCalculator.calculateAll(face.landmarks478).eyes.avgEAR
+                    } catch {
+                        avgEAR = null
+                    }
+                }
+
                 setState({
                     detected: true,
                     centered,
@@ -255,6 +275,7 @@ export function useFaceDetection(
                         width: normW,
                         height: normH,
                     },
+                    avgEAR,
                 })
 
                 recordOperation?.('face-detect', inferenceMs)
@@ -316,6 +337,8 @@ export function useFaceDetection(
                         width: bb.width,
                         height: bb.height,
                     },
+                    // BlazeFace has no eye landmarks — EAR unavailable on this backend.
+                    avgEAR: null,
                 })
 
                 recordOperation?.('face-detect', result.inferenceTimeMs)
@@ -394,6 +417,8 @@ export function useFaceDetection(
                             width: bb.width / vw,
                             height: bb.height / vh,
                         },
+                        // MediaPipe FaceDetector has no eye landmarks — EAR unavailable.
+                        avgEAR: null,
                     })
                 }
             }

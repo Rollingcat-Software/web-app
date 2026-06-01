@@ -1,6 +1,7 @@
 import { useState, useCallback, useRef } from 'react'
 import { FaceDetectionState } from './useFaceDetection'
 import { BiometricEngine } from '../../../lib/biometric-engine/core/BiometricEngine'
+import { BlinkTransitionTracker } from '../../../lib/biometric-engine/core/challenges'
 import { dataURLToImageData } from '../utils/faceCropper'
 
 /**
@@ -125,7 +126,10 @@ export function useFaceChallenge() {
     const stageIndexRef = useRef(0)
     const capturesRef = useRef<string[]>([])
     const clientEmbeddingsRef = useRef<(number[] | null)[]>([])
-    const prevConfidenceRef = useRef<number>(0)
+    // Canonical close→re-open blink transition tracker — the SAME implementation
+    // the puzzle BlinkDetector uses, so enrollment and puzzles agree on what a
+    // blink is. Replaces the old face-detection-confidence-dip heuristic.
+    const blinkTrackerRef = useRef<BlinkTransitionTracker>(new BlinkTransitionTracker())
     const blinkDetectedRef = useRef(false)
     const stageStartRef = useRef<number>(Date.now())
 
@@ -134,7 +138,7 @@ export function useFaceChallenge() {
         capturesRef.current = []
         clientEmbeddingsRef.current = []
         holdStartRef.current = null
-        prevConfidenceRef.current = 0
+        blinkTrackerRef.current.reset()
         blinkDetectedRef.current = false
         stageStartRef.current = Date.now()
         setChallengeState({
@@ -177,13 +181,18 @@ export function useFaceChallenge() {
 
             case 'blink': {
                 if (!detection.detected) return false
-                // Detect blink via confidence dip: confidence drops then recovers
-                const currentConf = detection.confidence
-                const prevConf = prevConfidenceRef.current
-                if (prevConf > 0.6 && currentConf < 0.5) {
-                    blinkDetectedRef.current = true
+                // Canonical EAR close→re-open transition (same as the puzzle
+                // BlinkDetector). A natural ~120ms blink completes on the re-open
+                // edge — no eyes-squeezed-shut hold. Once seen, latch it so the
+                // stage's short hold timer can capture a clean open-eye frame.
+                if (detection.avgEAR !== null) {
+                    if (blinkTrackerRef.current.update(detection.avgEAR)) {
+                        blinkDetectedRef.current = true
+                    }
                 }
-                prevConfidenceRef.current = currentConf
+                // When avgEAR is null the active backend has no eye landmarks
+                // (BlazeFace / MediaPipe FaceDetector fallback); the stage soft
+                // timeout in updateChallenge() captures anyway after STAGE_TIMEOUT_MS.
                 return blinkDetectedRef.current
             }
 
@@ -352,7 +361,7 @@ export function useFaceChallenge() {
                         capturesRef.current = []
                         clientEmbeddingsRef.current = []
                         holdStartRef.current = null
-                        prevConfidenceRef.current = 0
+                        blinkTrackerRef.current.reset()
                         blinkDetectedRef.current = false
                         stageStartRef.current = Date.now()
                         setChallengeState({
@@ -403,7 +412,7 @@ export function useFaceChallenge() {
                 stageIndexRef.current = nextIdx
                 holdStartRef.current = null
                 blinkDetectedRef.current = false
-                prevConfidenceRef.current = 0
+                blinkTrackerRef.current.reset()
                 stageStartRef.current = Date.now()
 
                 if (nextIdx >= ENROLLMENT_STAGES.length) {
