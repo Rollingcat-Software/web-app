@@ -442,3 +442,61 @@ describe('formatApiError — password policy structured rendering', () => {
         expect(out).toBe('errors.PASSWORD_POLICY_VIOLATION')
     })
 })
+
+describe('formatApiError — tenant Auth-Methods true-gate (2026-06-01)', () => {
+    // Captures interpolation vars so we assert method/flows are forwarded.
+    function makeT() {
+        const calls: Array<{ key: string; vars?: Record<string, unknown> }> = []
+        const t = ((key: string, vars?: Record<string, unknown>) => {
+            calls.push({ key, vars })
+            return vars ? `${key}:${JSON.stringify(vars)}` : key
+        }) as unknown as TFunction
+        return { t, calls }
+    }
+
+    it('AUTH_METHOD_DISABLED (403) → errors.authMethodDisabled', () => {
+        const err = axiosError({
+            status: 403,
+            url: '/auth/mfa/step',
+            body: { errorCode: 'AUTH_METHOD_DISABLED', method: 'SMS_OTP' },
+        })
+        expect(formatApiError(err, tIdentity)).toBe('errors.authMethodDisabled')
+    })
+
+    it('AUTH_METHOD_IN_USE (409) interpolates method + joined flows', () => {
+        const { t } = makeT()
+        const err = axiosError({
+            status: 409,
+            body: {
+                errorCode: 'AUTH_METHOD_IN_USE',
+                method: 'TOTP',
+                activeFlows: ['Default 3-Step', 'Door Access'],
+            },
+        })
+        expect(formatApiError(err, t)).toBe(
+            'errors.authMethodInUse:' + JSON.stringify({ method: 'TOTP', flows: 'Default 3-Step, Door Access' })
+        )
+    })
+
+    it('AUTH_METHOD_IN_USE without flows falls back to the no-flows variant', () => {
+        const { t } = makeT()
+        const err = axiosError({
+            status: 409,
+            body: { errorCode: 'AUTH_METHOD_IN_USE', method: 'TOTP' },
+        })
+        expect(formatApiError(err, t)).toBe(
+            'errors.authMethodInUseNoFlows:' + JSON.stringify({ method: 'TOTP' })
+        )
+    })
+
+    it('AUTH_FLOW_METHOD_DISABLED (422) interpolates joined disabled methods', () => {
+        const { t } = makeT()
+        const err = axiosError({
+            status: 422,
+            body: { errorCode: 'AUTH_FLOW_METHOD_DISABLED', disabledMethods: ['FACE', 'VOICE'] },
+        })
+        expect(formatApiError(err, t)).toBe(
+            'errors.authFlowMethodDisabled:' + JSON.stringify({ methods: 'FACE, VOICE' })
+        )
+    })
+})

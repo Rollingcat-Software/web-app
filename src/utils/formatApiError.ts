@@ -38,6 +38,12 @@ function errorCodeToI18nKey(code: string | undefined): string | null {
         // Self-service onboarding — admin used a personal/free email provider (422).
         case 'PERSONAL_EMAIL_NOT_ALLOWED':
             return 'errors.personalEmailNotAllowed'
+        // Tenant Auth-Methods true-gate (2026-06-01). AUTH_METHOD_DISABLED is the
+        // login-time rejection (403) for a method explicitly disabled for the
+        // tenant; the other two carry interpolated lists and are handled inline
+        // in formatApiError (so they are NOT mapped here).
+        case 'AUTH_METHOD_DISABLED':
+            return 'errors.authMethodDisabled'
         default:
             return null
     }
@@ -236,6 +242,10 @@ export function formatApiError(err: unknown, t: TFunction): string {
                 remainingLockTimeSeconds?: number
                 /** PASSWORD_POLICY_VIOLATION structured details (Team A, audit 2026-05-07). */
                 details?: { rules?: PasswordPolicyRuleViolation[] }
+                /** Tenant Auth-Methods true-gate (2026-06-01). */
+                method?: string
+                activeFlows?: string[]
+                disabledMethods?: string[]
             }
         }
         config?: { url?: string }
@@ -292,6 +302,23 @@ export function formatApiError(err: unknown, t: TFunction): string {
             // Password-policy structured rendering — see `formatPasswordPolicyViolation`.
             if (springCode === 'PASSWORD_POLICY_VIOLATION') {
                 return formatPasswordPolicyViolation(data, t)
+            }
+            // Tenant Auth-Methods true-gate (2026-06-01): write-side no-lock-out
+            // guards. AUTH_METHOD_IN_USE (409) carries the dependent active flow
+            // names; AUTH_FLOW_METHOD_DISABLED (422) carries the disabled methods.
+            // Both interpolate a comma-joined list, so they're handled inline.
+            if (springCode === 'AUTH_METHOD_IN_USE') {
+                const method = data?.method?.trim()
+                const flows = Array.isArray(data?.activeFlows) ? data.activeFlows.join(', ') : ''
+                return flows
+                    ? t('errors.authMethodInUse', { method: method ?? '', flows })
+                    : t('errors.authMethodInUseNoFlows', { method: method ?? '' })
+            }
+            if (springCode === 'AUTH_FLOW_METHOD_DISABLED') {
+                const methods = Array.isArray(data?.disabledMethods)
+                    ? data.disabledMethods.join(', ')
+                    : ''
+                return t('errors.authFlowMethodDisabled', { methods })
             }
             const codeKey = errorCodeToI18nKey(springCode)
             if (codeKey) return t(codeKey)

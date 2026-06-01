@@ -583,6 +583,11 @@
         "RECORD_NOT_FOUND": "The TXT record was not found yet. DNS changes can take a few minutes to propagate.",
         "NO_CHALLENGE": "No active challenge for this domain. Request a new one and try again."
       }
+    },
+    "authMethods": {
+      "title": "Auth Methods",
+      "description": "Enable or disable the sign-in methods available to this organization's users. A disabled method can no longer be used to log in.",
+      "empty": "No sign-in methods available."
     }
   },
   "roles": {
@@ -1904,7 +1909,11 @@
     "emailDomainAlreadyClaimed": "This email domain is already claimed by another organization.",
     "cannotRemoveLastDomain": "Can't remove the last email domain while domain enforcement is enabled. Disable enforcement or add another domain first.",
     "emailDomainNotAllowed": "This email domain is not allowed to register with this organization.",
-    "personalEmailNotAllowed": "Please sign up with your organization email, not a personal or free email provider (e.g. Gmail, Outlook)."
+    "personalEmailNotAllowed": "Please sign up with your organization email, not a personal or free email provider (e.g. Gmail, Outlook).",
+    "authMethodDisabled": "This sign-in method is disabled for your organization. Please choose another method.",
+    "authMethodInUse": "{{method}} can't be disabled — it is required by active auth flow(s): {{flows}}. Remove it from those flows first, or override.",
+    "authMethodInUseNoFlows": "{{method}} can't be disabled — it is required by an active auth flow. Remove it from that flow first, or override.",
+    "authFlowMethodDisabled": "This flow uses method(s) disabled for this organization: {{methods}}. Re-enable them in Auth Methods, or remove them from the flow."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "That email or password didn't match. Please try again.",
