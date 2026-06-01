@@ -2081,6 +2081,8 @@
     "requiresEnrollment": "Kayıt gerektirir",
     "stubbedOnly": "Yalnızca simülasyon",
     "realDetectorBadge": "Gerçek dedektör",
+    "experimental": "Deneysel",
+    "experimentalTooltip": "Deneysel — canlılık akışında kullanılmaz. Platformun tüm hareket setini göstermek için burada tutulur. Tek kaş kaldırma, bunu yapamayan kişilerin (~%30-40) erişimini engeller; parmak matematiği bir canlılık sinyali değil, gösterişten ibarettir.",
     "successHeadline": "Görev başarılı",
     "successMessage": "Dedektör hedeflenen hareketi onayladı.",
     "errorHeadline": "Görev tamamlanamadı",

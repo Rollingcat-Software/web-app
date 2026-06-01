@@ -77,8 +77,18 @@ export const BLINK_WARMUP_FRAMES = 3;
 /** Lip corner raise ratio threshold (SMILE). @see demo_local_fast.py line 497 */
 export const SMILE_CORNER_THRESHOLD = 0.05;
 
-/** Mouth width / face height threshold (SMILE). @see demo_local_fast.py line 498 */
-export const SMILE_WIDTH_THRESHOLD = 0.60;
+/**
+ * Mouth width / face height threshold (SMILE).
+ *
+ * RECALIBRATED 2026-06-01: 0.60 (demo_local_fast.py:498, "STRICT to prevent
+ * false positives") was too strict to actually USE — a genuine wide smile on a
+ * normal-FOV webcam often measures ~0.50-0.58, so real users couldn't pass.
+ * Loosened to 0.50. SMILE still requires BOTH a wide mouth AND raised corners
+ * (smileCornerRaise > 0.05), so a relaxed/neutral mouth (corners flat) and a
+ * still photo do not pass on width alone.
+ * @see demo_local_fast.py line 498 (original value 0.60)
+ */
+export const SMILE_WIDTH_THRESHOLD = 0.50;
 
 /** Mouth aspect ratio threshold (OPEN_MOUTH). @see demo_local_fast.py line 499 */
 export const MOUTH_OPEN_THRESHOLD = 0.12;
@@ -92,8 +102,17 @@ export const PITCH_THRESHOLD = 12;
 /** Both eyebrows raise ratio vs baseline (RAISE_BOTH_BROWS). @see demo_local_fast.py line 502 */
 export const EYEBROW_RAISE_THRESHOLD = 1.20;
 
-/** Single eyebrow raise ratio vs baseline (RAISE_LEFT/RIGHT_BROW). @see demo_local_fast.py line 503 */
-export const SINGLE_BROW_THRESHOLD = 1.25;
+/**
+ * Single eyebrow raise ratio vs baseline (RAISE_LEFT/RIGHT_BROW).
+ *
+ * RECALIBRATED 2026-06-01: 1.25 (demo_local_fast.py:503) was painfully strict.
+ * Single-brow raises are now LIBRARY-ONLY (dropped from every liveness flow —
+ * see livenessPool.ts), so this only governs the showcase puzzle. Loosened to
+ * 1.22 (still clearly above the 1.20 both-brow gate so it can't trivially
+ * trigger from a relaxed face) to make the experimental card less frustrating.
+ * @see demo_local_fast.py line 503 (original value 1.25)
+ */
+export const SINGLE_BROW_THRESHOLD = 1.22;
 
 /** Min pitch range over motion history for NOD detection (degrees). @see demo_local_fast.py line 890 */
 export const NOD_PITCH_RANGE = 25;

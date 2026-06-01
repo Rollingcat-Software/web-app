@@ -2081,6 +2081,8 @@
     "requiresEnrollment": "Requires enrollment",
     "stubbedOnly": "Simulated only",
     "realDetectorBadge": "Real detector",
+    "experimental": "Experimental",
+    "experimentalTooltip": "Experimental — not used in liveness. Kept here to showcase the platform's full gesture set. Single-eyebrow raises lock out the ~30-40% of people who can't do them; finger-math is a gimmick, not a liveness signal.",
     "successHeadline": "Challenge passed",
     "successMessage": "The detector confirmed the target gesture.",
     "errorHeadline": "Challenge not completed",
