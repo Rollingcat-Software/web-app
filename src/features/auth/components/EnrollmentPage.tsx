@@ -141,7 +141,7 @@ export default function EnrollmentPage() {
                     isMethodAvailable={isMethodAvailable}
                     actionLoading={dispatcher.actionLoading}
                     onEnroll={dispatcher.handleEnroll}
-                    onTest={dispatcher.handleTest}
+                    onReEnroll={dispatcher.handleReEnroll}
                     onRevoke={dispatcher.handleRevoke}
                 />
             )}
