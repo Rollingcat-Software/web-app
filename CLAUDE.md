@@ -180,6 +180,44 @@ rsync -avz --delete -e "ssh -p 65002" dist/ u349700627@46.202.158.52:~/domains/a
 - SPA routing: `public/.htaccess` with RewriteEngine
 - `connect-src` must include `https://api.fivucsas.com`
 
+## PWA service worker — network-first app shell (2026-06-01)
+
+The app-shell (the HTML document / navigation requests) is served **NETWORK-FIRST**,
+configured in `vite.config.ts` (VitePWA `workbox` block). This is the fix for a
+stale-shell bug: `index.html` is precached, and the previous
+`navigateFallback: '/index.html'` registered a cache-first `NavigationRoute` that
+served that **precached** shell for every navigation — so a fresh deploy (new
+index.html → new hashed JS/CSS) never reached users until they hard-cleared the
+browser cache.
+
+Current strategy:
+- **Navigations → NetworkFirst** via a `runtimeCaching` route whose function
+  `urlPattern` is `({request}) => request.mode === 'navigate'`, `cacheName:
+  'app-shell'`, `networkTimeoutSeconds: 3`, and `precacheFallback.fallbackURL:
+  '/index.html'`. Online users always get the freshest `index.html` (and thus the
+  newest hashed chunks); on a slow/flaky network the 3s timeout falls back to the
+  app-shell cache; fully offline falls back to the **precached** `index.html`.
+- `navigateFallback` is set to **`null`** (not merely omitted): vite-plugin-pwa
+  injects a DEFAULT `navigateFallback: 'index.html'`, so it MUST be explicitly
+  nulled or the cache-first `NavigationRoute` is re-registered and shadows the
+  network-first route (silently re-introducing the bug). Keep it `null`.
+- **Hashed JS/CSS/font assets stay precached + cache-first** (`globPatterns`
+  unchanged) — they're immutable and load fast/offline; only the shell is
+  network-first. The `api.fivucsas.com` NetworkFirst rule and
+  `cleanupOutdatedCaches: true` are preserved; `skipWaiting`/`clientsClaim` are
+  set explicitly so the new SW activates promptly (also implied by
+  `registerType: 'autoUpdate'`).
+- **generateSW-valid**: workbox-build 7.4.0 accepts a function `urlPattern`
+  (`RouteMatchCallback`) and emits `registerRoute(<fn>, NetworkFirst, 'GET')` into
+  `dist/sw.js`. Verify after any change: `npm run build` then grep `dist/sw.js`
+  for the `"navigate"===…mode` → `NetworkFirst({cacheName:"app-shell"…})` route and
+  confirm NO `NavigationRoute` / `createHandlerBoundToURL` remains.
+- **One-time clear caveat**: users whose browser already installed the OLD
+  cache-first SW need ONE cache clear (or for the old SW to update itself) to pick
+  up this new SW. After that, all future deploys are fresh with no manual clear.
+- **Reversible**: to revert, restore `navigateFallback: '/index.html'` and drop the
+  app-shell `runtimeCaching` entry — pure config, no code changes.
+
 ## Known Issue
 
 - **Mobile multi-tap**: Chrome/Brave on Android need 2-7 taps for fingerprint scanner. Logging added.

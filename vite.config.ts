@@ -123,16 +123,72 @@ export default defineConfig(({ mode }) => ({
             },
             workbox: {
                 globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
-                // SPA fallback — every navigation request resolves to the
-                // freshly precached index.html so the worker never serves a
-                // stale shell referencing chunks Hostinger no longer hosts.
-                // Edge-P2 #9 (AUDIT_2026-04-28).
-                navigateFallback: '/index.html',
-                // Discard precache entries from prior builds when the new
-                // worker activates, preventing "old chunk 404" tombstones.
+                // ---------------------------------------------------------------
+                // PWA APP-SHELL STRATEGY — NETWORK-FIRST NAVIGATIONS (2026-06-01)
+                // ---------------------------------------------------------------
+                // PROBLEM (the bug this fixes): index.html is precached, and the
+                // old `navigateFallback: '/index.html'` registered a NavigationRoute
+                // that served that PRECACHED shell CACHE-FIRST for every navigation.
+                // Result: a fresh deploy (new index.html → new hashed JS/CSS) never
+                // reached users until they hard-cleared the cache, because the SW
+                // kept handing back the stale precached shell.
+                //
+                // FIX: route navigation requests (the HTML document / app shell)
+                // through a NETWORK-FIRST handler below, instead of the cache-first
+                // navigateFallback. Online users always get the freshest index.html
+                // (which references the newest hashed chunks); offline users fall
+                // back to the precached shell via `precacheFallback`. `navigateFallback`
+                // is explicitly nulled (see below) so its cache-first NavigationRoute
+                // no longer shadows this route. Hashed JS/CSS/font assets stay PRECACHED and are
+                // served cache-first by the precache route (fast + offline-capable
+                // + immutable), so chunk loading is unaffected.
+                //
+                // generateSW-VALID: workbox-build's runtime-caching-converter
+                // accepts a function `urlPattern` (RouteMatchCallback) and emits it
+                // verbatim into sw.js via `registerRoute(<fn>, NetworkFirst, 'GET')`
+                // — confirmed against workbox-build 7.4.0 / vite-plugin-pwa 1.2.0.
+                //
+                // MUST be `null`, NOT merely omitted: vite-plugin-pwa injects a
+                // DEFAULT `navigateFallback: 'index.html'` (see its defaultWorkbox),
+                // which would register a cache-first `NavigationRoute` that runs
+                // BEFORE — and therefore shadows — our NetworkFirst navigation route,
+                // silently re-introducing the stale-shell bug. Setting it to null
+                // makes the sw-template skip that NavigationRoute entirely so only
+                // our network-first navigation route handles navigations. Verified
+                // in dist/sw.js (no createHandlerBoundToURL / NavigationRoute).
+                navigateFallback: null,
+                // Discard precache entries from prior builds when the new worker
+                // activates, preventing "old chunk 404" tombstones.
                 cleanupOutdatedCaches: true,
+                // registerType:'autoUpdate' already implies these, but set them
+                // explicitly so the new SW always skips the waiting phase and
+                // claims open clients immediately (prompt activation of the
+                // network-first shell, no manual reload prompt).
+                skipWaiting: true,
+                clientsClaim: true,
                 runtimeCaching: [
                     {
+                        // APP SHELL — every navigation (HTML document) request.
+                        // `request.mode === 'navigate'` is the canonical, generateSW-
+                        // supported way to target navigations without navigateFallback.
+                        urlPattern: ({request}: {request: Request}) => request.mode === 'navigate',
+                        handler: 'NetworkFirst',
+                        options: {
+                            cacheName: 'app-shell',
+                            // Short timeout: if the network doesn't respond in ~3s
+                            // (flaky/offline), fall back to cache so the app still
+                            // boots — but online users virtually always hit network.
+                            networkTimeoutSeconds: 3,
+                            // Offline / cache-miss safety net: serve the precached
+                            // index.html when both network AND the app-shell runtime
+                            // cache miss (e.g. first offline visit to a deep route).
+                            precacheFallback: {
+                                fallbackURL: '/index.html'
+                            }
+                        }
+                    },
+                    {
+                        // Backend API — unchanged NetworkFirst rule.
                         urlPattern: /^https:\/\/api\.fivucsas\.com\/.*/i,
                         handler: 'NetworkFirst',
                         options: {
