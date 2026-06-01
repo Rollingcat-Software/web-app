@@ -141,7 +141,7 @@ export default function EnrollmentPage() {
                     isMethodAvailable={isMethodAvailable}
                     actionLoading={dispatcher.actionLoading}
                     onEnroll={dispatcher.handleEnroll}
-                    onTest={dispatcher.handleTest}
+                    onReEnroll={dispatcher.handleReEnroll}
                     onRevoke={dispatcher.handleRevoke}
                 />
             )}
@@ -159,7 +159,11 @@ export default function EnrollmentPage() {
                 open={dispatcher.faceEnrollOpen}
                 userId={userId}
                 tenantId={tenantId}
-                onClose={() => dispatcher.setFaceEnrollOpen(false)}
+                optimize={dispatcher.reEnrollMode}
+                onClose={() => {
+                    dispatcher.setFaceEnrollOpen(false)
+                    dispatcher.setReEnrollMode(false)
+                }}
                 onEnrolled={refetchEnrollments}
                 showSnackbar={showSnackbar}
                 setActionLoading={dispatcher.setActionLoading}
@@ -190,7 +194,11 @@ export default function EnrollmentPage() {
                 tenantId={tenantId}
                 apiBaseUrl={envConfig.apiBaseUrl}
                 token={accessToken}
-                onClose={() => dispatcher.setVoiceEnrollOpen(false)}
+                optimize={dispatcher.reEnrollMode}
+                onClose={() => {
+                    dispatcher.setVoiceEnrollOpen(false)
+                    dispatcher.setReEnrollMode(false)
+                }}
                 onEnrolled={refetchEnrollments}
                 showSnackbar={showSnackbar}
                 createEnrollment={createEnrollment}

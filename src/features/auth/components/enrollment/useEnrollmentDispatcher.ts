@@ -2,10 +2,13 @@
  * useEnrollmentDispatcher
  *
  * State machine for which enrollment dialog/phase is currently open and the
- * three top-level user actions: Enroll, Test, Revoke. Pulled out of
- * EnrollmentPage.tsx during P1-Q7 decomposition.
+ * three top-level user actions: Enroll, Re-enroll (optimize), Revoke. Pulled
+ * out of EnrollmentPage.tsx during P1-Q7 decomposition.
  *
- * Behavior is unchanged from the inlined version — only the file boundary moved.
+ * 2026-06-01: the enrolled-method secondary action was renamed from a fake
+ * "Test" (it re-opened the enrollment dialog but tested nothing — the real
+ * testing surface is `/auth-methods-testing`) to "Re-enroll" / "Optimize",
+ * which genuinely improves the stored biometric template. See `handleReEnroll`.
  */
 import { useCallback, useState } from 'react'
 import { useTranslation } from 'react-i18next'
@@ -58,8 +61,17 @@ export function useEnrollmentDispatcher({
     // consistent with consumers and prevent accidental string mismatches.
     const [actionLoading, setActionLoading] = useState<AuthMethodType | null>(null)
 
+    // True while a FACE/VOICE capture dialog was opened by the "Re-enroll &
+    // optimize" action (vs a first-time Enroll). When set, the capture is sent
+    // to the backend with optimize=true so the stored template is FUSED with the
+    // new sample (centroid update) instead of replaced. Reset whenever a plain
+    // Enroll opens a dialog, so a first enroll never accidentally optimizes.
+    const [reEnrollMode, setReEnrollMode] = useState(false)
+
     const handleEnroll = useCallback(
         async (type: AuthMethodType) => {
+            // A first-time Enroll must never optimize an existing template.
+            setReEnrollMode(false)
             switch (type) {
                 case AuthMethodType.FACE:
                     setFaceEnrollOpen(true)
@@ -138,27 +150,61 @@ export function useEnrollmentDispatcher({
         [createEnrollment, tenantId, hasPhoneNumber, userId, t, refetchEnrollments, showSnackbar]
     )
 
-    const handleTest = useCallback(
+    /**
+     * Re-enroll an ALREADY-enrolled method.
+     *
+     * This replaces the old `handleTest` (which only re-opened the enrollment
+     * dialog and tested nothing — the dedicated testing surface lives at
+     * `/auth-methods-testing`). Re-enroll OPTIMIZES the stored template:
+     *
+     *   - FACE / VOICE: re-open the capture dialog. The captured sample is sent
+     *     to the biometric-processor `/enroll` (or `/enroll/multi`), which
+     *     INSERTS it as a new INDIVIDUAL row (never overwrites — see
+     *     `pgvector_embedding_repository.save`, "never overwrite — accumulate"),
+     *     caps individuals at 5 (prunes lowest quality), then RE-AVERAGES the
+     *     CENTROID used for verification. So each pass quality-weights the new
+     *     sample into the existing template. A low-quality / non-live / spoof
+     *     sample is rejected by the server-side liveness + quality + anti-spoof
+     *     gate BEFORE it can touch the centroid, so re-enroll can only improve
+     *     (or no-op), never degrade.
+     *   - FINGERPRINT / HARDWARE_KEY / NFC_DOCUMENT / TOTP: re-register the
+     *     authenticator / secret (there is no averaged template to fuse — a
+     *     fresh registration is the correct "optimize" for these).
+     *   - EMAIL_OTP / SMS_OTP / QR_CODE: stateless / auto-bound — there is NO
+     *     per-user biometric template to optimize, so we surface an
+     *     informational hint instead of pretending to re-enroll.
+     */
+    const handleReEnroll = useCallback(
         (type: AuthMethodType) => {
             switch (type) {
                 case AuthMethodType.FACE:
+                    // FACE has an averaged template — re-capture + optimize.
+                    setReEnrollMode(true)
                     setFaceEnrollOpen(true)
                     break
+                case AuthMethodType.VOICE:
+                    // VOICE has an averaged template — re-capture + optimize.
+                    setReEnrollMode(true)
+                    setVoiceEnrollOpen(true)
+                    break
                 case AuthMethodType.FINGERPRINT:
+                    // No averaged template — a fresh WebAuthn registration IS the
+                    // correct "re-enroll" (reEnrollMode stays false → no optimize).
+                    setReEnrollMode(false)
                     setWebauthnMode('platform')
                     setWebauthnEnrollOpen(true)
                     break
                 case AuthMethodType.HARDWARE_KEY:
+                    setReEnrollMode(false)
                     setWebauthnMode('hardware-key')
                     setWebauthnEnrollOpen(true)
                     break
                 case AuthMethodType.TOTP:
+                    setReEnrollMode(false)
                     setTotpEnrollOpen(true)
                     break
-                case AuthMethodType.VOICE:
-                    setVoiceEnrollOpen(true)
-                    break
                 case AuthMethodType.NFC_DOCUMENT:
+                    setReEnrollMode(false)
                     if ('NDEFReader' in window) {
                         setNfcEnrollOpen(true)
                     } else {
@@ -168,8 +214,11 @@ export function useEnrollmentDispatcher({
                 case AuthMethodType.EMAIL_OTP:
                 case AuthMethodType.SMS_OTP:
                 case AuthMethodType.QR_CODE:
+                    // Auto-bound / stateless: nothing to optimize. Inform the user.
                     showSnackbar(
-                        t('enrollmentPage.testHint', { method: t(`enrollmentPage.methods.${type}.label`) }),
+                        t('enrollmentPage.reEnrollAutoBoundHint', {
+                            method: t(`enrollmentPage.methods.${type}.label`),
+                        }),
                         'info',
                     )
                     break
@@ -213,9 +262,13 @@ export function useEnrollmentDispatcher({
         setSmsPhase,
         actionLoading,
         setActionLoading,
+        // re-enroll & optimize: true when the open FACE/VOICE dialog was launched
+        // by "Re-enroll" (so the capture is submitted with optimize=true).
+        reEnrollMode,
+        setReEnrollMode,
         // actions
         handleEnroll,
-        handleTest,
+        handleReEnroll,
         handleRevoke,
     }
 }

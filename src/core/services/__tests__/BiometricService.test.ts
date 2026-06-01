@@ -122,6 +122,36 @@ describe('BiometricService — multipart wire contract', () => {
             const fd = lastFormData()
             expect(fd.has('client_embeddings')).toBe(false)
         })
+
+        it('appends optimize=true on a re-enroll & optimize (single-image)', async () => {
+            post.mockResolvedValue({ data: { verified: true } })
+            await service.enrollFace('user-1', 'data:image/jpeg;base64,Zm9v', 'tenant', undefined, true)
+
+            const fd = lastFormData()
+            expect(fd.get('optimize')).toBe('true')
+        })
+
+        it('appends optimize=true on a re-enroll & optimize (multi-image)', async () => {
+            post.mockResolvedValue({ data: { fused_quality_score: 90 } })
+            await service.enrollFace(
+                'user-1',
+                ['data:image/jpeg;base64,Zm9v', 'data:image/jpeg;base64,YmFy'],
+                'tenant',
+                undefined,
+                true,
+            )
+
+            const fd = lastFormData()
+            expect(fd.get('optimize')).toBe('true')
+        })
+
+        it('does NOT append optimize on a normal enroll', async () => {
+            post.mockResolvedValue({ data: { verified: true } })
+            await service.enrollFace('user-1', 'data:image/jpeg;base64,Zm9v', 'tenant')
+
+            const fd = lastFormData()
+            expect(fd.has('optimize')).toBe(false)
+        })
     })
 
     describe('verifyFace', () => {

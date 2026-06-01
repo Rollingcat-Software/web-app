@@ -59,6 +59,13 @@ interface VoiceEnrollmentFlowProps {
     token: string | null
     onClose: () => void
     onSuccess: (action: VoiceAction, result: unknown) => void
+    /**
+     * When true, an 'enroll' action is sent with optimize=true so the captured
+     * sample is FUSED into the user's existing voice template (centroid update)
+     * instead of replacing it. Only affects the 'enroll' action; verify/search
+     * are read-only. Default false (first-time enroll).
+     */
+    optimize?: boolean
 }
 
 interface ConversionStats {
@@ -77,6 +84,7 @@ export default function VoiceEnrollmentFlow({
     token,
     onClose,
     onSuccess,
+    optimize = false,
 }: VoiceEnrollmentFlowProps) {
     const { t } = useTranslation()
     const mediaRecorderRef = useRef<MediaRecorder | null>(null)
@@ -275,7 +283,9 @@ export default function VoiceEnrollmentFlow({
             switch (action) {
                 case 'enroll':
                     url = `${apiBaseUrl}/biometric/voice/enroll/${userId}`
-                    body = { voiceData: voiceBase64 }
+                    // optimize=true ⇒ the proxy/bio FUSE this sample into the
+                    // existing voice template instead of replacing it.
+                    body = { voiceData: voiceBase64, optimize }
                     break
                 case 'verify':
                     url = `${apiBaseUrl}/biometric/voice/verify/${userId}`
@@ -340,7 +350,7 @@ export default function VoiceEnrollmentFlow({
         } finally {
             setActionLoading(null)
         }
-    }, [voiceBase64, token, apiBaseUrl, userId, onSuccess, t])
+    }, [voiceBase64, token, apiBaseUrl, userId, onSuccess, t, optimize])
 
     // Cleanup on close / re-init on open
     useEffect(() => {

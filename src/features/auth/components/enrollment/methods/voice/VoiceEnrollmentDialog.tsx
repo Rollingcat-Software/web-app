@@ -25,6 +25,12 @@ interface Props {
     onEnrolled: () => void
     showSnackbar: ShowSnackbar
     createEnrollment: (input: { tenantId: string; methodType: AuthMethodType }) => Promise<unknown>
+    /**
+     * When true, this capture is a "re-enroll & optimize" — submitted with
+     * optimize=true so the new sample is FUSED into the existing voice template
+     * (centroid update) instead of replacing it. Default false (first enroll).
+     */
+    optimize?: boolean
 }
 
 export default function VoiceEnrollmentDialog({
@@ -37,6 +43,7 @@ export default function VoiceEnrollmentDialog({
     onEnrolled,
     showSnackbar,
     createEnrollment,
+    optimize = false,
 }: Props) {
     const { t } = useTranslation()
 
@@ -46,6 +53,7 @@ export default function VoiceEnrollmentDialog({
             userId={userId}
             apiBaseUrl={apiBaseUrl}
             token={token}
+            optimize={optimize}
             onClose={onClose}
             onSuccess={async (action) => {
                 if (action === 'enroll') {
@@ -57,7 +65,10 @@ export default function VoiceEnrollmentDialog({
                         const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
                         await httpClient.put(`/users/${userId}/enrollments/VOICE/complete`, {})
                         onEnrolled()
-                        showSnackbar(t('enrollmentPage.voiceEnrolled'), 'success')
+                        showSnackbar(
+                            t(optimize ? 'enrollmentPage.voiceReEnrolled' : 'enrollmentPage.voiceEnrolled'),
+                            'success',
+                        )
                     } catch (err) {
                         // The voice biometric was captured successfully, but persisting
                         // the enrollment record failed. Refresh so the (possibly created)

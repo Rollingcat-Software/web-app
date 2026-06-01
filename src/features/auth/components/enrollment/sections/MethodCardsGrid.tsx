@@ -1,9 +1,17 @@
 /**
  * Renders the catalog of auth methods as a responsive card grid.
- * Each card shows icon, label, description, status chip, and Enroll/Test/Revoke actions.
+ * Each card shows icon, label, description, status chip, and
+ * Enroll / Re-enroll(optimize) / Revoke actions.
  *
  * Extracted from EnrollmentPage.tsx during P1-Q7 decomposition. Pure presentation —
- * all action handlers + state come in via props. Behavior unchanged.
+ * all action handlers + state come in via props.
+ *
+ * 2026-06-01: the enrolled-method secondary button was "Test" but it re-opened
+ * the enrollment dialog and tested nothing (the real testing surface is
+ * `/auth-methods-testing`). It is now "Re-enroll" / (for FACE/VOICE) "Improve
+ * recognition" — a genuine template-optimizing re-enroll. For auto-bound /
+ * stateless methods (EMAIL_OTP / SMS_OTP / QR_CODE) there is no template to
+ * optimize, so the secondary button is hidden (only Revoke, where applicable).
  */
 import {
     Box,
@@ -32,16 +40,33 @@ interface Props {
     // is method-typed.
     actionLoading: AuthMethodType | null
     onEnroll: (type: AuthMethodType) => void
-    onTest: (type: AuthMethodType) => void
+    onReEnroll: (type: AuthMethodType) => void
     onRevoke: (type: AuthMethodType) => void
 }
+
+// Auto-bound / stateless methods have no per-user biometric template to
+// optimize, so they get NO secondary "Re-enroll" button (only Revoke, where
+// applicable). EMAIL_OTP / QR_CODE additionally hide Revoke (see below).
+const AUTO_BOUND_METHODS: ReadonlySet<AuthMethodType> = new Set([
+    AuthMethodType.EMAIL_OTP,
+    AuthMethodType.SMS_OTP,
+    AuthMethodType.QR_CODE,
+])
+
+// FACE / VOICE re-enroll is framed as "improve recognition" — re-enrolling
+// fuses the new sample into the stored template via the server-side centroid
+// average. Other re-enrollable methods (WebAuthn / NFC / TOTP) re-register.
+const IMPROVE_RECOGNITION_METHODS: ReadonlySet<AuthMethodType> = new Set([
+    AuthMethodType.FACE,
+    AuthMethodType.VOICE,
+])
 
 export default function MethodCardsGrid({
     isMethodEnrolled,
     isMethodAvailable,
     actionLoading,
     onEnroll,
-    onTest,
+    onReEnroll,
     onRevoke,
 }: Props) {
     const { t } = useTranslation()
@@ -188,12 +213,18 @@ export default function MethodCardsGrid({
                                         )}
                                         {enrolled && (
                                             <>
+                                                {/* Re-enroll / optimize. Hidden for auto-bound
+                                                    stateless methods (EMAIL_OTP/SMS_OTP/QR_CODE)
+                                                    which have no template to optimize. FACE/VOICE
+                                                    get an "Improve recognition" label; everything
+                                                    else re-registers under a "Re-enroll" label. */}
+                                                {!AUTO_BOUND_METHODS.has(config.type) && (
                                                 <Button
                                                     variant="outlined"
                                                     size="small"
                                                     color="primary"
                                                     onClick={() =>
-                                                        onTest(config.type)
+                                                        onReEnroll(config.type)
                                                     }
                                                     disabled={isLoading}
                                                     sx={{
@@ -202,8 +233,13 @@ export default function MethodCardsGrid({
                                                         textTransform: 'none',
                                                     }}
                                                 >
-                                                    {t('enrollmentPage.test')}
+                                                    {t(
+                                                        IMPROVE_RECOGNITION_METHODS.has(config.type)
+                                                            ? 'enrollmentPage.reEnrollFace'
+                                                            : 'enrollmentPage.reEnroll',
+                                                    )}
                                                 </Button>
+                                                )}
                                                 {/* EMAIL_OTP and QR_CODE are auto-bound (no per-user
                                                     secret). The API lazily upserts ENROLLED rows for
                                                     both in getUserEnrollments. Hiding Revoke avoids a
