@@ -44,6 +44,15 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
   `AuthFlowsPage.tsx`); single-method layers send no `alternativeMethodTypes`.
   Save is disabled when any layer has 0 methods or there are 0 layers, and a
   0-method layer is never sent.
+- `src/features/auth/login-shared/` - UI shared between the dashboard login
+  (`app.fivucsas`) and the hosted login (`verify.fivucsas`) so the two surfaces
+  stay identical (2026-06-01). `MfaStepRenderer.tsx` is the SINGLE
+  method→step-component router both `TwoFactorDispatcher` (dashboard) and
+  `LoginMfaFlow` (hosted) render — adding/changing an MFA step here updates BOTH
+  surfaces at once. `webauthnChallenge.ts` is the shared
+  `makeRequestWebAuthnChallenge` helper. Each surface keeps its own SHELL
+  (dashboard full-screen glass card vs hosted in-card OIDC flow) + flow state;
+  only the per-step BODY is shared. See `LOGIN_PARITY_2026-06-01.md`.
 - `src/core/repositories/` - API repository implementations
 - `src/domain/models/` - Domain models
 - `src/core/di/` - InversifyJS DI container and TYPES
