@@ -13,40 +13,8 @@ import { TYPES } from '@core/di/types'
 import type { IAuthRepository, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { useTranslation } from 'react-i18next'
-import { formatApiError } from '@utils/formatApiError'
-import { AuthMethodType, MfaStepStatus, MfaStepAction, AUTH_API, EASE_OUT } from '../constants'
-import type { ChallengeResponse } from '../webauthn-utils'
-import { BiometricEngine } from '@/lib/biometric-engine/core/BiometricEngine'
-import TotpStep from './steps/TotpStep'
-import SmsOtpStep from './steps/SmsOtpStep'
-import FaceCaptureStep from './steps/FaceCaptureStep'
-import VoiceStep from './steps/VoiceStep'
-import FingerprintStep from './steps/FingerprintStep'
-import QrCodeStep from './steps/QrCodeStep'
-import HardwareKeyStep from './steps/HardwareKeyStep'
-import NfcStep from './steps/NfcStep'
-import EmailOtpMfaStep from './steps/EmailOtpMfaStep'
-import GestureLivenessStep from './steps/GestureLivenessStep'
-import PasswordStep from './steps/PasswordStep'
-
-/**
- * Decode a `data:...;base64,...` URL into an ArrayBuffer.
- * Returns null for non-data-URL / non-base64 strings so the VAD check can
- * gracefully skip unsupported inputs instead of throwing.
- */
-function dataUrlToArrayBuffer(dataUrl: string): ArrayBuffer | null {
-    try {
-        const commaIdx = dataUrl.indexOf(',')
-        if (commaIdx < 0 || !dataUrl.startsWith('data:')) return null
-        const base64 = dataUrl.slice(commaIdx + 1)
-        const binary = atob(base64)
-        const bytes = new Uint8Array(binary.length)
-        for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
-        return bytes.buffer
-    } catch {
-        return null
-    }
-}
+import { AuthMethodType, MfaStepStatus, EASE_OUT } from '../constants'
+import MfaStepRenderer, { makeRequestWebAuthnChallenge } from '../login-shared/MfaStepRenderer'
 
 interface TwoFactorDispatcherProps {
     method: string
@@ -90,20 +58,10 @@ export default function TwoFactorDispatcher({
     // ─── WebAuthn Challenge Helper ────────────────────────────────
     // Hook declarations must run on every render (rules-of-hooks) — they are
     // placed before the EMAIL_OTP early-return below so ordering stays stable.
-    const requestWebAuthnChallenge = useCallback(async (method: AuthMethodType): Promise<ChallengeResponse | null> => {
-        const res = await authRepository.verifyMfaStep(
-            mfaSessionToken, method, { action: MfaStepAction.CHALLENGE }
-        )
-        if (res.data && typeof res.data.challenge === 'string') {
-            return {
-                challenge: res.data.challenge,
-                rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
-                timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
-                allowCredentials: Array.isArray(res.data.allowCredentials) ? res.data.allowCredentials as string[] : undefined,
-            }
-        }
-        return null
-    }, [authRepository, mfaSessionToken])
+    const requestWebAuthnChallenge = useCallback(
+        makeRequestWebAuthnChallenge(authRepository, mfaSessionToken),
+        [authRepository, mfaSessionToken],
+    )
 
     const verifyStep = useCallback(async (methodType: string, data: Record<string, unknown>) => {
         setLoading(true)
@@ -132,6 +90,25 @@ export default function TwoFactorDispatcher({
             setLoading(false)
         }
     }, [authRepository, mfaSessionToken, onAuthenticated, t])
+
+    // The actual step body is rendered by the SHARED MfaStepRenderer (kept
+    // identical with verify.fivucsas's LoginMfaFlow). This dispatcher only owns
+    // the dashboard's full-screen glass-card SHELL + step progress + back/cancel.
+    const stepBody = (
+        <MfaStepRenderer
+            method={method}
+            mfaSessionToken={mfaSessionToken}
+            verifyStep={verifyStep}
+            requestWebAuthnChallenge={requestWebAuthnChallenge}
+            httpClient={httpClient}
+            onAuthenticated={onAuthenticated}
+            onBack={onBackToMethodSelection}
+            loading={loading}
+            error={error}
+            onError={setError}
+            presetEmail={email}
+        />
+    )
 
     // EMAIL_OTP: use the new session-token-based OTP flow
     if (!method || method === AuthMethodType.EMAIL_OTP) {
@@ -189,180 +166,12 @@ export default function TwoFactorDispatcher({
                             {typeof stepCurrent === 'number' && typeof stepTotal === 'number' && (
                                 <StepProgress current={stepCurrent} total={stepTotal} />
                             )}
-                            <EmailOtpMfaStep
-                                mfaSessionToken={mfaSessionToken}
-                                onAuthenticated={onAuthenticated}
-                                onBack={onBackToMethodSelection}
-                            />
+                            {stepBody}
                         </CardContent>
                     </Card>
                 </motion.div>
             </Box>
         )
-    }
-
-    // Verify MFA step using the new public endpoint (no JWT needed)
-    const renderStep = () => {
-        switch (method) {
-            case AuthMethodType.PASSWORD:
-                // PASSWORD as a (non-first) flow factor: the user is already
-                // identified by the MFA session, so collect ONLY the password and
-                // complete the step via /auth/mfa/step (PasswordVerifyMfaStepHandler).
-                // No "change identity" here — we're mid-flow, the identity is fixed.
-                return (
-                    <PasswordStep
-                        presetEmail={email}
-                        onSubmit={(data) => verifyStep(AuthMethodType.PASSWORD, { password: data.password })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.TOTP:
-                return (
-                    <TotpStep
-                        onSubmit={(code) => verifyStep(AuthMethodType.TOTP, { code })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.SMS_OTP:
-                return (
-                    <SmsOtpStep
-                        onSubmit={(code) => verifyStep(AuthMethodType.SMS_OTP, { code })}
-                        onSendOtp={async () => {
-                            try {
-                                await httpClient.post(AUTH_API.MFA_SEND_OTP, {
-                                    sessionToken: mfaSessionToken,
-                                    method: AuthMethodType.SMS_OTP,
-                                })
-                            } catch (err) {
-                                setError(formatApiError(err, t))
-                            }
-                        }}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.FACE:
-                return (
-                    <FaceCaptureStep
-                        onSubmit={(image) => verifyStep(AuthMethodType.FACE, { image })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.VOICE:
-                return (
-                    <VoiceStep
-                        onSubmit={async (voiceData) => {
-                            // Client-side VAD: reject silent captures before server upload.
-                            // Graceful fallback: when the Silero model is missing or the
-                            // recording is not a 16kHz PCM WAV, the check is skipped and
-                            // the upload proceeds exactly as before.
-                            try {
-                                const vad = BiometricEngine.getInstance().voiceVAD
-                                if (vad && vad.isAvailable()) {
-                                    const wavBuffer = dataUrlToArrayBuffer(voiceData)
-                                    if (wavBuffer) {
-                                        const result = await vad.classify(wavBuffer)
-                                        // One-liner trace so we can confirm VAD is actually
-                                        // gating uploads in prod DevTools.
-                                        // eslint-disable-next-line no-console
-                                        console.debug(
-                                            '[VoiceVAD] decision',
-                                            {
-                                                speechRatio: result.speechRatio,
-                                                confidence: result.confidence,
-                                                isSpeech: result.isSpeech,
-                                                wavBytes: wavBuffer.byteLength,
-                                            },
-                                        )
-                                        // Only block when classification actually ran
-                                        // (confidence > 0 implies frames were evaluated).
-                                        if (result.confidence > 0 && result.speechRatio < 0.2) {
-                                            setError(t('mfa.voice.noSpeechDetected'))
-                                            return
-                                        }
-                                    }
-                                }
-                            } catch (vadErr) {
-                                console.warn('[TwoFactorDispatcher] VAD check failed, proceeding:', vadErr)
-                            }
-                            verifyStep(AuthMethodType.VOICE, { voiceData })
-                        }}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.FINGERPRINT:
-                return (
-                    <FingerprintStep
-                        onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.FINGERPRINT)}
-                        onSubmit={(data) => verifyStep(AuthMethodType.FINGERPRINT, { assertion: data })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.QR_CODE:
-                return (
-                    <QrCodeStep
-                        userId="mfa-session"
-                        onGenerateToken={async () => {
-                            const res = await httpClient.post<{ token: string; expiresInSeconds: number }>(
-                                AUTH_API.MFA_QR_GENERATE,
-                                { sessionToken: mfaSessionToken }
-                            )
-                            return res.data
-                        }}
-                        onSubmit={(token) => verifyStep(AuthMethodType.QR_CODE, { token })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.HARDWARE_KEY:
-                return (
-                    <HardwareKeyStep
-                        onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.HARDWARE_KEY)}
-                        onSubmit={(data) => verifyStep(AuthMethodType.HARDWARE_KEY, { assertion: data })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.NFC_DOCUMENT:
-                return (
-                    <NfcStep
-                        onSubmit={(data) => verifyStep(AuthMethodType.NFC_DOCUMENT, { nfcData: data })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.GESTURE_LIVENESS:
-                return (
-                    <GestureLivenessStep
-                        onSubmit={(data) => verifyStep(AuthMethodType.GESTURE_LIVENESS, data)}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            default:
-                return (
-                    <EmailOtpMfaStep
-                        mfaSessionToken={mfaSessionToken}
-                        onAuthenticated={onAuthenticated}
-                        onBack={onBackToMethodSelection}
-                    />
-                )
-        }
     }
 
     return (
@@ -419,7 +228,7 @@ export default function TwoFactorDispatcher({
                         {typeof stepCurrent === 'number' && typeof stepTotal === 'number' && (
                             <StepProgress current={stepCurrent} total={stepTotal} />
                         )}
-                        {renderStep()}
+                        {stepBody}
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button
                                 variant="text"
