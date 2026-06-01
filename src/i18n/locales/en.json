@@ -1707,7 +1707,7 @@
     },
     "nfc": {
       "title": "NFC Document Scan",
-      "subtitle": "Verify your identity using an NFC-enabled ID document",
+      "subtitle": "Verify with your enrolled NFC card",
       "scanButton": "Scan NFC Document",
       "scanning": "Hold your document near the device...",
       "scanSuccess": "NFC document read successfully!",
@@ -1715,7 +1715,7 @@
       "scanFailed": "NFC scan failed. Please try again.",
       "scanTimeout": "No NFC tag detected within 30 seconds. Tap your document to the back of your phone and try again.",
       "notSupported": "NFC is only supported in Chrome on Android. Please use Chrome on your Android device.",
-      "hint": "Hold your NFC-enabled document (passport, national ID, or residence permit) flat against the back of your phone. Keep it steady for a few seconds.",
+      "hint": "Hold your enrolled NFC card flat against the back of your phone. Keep it steady for a few seconds.",
       "framedTitle": "NFC can't run here",
       "framedBody": "For security, Web NFC only runs in a top-level browser tab. Open the login in a new tab to continue.",
       "framedCta": "Continue in a new tab",

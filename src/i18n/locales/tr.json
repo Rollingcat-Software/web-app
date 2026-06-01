@@ -1707,7 +1707,7 @@
     },
     "nfc": {
       "title": "NFC Belge Tarama",
-      "subtitle": "NFC özellikli kimlik belgenizle doğrulayın",
+      "subtitle": "Kayıtlı NFC kartınızla doğrulayın",
       "scanButton": "NFC Belge Tara",
       "scanning": "Belgenizi cihaza yakın tutun...",
       "scanSuccess": "NFC belge başarıyla okundu!",
@@ -1715,7 +1715,7 @@
       "scanFailed": "NFC tarama başarısız. Tekrar deneyin.",
       "scanTimeout": "30 saniye içinde NFC etiketi algılanmadı. Belgenizi telefonunuzun arkasına dokundurup tekrar deneyin.",
       "notSupported": "NFC yalnızca Android Chrome'da desteklenir. Lütfen Android cihazınızda Chrome kullanın.",
-      "hint": "NFC özellikli belgenizi (pasaport, nüfus cüzdanı veya ikamet izni) telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun.",
+      "hint": "Kayıtlı NFC kartınızı telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun.",
       "framedTitle": "NFC burada çalışmıyor",
       "framedBody": "Web NFC, güvenlik nedeniyle yalnızca üst düzey tarayıcı sekmesinde çalışır. Devam etmek için girişi yeni bir sekmede açın.",
       "framedCta": "Yeni sekmede tamamla",
