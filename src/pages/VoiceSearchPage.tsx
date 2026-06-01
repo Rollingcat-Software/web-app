@@ -417,13 +417,20 @@ export default function VoiceSearchPage() {
                                         <ListItemText
                                             primary={
                                                 <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
+                                                    {/* Prefer the resolved human name; fall back to email.
+                                                        When the owner lookup failed (soft-deleted / missing
+                                                        user) show the raw id labelled "unknown user" — never
+                                                        crash, mirroring the backend's null-safe lazy proxy. */}
                                                     <Typography variant="body1" fontWeight={match.userName ? 600 : 400} sx={{ wordBreak: 'break-word', minWidth: 0 }}>
-                                                        {match.userName || match.userId}
+                                                        {match.userName || match.userEmail || match.userId}
                                                     </Typography>
-                                                    {match.userEmail && (
+                                                    {match.userName && match.userEmail && (
                                                         <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all', minWidth: 0 }}>
                                                             ({match.userEmail})
                                                         </Typography>
+                                                    )}
+                                                    {!match.userName && !match.userEmail && (
+                                                        <Chip label={t('common.unknownUser')} size="small" variant="outlined" color="default" />
                                                     )}
                                                     {idx === 0 && (
                                                         <Chip label={t('common.bestMatch')} size="small" color="primary" />
@@ -433,9 +440,9 @@ export default function VoiceSearchPage() {
                                             secondary={
                                                 <Box component="span">
                                                     {`${t('common.similarity')}: ${(match.similarity * 100).toFixed(1)}%`}
-                                                    {match.userName && (
+                                                    {(match.userName || match.userEmail) && (
                                                         <Typography variant="caption" color="text.disabled" component="span" sx={{ ml: 1 }}>
-                                                            ID: {match.userId}
+                                                            {t('common.userId')}: {match.userId}
                                                         </Typography>
                                                     )}
                                                 </Box>
