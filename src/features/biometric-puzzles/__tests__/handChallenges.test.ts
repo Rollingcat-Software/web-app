@@ -7,7 +7,7 @@
  * detector against synthetic landmark fixtures so a future refactor
  * cannot silently regress to "always succeed".
  */
-import { describe, it, expect } from 'vitest'
+import { describe, it, expect, beforeEach, afterEach } from 'vitest'
 import {
     countFingers,
     isPinching,
@@ -303,30 +303,61 @@ describe('FlipDetector', () => {
 })
 
 describe('PeekABooDetector', () => {
+    // The detector reads `performance.now()` on EVERY push (it ignores
+    // frame.timestamp), so the cover-phase and reveal-phase clocks must come
+    // from the SAME monotonic source or the reveal condition
+    // (`now - lastCoveredTs > 350 && now - coveredStartTs > 600`) compares
+    // mismatched clocks. The old test only mocked `performance.now` during the
+    // reveal loop; the cover phase used the real wall clock, so whether it
+    // fired depended on how long the process had been alive when the test ran
+    // (passed in isolation, flaked ~1/44 in the full suite). We drive a single
+    // fake clock across the whole sequence to make it deterministic.
+    let fakeNow = 0
+    const realNow = performance.now
+    beforeEach(() => {
+        fakeNow = 0
+        performance.now = () => fakeNow
+    })
+    afterEach(() => {
+        performance.now = realNow
+    })
+
     it('fires only after cover→reveal sequence', () => {
         const peek = new PeekABooDetector()
-        // Cover phase — hand at centre of frame.
+        // Cover phase — hand at centre of frame, advancing the fake clock 100ms
+        // per frame (0…900ms) so coveredStartTs/lastCoveredTs are pinned to the
+        // same timeline the reveal phase will read from.
         for (let i = 0; i < 10; i++) {
-            const f = fistFrame(i * 100)
+            fakeNow = i * 100
+            const f = fistFrame(fakeNow)
             // Move middle-MCP to image centre.
             f.landmarks[9] = { x: 0.5, y: 0.5, z: 0 }
             peek.push(f)
         }
-        // Reveal: simulate no hand for a while.
+        // Reveal: simulate no hand for a while, continuing the same clock past
+        // the 350ms-since-cover + 600ms-total thresholds.
         const startReveal = 1100
         let detected = false
         for (let i = 0; i < 20; i++) {
-            const ts = startReveal + i * 60
-            // Mock out performance.now so the detector sees fresh time.
-            const realNow = performance.now
-            performance.now = () => ts
-            try {
-                if (peek.push(null)) detected = true
-            } finally {
-                performance.now = realNow
-            }
+            fakeNow = startReveal + i * 60
+            if (peek.push(null)) detected = true
         }
         expect(detected).toBe(true)
+    })
+
+    it('does NOT fire on cover alone (no reveal)', () => {
+        const peek = new PeekABooDetector()
+        // Only the cover phase — the hand never leaves, so the detector must
+        // never reach the 'revealed' state. Pins the assertion the reveal half
+        // of the happy-path case can't: a sustained cover is not a peek-a-boo.
+        let detected = false
+        for (let i = 0; i < 20; i++) {
+            fakeNow = i * 100
+            const f = fistFrame(fakeNow)
+            f.landmarks[9] = { x: 0.5, y: 0.5, z: 0 }
+            if (peek.push(f)) detected = true
+        }
+        expect(detected).toBe(false)
     })
 })
 
