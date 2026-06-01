@@ -493,6 +493,40 @@
       "lastLogin": "Last Login",
       "actions": "Actions"
     },
+    "form": {
+      "editTitle": "Edit User",
+      "createTitle": "Create New User",
+      "editSubtitle": "Update user information and permissions",
+      "createSubtitle": "Add a new user to the system",
+      "email": "Email Address",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "password": "Password",
+      "userType": "User Type",
+      "userTypeHelper": "Platform standing (global). ROOT manages every tenant; Tenant Admin runs one tenant; Member and Guest are regular users. Separate from the within-tenant roles below.",
+      "userTypeRootOnly": "Only a Root user can grant the Root or Tenant Admin tier.",
+      "status": "Status",
+      "tenant": "Tenant",
+      "tenantHelper": "Select the tenant this user belongs to",
+      "assignedRoles": "Assigned Roles",
+      "assignedRolesHelper": "Within-tenant roles (RBAC). Select one or more roles to grant this user inside their tenant.",
+      "rolesLoading": "Loading roles...",
+      "cancel": "Cancel",
+      "create": "Create User",
+      "update": "Update User"
+    },
+    "userType": {
+      "ROOT": "Root",
+      "TENANT_ADMIN": "Tenant Admin",
+      "TENANT_MEMBER": "Member",
+      "GUEST": "Guest"
+    },
+    "status": {
+      "PENDING_ENROLLMENT": "Pending Enrollment",
+      "ACTIVE": "Active",
+      "SUSPENDED": "Suspended",
+      "LOCKED": "Locked"
+    },
     "error": {
       "passwordRequiredNew": "Password is required for new users"
     }

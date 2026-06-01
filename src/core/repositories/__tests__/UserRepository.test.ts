@@ -87,6 +87,75 @@ describe('UserRepository.exportData', () => {
     })
 })
 
+describe('UserRepository.create/update — userType + roleIds wiring', () => {
+    let repository: UserRepository
+    let httpClient: IHttpClient
+    let logger: ILogger
+
+    const userJson = {
+        id: '123e4567-e89b-12d3-a456-426614174000',
+        email: 'a@b.com',
+        firstName: 'A',
+        lastName: 'B',
+        role: 'USER',
+        status: 'ACTIVE',
+        tenantId: '11111111-1111-1111-1111-111111111111',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+    }
+
+    beforeEach(() => {
+        httpClient = {
+            get: vi.fn(),
+            post: vi.fn().mockResolvedValue({ data: userJson }),
+            put: vi.fn().mockResolvedValue({ data: userJson }),
+            delete: vi.fn(),
+            patch: vi.fn(),
+        }
+        logger = { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn() }
+        repository = new UserRepository(httpClient, logger)
+    })
+
+    it('forwards userType + roleIds in the POST /users body on create', async () => {
+        await repository.create({
+            email: 'a@b.com',
+            firstName: 'A',
+            lastName: 'B',
+            password: 'Sup3rSecret!Pass',
+            tenantId: '11111111-1111-1111-1111-111111111111',
+            userType: 'TENANT_ADMIN',
+            roleIds: ['22222222-2222-2222-2222-222222222222'],
+        })
+
+        expect(httpClient.post).toHaveBeenCalledWith(
+            '/users',
+            expect.objectContaining({
+                userType: 'TENANT_ADMIN',
+                roleIds: ['22222222-2222-2222-2222-222222222222'],
+            })
+        )
+    })
+
+    it('forwards userType + roleIds in the PUT /users/{id} body on update', async () => {
+        await repository.update('123e4567-e89b-12d3-a456-426614174000', {
+            firstName: 'A',
+            roleIds: ['22222222-2222-2222-2222-222222222222', '33333333-3333-3333-3333-333333333333'],
+            userType: 'TENANT_MEMBER',
+        })
+
+        expect(httpClient.put).toHaveBeenCalledWith(
+            '/users/123e4567-e89b-12d3-a456-426614174000',
+            expect.objectContaining({
+                userType: 'TENANT_MEMBER',
+                roleIds: [
+                    '22222222-2222-2222-2222-222222222222',
+                    '33333333-3333-3333-3333-333333333333',
+                ],
+            })
+        )
+    })
+})
+
 describe('parseContentDispositionFilename', () => {
     it('extracts a quoted filename', () => {
         expect(parseContentDispositionFilename('attachment; filename="foo.json"'))

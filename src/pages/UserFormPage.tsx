@@ -1,11 +1,10 @@
-import {useCallback, useEffect, useState} from 'react'
+import {useCallback, useEffect, useRef, useState} from 'react'
 import {useNavigate, useParams} from 'react-router-dom'
 import {Controller, useForm} from 'react-hook-form'
 import {zodResolver} from '@hookform/resolvers/zod'
 import {z} from 'zod'
 import {useTranslation} from 'react-i18next'
 import {formatApiError} from '@/utils/formatApiError'
-import {roleLabel} from '@utils/roleLabel'
 import {
     Alert, Box, Button, Checkbox, Chip, CircularProgress, FormControl, FormHelperText,
     InputLabel, ListItemText, MenuItem, OutlinedInput, Paper, Select, TextField, Typography,
@@ -15,15 +14,25 @@ import {Cancel, Save} from '@mui/icons-material'
 import {useUsers, useUser} from '@features/users'
 import {useTenants} from '@features/tenants'
 import {useRoles} from '@features/roles'
-import {UserRole, UserStatus} from '@domain/models/User'
+import {UserStatus} from '@domain/models/User'
+import type {UserType} from '@domain/models/User'
+import {useAuth} from '@features/auth'
 import {OperationContextBanner} from '@components/OperationContextBanner'
+
+/**
+ * Platform-tier (user_type) options — global standing, the SINGLE authority for
+ * cross-tenant/can-manage-tenant capability. Distinct from the within-tenant
+ * RBAC roles (the "Assigned Roles" multi-select). See
+ * identity-core-api/docs/IDENTITY_ROLE_UNIFICATION.md.
+ */
+const USER_TYPES: UserType[] = ['ROOT', 'TENANT_ADMIN', 'TENANT_MEMBER', 'GUEST']
 
 const userSchema = z.object({
     email: z.string().email('Invalid email address'),
     firstName: z.string().min(2, 'First name must be at least 2 characters'),
     lastName: z.string().min(2, 'Last name must be at least 2 characters'),
     password: z.string().min(8, 'Password must be at least 8 characters').optional(),
-    role: z.nativeEnum(UserRole),
+    userType: z.enum(['ROOT', 'TENANT_ADMIN', 'TENANT_MEMBER', 'GUEST']),
     status: z.nativeEnum(UserStatus).optional(),
     tenantId: z.string().uuid('Please select a tenant').min(1, 'Tenant is required'),
 })
@@ -40,6 +49,13 @@ export default function UserFormPage() {
     const {user: existingUser, loading: fetchLoading} = useUser(id ?? '')
     const {tenants, loading: tenantsLoading} = useTenants()
     const {roles: availableRoles, loading: rolesLoading} = useRoles()
+    const {user: currentUser} = useAuth()
+
+    // Only a ROOT caller may set/grant the platform tier (backend is fail-closed
+    // and 403s otherwise). For everyone else the User Type select is read-only —
+    // it still SHOWS the tier, but a non-ROOT admin manages people via the
+    // within-tenant roles below, not by changing global standing.
+    const canEditUserType = currentUser?.isRoot() ?? false
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -57,7 +73,7 @@ export default function UserFormPage() {
             firstName: '',
             lastName: '',
             password: '',
-            role: UserRole.USER,
+            userType: 'TENANT_MEMBER',
             status: UserStatus.PENDING_ENROLLMENT,
             tenantId: '',
         },
@@ -69,12 +85,35 @@ export default function UserFormPage() {
                 email: existingUser.email,
                 firstName: existingUser.firstName,
                 lastName: existingUser.lastName,
-                role: existingUser.role,
+                // Platform tier from the backend `userType` (authoritative).
+                // Fall back to TENANT_MEMBER for older rows that predate it.
+                userType: existingUser.userType ?? 'TENANT_MEMBER',
                 status: existingUser.status,
                 tenantId: existingUser.tenantId,
             })
         }
     }, [existingUser, isEditMode, reset])
+
+    // Pre-populate the "Assigned Roles" multi-select on edit. The GET /users/{id}
+    // response carries role NAMES (`existingUser.roles`); map them to the role
+    // IDs the multi-select / submit payload uses via the loaded role catalog.
+    // Runs once per (user, catalog) and only writes when the resolved id set
+    // actually changes, so it never re-triggers itself.
+    const rolePrefillDone = useRef(false)
+    useEffect(() => {
+        if (!isEditMode || !existingUser?.roles || availableRoles.length === 0) {
+            return
+        }
+        if (rolePrefillDone.current) {
+            return
+        }
+        const nameToId = new Map(availableRoles.map((r) => [r.name, r.id]))
+        const ids = existingUser.roles
+            .map((name) => nameToId.get(name))
+            .filter((rid): rid is string => Boolean(rid))
+        rolePrefillDone.current = true
+        setSelectedRoleIds(ids)
+    }, [isEditMode, existingUser, availableRoles])
 
     const onSubmit = useCallback(async (data: UserFormData) => {
         setLoading(true)
@@ -82,8 +121,17 @@ export default function UserFormPage() {
 
         try {
             if (isEditMode && id) {
-                const {password: _password, ...updateData} = data
-                await updateUser(id, updateData)
+                const {password: _password, userType, ...rest} = data
+                await updateUser(id, {
+                    firstName: rest.firstName,
+                    lastName: rest.lastName,
+                    status: rest.status,
+                    // Within-tenant RBAC roles (replace semantics on the backend).
+                    roleIds: selectedRoleIds,
+                    // Platform tier — only ROOT may change it; omit otherwise so a
+                    // non-ROOT save never trips the backend's fail-closed 403.
+                    ...(canEditUserType ? {userType} : {}),
+                })
             } else {
                 if (!data.password) {
                     setError(t('users.error.passwordRequiredNew'))
@@ -95,8 +143,12 @@ export default function UserFormPage() {
                     firstName: data.firstName,
                     lastName: data.lastName,
                     password: data.password,
-                    role: data.role,
                     tenantId: data.tenantId,
+                    // Within-tenant RBAC roles to assign on creation.
+                    roleIds: selectedRoleIds,
+                    // Platform tier — ROOT-only to elevate; omit for non-ROOT so
+                    // the new user takes the backend default (TENANT_MEMBER).
+                    ...(canEditUserType ? {userType: data.userType} : {}),
                 })
             }
             navigate('/users')
@@ -106,7 +158,7 @@ export default function UserFormPage() {
         } finally {
             setLoading(false)
         }
-    }, [isEditMode, id, updateUser, createUser, navigate, t])
+    }, [isEditMode, id, updateUser, createUser, navigate, t, selectedRoleIds, canEditUserType])
 
     const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
@@ -131,10 +183,10 @@ export default function UserFormPage() {
     return (
         <Box>
             <Typography variant="h4" gutterBottom fontWeight={600}>
-                {isEditMode ? 'Edit User' : 'Create New User'}
+                {isEditMode ? t('users.form.editTitle') : t('users.form.createTitle')}
             </Typography>
             <Typography variant="body1" color="text.secondary" sx={{mb: 3}}>
-                {isEditMode ? 'Update user information and permissions' : 'Add a new user to the system'}
+                {isEditMode ? t('users.form.editSubtitle') : t('users.form.createSubtitle')}
             </Typography>
 
             {!isEditMode && (
@@ -157,7 +209,7 @@ export default function UserFormPage() {
                                 <TextField
                                     {...field}
                                     id="user-form-email"
-                                    label="Email Address"
+                                    label={t('users.form.email')}
                                     type="email"
                                     fullWidth
                                     required
@@ -178,7 +230,7 @@ export default function UserFormPage() {
                                     <TextField
                                         {...field}
                                         id="user-form-firstName"
-                                        label="First Name"
+                                        label={t('users.form.firstName')}
                                         fullWidth
                                         required
                                         error={!!errors.firstName}
@@ -196,7 +248,7 @@ export default function UserFormPage() {
                                     <TextField
                                         {...field}
                                         id="user-form-lastName"
-                                        label="Last Name"
+                                        label={t('users.form.lastName')}
                                         fullWidth
                                         required
                                         error={!!errors.lastName}
@@ -216,7 +268,7 @@ export default function UserFormPage() {
                                     <TextField
                                         {...field}
                                         id="user-form-password"
-                                        label="Password"
+                                        label={t('users.form.password')}
                                         type="password"
                                         fullWidth
                                         required
@@ -230,25 +282,32 @@ export default function UserFormPage() {
                         )}
 
                         <Controller
-                            name="role"
+                            name="userType"
                             control={control}
                             render={({field}) => (
                                 <TextField
                                     {...field}
-                                    id="user-form-role"
-                                    label="Role"
+                                    id="user-form-userType"
+                                    label={t('users.form.userType')}
                                     select
                                     fullWidth
                                     required
-                                    error={!!errors.role}
-                                    helperText={errors.role?.message}
-                                    FormHelperTextProps={{id: 'user-form-role-helper'}}
-                                    SelectProps={{'aria-describedby': 'user-form-role-helper'}}
+                                    disabled={!canEditUserType}
+                                    error={!!errors.userType}
+                                    helperText={
+                                        errors.userType?.message
+                                        ?? (canEditUserType
+                                            ? t('users.form.userTypeHelper')
+                                            : `${t('users.form.userTypeHelper')} ${t('users.form.userTypeRootOnly')}`)
+                                    }
+                                    FormHelperTextProps={{id: 'user-form-userType-helper'}}
+                                    SelectProps={{'aria-describedby': 'user-form-userType-helper'}}
                                 >
-                                    <MenuItem value={UserRole.USER}>{roleLabel(UserRole.USER, t)}</MenuItem>
-                                    <MenuItem value={UserRole.TENANT_ADMIN}>{roleLabel(UserRole.TENANT_ADMIN, t)}</MenuItem>
-                                    <MenuItem value={UserRole.ADMIN}>{roleLabel(UserRole.ADMIN, t)}</MenuItem>
-                                    <MenuItem value={UserRole.ROOT}>{roleLabel(UserRole.ROOT, t)}</MenuItem>
+                                    {USER_TYPES.map((ut) => (
+                                        <MenuItem key={ut} value={ut}>
+                                            {t(`users.userType.${ut}`)}
+                                        </MenuItem>
+                                    ))}
                                 </TextField>
                             )}
                         />
@@ -261,7 +320,7 @@ export default function UserFormPage() {
                                     <TextField
                                         {...field}
                                         id="user-form-status"
-                                        label="Status"
+                                        label={t('users.form.status')}
                                         select
                                         fullWidth
                                         error={!!errors.status}
@@ -269,10 +328,10 @@ export default function UserFormPage() {
                                         FormHelperTextProps={{id: 'user-form-status-helper'}}
                                         SelectProps={{'aria-describedby': 'user-form-status-helper'}}
                                     >
-                                        <MenuItem value={UserStatus.PENDING_ENROLLMENT}>Pending Enrollment</MenuItem>
-                                        <MenuItem value={UserStatus.ACTIVE}>Active</MenuItem>
-                                        <MenuItem value={UserStatus.SUSPENDED}>Suspended</MenuItem>
-                                        <MenuItem value={UserStatus.LOCKED}>Locked</MenuItem>
+                                        <MenuItem value={UserStatus.PENDING_ENROLLMENT}>{t('users.status.PENDING_ENROLLMENT')}</MenuItem>
+                                        <MenuItem value={UserStatus.ACTIVE}>{t('users.status.ACTIVE')}</MenuItem>
+                                        <MenuItem value={UserStatus.SUSPENDED}>{t('users.status.SUSPENDED')}</MenuItem>
+                                        <MenuItem value={UserStatus.LOCKED}>{t('users.status.LOCKED')}</MenuItem>
                                     </TextField>
                                 )}
                             />
@@ -285,12 +344,12 @@ export default function UserFormPage() {
                                 <TextField
                                     {...field}
                                     id="user-form-tenantId"
-                                    label="Tenant"
+                                    label={t('users.form.tenant')}
                                     select
                                     fullWidth
                                     required
                                     error={!!errors.tenantId}
-                                    helperText={errors.tenantId?.message || 'Select the tenant this user belongs to'}
+                                    helperText={errors.tenantId?.message || t('users.form.tenantHelper')}
                                     FormHelperTextProps={{id: 'user-form-tenantId-helper'}}
                                     SelectProps={{'aria-describedby': 'user-form-tenantId-helper'}}
                                     disabled={isEditMode || tenantsLoading}
@@ -305,7 +364,7 @@ export default function UserFormPage() {
                         />
 
                         <FormControl fullWidth disabled={rolesLoading}>
-                            <InputLabel id="roles-multi-select-label">Assigned Roles</InputLabel>
+                            <InputLabel id="roles-multi-select-label">{t('users.form.assignedRoles')}</InputLabel>
                             <Select
                                 labelId="roles-multi-select-label"
                                 id="roles-multi-select"
@@ -313,7 +372,7 @@ export default function UserFormPage() {
                                 value={selectedRoleIds}
                                 onChange={handleRoleSelectionChange}
                                 aria-describedby="roles-multi-select-helper"
-                                input={<OutlinedInput label="Assigned Roles"/>}
+                                input={<OutlinedInput label={t('users.form.assignedRoles')}/>}
                                 renderValue={(selected) => (
                                     <Box sx={{display: 'flex', flexWrap: 'wrap', gap: 0.5}}>
                                         {selected.map((roleId) => {
@@ -341,8 +400,8 @@ export default function UserFormPage() {
                             </Select>
                             <FormHelperText id="roles-multi-select-helper">
                                 {rolesLoading
-                                    ? 'Loading roles...'
-                                    : 'Select one or more roles to assign to this user'}
+                                    ? t('users.form.rolesLoading')
+                                    : t('users.form.assignedRolesHelper')}
                             </FormHelperText>
                         </FormControl>
 
@@ -353,7 +412,7 @@ export default function UserFormPage() {
                                 onClick={() => navigate('/users')}
                                 disabled={isSubmitting || loading}
                             >
-                                Cancel
+                                {t('users.form.cancel')}
                             </Button>
                             <Button
                                 type="submit"
@@ -361,7 +420,7 @@ export default function UserFormPage() {
                                 startIcon={loading ? <CircularProgress size={20}/> : <Save/>}
                                 disabled={isSubmitting || loading}
                             >
-                                {isEditMode ? 'Update User' : 'Create User'}
+                                {isEditMode ? t('users.form.update') : t('users.form.create')}
                             </Button>
                         </Box>
                     </Box>

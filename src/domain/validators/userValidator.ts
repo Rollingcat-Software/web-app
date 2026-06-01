@@ -2,6 +2,15 @@ import { z } from 'zod'
 import { UserRole, UserStatus } from '@domain/models/User'
 
 /**
+ * Platform-tier (user_type) enum values accepted by the form/API. Kept in sync
+ * with the backend `UserType` enum (identity-core-api `entity.UserType`).
+ */
+const userTypeEnum = z.enum(['ROOT', 'TENANT_ADMIN', 'TENANT_MEMBER', 'GUEST'])
+
+/** Within-tenant RBAC role-id list (UUID strings). */
+const roleIdsSchema = z.array(z.string().uuid()).optional()
+
+/**
  * Create user validation schema
  */
 export const CreateUserSchema = z.object({
@@ -28,8 +37,12 @@ export const CreateUserSchema = z.object({
         .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
         .regex(/[0-9]/, 'Password must contain at least one number')
         .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-    role: z.nativeEnum(UserRole),
+    // `role` (single RBAC role name) is legacy/optional — the form assigns
+    // within-tenant roles via `roleIds` and global standing via `userType`.
+    role: z.nativeEnum(UserRole).optional(),
     tenantId: z.string().min(1, 'Tenant ID is required'),
+    userType: userTypeEnum.optional(),
+    roleIds: roleIdsSchema,
 })
 
 /**
@@ -56,6 +69,8 @@ export const UpdateUserSchema = z.object({
         .optional(),
     role: z.nativeEnum(UserRole).optional(),
     status: z.nativeEnum(UserStatus).optional(),
+    userType: userTypeEnum.optional(),
+    roleIds: roleIdsSchema,
 })
 
 export type CreateUserInput = z.infer<typeof CreateUserSchema>
