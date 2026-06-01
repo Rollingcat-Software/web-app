@@ -14,7 +14,8 @@ import type { IAuthRepository, MfaStepResponse } from '@domain/interfaces/IAuthR
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { useTranslation } from 'react-i18next'
 import { AuthMethodType, MfaStepStatus, EASE_OUT } from '../constants'
-import MfaStepRenderer, { makeRequestWebAuthnChallenge } from '../login-shared/MfaStepRenderer'
+import MfaStepRenderer from '../login-shared/MfaStepRenderer'
+import { makeRequestWebAuthnChallenge } from '../login-shared/webauthnChallenge'
 
 interface TwoFactorDispatcherProps {
     method: string
@@ -59,7 +60,8 @@ export default function TwoFactorDispatcher({
     // Hook declarations must run on every render (rules-of-hooks) — they are
     // placed before the EMAIL_OTP early-return below so ordering stays stable.
     const requestWebAuthnChallenge = useCallback(
-        makeRequestWebAuthnChallenge(authRepository, mfaSessionToken),
+        (method: AuthMethodType) =>
+            makeRequestWebAuthnChallenge(authRepository, mfaSessionToken)(method),
         [authRepository, mfaSessionToken],
     )
 

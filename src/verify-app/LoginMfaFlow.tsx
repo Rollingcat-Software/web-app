@@ -29,7 +29,8 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { AuthMethodType, MfaStepStatus, EASE_OUT } from '@features/auth/constants'
 import PasswordStep from '@features/auth/components/steps/PasswordStep'
 import MethodPickerStep from '@features/auth/components/steps/MethodPickerStep'
-import MfaStepRenderer, { makeRequestWebAuthnChallenge } from '@features/auth/login-shared/MfaStepRenderer'
+import MfaStepRenderer from '@features/auth/login-shared/MfaStepRenderer'
+import { makeRequestWebAuthnChallenge } from '@features/auth/login-shared/webauthnChallenge'
 import StepProgress from './StepProgress'
 import { hasPasswordLayer1, needsIdentifier, type LoginConfig } from '@domain/models/LoginConfig'
 
@@ -429,7 +430,8 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     // ─── WebAuthn Challenge Helper ────────────────────────────────
 
     const requestWebAuthnChallenge = useCallback(
-        makeRequestWebAuthnChallenge(authRepository, mfaSessionToken),
+        (method: AuthMethodType) =>
+            makeRequestWebAuthnChallenge(authRepository, mfaSessionToken)(method),
         [authRepository, mfaSessionToken],
     )
 

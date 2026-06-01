@@ -24,10 +24,10 @@
 
 import { Alert } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import { AuthMethodType, AUTH_API, MfaStepAction } from '../constants'
+import { AuthMethodType, AUTH_API } from '../constants'
 import type { ChallengeResponse } from '../webauthn-utils'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
-import type { IAuthRepository, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
+import type { MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import { BiometricEngine } from '@/lib/biometric-engine/core/BiometricEngine'
 import TotpStep from '../components/steps/TotpStep'
 import SmsOtpStep from '../components/steps/SmsOtpStep'
@@ -266,30 +266,5 @@ export default function MfaStepRenderer({
                     {t('widget.unknownMethod', { method })}
                 </Alert>
             )
-    }
-}
-
-/** Build the WebAuthn-challenge helper both surfaces use (shared so it can't drift). */
-export function makeRequestWebAuthnChallenge(
-    authRepository: IAuthRepository,
-    mfaSessionToken: string,
-): (method: AuthMethodType) => Promise<ChallengeResponse | null> {
-    return async (method: AuthMethodType): Promise<ChallengeResponse | null> => {
-        const res = await authRepository.verifyMfaStep(
-            mfaSessionToken,
-            method,
-            { action: MfaStepAction.CHALLENGE },
-        )
-        if (res.data && typeof res.data.challenge === 'string') {
-            return {
-                challenge: res.data.challenge,
-                rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
-                timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
-                allowCredentials: Array.isArray(res.data.allowCredentials)
-                    ? (res.data.allowCredentials as string[])
-                    : undefined,
-            }
-        }
-        return null
     }
 }
