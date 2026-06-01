@@ -26,19 +26,10 @@ import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IAuthRepository, AvailableMfaMethod, MfaStepResponse } from '@domain/interfaces/IAuthRepository'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
-import { AuthMethodType, MfaStepStatus, MfaStepAction, AUTH_API, EASE_OUT } from '@features/auth/constants'
-import type { ChallengeResponse } from '@features/auth/webauthn-utils'
+import { AuthMethodType, MfaStepStatus, EASE_OUT } from '@features/auth/constants'
 import PasswordStep from '@features/auth/components/steps/PasswordStep'
 import MethodPickerStep from '@features/auth/components/steps/MethodPickerStep'
-import TotpStep from '@features/auth/components/steps/TotpStep'
-import SmsOtpStep from '@features/auth/components/steps/SmsOtpStep'
-import EmailOtpMfaStep from '@features/auth/components/steps/EmailOtpMfaStep'
-import FaceCaptureStep from '@features/auth/components/steps/FaceCaptureStep'
-import VoiceStep from '@features/auth/components/steps/VoiceStep'
-import FingerprintStep from '@features/auth/components/steps/FingerprintStep'
-import QrCodeStep from '@features/auth/components/steps/QrCodeStep'
-import HardwareKeyStep from '@features/auth/components/steps/HardwareKeyStep'
-import NfcStep from '@features/auth/components/steps/NfcStep'
+import MfaStepRenderer, { makeRequestWebAuthnChallenge } from '@features/auth/login-shared/MfaStepRenderer'
 import StepProgress from './StepProgress'
 import { hasPasswordLayer1, needsIdentifier, type LoginConfig } from '@domain/models/LoginConfig'
 
@@ -437,151 +428,32 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
     // ─── WebAuthn Challenge Helper ────────────────────────────────
 
-    const requestWebAuthnChallenge = useCallback(async (method: AuthMethodType): Promise<ChallengeResponse | null> => {
-        const res = await authRepository.verifyMfaStep(
-            mfaSessionToken, method, { action: MfaStepAction.CHALLENGE }
-        )
-        if (res.data && typeof res.data.challenge === 'string') {
-            return {
-                challenge: res.data.challenge,
-                rpId: typeof res.data.rpId === 'string' ? res.data.rpId : undefined,
-                timeout: typeof res.data.timeout === 'string' ? res.data.timeout : undefined,
-                allowCredentials: Array.isArray(res.data.allowCredentials) ? res.data.allowCredentials as string[] : undefined,
-            }
-        }
-        return null
-    }, [authRepository, mfaSessionToken])
+    const requestWebAuthnChallenge = useCallback(
+        makeRequestWebAuthnChallenge(authRepository, mfaSessionToken),
+        [authRepository, mfaSessionToken],
+    )
 
     // ─── Render Step Component ──────────────────────────────────
+    // The per-method step body is rendered by the SHARED MfaStepRenderer (kept
+    // identical with the dashboard's TwoFactorDispatcher). This flow only owns
+    // its hosted-card SHELL, the identifier/password entry phases, and the
+    // method picker.
 
-    const renderMfaStep = () => {
-        const method = selectedMethod
-
-        if (!method || method === AuthMethodType.EMAIL_OTP) {
-            return (
-                <EmailOtpMfaStep
-                    mfaSessionToken={mfaSessionToken}
-                    onAuthenticated={handleMfaResult}
-                    onBack={handleBackToMethodSelection}
-                />
-            )
-        }
-
-        switch (method) {
-            case AuthMethodType.PASSWORD:
-                // PASSWORD chosen as a non-first factor: identity is fixed by the
-                // session, so collect only the password and complete the step via
-                // /auth/mfa/step. No "change identity" — we're mid-flow.
-                return (
-                    <PasswordStep
-                        presetEmail={identifier || undefined}
-                        onSubmit={(data) => verifyStep(AuthMethodType.PASSWORD, { password: data.password })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.TOTP:
-                return (
-                    <TotpStep
-                        onSubmit={(code) => verifyStep(AuthMethodType.TOTP, { code })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.SMS_OTP:
-                return (
-                    <SmsOtpStep
-                        onSubmit={(code) => verifyStep(AuthMethodType.SMS_OTP, { code })}
-                        onSendOtp={async () => {
-                            try {
-                                await httpClient.post(AUTH_API.MFA_SEND_OTP, {
-                                    sessionToken: mfaSessionToken,
-                                    method: AuthMethodType.SMS_OTP,
-                                })
-                            } catch {
-                                // fire-and-forget
-                            }
-                        }}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.FACE:
-                return (
-                    <FaceCaptureStep
-                        onSubmit={(image) => verifyStep(AuthMethodType.FACE, { image })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.VOICE:
-                return (
-                    <VoiceStep
-                        onSubmit={(voiceData) => verifyStep(AuthMethodType.VOICE, { voiceData })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.FINGERPRINT:
-                return (
-                    <FingerprintStep
-                        onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.FINGERPRINT)}
-                        onSubmit={(data) => verifyStep(AuthMethodType.FINGERPRINT, { assertion: data })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.QR_CODE:
-                return (
-                    <QrCodeStep
-                        userId="mfa-session"
-                        onGenerateToken={async () => {
-                            const res = await httpClient.post<{ token: string; expiresInSeconds: number }>(
-                                AUTH_API.MFA_QR_GENERATE,
-                                { sessionToken: mfaSessionToken }
-                            )
-                            return res.data
-                        }}
-                        onSubmit={(token) => verifyStep(AuthMethodType.QR_CODE, { token })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.HARDWARE_KEY:
-                return (
-                    <HardwareKeyStep
-                        onRequestChallenge={() => requestWebAuthnChallenge(AuthMethodType.HARDWARE_KEY)}
-                        onSubmit={(data) => verifyStep(AuthMethodType.HARDWARE_KEY, { assertion: data })}
-                        loading={loading}
-                        error={error}
-                    />
-                )
-
-            case AuthMethodType.NFC_DOCUMENT:
-                return (
-                    <NfcStep
-                        onSubmit={(data) => verifyStep(AuthMethodType.NFC_DOCUMENT, { nfcData: data })}
-                        loading={loading}
-                        error={error}
-                        onBack={handleBackToMethodSelection}
-                    />
-                )
-
-            default:
-                return (
-                    <Alert severity="warning" sx={{ borderRadius: '12px' }}>
-                        {t('widget.unknownMethod', { method })}
-                    </Alert>
-                )
-        }
-    }
+    const renderMfaStep = () => (
+        <MfaStepRenderer
+            method={selectedMethod}
+            mfaSessionToken={mfaSessionToken}
+            verifyStep={verifyStep}
+            requestWebAuthnChallenge={requestWebAuthnChallenge}
+            httpClient={httpClient}
+            onAuthenticated={handleMfaResult}
+            onBack={handleBackToMethodSelection}
+            loading={loading}
+            error={error}
+            onError={setError}
+            presetEmail={identifier || undefined}
+        />
+    )
 
     // ─── Render ─────────────────────────────────────────────────
 
