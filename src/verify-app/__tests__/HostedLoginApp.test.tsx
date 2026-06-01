@@ -149,26 +149,51 @@ describe('HostedLoginApp — B8 surface behavior', () => {
         resetEnv()
     })
 
-    it('missing client_id on /login → sign-in loading screen, NOT the integrator landing (no API call)', async () => {
-        // Reaching the /login route without OAuth params means a sign-in was
-        // intended (e.g. a tenant redirect mid-navigation). We show a sign-in
-        // loading screen + recovery hint, NOT the developer integrator landing
-        // (which read as a marketing intro flashing during navigation). The
-        // landing is reserved for the bare root path (see test below).
+    it('missing client_id on /login → renders the integrator landing (no API call)', async () => {
+        // `/login` is the public "Try hosted login" CTA target on the static
+        // landing. A curious visitor / evaluating developer who clicks it has no
+        // client_id/redirect_uri, so a bare /login must NOT strand them on an
+        // indefinite spinner — it renders the same integrator explainer as root.
         setLocation('?redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb')
 
         render(<HostedLoginApp />)
 
         await waitFor(() => {
-            expect(screen.getByText(/return to the app you came from/i)).toBeInTheDocument()
+            expect(screen.getByText(/Hosted sign-in surface/i)).toBeInTheDocument()
         })
-        expect(screen.queryByText(/Hosted sign-in surface/i)).not.toBeInTheDocument()
+        expect(screen.getByText(/What this surface does/i)).toBeInTheDocument()
         // No meta fetch should have fired
         expect(mockHttpGet).not.toHaveBeenCalled()
     })
 
-    it('missing redirect_uri on /login → sign-in loading screen, not the landing', async () => {
+    it('missing redirect_uri on /login → renders the integrator landing, not a spinner', async () => {
         setLocation('?client_id=c1')
+
+        render(<HostedLoginApp />)
+
+        await waitFor(() => {
+            expect(screen.getByText(/Hosted sign-in surface/i)).toBeInTheDocument()
+        })
+        expect(screen.queryByText(/return to the app you came from/i)).not.toBeInTheDocument()
+        expect(mockHttpGet).not.toHaveBeenCalled()
+    })
+
+    it('missing params on a non-/login deep link → sign-in loading screen + recovery hint', async () => {
+        // A real sign-in was likely intended on any OTHER non-root path (e.g. a
+        // tenant redirect caught mid-navigation, or a stale/bookmarked deep
+        // link), so we keep the brief loading screen there rather than flashing
+        // the marketing landing during navigation.
+        const url = new URL('https://verify.fivucsas.com/callback?client_id=c1')
+        Object.defineProperty(window, 'location', {
+            configurable: true,
+            writable: true,
+            value: {
+                href: url.href, origin: url.origin, pathname: url.pathname,
+                search: url.search, hash: '', host: url.host, hostname: url.hostname,
+                port: url.port, protocol: url.protocol,
+                assign: vi.fn(), replace: vi.fn(), reload: vi.fn(),
+            },
+        })
 
         render(<HostedLoginApp />)
 

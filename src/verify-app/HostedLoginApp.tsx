@@ -636,14 +636,20 @@ export default function HostedLoginApp() {
 
     if (paramsMissing) {
         // The developer-facing integrator landing ("HOSTED SIGN-IN SURFACE / no
-        // OAuth parameters") belongs on the bare ROOT only. Reaching the /login
-        // route (or any non-root path) without OAuth params means a SIGN-IN was
-        // intended — e.g. a tenant redirect mid-navigation or a stale/bookmarked
-        // /login — so show a sign-in loading screen + recovery hint instead of the
-        // marketing landing flashing during navigation to the hosted login.
+        // OAuth parameters") is shown on the bare ROOT *and* on `/login` reached
+        // without OAuth params. `/login` is the public "Try hosted login" CTA
+        // target on the static landing — a curious visitor (or a developer
+        // evaluating FIVUCSAS) who clicks it has no client_id/redirect_uri, so a
+        // bare `/login` must NOT strand them on an indefinite spinner ("your
+        // sign-in link looks incomplete"). It renders the same explainer as root.
+        //
+        // ANY OTHER non-root path without params (e.g. a tenant redirect caught
+        // mid-navigation, or a stale/bookmarked deep link) still gets the brief
+        // sign-in loading screen + recovery hint, since a real sign-in was likely
+        // intended there and the marketing landing would flash during navigation.
         const pathname = typeof window !== 'undefined' ? window.location.pathname : '/'
-        const isRootPath = pathname === '/' || pathname === ''
-        if (!isRootPath) {
+        const isLandingPath = pathname === '/' || pathname === '' || pathname === '/login'
+        if (!isLandingPath) {
             return (
                 <ThemeProvider theme={theme}>
                     <CssBaseline />
@@ -1010,8 +1016,8 @@ function IntegratorLanding() {
                         }}
                     >{`import { FivucsasAuth } from '@fivucsas/auth-js'
 
-FivucsasAuth.init({ clientId: 'YOUR_CLIENT_ID' })
-FivucsasAuth.loginRedirect({
+const auth = new FivucsasAuth({ clientId: 'YOUR_CLIENT_ID' })
+auth.loginRedirect({
     redirectUri: 'https://your-app.com/callback',
     scope: 'openid profile email',
 })`}</Box>
