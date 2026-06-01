@@ -138,8 +138,8 @@ export default defineConfig(({ mode }) => ({
                 // navigateFallback. Online users always get the freshest index.html
                 // (which references the newest hashed chunks); offline users fall
                 // back to the precached shell via `precacheFallback`. `navigateFallback`
-                // is intentionally REMOVED — the navigation runtimeCaching route
-                // supersedes it. Hashed JS/CSS/font assets stay PRECACHED and are
+                // is explicitly nulled (see below) so its cache-first NavigationRoute
+                // no longer shadows this route. Hashed JS/CSS/font assets stay PRECACHED and are
                 // served cache-first by the precache route (fast + offline-capable
                 // + immutable), so chunk loading is unaffected.
                 //
