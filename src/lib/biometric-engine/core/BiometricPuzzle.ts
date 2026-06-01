@@ -14,6 +14,7 @@ import type {
   ChallengeCheckResult,
   ChallengeDefinition,
   ChallengeInfo,
+  FaceMetrics,
   HeadPose,
   MotionEntry,
   NormalizedLandmark,
@@ -25,6 +26,8 @@ import {
   HOLD_DURATION,
   MOTION_HISTORY_SIZE,
   HEAD_POSE_EWMA_ALPHA,
+  BLINK_EAR_CLOSED,
+  EAR_THRESHOLD,
 } from './constants';
 
 import {
@@ -249,6 +252,40 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     this.smoothedYaw = null;
     this.smoothedPitch = null;
     this.lostFrames = 0;
+
+    // Reset any stateful (transient) detectors so a half-finished blink/wink
+    // from a previous session can't leak across into this attempt.
+    this.resetCurrentDetector();
+  }
+
+  /**
+   * Reset the stateful internal state of the detector for the CURRENT
+   * challenge (transition detectors like blink/wink). No-op for stateless ones.
+   */
+  private resetCurrentDetector(): void {
+    const type = this.challenges[this.currentIdx];
+    const detector = type ? this.detectors.get(type) : undefined;
+    detector?.reset?.();
+  }
+
+  /**
+   * Whether a transient (blink/wink) challenge is currently in its CLOSE phase
+   * (the relevant eye is shut, waiting to re-open). Used purely to drive
+   * in-progress UI feedback (50% bar while closing) — it never completes the
+   * challenge; only the re-open edge in `detect()` does.
+   */
+  private isTransientClosing(type: ChallengeType, metrics: FaceMetrics): boolean {
+    const { avgEAR, userLeftEAR, userRightEAR } = metrics.eyes;
+    switch (type) {
+      case ChallengeType.BLINK:
+        return avgEAR < BLINK_EAR_CLOSED;
+      case ChallengeType.CLOSE_LEFT:
+        return userLeftEAR < BLINK_EAR_CLOSED && userRightEAR > EAR_THRESHOLD;
+      case ChallengeType.CLOSE_RIGHT:
+        return userRightEAR < BLINK_EAR_CLOSED && userLeftEAR > EAR_THRESHOLD;
+      default:
+        return false;
+    }
   }
 
   /**
@@ -316,6 +353,12 @@ export class BiometricPuzzle implements IBiometricPuzzle {
       return { detected: false, progress: 0, message: `No detector for ${challengeType}` };
     }
 
+    // Capture the transient flag up-front: the `instanceof NodDetector`/
+    // `ShakeHeadDetector` narrowing below collapses `detector` to a union of
+    // concrete classes that don't declare the optional `isTransient`, so read
+    // it here while `detector` is still the interface type.
+    const isTransient = detector.isTransient === true;
+
     // Calculate face metrics from landmarks
     const metrics = this.metricsCalculator.calculateAll(landmarks);
 
@@ -353,6 +396,31 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     // Check detection on the smoothed pose.
     const rawDetected = detector.detect(metrics, headPose);
     const message = detector.getMessage(metrics, headPose);
+
+    // ── Transient (edge) challenges: BLINK, CLOSE_LEFT, CLOSE_RIGHT ──────────
+    // These are momentary actions. The detector is a stateful close→re-open
+    // edge that returns `true` exactly ONCE — on the re-open. There is no hold:
+    // the single edge completes the challenge. Re-opening the eye is what
+    // COMPLETES it (the previous global 0.6s-hold model cancelled progress the
+    // instant the eye re-opened, which is the exact bug we're fixing).
+    if (isTransient) {
+      if (rawDetected) {
+        this.advanceChallenge();
+        return { detected: true, progress: 100, message: 'Completed!', completed: true };
+      }
+      // Surface in-progress feedback: the close phase (eyes shut) shows partial
+      // progress so the user sees the system reacting, but completion only
+      // fires on the re-open edge above.
+      const closing = this.isTransientClosing(detector.type, metrics);
+      return {
+        detected: closing,
+        progress: closing ? 50 : 0,
+        message,
+      };
+    }
+
+    // ── Sustained (held) challenges: turns, look up/down, smile, mouth, brows,
+    //    nod, shake — keep the continuous HOLD_DURATION timer. ─────────────────
 
     // Release-debounce hysteresis: once a gesture is registered, tolerate up to
     // `releaseHysteresisFrames` boundary-flicker frames before dropping it, so
@@ -448,6 +516,9 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     this.smoothedYaw = null;
     this.smoothedPitch = null;
     this.lostFrames = 0;
+    // Reset the next challenge's stateful (transient) detector so a stray
+    // close phase doesn't carry over from the just-finished challenge.
+    this.resetCurrentDetector();
 
     if (this.currentIdx >= this.challenges.length) {
       this.complete = true;

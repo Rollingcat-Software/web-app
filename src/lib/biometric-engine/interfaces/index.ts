@@ -178,11 +178,41 @@ export interface IChallengeDetector {
   /** The challenge type this detector handles. */
   readonly type: ChallengeType;
 
-  /** Detect whether the challenge condition is currently met. */
+  /**
+   * Whether this challenge is a TRANSIENT (edge / momentary) action rather than
+   * a SUSTAINED (held) pose.
+   *
+   * - Transient (`true`): BLINK, CLOSE_LEFT, CLOSE_RIGHT — a momentary action
+   *   (close→re-open edge). The engine completes the challenge the instant
+   *   `detect()` returns `true` (which, for these stateful detectors, is the
+   *   re-open edge), with NO 0.6s hold. Re-opening the eye COMPLETES the
+   *   challenge — it must not cancel progress.
+   * - Sustained (`false`/absent): TURN_LEFT/RIGHT, LOOK_UP/DOWN, SMILE,
+   *   OPEN_MOUTH, RAISE_*_BROW — a physically sustainable pose held for
+   *   `HOLD_DURATION`. NOD/SHAKE are motion-history based and also non-transient.
+   */
+  readonly isTransient?: boolean;
+
+  /**
+   * Detect whether the challenge condition is met for THIS frame.
+   *
+   * For sustained detectors this is a stateless boolean (pose currently held).
+   * For transient detectors this is a STATEFUL edge: it tracks the close phase
+   * internally and returns `true` exactly once, on the re-open edge that
+   * completes the blink/wink.
+   */
   detect(metrics: FaceMetrics, headPose: HeadPose): boolean;
 
   /** Get a user-facing feedback message for this challenge. */
   getMessage(metrics: FaceMetrics, headPose: HeadPose): string;
+
+  /**
+   * Reset any per-attempt internal state (stateful transition detectors only).
+   * Called by the engine when a new challenge attempt starts so a half-finished
+   * blink from a previous attempt cannot leak across. No-op for stateless
+   * detectors.
+   */
+  reset?(): void;
 }
 
 // ===== Configuration Interface =====
