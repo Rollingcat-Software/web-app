@@ -57,6 +57,17 @@ export class FaceDetector implements IFaceDetector {
   private initError: string | null = null;
 
   /**
+   * Last timestamp handed to `detectForVideo`. MediaPipe's VIDEO running mode
+   * requires STRICTLY monotonically increasing timestamps; now that the
+   * FaceLandmarker is a long-lived reused singleton (see useBiometricEngine),
+   * it can be driven by more than one rAF loop / caller. We clamp every
+   * timestamp to be at least `lastTimestamp + 1` so an out-of-order or
+   * duplicate caller timestamp can't make MediaPipe throw / emit the
+   * "timestamp mismatch" + NORM_RECT warnings.
+   */
+  private lastTimestamp = 0;
+
+  /**
    * Initialize the MediaPipe FaceLandmarker.
    *
    * 1. Dynamically import @mediapipe/tasks-vision from CDN
@@ -166,10 +177,18 @@ export class FaceDetector implements IFaceDetector {
       return [];
     }
 
-    // Call MediaPipe FaceLandmarker.detectForVideo()
+    // Enforce a strictly-increasing timestamp for the shared landmarker.
+    const monotonicTs =
+      timestamp > this.lastTimestamp ? timestamp : this.lastTimestamp + 1;
+    this.lastTimestamp = monotonicTs;
+
+    // Call MediaPipe FaceLandmarker.detectForVideo() on the (real) video frame.
+    // Passing the HTMLVideoElement directly lets MediaPipe derive the true
+    // IMAGE_DIMENSIONS from the element, so landmarks are projected on the
+    // correct (non-square) frame ROI — no manual NORM_RECT is supplied.
     // @see auth-test/app.js — detectFaceLoop()
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const result: any = this.landmarker.detectForVideo(video, timestamp);
+    const result: any = this.landmarker.detectForVideo(video, monotonicTs);
 
     if (
       !result ||

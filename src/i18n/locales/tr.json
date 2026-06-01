@@ -2092,18 +2092,18 @@
     "puzzles": {
       "face_blink": {
         "title": "Göz Kırp",
-        "description": "Her iki gözünüzü bir anlığına kapatıp tekrar açın. Dedektör, kareler boyunca göz en-boy oranını izler.",
-        "hint": "Yüzünüzü çerçeveye ortalayın, sonra bir kez bilinçli olarak göz kırpın."
+        "description": "Bir kez hızlı ve doğal şekilde göz kırpın — iki gözünüzü kısaca kapatıp tekrar açın. Gözleriniz yeniden açıldığı an tamamlanır; kapalı tutmanıza gerek yok.",
+        "hint": "Yüzünüzü çerçeveye ortalayın, sonra bir kez doğal şekilde göz kırpın."
       },
       "face_close_left": {
         "title": "Sol Gözü Kapat",
-        "description": "Sağ gözü açık tutarken sol gözünüzü kapatın. Asimetrik göz kapağı kontrolünü test eder.",
-        "hint": "Doğrudan kameraya bakın ve yalnızca sol gözünüzü kapatın — sağ gözünüz açık kalsın."
+        "description": "Sol gözünüzü bir kez kırpın — sağ göz açık kalırken solu kısaca kapatıp tekrar açın. Göz yeniden açıldığı an tamamlanır.",
+        "hint": "Doğrudan kameraya bakın ve sol gözünüzle hızlıca kırpın — sağ gözünüz açık kalsın."
       },
       "face_close_right": {
         "title": "Sağ Gözü Kapat",
-        "description": "Sol gözü açık tutarken sağ gözünüzü kapatın. Asimetrik göz kapağı kontrolünü test eder.",
-        "hint": "Doğrudan kameraya bakın ve yalnızca sağ gözünüzü kapatın — sol gözünüz açık kalsın."
+        "description": "Sağ gözünüzü bir kez kırpın — sol göz açık kalırken sağı kısaca kapatıp tekrar açın. Göz yeniden açıldığı an tamamlanır.",
+        "hint": "Doğrudan kameraya bakın ve sağ gözünüzle hızlıca kırpın — sol gözünüz açık kalsın."
       },
       "face_smile": {
         "title": "Geniş Gülümse",
