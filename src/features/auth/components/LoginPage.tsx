@@ -700,6 +700,14 @@ export default function LoginPage() {
     // passwordRevealed=false, so they correctly reappear on the email screen.
     const onInitialIdentityEntry = !passwordRevealed
     const showUsernamelessShortcuts = onInitialIdentityEntry
+    // The IDENTIFIER-only screen (email-first step before the password is
+    // revealed, OR a non-password Layer-1 that just collects the email) is NOT
+    // a verification step, so it is UNNUMBERED — counting it double-counted the
+    // flow (identifier "1/N" AND the first real factor "1/N"). The combined
+    // legacy email+password form and the revealed-password screen DO show a
+    // password factor, so they keep the counter (step 1/N). Parity with
+    // verify.fivucsas's unnumbered FlowPhase.Identifier.
+    const onIdentifierOnlyScreen = passwordHidden || !showPasswordForm
     // Email step → resolve the tenant's Layer-1 and let the user pick ANY allowed
     // first factor (not just password). Calls /auth/login/begin: when Layer-1 is a
     // CHOICE with >1 method we open a step-1 session and show the method picker;
@@ -883,9 +891,13 @@ export default function LoginPage() {
 
                         {/* Step/layer progress — parity with verify.fivucsas so
                             the user sees which layer they're on. Renders nothing
-                            for single-factor flows (total <= 1). Shown on both the
-                            identifier-first and legacy Layer-1 screens. */}
-                        <StepProgress current={loginCurrentStep} total={loginTotalSteps} />
+                            for single-factor flows (total <= 1) and is HIDDEN on the
+                            identifier-only screen (which is unnumbered — see
+                            `onIdentifierOnlyScreen`) so the first real factor reads
+                            1/N instead of double-counting the identity step. */}
+                        {!onIdentifierOnlyScreen && (
+                            <StepProgress current={loginCurrentStep} total={loginTotalSteps} />
+                        )}
 
                         {/* Identifier-first entry (D): rendered when the tenant
                             login-config has NO password Layer-1 method. Collects

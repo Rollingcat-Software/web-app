@@ -15,7 +15,7 @@ import { Controller, useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 import { motion } from 'framer-motion'
-import { Button, Typography } from '@mui/material'
+import { Typography } from '@mui/material'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
 
@@ -28,14 +28,15 @@ interface PasswordStepProps {
     /**
      * Identifier-first mode: when set, the email was already collected on the
      * identify screen — hide the email field, password is the only input, and
-     * show "Signing in as <email>" with a "change" affordance.
+     * show "Signing in as <email>" read-only. The "change identity" / restart
+     * affordance is provided once at the SHELL level (LoginMfaFlow's
+     * "Not you? Start over" header link), not per-step, so every factor is
+     * uniform — PasswordStep no longer carries its own change link.
      */
     presetEmail?: string
-    /** Called when the user clicks "change" in presetEmail mode (back to identify). */
-    onChangeIdentity?: () => void
 }
 
-export default function PasswordStep({ onSubmit, loading, error, presetEmail, onChangeIdentity }: PasswordStepProps) {
+export default function PasswordStep({ onSubmit, loading, error, presetEmail }: PasswordStepProps) {
     const { t } = useTranslation()
     const [showPassword, setShowPassword] = useState(false)
     const identifierFirst = Boolean(presetEmail)
@@ -79,22 +80,18 @@ export default function PasswordStep({ onSubmit, loading, error, presetEmail, on
             <form onSubmit={handleSubmit(handleFormSubmit)}>
                 {identifierFirst ? (
                     // Identity already collected on the identify screen — show it
-                    // read-only with a "change" link, NO email box.
+                    // read-only, NO email box. The "change identity" / restart
+                    // affordance is the shell-level "Not you? Start over" header
+                    // link (Fix 1), so it is NOT repeated here per-step.
                     <motion.div variants={itemVariants}>
                         <Typography
                             variant="body2"
-                            sx={{ mb: 1, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}
+                            sx={{ mb: 1, display: 'flex', alignItems: 'center', gap: 1 }}
                         >
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6, overflow: 'hidden' }}>
                                 <EmailOutlined sx={{ fontSize: 18, color: 'text.secondary' }} />
                                 <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{presetEmail}</strong>
                             </span>
-                            {onChangeIdentity && (
-                                <Button size="small" variant="text" onClick={onChangeIdentity} disabled={loading}
-                                    sx={{ textTransform: 'none', minWidth: 0 }}>
-                                    {t('auth.changeIdentity')}
-                                </Button>
-                            )}
                         </Typography>
                     </motion.div>
                 ) : (

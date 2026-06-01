@@ -61,6 +61,17 @@ const IMPROVE_RECOGNITION_METHODS: ReadonlySet<AuthMethodType> = new Set([
     AuthMethodType.VOICE,
 ])
 
+// Genuinely MULTI-INSTANCE methods: enrolling again ADDS a NEW credential
+// (a second NFC document, another hardware/security key, an extra platform
+// authenticator) rather than replacing the existing one — the action already
+// adds, so the button reads "Add another" instead of the single-instance
+// "Re-enroll" / "Yenile" (FACE / VOICE / TOTP own exactly one template each).
+const MULTI_INSTANCE_METHODS: ReadonlySet<AuthMethodType> = new Set([
+    AuthMethodType.NFC_DOCUMENT,
+    AuthMethodType.HARDWARE_KEY,
+    AuthMethodType.FINGERPRINT,
+])
+
 export default function MethodCardsGrid({
     isMethodEnrolled,
     isMethodAvailable,
@@ -236,7 +247,9 @@ export default function MethodCardsGrid({
                                                     {t(
                                                         IMPROVE_RECOGNITION_METHODS.has(config.type)
                                                             ? 'enrollmentPage.reEnrollFace'
-                                                            : 'enrollmentPage.reEnroll',
+                                                            : MULTI_INSTANCE_METHODS.has(config.type)
+                                                                ? 'enrollmentPage.addAnother'
+                                                                : 'enrollmentPage.reEnroll',
                                                     )}
                                                 </Button>
                                                 )}

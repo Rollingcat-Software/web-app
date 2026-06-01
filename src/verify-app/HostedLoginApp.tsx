@@ -261,6 +261,12 @@ export default function HostedLoginApp() {
     // can be active at a time; `null` means the default email/password+MFA flow.
     const [altFlow, setAltFlow] = useState<'approveLogin' | null>(null)
     const [altError, setAltError] = useState<string | null>(null)
+    // Whether the inner LoginMfaFlow is on its OPENING identity-entry screen.
+    // The usernameless shortcuts (passkey / approve) are ALTERNATIVES to typing
+    // an identifier, so — mirroring the dashboard's `onInitialIdentityEntry`
+    // gate — they render ONLY on that screen, not under every MFA step. Starts
+    // true (the flow always opens on an identity-entry screen).
+    const [onInitialLoginPhase, setOnInitialLoginPhase] = useState(true)
 
     // Frame-bust redirect (B9): runs as an effect so hook order stays stable
     // regardless of whether the page happens to be framed. The early render
@@ -810,6 +816,7 @@ export default function HostedLoginApp() {
                                     clientId={config.clientId}
                                     onComplete={handleLoginComplete}
                                     onCancel={handleCancel}
+                                    onInitialPhaseChange={setOnInitialLoginPhase}
                                     loginConfig={loginConfig}
                                 />
 
@@ -820,7 +827,16 @@ export default function HostedLoginApp() {
                                     — null config OR the flag-OFF password-first
                                     shape — `fallbackAll` keeps today's passkey +
                                     approve buttons, so the API flag fully reverts
-                                    this with no web redeploy. */}
+                                    this with no web redeploy.
+
+                                    GATED to the initial identity-entry phase only
+                                    (parity with the dashboard's
+                                    `showUsernamelessShortcuts`): passkey / approve
+                                    are alternatives to typing an identifier, so
+                                    they must NOT linger below an MFA step once the
+                                    user has committed an identifier / opened an MFA
+                                    session. */}
+                                {onInitialLoginPhase && (
                                 <Layer1Shortcuts<LoginSuccessResponse>
                                     config={loginConfig}
                                     fallbackAll
@@ -832,6 +848,7 @@ export default function HostedLoginApp() {
                                     }}
                                     disabled={redirecting}
                                 />
+                                )}
                             </Stack>
                         )}
                     </Stack>

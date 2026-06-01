@@ -58,6 +58,16 @@ interface LoginMfaFlowProps {
     onCancel: () => void
     onStepChange?: (stepIndex: number, methodType: string, totalSteps: number) => void
     /**
+     * Fires whenever the flow enters / leaves its OPENING identity-entry screen
+     * (the legacy combined email+password screen, or the identifier-first email
+     * screen — before any identifier is committed / MFA session opened). The
+     * hosted shell uses this to show the usernameless shortcuts (passkey /
+     * approve) ONLY on that initial screen, mirroring the dashboard's
+     * `onInitialIdentityEntry` gate, instead of leaving them visible under every
+     * MFA step.
+     */
+    onInitialPhaseChange?: (isInitialIdentityEntry: boolean) => void
+    /**
      * Tenant Layer-1 config (D). When present, the first phase is rendered
      * STRICTLY from it: the password field appears ONLY if PASSWORD is a
      * Layer-1 method; otherwise an identifier-first entry is shown that starts
@@ -67,7 +77,7 @@ interface LoginMfaFlowProps {
     loginConfig?: LoginConfig | null
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, loginConfig }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -155,6 +165,21 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             onStepChange(stepIdx, selectedMethod || 'MFA', totalSteps)
         }
     }, [phase, selectedMethod, currentStep, totalSteps, onStepChange])
+
+    // Tell the hosted shell whether we're on the OPENING identity-entry screen,
+    // so it can gate the usernameless shortcuts (passkey / approve) to that
+    // screen only. "Initial" = the identifier-first email screen, OR the legacy
+    // (engine-OFF) combined email+password screen, with NO identifier committed
+    // and NO MFA session yet. Once the user reveals the password (engine-ON,
+    // identifier-first) or opens an MFA session, the shortcuts are redundant.
+    useEffect(() => {
+        if (!onInitialPhaseChange) return
+        const isInitial =
+            !mfaSessionToken &&
+            (phase === FlowPhase.Identifier ||
+                (phase === FlowPhase.Password && !engineActive))
+        onInitialPhaseChange(isInitial)
+    }, [phase, engineActive, mfaSessionToken, onInitialPhaseChange])
 
     // loginConfig is fetched ASYNCHRONOUSLY by the parent (HostedLoginApp /
     // LoginPage), so on first mount it is null and the `useState` initializer
@@ -355,6 +380,17 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         setPhase(initialPhase)
     }, [initialPhase])
 
+    // "Not you? Start over" — the SHELL-level reset shown in the card header once
+    // an identifier is committed (replaces the per-step "Change email" link so the
+    // affordance is uniform across ALL factor steps). Fully restarts the
+    // identifier flow: clears the MFA session AND the typed identifier, then
+    // returns to the opening identity-entry screen.
+    const handleStartOver = useCallback(() => {
+        setIdentifier('')
+        setCurrentStep(1)
+        handleBackToPassword()
+    }, [handleBackToPassword])
+
     // ─── MFA Step Verification ──────────────────────────────────
 
     const verifyStep = useCallback(async (method: string, data: Record<string, unknown>) => {
@@ -499,22 +535,65 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                     backend hasn't reported one yet. */}
                 <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                     {(() => {
-                        if (phase === FlowPhase.Password || phase === FlowPhase.Identifier) {
-                            return <StepProgress current={1} total={loginConfig?.totalSteps ?? 0} />
+                        // The IDENTIFIER screen is NOT a verification step — it only
+                        // collects who you are — so it is UNNUMBERED. Counting it
+                        // double-counted the flow (identifier "1/N" AND the first
+                        // real factor "1/N"); rendering nothing here makes the first
+                        // factor 1/N and each subsequent one 2/N…N/N.
+                        if (phase === FlowPhase.Identifier) return null
+
+                        // Single backend-authoritative denominator shared by the
+                        // password screen (the first factor, step 1) and every MFA
+                        // step. Prefer the config's `totalSteps`; fall back to the
+                        // live `totalSteps` / `currentStep` so the bar can never read
+                        // fewer steps than the user has already taken. No `Math.max(…,2,…)`
+                        // floor — that mismatched the password screen's
+                        // `loginConfig.totalSteps` and over-reported short flows.
+                        const flowTotal = Math.max(
+                            loginConfig?.totalSteps ?? 0,
+                            totalSteps,
+                            currentStep,
+                        )
+                        if (phase === FlowPhase.Password) {
+                            // Password IS the first factor → 1/N.
+                            return <StepProgress current={1} total={flowTotal} />
                         }
-                        // Trust the backend-authoritative `currentStep` (set from the
-                        // login / begin / mfa-step responses): a password-first flow
-                        // resumes MFA at step 2, while an arbitrary-first-factor flow
-                        // (begin → picker) starts at step 1 — so we must NOT floor the
-                        // current step to 2. Infer a total of at least 2 when the
-                        // backend hasn't reported one. StepProgress clamps current≤total.
-                        const displayTotal = Math.max(totalSteps, 2, currentStep)
-                        const displayCurrent = currentStep
+                        // MFA leg: trust the backend-authoritative `currentStep`
+                        // (a password-first flow resumes at step 2; an arbitrary-
+                        // first-factor flow starts at step 1). StepProgress clamps
+                        // current ≤ total and hides itself when total <= 1.
                         return (
                             <StepProgress
-                                current={Math.min(displayCurrent, displayTotal)}
-                                total={displayTotal}
+                                current={Math.min(currentStep, flowTotal)}
+                                total={flowTotal}
                             />
+                        )
+                    })()}
+
+                    {/* "Not you? Start over" — SHELL-level reset shown once an
+                        identifier is committed (i.e. NOT on the opening identity-
+                        entry screen). Uniform across ALL factor steps (password +
+                        every MFA step), replacing the per-step "Change email" link
+                        that PasswordStep used to carry, so every factor reads the
+                        same. Fully restarts the identifier flow. */}
+                    {(() => {
+                        const onInitialIdentityEntry =
+                            !mfaSessionToken &&
+                            (phase === FlowPhase.Identifier ||
+                                (phase === FlowPhase.Password && !engineActive))
+                        if (onInitialIdentityEntry) return null
+                        return (
+                            <Box sx={{ mb: 1.5 }}>
+                                <Button
+                                    variant="text"
+                                    size="small"
+                                    onClick={handleStartOver}
+                                    disabled={loading}
+                                    sx={{ color: 'text.secondary', textTransform: 'none', minWidth: 0, px: 0.5 }}
+                                >
+                                    {t('auth.notYouStartOver')}
+                                </Button>
+                            </Box>
                         )
                     })()}
 
@@ -584,14 +663,11 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                             ? identifier.trim()
                                             : undefined
                                     }
-                                    onChangeIdentity={
-                                        engineActive
-                                            ? () => {
-                                                  setError(undefined)
-                                                  setPhase(FlowPhase.Identifier)
-                                              }
-                                            : undefined
-                                    }
+                                    // The "change identity" affordance is now the
+                                    // SHELL-level "Not you? Start over" link in the
+                                    // card header (uniform across every factor step),
+                                    // so PasswordStep no longer carries its own
+                                    // per-step change link — see Fix 1.
                                 />
                             )}
 

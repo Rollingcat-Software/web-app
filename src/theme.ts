@@ -284,6 +284,22 @@ export function createAppTheme(mode: 'light' | 'dark' = 'light') {
                         backgroundColor: alpha(BRAND.violet, 0.35),
                         color: '#ffffff',
                     },
+                    // Password-manager autofill paints inputs with the browser's
+                    // own light-blue background + black text, which clashes with
+                    // our surfaces (and is unreadable on the dark theme). Override
+                    // it globally with a theme-aware inset shadow so ALL login
+                    // inputs (verify hosted login + dashboard password/MFA) keep
+                    // the paper surface + correct text colour. The 9999s
+                    // transition is the standard trick to keep the override from
+                    // being repainted by the UA. (LoginPage/RegisterPage already
+                    // carry a hardcoded per-field version for their fixed white
+                    // glass card; this covers every other input, incl. PasswordStep.)
+                    'input:-webkit-autofill, input:-webkit-autofill:hover, input:-webkit-autofill:focus, input:-webkit-autofill:active': {
+                        WebkitBoxShadow: `0 0 0 100px ${bgPaper} inset`,
+                        WebkitTextFillColor: textPrimary,
+                        caretColor: textPrimary,
+                        transition: 'background-color 9999s ease-in-out 0s',
+                    },
                 },
             },
 

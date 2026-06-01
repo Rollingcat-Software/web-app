@@ -44,7 +44,7 @@ export default function TwoFactorDispatcher({
     mfaSessionToken,
     onAuthenticated,
     onBackToMethodSelection,
-    onCancel: _onCancel,
+    onCancel,
     stepCurrent,
     stepTotal,
     email,
@@ -168,6 +168,21 @@ export default function TwoFactorDispatcher({
                             {typeof stepCurrent === 'number' && typeof stepTotal === 'number' && (
                                 <StepProgress current={stepCurrent} total={stepTotal} />
                             )}
+                            {/* Shell-level "Not you? Start over" — uniform across all
+                                MFA steps (parity with verify.fivucsas). Calls the
+                                existing reset (handleTwoFactorCancel) to fully restart
+                                the login flow. */}
+                            <Box sx={{ mb: 1.5 }}>
+                                <Button
+                                    variant="text"
+                                    size="small"
+                                    onClick={onCancel}
+                                    disabled={loading}
+                                    sx={{ color: 'rgba(0,0,0,0.6)', textTransform: 'none', minWidth: 0, px: 0.5 }}
+                                >
+                                    {t('auth.notYouStartOver')}
+                                </Button>
+                            </Box>
                             {stepBody}
                         </CardContent>
                     </Card>
@@ -230,6 +245,21 @@ export default function TwoFactorDispatcher({
                         {typeof stepCurrent === 'number' && typeof stepTotal === 'number' && (
                             <StepProgress current={stepCurrent} total={stepTotal} />
                         )}
+                        {/* Shell-level "Not you? Start over" — uniform across all MFA
+                            steps (parity with verify.fivucsas). Calls the existing
+                            reset (handleTwoFactorCancel) to fully restart the login
+                            flow. */}
+                        <Box sx={{ mb: 1.5 }}>
+                            <Button
+                                variant="text"
+                                size="small"
+                                onClick={onCancel}
+                                disabled={loading}
+                                sx={{ color: 'rgba(0,0,0,0.6)', textTransform: 'none', minWidth: 0, px: 0.5 }}
+                            >
+                                {t('auth.notYouStartOver')}
+                            </Button>
+                        </Box>
                         {stepBody}
                         <Box sx={{ textAlign: 'center', mt: 2 }}>
                             <Button
