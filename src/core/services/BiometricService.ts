@@ -39,6 +39,16 @@ export interface SearchResult {
         userId: string
         distance: number
         confidence: number
+        /**
+         * Human-readable owner name (firstName + lastName), resolved best-effort
+         * from `GET /users/{userId}` after the 1:N search returns. Optional because
+         * the biometric-processor search payload only carries `user_id`; the name
+         * is hydrated client-side in `useFaceSearch` (mirrors `useVoiceSearch`).
+         * The UI prefers name → email → raw id, so a soft-deleted / missing owner
+         * (lookup 404 → these stay undefined) degrades to showing the raw id.
+         */
+        userName?: string
+        userEmail?: string
     }>
 }
 
