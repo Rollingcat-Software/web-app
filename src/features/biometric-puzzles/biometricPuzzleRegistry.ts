@@ -45,6 +45,7 @@ import { BiometricPuzzleId, type BiometricPuzzleModality } from './BiometricPuzz
 // here.
 export type { BiometricPuzzleModality } from './BiometricPuzzleId'
 import { ChallengeType } from '@/lib/biometric-engine/types'
+import { isLivenessEligible } from '@/lib/biometric-engine/core/livenessPool'
 import { makeFacePuzzle } from './puzzles/FacePuzzle'
 import { makeHandPuzzle } from './puzzles/HandGesturePuzzle'
 
@@ -79,7 +80,26 @@ export interface BiometricPuzzleEntry {
      * puzzles (hand puzzles have no engine counterpart yet).
      */
     challengeType?: ChallengeType
+    /**
+     * True for challenges kept in this library/showcase for completeness but
+     * deliberately EXCLUDED from every real active-liveness flow (single-brow
+     * raises, finger-math). The card marks these "Experimental — not used in
+     * liveness". The curated liveness pool itself lives in
+     * `lib/biometric-engine/core/livenessPool.ts`.
+     */
+    experimental?: boolean
 }
+
+/**
+ * Hand puzzle ids that are NOT used in any liveness flow but kept on the
+ * showcase page (marked experimental). The reliable hand pool the server-driven
+ * gesture flow draws from is finger-count / wave / pinch; finger-math is a
+ * gimmick. Mirrors `livenessPool.ts` for the hand modality (which has no engine
+ * `ChallengeType` counterpart on the client).
+ */
+const EXPERIMENTAL_HAND_IDS: ReadonlySet<BiometricPuzzleId> = new Set([
+    BiometricPuzzleId.HAND_MATH,
+])
 
 const FACE_PLATFORMS: BiometricPuzzlePlatform[] = ['web', 'android', 'ios', 'desktop']
 const HAND_PLATFORMS: BiometricPuzzlePlatform[] = ['web', 'android', 'ios', 'desktop']
@@ -108,6 +128,9 @@ function faceEntry(
         requiresEnrollment: false,
         capability: 'realCapable',
         challengeType,
+        // A face challenge is experimental (library-only) iff the single source
+        // of truth says it's NOT eligible for a real liveness flow.
+        experimental: !isLivenessEligible(challengeType),
     }
 }
 
@@ -132,6 +155,7 @@ function handEntry(
         icon,
         requiresEnrollment: false,
         capability: 'realCapable',
+        experimental: EXPERIMENTAL_HAND_IDS.has(id),
     }
 }
 

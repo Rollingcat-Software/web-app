@@ -15,6 +15,8 @@ import {
     WaveDetector,
     FlipDetector,
     TapDetector,
+    TapTransitionTracker,
+    tapDistance,
     PeekABooDetector,
     ShapeTraceDetector,
     TemplateTraceDetector,
@@ -176,17 +178,103 @@ describe('WaveDetector', () => {
     })
 })
 
+describe('tapDistance', () => {
+    it('is small (touching) for a pinch and large (apart) for an open hand', () => {
+        expect(tapDistance(pinchFrame())).toBeLessThan(0.35)
+        expect(tapDistance(openHandFrame())).toBeGreaterThan(0.6)
+    })
+    it('returns Infinity when landmarks are missing (no-hand frame is never a touch)', () => {
+        expect(tapDistance({ landmarks: [], timestamp: 0 })).toBe(Infinity)
+    })
+})
+
+describe('TapTransitionTracker', () => {
+    /** Run a fixed distance for n frames, return whether the tracker ever fired. */
+    function feed(tracker: TapTransitionTracker, frames: number[]): boolean {
+        let fired = false
+        for (const d of frames) if (tracker.update(d)) fired = true
+        return fired
+    }
+
+    it('fires once on the touch→release EDGE, not while merely touching', () => {
+        const t = new TapTransitionTracker()
+        // Touch for 3 frames — must NOT fire (no release yet).
+        expect(t.update(0.05)).toBe(false)
+        expect(t.update(0.05)).toBe(false)
+        expect(t.update(0.05)).toBe(false)
+        // Release — fires exactly once on this edge.
+        expect(t.update(0.9)).toBe(true)
+        // Staying apart does not re-fire.
+        expect(t.update(0.9)).toBe(false)
+    })
+
+    it('does NOT fire on a single-frame touch (needs ≥ consecutive frames)', () => {
+        const t = new TapTransitionTracker()
+        // One touch frame then release — below TAP_CONSECUTIVE_FRAMES (2).
+        expect(feed(t, [0.05, 0.9])).toBe(false)
+    })
+
+    it('does NOT count a sustained PINCH-and-HOLD as a tap', () => {
+        const t = new TapTransitionTracker()
+        // 30 frames of held touch (a pinch) then release — exceeds
+        // TAP_MAX_TOUCH_FRAMES, so the release is NOT a tap.
+        const frames = Array.from({ length: 30 }, () => 0.05)
+        frames.push(0.9)
+        expect(feed(t, frames)).toBe(false)
+    })
+
+    it('reset() clears an in-progress touch', () => {
+        const t = new TapTransitionTracker()
+        t.update(0.05)
+        t.update(0.05)
+        t.reset()
+        // Immediate release after reset must not fire — touch count is back to 0.
+        expect(t.update(0.9)).toBe(false)
+    })
+})
+
 describe('TapDetector', () => {
-    it('counts apart→together transitions', () => {
-        const tap = new TapDetector(10_000, 3)
+    /** A held pinch (≥2 touching frames) followed by an open frame = one tap. */
+    function tapOnce(detector: TapDetector, startTs: number): boolean {
         let detected = false
-        for (let i = 0; i < 6; i++) {
-            const ts = i * 200
-            // alternate open / pinch
-            const f = i % 2 === 0 ? openHandFrame(ts) : pinchFrame(ts)
-            if (tap.push(f)) detected = true
+        // 3 touching frames…
+        for (let i = 0; i < 3; i++) {
+            if (detector.push(pinchFrame(startTs + i * 50))) detected = true
         }
-        expect(detected).toBe(true)
+        // …then release.
+        if (detector.push(openHandFrame(startTs + 200))) detected = true
+        return detected
+    }
+
+    it('completes on a single deliberate touch-and-release (default requiredTaps=1)', () => {
+        const tap = new TapDetector()
+        expect(tapOnce(tap, 0)).toBe(true)
+    })
+
+    it('does NOT complete while the user just holds a pinch (no release)', () => {
+        const tap = new TapDetector()
+        let detected = false
+        for (let i = 0; i < 10; i++) {
+            if (tap.push(pinchFrame(i * 50))) detected = true
+        }
+        expect(detected).toBe(false)
+    })
+
+    it('does NOT complete for an open hand that never touches', () => {
+        const tap = new TapDetector()
+        let detected = false
+        for (let i = 0; i < 20; i++) {
+            if (tap.push(openHandFrame(i * 50))) detected = true
+        }
+        expect(detected).toBe(false)
+    })
+
+    it('requires the configured number of separate taps', () => {
+        const tap = new TapDetector(10_000, 2)
+        // First tap.
+        expect(tapOnce(tap, 0)).toBe(false) // only 1 tap so far
+        // Second tap.
+        expect(tapOnce(tap, 1000)).toBe(true)
     })
 })
 

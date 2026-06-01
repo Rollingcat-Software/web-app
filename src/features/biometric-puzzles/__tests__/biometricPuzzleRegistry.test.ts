@@ -15,6 +15,7 @@ import {
 } from '../biometricPuzzleRegistry'
 import { BiometricPuzzleId } from '../BiometricPuzzleId'
 import { ChallengeType } from '@/lib/biometric-engine/types'
+import { isLivenessEligible } from '@/lib/biometric-engine/core/livenessPool'
 
 describe('biometricPuzzleRegistry', () => {
     it('exposes 23 entries (14 face + 9 hand)', () => {
@@ -57,5 +58,45 @@ describe('biometricPuzzleRegistry', () => {
         // puzzle reaching the same component without being parameterised.
         const blink = BIOMETRIC_PUZZLE_REGISTRY[BiometricPuzzleId.FACE_BLINK]
         expect(smile.component).not.toBe(blink.component)
+    })
+
+    // ── Curated reliable pool: library still lists ALL, drops are marked ──────
+    it('the library still lists ALL 23 challenges (showcase keeps the dropped ones)', () => {
+        // Re-affirms the showcase contract: nothing is REMOVED from the library,
+        // the excluded challenges are only flagged experimental.
+        expect(listBiometricPuzzles()).toHaveLength(23)
+    })
+
+    it('marks ONLY single-brow + finger-math as experimental', () => {
+        const experimental = listBiometricPuzzles()
+            .filter((p) => p.experimental)
+            .map((p) => p.id)
+            .sort()
+        expect(experimental).toEqual(
+            [
+                BiometricPuzzleId.FACE_RAISE_LEFT_BROW,
+                BiometricPuzzleId.FACE_RAISE_RIGHT_BROW,
+                BiometricPuzzleId.HAND_MATH,
+            ].sort(),
+        )
+    })
+
+    it('every NON-experimental face entry is liveness-eligible, and every experimental face entry is NOT', () => {
+        for (const entry of listBiometricPuzzlesByModality('face')) {
+            expect(isLivenessEligible(entry.challengeType!)).toBe(!entry.experimental)
+        }
+    })
+
+    it('the curated face challenges (blink/smile/etc.) are NOT experimental', () => {
+        for (const id of [
+            BiometricPuzzleId.FACE_BLINK,
+            BiometricPuzzleId.FACE_SMILE,
+            BiometricPuzzleId.FACE_OPEN_MOUTH,
+            BiometricPuzzleId.FACE_TURN_LEFT,
+            BiometricPuzzleId.FACE_NOD,
+            BiometricPuzzleId.FACE_RAISE_BOTH_BROWS,
+        ]) {
+            expect(BIOMETRIC_PUZZLE_REGISTRY[id].experimental).toBeFalsy()
+        }
     })
 })

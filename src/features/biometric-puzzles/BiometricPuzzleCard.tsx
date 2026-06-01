@@ -15,7 +15,7 @@ import {
     Stack,
     Typography,
 } from '@mui/material'
-import { PlayArrow, AutoAwesome } from '@mui/icons-material'
+import { PlayArrow, AutoAwesome, Science } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import BiometricPuzzleTaskbar from './BiometricPuzzleTaskbar'
 import type {
@@ -175,6 +175,22 @@ export default function BiometricPuzzleCard({
                                     size="small"
                                     variant="outlined"
                                     sx={{ borderRadius: '6px', fontSize: '0.68rem', height: 20 }}
+                                />
+                            )}
+                            {puzzle.experimental && (
+                                <Chip
+                                    icon={<Science sx={{ fontSize: '0.8rem !important' }} />}
+                                    label={t('biometricPuzzle.experimental')}
+                                    size="small"
+                                    color="warning"
+                                    variant="outlined"
+                                    title={t('biometricPuzzle.experimentalTooltip')}
+                                    sx={{
+                                        borderRadius: '6px',
+                                        fontSize: '0.68rem',
+                                        height: 20,
+                                        '& .MuiChip-icon': { ml: '4px' },
+                                    }}
                                 />
                             )}
                         </Stack>
