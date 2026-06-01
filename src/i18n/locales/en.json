@@ -36,6 +36,7 @@
     "matchFound": "Match Found",
     "bestMatch": "Best Match",
     "userId": "User ID",
+    "unknownUser": "Unknown user",
     "confidence": "Confidence",
     "distance": "Distance",
     "similarity": "Similarity",

@@ -212,17 +212,36 @@ export default function FaceSearchPage() {
                                     <ListItem key={idx} divider sx={{ px: 0 }}>
                                         <ListItemText
                                             primary={
-                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap' }}>
-                                                    <Typography variant="body1" sx={{ wordBreak: 'break-all' }}>
-                                                        {t('common.userId')}: {match.userId}
+                                                <Box sx={{ display: 'flex', gap: 1, alignItems: 'center', flexWrap: 'wrap', minWidth: 0 }}>
+                                                    {/* Prefer the resolved human name; fall back to email.
+                                                        When the owner lookup failed (soft-deleted / missing
+                                                        user) show the raw id labelled "unknown user" — never
+                                                        crash, mirroring the backend's null-safe lazy proxy. */}
+                                                    <Typography variant="body1" fontWeight={match.userName ? 600 : 400} sx={{ wordBreak: 'break-word', minWidth: 0 }}>
+                                                        {match.userName || match.userEmail || match.userId}
                                                     </Typography>
+                                                    {match.userName && match.userEmail && (
+                                                        <Typography variant="body2" color="text.secondary" sx={{ wordBreak: 'break-all', minWidth: 0 }}>
+                                                            ({match.userEmail})
+                                                        </Typography>
+                                                    )}
+                                                    {!match.userName && !match.userEmail && (
+                                                        <Chip label={t('common.unknownUser')} size="small" variant="outlined" color="default" />
+                                                    )}
                                                     {idx === 0 && (
                                                         <Chip label={t('common.bestMatch')} size="small" color="primary" />
                                                     )}
                                                 </Box>
                                             }
                                             secondary={
-                                                `${t('common.confidence')}: ${(match.confidence * 100).toFixed(1)}% | ${t('common.distance')}: ${match.distance.toFixed(4)}`
+                                                <Box component="span">
+                                                    {`${t('common.confidence')}: ${(match.confidence * 100).toFixed(1)}% | ${t('common.distance')}: ${match.distance.toFixed(4)}`}
+                                                    {(match.userName || match.userEmail) && (
+                                                        <Typography variant="caption" color="text.disabled" component="span" sx={{ ml: 1 }}>
+                                                            {t('common.userId')}: {match.userId}
+                                                        </Typography>
+                                                    )}
+                                                </Box>
                                             }
                                         />
                                     </ListItem>

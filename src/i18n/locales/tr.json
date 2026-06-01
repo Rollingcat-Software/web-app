@@ -36,6 +36,7 @@
     "matchFound": "Eşleşme Bulundu",
     "bestMatch": "En İyi Eşleşme",
     "userId": "Kullanıcı ID",
+    "unknownUser": "Bilinmeyen kullanıcı",
     "confidence": "Güven",
     "distance": "Mesafe",
     "similarity": "Benzerlik",

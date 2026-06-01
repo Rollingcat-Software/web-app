@@ -1,5 +1,9 @@
 import { useState, useCallback, useRef } from 'react'
 import { getBiometricService, type SearchResult } from '@core/services/BiometricService'
+import { useService } from '@app/providers'
+import { TYPES } from '@core/di/types'
+import type { ITokenService } from '@domain/interfaces/ITokenService'
+import { config as envConfig } from '@config/env'
 
 interface UseFaceSearchReturn {
     searching: boolean
@@ -14,8 +18,14 @@ interface UseFaceSearchReturn {
  *
  * Captures a face image, sends it to the biometric processor's search endpoint,
  * and returns matching user(s) from the enrolled database.
+ *
+ * The biometric-processor search payload only carries `user_id`, so after the
+ * 1:N search we hydrate each match's human-readable name + email best-effort via
+ * `GET /users/{userId}` (mirrors `useVoiceSearch`). Soft-deleted / missing users
+ * resolve to no name — the UI then falls back to the raw id, never crashing.
  */
 export function useFaceSearch(): UseFaceSearchReturn {
+    const tokenService = useService<ITokenService>(TYPES.TokenService)
     const [searching, setSearching] = useState(false)
     const [result, setResult] = useState<SearchResult | null>(null)
     const [error, setError] = useState<string | null>(null)
@@ -33,6 +43,45 @@ export function useFaceSearch(): UseFaceSearchReturn {
         try {
             const biometricService = getBiometricService()
             const searchResult = await biometricService.searchFace(imageBase64, tenantId)
+
+            // Resolve owner name/email for every match (best-effort). The search
+            // payload only carries `user_id`; we look each one up so the UI shows
+            // a human name instead of a raw UUID. Failures (soft-deleted / missing
+            // user, network) leave name/email undefined → UI falls back to the id.
+            const apiBaseUrl = envConfig.apiBaseUrl
+            const token = (await tokenService.getAccessToken()) || ''
+            const authHeader: Record<string, string> = token
+                ? { Authorization: `Bearer ${token}` }
+                : {}
+            await Promise.all(searchResult.results.map(async (match) => {
+                try {
+                    const userRes = await fetch(`${apiBaseUrl}/users/${match.userId}`, {
+                        headers: authHeader,
+                    })
+                    if (userRes.ok) {
+                        // Live owner record — hydrate name/email and mark resolved
+                        // so the UI shows the human identity. A 200 with no name set
+                        // still counts as resolved (we fall back to email, never the
+                        // "unknown user" label, which is reserved for missing owners).
+                        const user = await userRes.json()
+                        const firstName = user.firstName || user.data?.firstName || ''
+                        const lastName = user.lastName || user.data?.lastName || ''
+                        match.userName = `${firstName} ${lastName}`.trim() || undefined
+                        match.userEmail = user.email || user.data?.email || undefined
+                        match.userResolved = true
+                    } else {
+                        // 404 (soft-deleted / missing owner) or other non-OK status —
+                        // mirror UserRepository.findById's null-on-404 pattern: don't
+                        // throw, just mark unresolved so the UI shows id + "unknown user".
+                        match.userResolved = false
+                    }
+                } catch {
+                    // Network / parse failure — best-effort, leave name/email
+                    // undefined and flag unresolved so the UI degrades to the id.
+                    match.userResolved = false
+                }
+            }))
+
             setResult(searchResult)
             return searchResult
         } catch (err) {
@@ -44,7 +93,7 @@ export function useFaceSearch(): UseFaceSearchReturn {
             setSearching(false)
             searchingRef.current = false
         }
-    }, [])
+    }, [tokenService])
 
     const reset = useCallback(() => {
         setResult(null)

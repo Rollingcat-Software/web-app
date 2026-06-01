@@ -39,6 +39,25 @@ export interface SearchResult {
         userId: string
         distance: number
         confidence: number
+        /**
+         * Human-readable owner name (firstName + lastName), resolved best-effort
+         * from `GET /users/{userId}` after the 1:N search returns. Optional because
+         * the biometric-processor search payload only carries `user_id`; the name
+         * is hydrated client-side in `useFaceSearch` (mirrors `useVoiceSearch`).
+         * The UI prefers name → email → raw id, so a soft-deleted / missing owner
+         * (lookup 404 → these stay undefined) degrades to showing the raw id.
+         */
+        userName?: string
+        userEmail?: string
+        /**
+         * True iff the `GET /users/{userId}` hydration lookup resolved a live
+         * record (HTTP 200). False when the owner is soft-deleted / missing
+         * (404) or the lookup failed — the UI then shows the raw id labelled
+         * "unknown user". Undefined before hydration runs. Mirrors the backend's
+         * lazy-proxy null-safe pattern: a missing owner never throws, it just
+         * degrades the label.
+         */
+        userResolved?: boolean
     }>
 }
 
