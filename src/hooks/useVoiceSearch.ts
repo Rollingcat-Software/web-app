@@ -9,6 +9,13 @@ interface VoiceSearchMatch {
     similarity: number
     userName?: string
     userEmail?: string
+    /**
+     * True iff the `GET /users/{userId}` hydration lookup resolved a live
+     * owner record (mirrors `SearchResult.results[].userResolved` from
+     * `useFaceSearch`). Undefined until the lookup runs; `false` for a
+     * soft-deleted / missing owner so the UI shows the id + "unknown user".
+     */
+    userResolved?: boolean
 }
 
 interface VoiceSearchResult {
@@ -30,6 +37,12 @@ interface UseVoiceSearchReturn {
  *
  * Records voice audio, sends it to the biometric processor's voice search endpoint,
  * and returns matching user(s) from the enrolled voice database.
+ *
+ * The voice search payload only carries `user_id`, so after the 1:N search we
+ * hydrate each match's human-readable name + email best-effort via
+ * `GET /users/{userId}` (mirrors `useFaceSearch`), setting a `userResolved` flag.
+ * Soft-deleted / missing users (404) resolve unresolved — the UI then falls back
+ * to the raw id + "unknown user", never crashing.
  */
 export function useVoiceSearch(): UseVoiceSearchReturn {
     const tokenService = useService<ITokenService>(TYPES.TokenService)
@@ -78,20 +91,37 @@ export function useVoiceSearch(): UseVoiceSearchReturn {
                 })
             )
 
-            // Resolve user details for all matches (best-effort)
+            // Resolve owner name/email for every match (best-effort). The search
+            // payload only carries `user_id`; we look each one up so the UI shows
+            // a human name instead of a raw UUID. Failures (soft-deleted / missing
+            // user, network) leave name/email undefined → UI falls back to the id.
             await Promise.all(matches.map(async (match) => {
                 try {
                     const userRes = await fetch(`${apiBaseUrl}/users/${match.userId}`, {
                         headers: authHeader,
                     })
                     if (userRes.ok) {
+                        // Live owner record — hydrate name/email and mark resolved
+                        // so the UI shows the human identity. A 200 with no name set
+                        // still counts as resolved (we fall back to email, never the
+                        // "unknown user" label, which is reserved for missing owners).
                         const user = await userRes.json()
                         const firstName = user.firstName || user.data?.firstName || ''
                         const lastName = user.lastName || user.data?.lastName || ''
                         match.userName = `${firstName} ${lastName}`.trim() || undefined
                         match.userEmail = user.email || user.data?.email || undefined
+                        match.userResolved = true
+                    } else {
+                        // 404 (soft-deleted / missing owner) or other non-OK status —
+                        // mirror UserRepository.findById's null-on-404 pattern: don't
+                        // throw, just mark unresolved so the UI shows id + "unknown user".
+                        match.userResolved = false
                     }
-                } catch { /* best-effort */ }
+                } catch {
+                    // Network / parse failure — best-effort, leave name/email
+                    // undefined and flag unresolved so the UI degrades to the id.
+                    match.userResolved = false
+                }
             }))
 
             const searchResult: VoiceSearchResult = {
