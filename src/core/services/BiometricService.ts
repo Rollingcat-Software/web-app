@@ -114,12 +114,13 @@ export class BiometricService {
         imageBase64: string | string[],
         tenantId?: string,
         clientEmbeddings?: (number[] | null)[],
+        optimize = false,
     ): Promise<EnrollmentResult> {
         const images = Array.isArray(imageBase64) ? imageBase64 : [imageBase64]
 
         try {
             if (images.length >= 2) {
-                return await this.enrollFaceMulti(userId, images, tenantId, clientEmbeddings)
+                return await this.enrollFaceMulti(userId, images, tenantId, clientEmbeddings, optimize)
             }
 
             const blob = this.base64ToBlob(images[0])
@@ -129,6 +130,12 @@ export class BiometricService {
             // Defense-in-depth: forward tenant + client embeddings to the proxy
             // (BiometricServiceAdapter#addOptionalTenantAndEmbeddingParts).
             this.appendTenantAndEmbeddings(formData, tenantId, clientEmbeddings)
+            // Re-enroll & optimize: when set, the proxy forwards optimize=true to
+            // the biometric-processor, which FUSES this capture into the user's
+            // existing template (centroid update) instead of a plain replace.
+            if (optimize) {
+                formData.append('optimize', 'true')
+            }
 
             const response = await this.client.post(
                 `/biometric/enroll/${encodeURIComponent(userId)}`,
@@ -156,6 +163,7 @@ export class BiometricService {
         images: string[],
         tenantId?: string,
         clientEmbeddings?: (number[] | null)[],
+        optimize = false,
     ): Promise<EnrollmentResult> {
         const formData = new FormData()
         for (let i = 0; i < images.length; i++) {
@@ -164,6 +172,10 @@ export class BiometricService {
             formData.append('files', blob, `face_${i}.jpg`)
         }
         this.appendTenantAndEmbeddings(formData, tenantId, clientEmbeddings)
+        // Re-enroll & optimize — see enrollFace().
+        if (optimize) {
+            formData.append('optimize', 'true')
+        }
 
         const response = await this.client.post(
             `/biometric/enroll/multi/${encodeURIComponent(userId)}`,

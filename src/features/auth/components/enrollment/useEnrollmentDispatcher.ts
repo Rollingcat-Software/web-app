@@ -61,8 +61,17 @@ export function useEnrollmentDispatcher({
     // consistent with consumers and prevent accidental string mismatches.
     const [actionLoading, setActionLoading] = useState<AuthMethodType | null>(null)
 
+    // True while a FACE/VOICE capture dialog was opened by the "Re-enroll &
+    // optimize" action (vs a first-time Enroll). When set, the capture is sent
+    // to the backend with optimize=true so the stored template is FUSED with the
+    // new sample (centroid update) instead of replaced. Reset whenever a plain
+    // Enroll opens a dialog, so a first enroll never accidentally optimizes.
+    const [reEnrollMode, setReEnrollMode] = useState(false)
+
     const handleEnroll = useCallback(
         async (type: AuthMethodType) => {
+            // A first-time Enroll must never optimize an existing template.
+            setReEnrollMode(false)
             switch (type) {
                 case AuthMethodType.FACE:
                     setFaceEnrollOpen(true)
@@ -169,23 +178,33 @@ export function useEnrollmentDispatcher({
         (type: AuthMethodType) => {
             switch (type) {
                 case AuthMethodType.FACE:
+                    // FACE has an averaged template — re-capture + optimize.
+                    setReEnrollMode(true)
                     setFaceEnrollOpen(true)
                     break
+                case AuthMethodType.VOICE:
+                    // VOICE has an averaged template — re-capture + optimize.
+                    setReEnrollMode(true)
+                    setVoiceEnrollOpen(true)
+                    break
                 case AuthMethodType.FINGERPRINT:
+                    // No averaged template — a fresh WebAuthn registration IS the
+                    // correct "re-enroll" (reEnrollMode stays false → no optimize).
+                    setReEnrollMode(false)
                     setWebauthnMode('platform')
                     setWebauthnEnrollOpen(true)
                     break
                 case AuthMethodType.HARDWARE_KEY:
+                    setReEnrollMode(false)
                     setWebauthnMode('hardware-key')
                     setWebauthnEnrollOpen(true)
                     break
                 case AuthMethodType.TOTP:
+                    setReEnrollMode(false)
                     setTotpEnrollOpen(true)
                     break
-                case AuthMethodType.VOICE:
-                    setVoiceEnrollOpen(true)
-                    break
                 case AuthMethodType.NFC_DOCUMENT:
+                    setReEnrollMode(false)
                     if ('NDEFReader' in window) {
                         setNfcEnrollOpen(true)
                     } else {
@@ -243,6 +262,10 @@ export function useEnrollmentDispatcher({
         setSmsPhase,
         actionLoading,
         setActionLoading,
+        // re-enroll & optimize: true when the open FACE/VOICE dialog was launched
+        // by "Re-enroll" (so the capture is submitted with optimize=true).
+        reEnrollMode,
+        setReEnrollMode,
         // actions
         handleEnroll,
         handleReEnroll,

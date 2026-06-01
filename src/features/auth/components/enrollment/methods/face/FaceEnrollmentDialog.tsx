@@ -25,6 +25,13 @@ interface Props {
     showSnackbar: ShowSnackbar
     setActionLoading: (val: AuthMethodType | null) => void
     createEnrollment: (input: { tenantId: string; methodType: AuthMethodType }) => Promise<unknown>
+    /**
+     * When true, this capture is a "re-enroll & optimize" — submitted to the
+     * backend with optimize=true so the new sample is FUSED into the existing
+     * face template (centroid update) instead of replacing it. Default false
+     * (first-time enroll). See useEnrollmentDispatcher.reEnrollMode.
+     */
+    optimize?: boolean
 }
 
 export default function FaceEnrollmentDialog({
@@ -36,6 +43,7 @@ export default function FaceEnrollmentDialog({
     showSnackbar,
     setActionLoading,
     createEnrollment,
+    optimize = false,
 }: Props) {
     const { t } = useTranslation()
 
@@ -50,7 +58,7 @@ export default function FaceEnrollmentDialog({
                 // clientEmbeddings are 512-dim landmark-geometry vectors computed in-browser
                 // via EmbeddingComputer (MediaPipe, log-only per D2). Server stores them for
                 // offline analysis only — never used for auth decisions.
-                await biometric.enrollFace(userId, images, tenantId, clientEmbeddings)
+                await biometric.enrollFace(userId, images, tenantId, clientEmbeddings, optimize)
 
                 // Create enrollment record and explicitly complete it (FACE is ASYNC_ENROLLMENT_TYPE)
                 await createEnrollment({
@@ -62,7 +70,10 @@ export default function FaceEnrollmentDialog({
 
                 onClose()
                 onEnrolled()
-                showSnackbar(t('enrollmentPage.faceEnrolled'), 'success')
+                showSnackbar(
+                    t(optimize ? 'enrollmentPage.faceReEnrolled' : 'enrollmentPage.faceEnrolled'),
+                    'success',
+                )
             } catch (err) {
                 onClose()
                 showSnackbar(formatApiError(err, t), 'error')
@@ -70,7 +81,7 @@ export default function FaceEnrollmentDialog({
                 setActionLoading(null)
             }
         },
-        [userId, tenantId, createEnrollment, onClose, onEnrolled, showSnackbar, setActionLoading, t]
+        [userId, tenantId, createEnrollment, onClose, onEnrolled, showSnackbar, setActionLoading, t, optimize]
     )
 
     return (
