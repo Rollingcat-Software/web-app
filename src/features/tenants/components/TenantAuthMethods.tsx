@@ -14,6 +14,7 @@ import {TYPES} from '@core/di/types'
 import type {IHttpClient} from '@domain/interfaces/IHttpClient'
 import {useTranslation} from 'react-i18next'
 import {formatApiError} from '@utils/formatApiError'
+import {isAuthMethodType, isLoginMethodType} from '@domain/models/AuthMethod'
 
 interface AuthMethodResponse {
     id: string
@@ -24,6 +25,16 @@ interface AuthMethodResponse {
     platforms: string[]
     requiresEnrollment: boolean
     isActive: boolean
+}
+
+/**
+ * Show ONLY real login factors. The backend already filters /auth-methods to
+ * login methods (api 2026-06-01), but this guards a regression so a
+ * verification-pipeline step type or GESTURE_LIVENESS can never appear as a
+ * tenant toggle.
+ */
+function isLoginMethod(method: AuthMethodResponse): boolean {
+    return isAuthMethodType(method.type) && isLoginMethodType(method.type)
 }
 
 interface TenantAuthMethodResponse {
@@ -56,7 +67,7 @@ export default function TenantAuthMethods({tenantId}: TenantAuthMethodsProps) {
                 httpClient.get<AuthMethodResponse[]>('/auth-methods'),
                 httpClient.get<TenantAuthMethodResponse[]>(`/tenants/${tenantId}/auth-methods`),
             ])
-            setAllMethods(allRes.data)
+            setAllMethods(allRes.data.filter(isLoginMethod))
             setTenantMethods(tenantRes.data)
         } catch (err: unknown) {
             setError(formatApiError(err, t))
@@ -120,11 +131,11 @@ export default function TenantAuthMethods({tenantId}: TenantAuthMethodsProps) {
             <Box sx={{display: 'flex', alignItems: 'center', gap: 1, mb: 2}}>
                 <Security color="primary"/>
                 <Typography variant="h6" fontWeight={600}>
-                    Auth Methods
+                    {t('tenants.authMethods.title')}
                 </Typography>
             </Box>
             <Typography variant="body2" color="text.secondary" sx={{mb: 2}}>
-                Enable or disable authentication methods available for this tenant.
+                {t('tenants.authMethods.description')}
             </Typography>
 
             {error && (
@@ -135,7 +146,7 @@ export default function TenantAuthMethods({tenantId}: TenantAuthMethodsProps) {
 
             {allMethods.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
-                    No auth methods available.
+                    {t('tenants.authMethods.empty')}
                 </Typography>
             ) : (
                 <Box>

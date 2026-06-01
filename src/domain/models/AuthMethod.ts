@@ -87,6 +87,47 @@ export function isUsernamelessCapable(type: AuthMethodType): boolean {
     return USERNAMELESS_CAPABLE_TYPES.has(type)
 }
 
+/**
+ * The canonical set of LOGIN methods — factors a user can present to sign in.
+ * Mirrors the backend `AuthMethodType.isLoginMethod()` allow-list (api
+ * 2026-06-01): the documented 10 (PASSWORD, EMAIL_OTP, SMS_OTP, TOTP, FACE,
+ * VOICE, FINGERPRINT, HARDWARE_KEY, QR_CODE, NFC_DOCUMENT) + PASSKEY +
+ * APPROVE_LOGIN.
+ *
+ * Anything NOT in this set is a verification-pipeline step type or a
+ * sub-component of another factor and must NEVER appear as a selectable login
+ * method (tenant Auth-Methods toggles, auth-flow builder).
+ *
+ * GESTURE_LIVENESS is DELIBERATELY EXCLUDED: it is a FACE active-liveness
+ * anti-spoofing sub-component (no auth handler), NOT a standalone login factor.
+ * It must never be listed, seeded, or offered. Keep this in lockstep with the
+ * backend allow-list.
+ */
+const LOGIN_METHOD_TYPES: ReadonlySet<AuthMethodType> = new Set([
+    AuthMethodType.PASSWORD,
+    AuthMethodType.EMAIL_OTP,
+    AuthMethodType.SMS_OTP,
+    AuthMethodType.TOTP,
+    AuthMethodType.FACE,
+    AuthMethodType.VOICE,
+    AuthMethodType.FINGERPRINT,
+    AuthMethodType.HARDWARE_KEY,
+    AuthMethodType.QR_CODE,
+    AuthMethodType.NFC_DOCUMENT,
+    AuthMethodType.PASSKEY,
+    AuthMethodType.APPROVE_LOGIN,
+])
+
+/**
+ * True when `type` is a real login factor (see {@link LOGIN_METHOD_TYPES}).
+ * Drives the tenant Auth-Methods list filter and the auth-flow builder catalog
+ * so verification-pipeline steps and GESTURE_LIVENESS never leak in as a
+ * selectable login method.
+ */
+export function isLoginMethodType(type: AuthMethodType): boolean {
+    return LOGIN_METHOD_TYPES.has(type)
+}
+
 export function isAuthMethodType(value: string): value is AuthMethodType {
     return Object.values(AuthMethodType).includes(value as AuthMethodType)
 }
@@ -280,16 +321,12 @@ const DEFAULT_AUTH_METHODS_BASE: Omit<AuthMethod, 'supportsUsernameless'>[] = [
         isActive: true,
         category: 'ENTERPRISE',
     },
-    {
-        id: 'GESTURE_LIVENESS',
-        name: 'Gesture Liveness',
-        type: AuthMethodType.GESTURE_LIVENESS,
-        description: 'Hand-gesture-based active liveness check',
-        icon: 'PanTool',
-        platforms: ['web', 'mobile'],
-        isActive: true,
-        category: 'PREMIUM',
-    },
+    // NOTE: GESTURE_LIVENESS is intentionally NOT seeded here. It is a FACE
+    // active-liveness anti-spoofing sub-component (no auth handler), not a
+    // standalone login factor, so it must never be offered as a selectable
+    // login method (tenant Auth-Methods toggles / auth-flow builder). The enum
+    // value is retained for backward compatibility but is excluded from the
+    // login catalog via isLoginMethodType().
     {
         id: 'PASSKEY',
         name: 'Passkey',
@@ -351,6 +388,14 @@ function normalizePlatforms(values: string[] | undefined, fallback: Platform[]):
 
 export function mapAuthMethodResponseToModel(response: AuthMethodApiResponse): AuthMethod | null {
     if (!isAuthMethodType(response.type)) {
+        return null
+    }
+
+    // Defense-in-depth: drop anything that isn't a real login factor (e.g. a
+    // verification-pipeline step type or GESTURE_LIVENESS) even if the backend
+    // ever returns it. The auth-methods surface is login-only. The backend
+    // already filters (api 2026-06-01); this guards a regression.
+    if (!isLoginMethodType(response.type)) {
         return null
     }
 

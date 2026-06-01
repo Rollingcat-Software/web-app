@@ -583,6 +583,11 @@
         "RECORD_NOT_FOUND": "TXT kaydı henüz bulunamadı. DNS değişikliklerinin yayılması birkaç dakika sürebilir.",
         "NO_CHALLENGE": "Bu alan adı için etkin bir doğrulama isteği yok. Yeni bir tane oluşturup tekrar deneyin."
       }
+    },
+    "authMethods": {
+      "title": "Kimlik Doğrulama Yöntemleri",
+      "description": "Bu kuruluşun kullanıcılarına sunulan oturum açma yöntemlerini etkinleştirin veya devre dışı bırakın. Devre dışı bırakılan bir yöntem artık oturum açmak için kullanılamaz.",
+      "empty": "Kullanılabilir oturum açma yöntemi yok."
     }
   },
   "roles": {
@@ -1899,7 +1904,11 @@
     "emailDomainAlreadyClaimed": "Bu e-posta alan adı zaten başka bir kuruluş tarafından kullanılıyor.",
     "cannotRemoveLastDomain": "Alan adı zorunluluğu açıkken son e-posta alan adı kaldırılamaz. Önce zorunluluğu kapatın veya başka bir alan adı ekleyin.",
     "emailDomainNotAllowed": "Bu e-posta alan adının bu kuruluşa kaydolmasına izin verilmiyor.",
-    "personalEmailNotAllowed": "Lütfen kişisel veya ücretsiz bir e-posta sağlayıcısı (ör. Gmail, Outlook) yerine kurumsal e-postanızla kayıt olun."
+    "personalEmailNotAllowed": "Lütfen kişisel veya ücretsiz bir e-posta sağlayıcısı (ör. Gmail, Outlook) yerine kurumsal e-postanızla kayıt olun.",
+    "authMethodDisabled": "Bu oturum açma yöntemi kuruluşunuz için devre dışı. Lütfen başka bir yöntem seçin.",
+    "authMethodInUse": "{{method}} devre dışı bırakılamaz — şu etkin kimlik doğrulama akışları tarafından gerekiyor: {{flows}}. Önce bu akışlardan kaldırın veya geçersiz kılın.",
+    "authMethodInUseNoFlows": "{{method}} devre dışı bırakılamaz — etkin bir kimlik doğrulama akışı tarafından gerekiyor. Önce o akıştan kaldırın veya geçersiz kılın.",
+    "authFlowMethodDisabled": "Bu akış, bu kuruluş için devre dışı olan yöntem(ler)i kullanıyor: {{methods}}. Bunları Kimlik Doğrulama Yöntemleri'nde yeniden etkinleştirin veya akıştan kaldırın."
   },
   "reasonCodes": {
     "INVALID_CREDENTIALS": "E-posta veya parola eşleşmedi. Lütfen tekrar deneyin.",
