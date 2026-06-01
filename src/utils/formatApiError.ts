@@ -228,6 +228,12 @@ export function formatApiError(err: unknown, t: TFunction): string {
                 /** Device-cap 409 (Team A, audit 2026-05-07) — `app.security.max-devices-per-user`. */
                 maxDevices?: number
                 max?: number
+                /**
+                 * Account-lockout 423 (P0-#5, INVESTIGATION_MASTER_2026-05-07) —
+                 * GlobalExceptionHandler.handleAccountLocked carries the remaining
+                 * lock duration (seconds) at the root of the error envelope.
+                 */
+                remainingLockTimeSeconds?: number
                 /** PASSWORD_POLICY_VIOLATION structured details (Team A, audit 2026-05-07). */
                 details?: { rules?: PasswordPolicyRuleViolation[] }
             }
@@ -262,6 +268,18 @@ export function formatApiError(err: unknown, t: TFunction): string {
                 return tenant
                     ? t('errors.TENANT_MISMATCH_INLINE', { tenant })
                     : t('errors.TENANT_MISMATCH_INLINE_NOTENANT')
+            }
+            // Account-lockout 423 (P0-#5) — GlobalExceptionHandler returns
+            // HTTP 423 + `errorCode: ACCOUNT_LOCKED` + `remainingLockTimeSeconds`.
+            // Without this branch the user only saw the English-only backend
+            // `message` (no minutes, no Turkish). Interpolate the remaining
+            // minutes (ceil so "0:30 left" reads "1 minute", never "0 minutes").
+            if (springCode === 'ACCOUNT_LOCKED') {
+                const seconds = data?.remainingLockTimeSeconds
+                const minutes = typeof seconds === 'number' && seconds > 0
+                    ? Math.ceil(seconds / 60)
+                    : 1
+                return t('reasonCodes.ACCOUNT_LOCKED', { minutes })
             }
             // Device-cap 409 — Team A is shipping `app.security.max-devices-per-user`.
             // Backend may surface the cap as `maxDevices` or `max`; tolerate

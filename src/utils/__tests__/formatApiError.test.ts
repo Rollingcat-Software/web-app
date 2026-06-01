@@ -348,6 +348,44 @@ describe('formatApiError — device cap 409 (Team A, audit 2026-05-07)', () => {
     })
 })
 
+describe('formatApiError — account lockout 423 (P0-#5)', () => {
+    // Translator that surfaces the interpolated `minutes` so we can assert it.
+    const tMinutes = ((key: string, opts?: Record<string, unknown>) => {
+        if (opts && 'minutes' in opts) return `${key}|${opts.minutes}`
+        return key
+    }) as unknown as TFunction
+
+    it('maps ACCOUNT_LOCKED with remainingLockTimeSeconds → ceil minutes', () => {
+        const err = axiosError({
+            status: 423,
+            url: '/auth/login',
+            body: {
+                error: 'ACCOUNT_LOCKED',
+                errorCode: 'ACCOUNT_LOCKED',
+                message: 'Account is temporarily locked.',
+                remainingLockTimeSeconds: 873, // 14.55 min → ceil 15
+            },
+        })
+        expect(formatApiError(err, tMinutes)).toBe('reasonCodes.ACCOUNT_LOCKED|15')
+    })
+
+    it('floors a sub-minute remainder up to 1 minute (never "0 minutes")', () => {
+        const err = axiosError({
+            status: 423,
+            body: { errorCode: 'ACCOUNT_LOCKED', remainingLockTimeSeconds: 30 },
+        })
+        expect(formatApiError(err, tMinutes)).toBe('reasonCodes.ACCOUNT_LOCKED|1')
+    })
+
+    it('defaults to 1 minute when remainingLockTimeSeconds is absent', () => {
+        const err = axiosError({
+            status: 423,
+            body: { errorCode: 'ACCOUNT_LOCKED' },
+        })
+        expect(formatApiError(err, tMinutes)).toBe('reasonCodes.ACCOUNT_LOCKED|1')
+    })
+})
+
 describe('formatApiError — password policy structured rendering', () => {
     // Translator that emits "key" or "key|param=value" for assertions.
     const tWithParams = ((key: string, opts?: Record<string, unknown>) => {
