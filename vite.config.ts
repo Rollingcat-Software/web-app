@@ -148,6 +148,15 @@ export default defineConfig(({ mode }) => ({
                 // verbatim into sw.js via `registerRoute(<fn>, NetworkFirst, 'GET')`
                 // — confirmed against workbox-build 7.4.0 / vite-plugin-pwa 1.2.0.
                 //
+                // MUST be `null`, NOT merely omitted: vite-plugin-pwa injects a
+                // DEFAULT `navigateFallback: 'index.html'` (see its defaultWorkbox),
+                // which would register a cache-first `NavigationRoute` that runs
+                // BEFORE — and therefore shadows — our NetworkFirst navigation route,
+                // silently re-introducing the stale-shell bug. Setting it to null
+                // makes the sw-template skip that NavigationRoute entirely so only
+                // our network-first navigation route handles navigations. Verified
+                // in dist/sw.js (no createHandlerBoundToURL / NavigationRoute).
+                navigateFallback: null,
                 // Discard precache entries from prior builds when the new worker
                 // activates, preventing "old chunk 404" tombstones.
                 cleanupOutdatedCaches: true,
