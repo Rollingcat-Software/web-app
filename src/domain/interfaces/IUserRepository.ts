@@ -1,4 +1,4 @@
-import type { User } from '@domain/models/User'
+import type { User, UserType } from '@domain/models/User'
 import type { PaginatedResult, QueryParams } from './IRepository'
 
 /**
@@ -9,8 +9,22 @@ export interface CreateUserData {
     firstName: string
     lastName: string
     password: string
-    role: string
+    /**
+     * Legacy single-role name kept for back-compat with the create payload
+     * (`CreateUserRequest.role`). The dashboard form no longer sets this —
+     * within-tenant roles travel in {@link roleIds} — but the field remains so
+     * older callers/tests keep working.
+     */
+    role?: string
     tenantId: string
+    /**
+     * Platform-level tier ({@link UserType}). Independent of the within-tenant
+     * RBAC {@link roleIds}. Setting ROOT / TENANT_ADMIN is rejected by the
+     * backend (403) unless the caller is ROOT.
+     */
+    userType?: UserType
+    /** Within-tenant RBAC role ids to assign to the new user. */
+    roleIds?: string[]
 }
 
 /**
@@ -22,6 +36,17 @@ export interface UpdateUserData {
     lastName?: string
     role?: string
     status?: string
+    /**
+     * Platform-level tier. Only a ROOT caller may change it (backend
+     * fail-closed → 403 otherwise). Omit to leave unchanged.
+     */
+    userType?: UserType
+    /**
+     * Complete desired set of within-tenant RBAC role ids (replace semantics:
+     * the backend revokes ids not in the list and assigns new ones). Omit to
+     * leave assignments untouched; an empty array revokes all.
+     */
+    roleIds?: string[]
 }
 
 /**

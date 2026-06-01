@@ -24,6 +24,12 @@ vi.mock('@features/roles', () => ({
     useRoles: () => ({ roles: [], loading: false }),
 }))
 
+vi.mock('@features/auth', () => ({
+    // Non-ROOT caller: User Type select renders read-only but its helper +
+    // aria-describedby wiring is unchanged (the field under a11y test).
+    useAuth: () => ({ user: { isRoot: () => false } }),
+}))
+
 // OperationContextBanner pulls in useAuth/useActiveTenant (needs AuthProvider) and is
 // irrelevant to the aria-describedby field wiring under test — stub it out.
 vi.mock('@components/OperationContextBanner', () => ({
@@ -45,7 +51,7 @@ describe('UserFormPage — a11y aria-describedby wiring', () => {
             'user-form-firstName',
             'user-form-lastName',
             'user-form-password',
-            'user-form-role',
+            'user-form-userType',
             'user-form-tenantId',
         ]
 

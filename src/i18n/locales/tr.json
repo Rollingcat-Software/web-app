@@ -493,6 +493,40 @@
       "lastLogin": "Son Giriş",
       "actions": "İşlemler"
     },
+    "form": {
+      "editTitle": "Kullanıcıyı Düzenle",
+      "createTitle": "Yeni Kullanıcı Oluştur",
+      "editSubtitle": "Kullanıcı bilgilerini ve izinlerini güncelleyin",
+      "createSubtitle": "Sisteme yeni bir kullanıcı ekleyin",
+      "email": "E-posta Adresi",
+      "firstName": "Ad",
+      "lastName": "Soyad",
+      "password": "Şifre",
+      "userType": "Kullanıcı Türü",
+      "userTypeHelper": "Platform konumu (global). ROOT tüm kiracıları yönetir; Kiracı Yöneticisi tek bir kiracıyı yönetir; Üye ve Misafir sıradan kullanıcılardır. Aşağıdaki kiracı içi rollerden ayrıdır.",
+      "userTypeRootOnly": "Yalnızca bir Root kullanıcısı Root veya Kiracı Yöneticisi konumunu verebilir.",
+      "status": "Durum",
+      "tenant": "Kiracı",
+      "tenantHelper": "Bu kullanıcının ait olduğu kiracıyı seçin",
+      "assignedRoles": "Atanan Roller",
+      "assignedRolesHelper": "Kiracı içi roller (RBAC). Bu kullanıcıya kiracısı içinde vermek için bir veya daha fazla rol seçin.",
+      "rolesLoading": "Roller yükleniyor...",
+      "cancel": "İptal",
+      "create": "Kullanıcı Oluştur",
+      "update": "Kullanıcıyı Güncelle"
+    },
+    "userType": {
+      "ROOT": "Root",
+      "TENANT_ADMIN": "Kiracı Yöneticisi",
+      "TENANT_MEMBER": "Üye",
+      "GUEST": "Misafir"
+    },
+    "status": {
+      "PENDING_ENROLLMENT": "Kayıt Bekliyor",
+      "ACTIVE": "Aktif",
+      "SUSPENDED": "Askıya Alındı",
+      "LOCKED": "Kilitli"
+    },
     "error": {
       "passwordRequiredNew": "Yeni kullanıcılar için şifre zorunludur"
     }
