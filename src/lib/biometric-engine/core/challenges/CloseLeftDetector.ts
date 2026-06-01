@@ -1,42 +1,54 @@
 /**
- * CloseLeftDetector — Detects user's left eye closed, right open (CLOSE_LEFT challenge).
+ * CloseLeftDetector — detects a LEFT-eye wink as a close→re-open EDGE.
  *
- * Detection: userLeftEAR < 0.17 AND userRightEAR > 0.22
- * @see demo_local_fast.py line 745
+ * Like BLINK, a wink is a TRANSIENT (momentary) action, not a sustained hold.
+ * Delegates to the shared {@link BlinkTransitionTracker} on the user's LEFT eye,
+ * gated on the RIGHT eye staying open during the close phase. `detect()` returns
+ * `true` exactly once, on the re-open edge; the engine treats it as transient
+ * (no 0.6s hold), so re-opening completes it.
+ *
+ * @see spoof-detector/src/infrastructure/analyzers/blink_analyzer.py:244-253
+ * @see demo_local_fast.py line 745 (eye-state thresholds)
  */
 
 import type { FaceMetrics, HeadPose } from '../../types';
 import { ChallengeType } from '../../types';
 import type { IChallengeDetector } from '../../interfaces';
-import { EAR_CLOSED_THRESHOLD, EAR_THRESHOLD } from '../constants';
+import { EAR_CLOSED_THRESHOLD, EAR_THRESHOLD, BLINK_EAR_CLOSED } from '../constants';
+import { BlinkTransitionTracker } from './blinkTransition';
 
 export class CloseLeftDetector implements IChallengeDetector {
   readonly type = ChallengeType.CLOSE_LEFT;
+  readonly isTransient = true;
 
-  /** @see demo_local_fast.py line 745 */
-  detect(metrics: FaceMetrics, _headPose: HeadPose): boolean {
-    return (
-      metrics.eyes.userLeftEAR < EAR_CLOSED_THRESHOLD &&
-      metrics.eyes.userRightEAR > EAR_THRESHOLD
-    );
+  private readonly tracker = new BlinkTransitionTracker();
+
+  reset(): void {
+    this.tracker.reset();
   }
 
-  /** @see demo_local_fast.py lines 747-753 */
+  /** Close→re-open edge for the user's LEFT eye (right must stay open). */
+  detect(metrics: FaceMetrics, _headPose: HeadPose): boolean {
+    const { userLeftEAR, userRightEAR } = metrics.eyes;
+    const rightOpen = userRightEAR > EAR_THRESHOLD;
+    return this.tracker.update(userLeftEAR, rightOpen);
+  }
+
   getMessage(metrics: FaceMetrics, _headPose: HeadPose): string {
     const { userLeftEAR, userRightEAR } = metrics.eyes;
 
-    if (userLeftEAR < EAR_CLOSED_THRESHOLD && userRightEAR > EAR_THRESHOLD) {
-      return 'Left eye closed!';
+    if (userLeftEAR < BLINK_EAR_CLOSED && userRightEAR > EAR_THRESHOLD) {
+      return 'Left eye winking — now open it to finish!';
     }
 
     if (userRightEAR < EAR_CLOSED_THRESHOLD && userLeftEAR > EAR_THRESHOLD) {
-      return "WRONG! That's your RIGHT eye! Close LEFT!";
+      return "WRONG! That's your RIGHT eye — wink your LEFT!";
     }
 
     if (userLeftEAR < EAR_CLOSED_THRESHOLD && userRightEAR < EAR_CLOSED_THRESHOLD) {
-      return 'OPEN your RIGHT eye! Only close LEFT!';
+      return 'Keep your RIGHT eye OPEN — wink only your LEFT!';
     }
 
-    return `L:${userLeftEAR.toFixed(2)} - Close your LEFT eye!`;
+    return 'Wink your LEFT eye once';
   }
 }

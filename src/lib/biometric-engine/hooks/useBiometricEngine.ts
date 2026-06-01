@@ -28,14 +28,41 @@ export interface UseBiometricEngineReturn {
   };
 }
 
+/**
+ * Options controlling the engine hook's lifecycle.
+ */
+export interface UseBiometricEngineOptions {
+  /**
+   * When `true`, the shared singleton is destroyed on unmount. Default `false`.
+   *
+   * The FaceLandmarker (MediaPipe Graph + WebGL context) is expensive to
+   * create and is intended to be a long-lived, process-wide singleton — the
+   * same way the server keeps ONE process-wide ONNX session. The biometric-
+   * puzzles flow mounts a fresh `<FacePuzzle>` for EACH challenge inside the
+   * runner modal; destroying the singleton on every unmount tore down and
+   * re-created the FaceLandmarker per challenge ("Graph successfully started
+   * running" / "destroyed WebGL context" spam, ~1s stall + leaked contexts).
+   *
+   * Leaving this `false` (the default for the singleton path) keeps ONE
+   * FaceLandmarker alive and REUSES it across challenges. Callers that own a
+   * bespoke per-component engine (via `config`) always dispose on unmount.
+   */
+  destroyOnUnmount?: boolean;
+}
+
 export function useBiometricEngine(
   config?: Partial<IBiometricEngineConfig>,
+  options?: UseBiometricEngineOptions,
 ): UseBiometricEngineReturn {
   const { t } = useTranslation();
   const [isReady, setIsReady] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const engineRef = useRef<BiometricEngine | null>(null);
+  // Mirror the unmount policy into a ref so the init-once effect's cleanup
+  // reads the current value without depending on (and re-running for) options.
+  const destroyOnUnmountRef = useRef(options?.destroyOnUnmount ?? false);
+  destroyOnUnmountRef.current = options?.destroyOnUnmount ?? false;
 
   useEffect(() => {
     let disposed = false;
@@ -69,12 +96,16 @@ export function useBiometricEngine(
     return () => {
       disposed = true;
       if (engineRef.current) {
-        // Only destroy singleton if we created it via getInstance
-        if (!config) {
-          BiometricEngine.destroy();
-        } else {
+        if (config) {
+          // A bespoke per-component engine — always dispose, it is ours.
           engineRef.current.dispose();
+        } else if (destroyOnUnmountRef.current) {
+          // Singleton + caller opted in to teardown on unmount.
+          BiometricEngine.destroy();
         }
+        // Otherwise (singleton, default): leave the shared FaceLandmarker
+        // alive so the next mount REUSES it instead of re-creating the
+        // MediaPipe Graph + WebGL context. See UseBiometricEngineOptions.
         engineRef.current = null;
       }
       setIsReady(false);

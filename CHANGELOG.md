@@ -2,6 +2,54 @@
 
 ## [Unreleased]
 
+### 2026-06-01 — Biometric-puzzle blink/wink fixed (close→re-open transition)
+
+The browser biometric-puzzle BLINK challenge required squeezing the eyes shut
+for a 0.6s global hold because every challenge shared one `HOLD_DURATION` and
+BLINK was a stateless "eyes-closed-now" boolean — a natural ~120ms blink never
+reached the hold, and re-opening *cancelled* progress. Adopted the canonical
+transition model used by the production anti-spoof code (spoof-detector
+`blink_analyzer.py` + biometric-processor `active_liveness_manager.py`).
+
+- **Blink/wink as a close→re-open EDGE, not a hold.** New
+  `BlinkTransitionTracker` (`lib/biometric-engine/core/challenges/blinkTransition.ts`)
+  is the single source of truth: EAR drops below `BLINK_EAR_CLOSED` (0.18) for
+  ≥ `BLINK_CONSECUTIVE_FRAMES` (2), then recovers ≥ `BLINK_EAR_REOPEN` (0.23) →
+  fires once on the re-open. `BLINK_MIN_OPEN_BETWEEN` (12) debounce +
+  `BLINK_WARMUP_FRAMES` guard. `BlinkDetector`, `CloseLeftDetector`,
+  `CloseRightDetector` delegate to it and declare `isTransient = true`.
+- **Per-challenge transient vs sustained semantics.** `IChallengeDetector` gains
+  `isTransient` + optional `reset()`. `BiometricPuzzle.checkChallenge` completes
+  transient challenges on the single re-open edge (50% progress while closing,
+  100% on re-open) with NO hold, and resets the detector on `start()` /
+  `advanceChallenge()`. Sustained challenges (turns, look up/down, smile, open
+  mouth, brow raises) and motion-history NOD/SHAKE keep the 0.6s hold unchanged.
+- **One blink implementation for enrollment too.** `useFaceChallenge` enrollment
+  blink replaced its face-detection *confidence-dip* heuristic with the same
+  `BlinkTransitionTracker`; `FaceDetectionState` now carries `avgEAR` (from the
+  478-pt landmarks via the engine metrics calculator; `null` on the
+  BlazeFace/FaceDetector fallback backends, where the existing stage soft-timeout
+  applies).
+- **FaceLandmarker reused per session, not per challenge.** `useBiometricEngine`
+  no longer destroys the shared singleton on every unmount (opt-in
+  `destroyOnUnmount`, default false), eliminating the per-challenge MediaPipe
+  Graph create/destroy + WebGL-context churn in the puzzle runner.
+  `FaceDetector.detect` now clamps `detectForVideo` timestamps to be strictly
+  increasing (required for a reused VIDEO-mode landmarker).
+- **Removed a third divergent gesture impl.** The auth-feature `useLivenessPuzzle`
+  hook was dead (no consumer) and carried non-canonical detectors (2-pt EAR
+  `<0.18`, smile `width/height>2.8`, open-mouth `>0.08`); stripped to just
+  `detectHeadTurn` (its only live consumer, a head-pose geometry helper).
+- **i18n** — blink/wink copy (`biometricPuzzle.puzzles.face_blink|face_close_*`)
+  now reads "quick natural blink / completes when eyes re-open" (no hold
+  connotation), EN + TR in sync.
+- Tests: `blinkTransition.test.ts` (8) + `BiometricPuzzleBlink.test.ts` (4) pin
+  the new behaviour (close→open passes; sustained-closed never passes; re-open
+  completes; sustained challenge still holds).
+
+Deferred: P2 SMILE-width (0.60) / single-brow (1.25) recalibration — left as-is
+to avoid destabilising; flagged for a follow-up with on-device tuning.
+
 ### 2026-05-30 — Config-driven login UI + usernameless flow builder
 
 Feature-flagged behind the API's `app.auth.config-driven-login` (default OFF);

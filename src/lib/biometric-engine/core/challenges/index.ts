@@ -8,6 +8,7 @@
  * @see BIOMETRIC_ENGINE_ARCHITECTURE.md Section 5h
  */
 
+export { BlinkTransitionTracker } from './blinkTransition';
 export { BlinkDetector } from './BlinkDetector';
 export { CloseLeftDetector } from './CloseLeftDetector';
 export { CloseRightDetector } from './CloseRightDetector';

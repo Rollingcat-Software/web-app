@@ -18,6 +18,62 @@ export const EAR_THRESHOLD = 0.22;
 /** Eye aspect ratio threshold for closed eye detection (BLINK, CLOSE_LEFT, CLOSE_RIGHT). @see demo_local_fast.py line 496 */
 export const EAR_CLOSED_THRESHOLD = 0.17;
 
+// =============================================================================
+// BLINK / WINK TRANSITION (close→re-open EDGE) MODEL
+// =============================================================================
+//
+// Canonical source of truth for the close→re-open edge detector:
+//   - spoof-detector/src/infrastructure/analyzers/blink_analyzer.py:101-107,244-253
+//   - biometric-processor/app/application/services/active_liveness_manager.py:421-470
+//
+// A blink/wink is a TRANSIENT action: the eye drops below the CLOSED threshold
+// for a couple of frames and then RE-OPENS above a (higher, hysteresis) REOPEN
+// threshold. The challenge completes on the RE-OPEN edge — NOT on a sustained
+// 0.6s eyes-shut hold. This is exactly the V-shape validation the production
+// anti-spoof BlinkAnalyzer uses, so the browser engine and the server agree on
+// what "a blink" is. Constants below mirror blink_analyzer.py's calibrated set.
+
+/**
+ * EAR below this = eye CLOSED for the blink/wink edge detector.
+ * Mirrors blink_analyzer.py EAR_THRESHOLD (0.18). Slightly looser than the
+ * sustained EAR_CLOSED_THRESHOLD (0.17) so a fast natural blink still registers
+ * the close phase before re-opening.
+ * @see blink_analyzer.py:101
+ */
+export const BLINK_EAR_CLOSED = 0.18;
+
+/**
+ * EAR must recover at or above this to count the RE-OPEN edge that completes a
+ * blink/wink. The gap to BLINK_EAR_CLOSED is the hysteresis band that rejects
+ * EAR noise hovering at the boundary.
+ * @see blink_analyzer.py:103
+ */
+export const BLINK_EAR_REOPEN = 0.23;
+
+/**
+ * The eye must stay below BLINK_EAR_CLOSED for at least this many consecutive
+ * frames before a re-open can count — rejects single-frame EAR dips.
+ * @see blink_analyzer.py:102 (CONSECUTIVE_FRAMES)
+ */
+export const BLINK_CONSECUTIVE_FRAMES = 2;
+
+/**
+ * Minimum frames the eye must be open again between two counted blinks
+ * (anti-double-count / anti-noise debounce).
+ * @see blink_analyzer.py:105 (MIN_OPEN_BETWEEN)
+ */
+export const BLINK_MIN_OPEN_BETWEEN = 12;
+
+/**
+ * Warm-up frames before the blink/wink detector will accept an edge. Gives the
+ * EAR a few frames to settle to the user's open-eye baseline so the very first
+ * frames (often mid-transition while the camera focuses) can't false-fire.
+ * Smaller than the server's 45 because the puzzle is a short, deliberate,
+ * single-challenge interaction rather than a passive 15-20/min rate estimate.
+ * @see blink_analyzer.py:106 (WARMUP_FRAMES)
+ */
+export const BLINK_WARMUP_FRAMES = 3;
+
 /** Lip corner raise ratio threshold (SMILE). @see demo_local_fast.py line 497 */
 export const SMILE_CORNER_THRESHOLD = 0.05;
 

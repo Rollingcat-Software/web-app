@@ -2126,18 +2126,18 @@
     "puzzles": {
       "face_blink": {
         "title": "Blink",
-        "description": "Close both eyes for a beat, then open them. The detector tracks eye-aspect-ratio across frames.",
-        "hint": "Centre your face in the frame, then deliberately blink once."
+        "description": "Give one quick, natural blink — close both eyes briefly and open them again. It completes the moment your eyes re-open; no need to hold them shut.",
+        "hint": "Centre your face in the frame, then blink once naturally."
       },
       "face_close_left": {
         "title": "Wink with Left Eye",
-        "description": "Close your left eye while keeping the right open. Tests asymmetric eyelid control.",
-        "hint": "Look straight at the camera and wink only with your left eye — your right eye stays wide open."
+        "description": "Wink your left eye once — close it briefly while the right stays open, then open it again. It completes as soon as the eye re-opens.",
+        "hint": "Look straight at the camera and give a quick wink with your left eye — keep your right eye open."
       },
       "face_close_right": {
         "title": "Wink with Right Eye",
-        "description": "Close your right eye while keeping the left open. Tests asymmetric eyelid control.",
-        "hint": "Look straight at the camera and wink only with your right eye — your left eye stays wide open."
+        "description": "Wink your right eye once — close it briefly while the left stays open, then open it again. It completes as soon as the eye re-opens.",
+        "hint": "Look straight at the camera and give a quick wink with your right eye — keep your left eye open."
       },
       "face_smile": {
         "title": "Smile Wide",
