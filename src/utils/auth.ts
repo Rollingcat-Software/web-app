@@ -1,25 +1,23 @@
 /**
- * Secure Authentication Utilities
+ * Authentication storage utilities.
  *
- * SECURITY: This module provides utilities for secure token management using httpOnly cookies.
- * Tokens are stored in httpOnly cookies (set by backend) which are not accessible via JavaScript,
- * providing protection against XSS attacks.
- *
- * OWASP Security Best Practices:
- * - httpOnly cookies prevent XSS token theft
- * - secure flag ensures cookies only sent over HTTPS
- * - sameSite=strict prevents CSRF attacks
- * - No client-side token storage in localStorage/sessionStorage
+ * REALITY (do not let the names below mislead you): access + refresh tokens are
+ * currently held in `sessionStorage`, NOT in httpOnly cookies. The API is a
+ * pure-Bearer JSON API (no cookie auth, CSRF intentionally disabled). XSS token
+ * theft is mitigated by a strong CSP and a short (15-min) access-token TTL, not
+ * by httpOnly. Moving tokens to backend-set httpOnly cookies is a tracked
+ * post-launch hardening item; until then this module only CLEARS the
+ * sessionStorage tokens (logout / legacy migration) and validates the secure
+ * context. The cookie helpers below are reserved for that future migration and
+ * are inert today (the backend sets no such cookies).
  */
 
 /**
- * Cookie configuration for secure token storage
- * These settings should match the backend cookie configuration
+ * Cookie names RESERVED for the future httpOnly-cookie migration.
+ * NOT active today — the backend sets none of these; tokens live in
+ * sessionStorage. Kept so the migration has a single source of truth.
  */
 export const COOKIE_CONFIG = {
-    // httpOnly: true - Set by backend, not accessible via JavaScript
-    // secure: true - Only sent over HTTPS in production
-    // sameSite: 'strict' - Prevents CSRF attacks
     ACCESS_TOKEN_COOKIE: 'access_token',
     REFRESH_TOKEN_COOKIE: 'refresh_token',
     CSRF_TOKEN_COOKIE: 'csrf_token',
@@ -77,9 +75,9 @@ export function hasAuthCookies(): boolean {
 }
 
 /**
- * Clear all authentication state from client storage.
- * Consolidates cleanup of all legacy token patterns into one function.
- * Note: httpOnly cookies can only be cleared by the backend logout endpoint.
+ * Clear all authentication state from client storage (sessionStorage +
+ * legacy localStorage patterns). This is where the live tokens actually are.
+ * Consolidates cleanup of all token patterns into one function.
  */
 export function clearAuthState(): void {
     if (typeof window === 'undefined') return
@@ -113,7 +111,7 @@ export function validateSecureContext(): void {
     if (isProduction && !isSecureContext()) {
         throw new Error(
             'Security Error: Application must be served over HTTPS in production. ' +
-            'httpOnly cookies and secure authentication require a secure context.'
+            'Secure authentication requires a secure context.'
         )
     }
 }
