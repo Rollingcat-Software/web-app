@@ -2,6 +2,28 @@
 
 ## [Unreleased]
 
+### 2026-06-02 — Reject malformed login emails (1-char TLD) at the identifier step
+
+`user@gmail.x` advanced past the identifier step to the password step on both
+`verify.fivucsas` (`LoginMfaFlow`) and the dashboard (`LoginPage`), which read as
+if the malformed address had "passed identity verification". It had not — the
+password step still returned a generic 401 and no such account exists — but the
+step transition was misleading.
+
+Root cause: the identifier-first handlers only checked `.trim()`, and the
+combined screens used Zod `.email()`, which **accepts a one-character TLD**.
+
+- New shared `domain/validators/emailValidator.ts` → `isLikelyValidEmail()`
+  requiring a TLD of **≥ 2 chars** (catches `.x`/`.c`/missing-TLD typos without
+  rejecting any real address — shortest live TLDs are 2 chars).
+- Wired into every login identifier entry point (`LoginMfaFlow` +
+  `LoginPage.handleIdentifierSubmit`) and the login/register Zod schemas
+  (`.email()` → `.refine(isLikelyValidEmail)` in `PasswordStep`, `LoginPage`,
+  `RegisterPage`).
+- **Format-only check** — never queries the backend for account existence, so the
+  identifier step stays enumeration-resistant. Reuses the existing
+  `auth.validation.invalidEmail` i18n key (en+tr). 5 new unit tests.
+
 ### 2026-06-01 — Biometric-puzzle blink/wink fixed (close→re-open transition)
 
 The browser biometric-puzzle BLINK challenge required squeezing the eyes shut
