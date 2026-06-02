@@ -179,7 +179,18 @@ export default function MethodCardsGrid({
                                     <Typography
                                         variant="body2"
                                         color="text.secondary"
-                                        sx={{ mb: 2, minHeight: 40 }}
+                                        sx={{
+                                            mb: 2,
+                                            // Fixed 2-line height so EVERY card is the same
+                                            // height. `minHeight` let longer descriptions push
+                                            // some cards taller than others → the user-reported
+                                            // "different-sized boxes".
+                                            height: 40,
+                                            overflow: 'hidden',
+                                            display: '-webkit-box',
+                                            WebkitLineClamp: 2,
+                                            WebkitBoxOrient: 'vertical',
+                                        }}
                                     >
                                         {t(config.description)}
                                     </Typography>

@@ -61,6 +61,7 @@ import {
     Warning,
 } from '@mui/icons-material'
 import { useAuth } from '@features/auth/hooks/useAuth'
+import { METHOD_CONFIGS } from '@features/auth/components/enrollment/methodConfigs'
 import { useUserEnrollments } from '@features/enrollments/hooks/useEnrollments'
 import { useTranslation } from 'react-i18next'
 import { format } from 'date-fns'
@@ -293,7 +294,11 @@ export default function MyProfilePage() {
     const daysSinceRegistration = user?.createdAt
         ? Math.floor((Date.now() - new Date(user.createdAt).getTime()) / (1000 * 60 * 60 * 24))
         : 0
-    const loginCount = activityLogs.filter((l) => l.action === 'USER_LOGIN').length
+    // A login completes as USER_LOGIN (password-first) or MFA_COMPLETE (MFA / passkey /
+    // approve-login). The old USER_LOGIN-only filter read 0 for any MFA-completed login.
+    const loginCount = activityLogs.filter(
+        (l) => l.action === 'USER_LOGIN' || l.action === 'MFA_COMPLETE',
+    ).length
     const totalEnrollments = enrolledMethods.length
 
     // Delete enrollment handler
@@ -653,7 +658,7 @@ export default function MyProfilePage() {
                                 <SecurityRow
                                     icon={<Fingerprint />}
                                     label={t('myProfile.enrolledMethodsLabel')}
-                                    value={`${enrolledMethods.length} / 9`}
+                                    value={`${enrolledMethods.length} / ${METHOD_CONFIGS.length}`}
                                     color={enrolledMethods.length > 0 ? 'success' : 'warning'}
                                 />
 

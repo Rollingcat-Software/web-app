@@ -317,12 +317,13 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                     setDetected(result.detected)
                     setProgress(result.progress)
                     if (result.completed && !completedRef.current) {
-                        // Liveness gate (fail-closed): the gesture was performed,
-                        // but only accept it when the latest passive-liveness
-                        // verdict is live. A null verdict (detector unavailable or
-                        // not yet run) does NOT pass. Reset the puzzle so the user
-                        // retries with a real face rather than a photo/replay.
-                        if (lastLiveRef.current !== true) {
+                        // Liveness gate: the active gesture itself already demonstrates
+                        // liveness, so only HARD-reject when passive liveness POSITIVELY
+                        // reports not-live (photo/replay). A null verdict (detector
+                        // unavailable / not yet warmed) soft-passes — the old `!== true`
+                        // rejected EVERY completion whenever no verdict was produced,
+                        // which is the "blink completes then immediately resets" bug.
+                        if (lastLiveRef.current === false) {
                             puzzle.start([challengeType], 1)
                             startTsRef.current = performance.now()
                             setProgress(0)
