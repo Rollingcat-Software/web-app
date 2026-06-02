@@ -218,12 +218,25 @@ export class AxiosClient implements IHttpClient {
 
                     // Handle 401 Unauthorized - attempt token refresh with deduplication
                     if (error.response?.status === 401 && error.config) {
-                        const originalRequest = error.config
+                        const originalRequest = error.config as typeof error.config & { _retried?: boolean }
 
-                        // Prevent infinite loop - don't retry auth endpoints
-                        if (!originalRequest.url?.includes('/auth/refresh') &&
-                            !originalRequest.url?.includes('/auth/login') &&
-                            !originalRequest.url?.includes('/auth/logout')) {
+                        // A 401 is treated as a possibly-expired access token → refresh once and
+                        // retry. TWO classes of 401 must NOT trigger that refresh+retry:
+                        //   1. the auth endpoints themselves (refresh/login/logout), and
+                        //   2. LOGICAL auth-verification failures such as a wrong 2FA code on
+                        //      /auth/2fa/verify-method — refreshing is pointless there and each
+                        //      retry writes a real TWO_FACTOR_FAILED audit row.
+                        // The `_retried` flag additionally caps ANY 401 to a SINGLE refresh+retry,
+                        // so a persistent 401 can never spin an unbounded refresh→retry loop (the
+                        // Auth-Methods-Testing playground hit ~190 calls → OTP 5-strike 429).
+                        const skipRefresh =
+                            originalRequest.url?.includes('/auth/refresh') ||
+                            originalRequest.url?.includes('/auth/login') ||
+                            originalRequest.url?.includes('/auth/logout') ||
+                            originalRequest.url?.includes('/auth/2fa/verify-method')
+
+                        if (!skipRefresh && !originalRequest._retried) {
+                            originalRequest._retried = true
 
                             try {
                                 // Deduplicate concurrent refresh requests
