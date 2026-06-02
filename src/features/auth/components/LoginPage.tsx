@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@utils/formatApiError'
+import { isLikelyValidEmail } from '@domain/validators/emailValidator'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -54,7 +55,9 @@ import StepProgress from '../../../verify-app/StepProgress'
  * Login form validation schema
  */
 const loginSchema = z.object({
-    email: z.string().min(1, 'Email is required').email('Invalid email address'),
+    // `.refine(isLikelyValidEmail)` is stricter than Zod's `.email()` (which
+    // accepts a 1-char TLD like `user@gmail.x`) — see emailValidator.ts.
+    email: z.string().min(1, 'Email is required').refine(isLikelyValidEmail, 'Invalid email address'),
     password: z.string().min(1, 'Password is required'),
 })
 
@@ -385,6 +388,12 @@ export default function LoginPage() {
     const handleIdentifierSubmit = async () => {
         if (!identifier.trim()) {
             setLoginError(t('auth.validation.emailRequired'))
+            return
+        }
+        // Reject obvious typos (e.g. `user@gmail.x`) before opening an MFA
+        // session. Format-only check — preserves enumeration resistance.
+        if (!isLikelyValidEmail(identifier)) {
+            setLoginError(t('auth.validation.invalidEmail'))
             return
         }
         setLoginError(null)

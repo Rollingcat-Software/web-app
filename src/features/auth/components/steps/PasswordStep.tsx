@@ -18,6 +18,7 @@ import { motion } from 'framer-motion'
 import { Typography } from '@mui/material'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
+import { isLikelyValidEmail } from '@domain/validators/emailValidator'
 
 type PasswordFormData = { email: string; password: string }
 
@@ -42,7 +43,7 @@ export default function PasswordStep({ onSubmit, loading, error, presetEmail }: 
     const identifierFirst = Boolean(presetEmail)
 
     const schema = z.object({
-        email: z.string().min(1, t('auth.validation.emailRequired')).email(t('auth.validation.invalidEmail')),
+        email: z.string().min(1, t('auth.validation.emailRequired')).refine(isLikelyValidEmail, t('auth.validation.invalidEmail')),
         password: z.string().min(8, t('auth.validation.passwordMinLength')),
     })
 

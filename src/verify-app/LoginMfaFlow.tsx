@@ -33,6 +33,7 @@ import MfaStepRenderer from '@features/auth/login-shared/MfaStepRenderer'
 import { makeRequestWebAuthnChallenge } from '@features/auth/login-shared/webauthnChallenge'
 import StepProgress from './StepProgress'
 import { hasPasswordLayer1, needsIdentifier, type LoginConfig } from '@domain/models/LoginConfig'
+import { isLikelyValidEmail } from '@domain/validators/emailValidator'
 
 /**
  * The discrete screens of the login flow. Named constants (not bare string
@@ -292,6 +293,13 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     const handleIdentifierSubmit = useCallback(async () => {
         if (!identifier.trim()) {
             setError(t('auth.validation.emailRequired'))
+            return
+        }
+        // Reject obvious typos (e.g. `user@gmail.x`) HERE so a malformed address
+        // never advances to the password step. Pure format check — never reveals
+        // whether the account exists, so enumeration resistance is preserved.
+        if (!isLikelyValidEmail(identifier)) {
+            setError(t('auth.validation.invalidEmail'))
             return
         }
         // Identifier-first WITH a password factor: we now know who the user is,
