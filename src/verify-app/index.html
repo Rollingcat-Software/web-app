@@ -222,7 +222,8 @@
         </div>
 
         <h2 style="font-size: 18px; margin-bottom: 12px; color: #e6edf3;">Integrate in three lines</h2>
-        <pre><span class="c">// Web (import { FivucsasAuth } from '@fivucsas/auth-js')</span>
+        <pre><span class="c">// Web — load the SDK from the CDN (npm packages coming soon):</span>
+<span class="c">// &lt;script src="https://verify.fivucsas.com/fivucsas-auth.js"&gt;&lt;/script&gt;</span>
 <span class="k">const</span> auth = <span class="k">new</span> FivucsasAuth({ clientId: <span class="s">"YOUR_CLIENT_ID"</span>, apiBaseUrl: <span class="s">"https://api.fivucsas.com"</span> });
 <span class="k">await</span> auth.loginRedirect({ redirectUri: <span class="s">"https://your-app.com/callback"</span> });
 <span class="c">// User lands back at redirectUri with ?code=… — exchange at /oauth2/token.</span></pre>

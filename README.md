@@ -16,12 +16,14 @@ Admin dashboard + hosted login + auth SDK for the **FIVUCSAS** biometric identit
 Built with React 18 + TypeScript 5 + Vite 8 on Clean Architecture (InversifyJS DI, repository pattern, Zod validation, i18next en+tr). Deploys two surfaces:
 
 - **Admin dashboard** at `app.fivucsas.com` — user/tenant/role/flow/device/audit management across 30+ routes
-- **Hosted login + embeddable widget** at `verify.fivucsas.com` — hosted-first redirective OIDC login (primary) plus iframe widget for inline step-up MFA (secondary); SDK delivered via CDN script-tag at `https://verify.fivucsas.com/sdk/` (`loginRedirect({...})` and Web Components) **or** as npm packages:
-  - [`@fivucsas/auth-js`](packages/auth-js) — vanilla, zero-dependency core SDK (`npm install @fivucsas/auth-js`)
-  - [`@fivucsas/auth-elements`](packages/auth-elements) — the `<fivucsas-verify>` Web Component (`npm install @fivucsas/auth-elements`)
-  - `@fivucsas/auth-react` — thin React wrapper, **coming soon**
+- **Hosted login + embeddable widget** at `verify.fivucsas.com` — hosted-first redirective OIDC login (primary) plus iframe widget for inline step-up MFA (secondary); the SDK is delivered **via a CDN script tag** at `https://verify.fivucsas.com/fivucsas-auth.js` — load it and use the global `FivucsasAuth` (`loginRedirect({...})`, `verify()`) plus the auto-registered `<fivucsas-verify>` Web Component.
 
-  The packages live under [`packages/`](packages) and are built from the canonical SDK source at `src/verify-app/sdk/`. See [SDK packaging & publishing](docs/SDK_PUBLISHING.md). (A token-gated GitHub Actions workflow publishes them on an `sdk-v*` tag; they are not yet on the public npm registry until an operator completes the one-time setup in that doc.)
+  The following npm packages are **packaged but NOT yet published** to the public npm registry (`npm install @fivucsas/...` returns a 404 today) — integration is CDN-only until an operator completes the one-time publish setup:
+  - `@fivucsas/auth-js` — vanilla, zero-dependency core SDK (planned)
+  - `@fivucsas/auth-elements` — the `<fivucsas-verify>` Web Component (planned)
+  - `@fivucsas/auth-react` — thin React wrapper (planned)
+
+  The package sources live under [`packages/`](packages) and are built from the canonical SDK source at `src/verify-app/sdk/`. See [SDK packaging & publishing](docs/SDK_PUBLISHING.md). (A token-gated GitHub Actions workflow will publish them on an `sdk-v*` tag once the operator setup in that doc is complete.)
 
 ## Architecture
 
