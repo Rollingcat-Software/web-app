@@ -105,7 +105,7 @@ export default function FaceSearchPage() {
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'center',
-                                bgcolor: 'grey.100',
+                                bgcolor: (theme) => theme.palette.action.hover,
                                 borderRadius: 2,
                             }}>
                                 <Typography color="text.secondary">

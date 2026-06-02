@@ -1,4 +1,4 @@
-import {useState} from 'react'
+import {useEffect, useState} from 'react'
 import {Link as RouterLink, Outlet, useLocation} from 'react-router-dom'
 import {
     alpha,
@@ -11,6 +11,10 @@ import {
 } from '@mui/material'
 import {NavigateNext} from '@mui/icons-material'
 import {useTranslation} from 'react-i18next'
+import {useService} from '@app/providers'
+import {TYPES} from '@core/di/types'
+import type {INotifier} from '@domain/interfaces/INotifier'
+import {replayPendingToast} from '@core/services/pendingToast'
 import Sidebar from './Sidebar'
 import TopBar from './TopBar'
 
@@ -123,6 +127,14 @@ export default function DashboardLayout() {
     const [mobileOpen, setMobileOpen] = useState(false)
     const {t} = useTranslation()
     const isDark = theme.palette.mode === 'dark'
+    const notifier = useService<INotifier>(TYPES.Notifier)
+
+    // Emit any toast stashed just before a full-page reload (e.g. the ROOT
+    // tenant DATA switcher in TopBar reloads to re-scope every surface). Runs
+    // once on mount — replayPendingToast clears the slot so it can't re-fire.
+    useEffect(() => {
+        replayPendingToast(notifier)
+    }, [notifier])
 
     const handleDrawerToggle = () => {
         setMobileOpen(prev => !prev)

@@ -244,7 +244,7 @@ export default function UserDetailsPage() {
 
                 {/* User ID Card */}
                 <Grid item xs={12}>
-                    <Paper sx={{ p: 2, bgcolor: 'grey.50' }}>
+                    <Paper sx={{ p: 2, bgcolor: 'background.default' }}>
                         <Typography variant="caption" color="text.secondary">
                             User ID
                         </Typography>

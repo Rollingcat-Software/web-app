@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect, useRef } from 'react'
 import {
+    alpha,
     Alert,
     Box,
     Button,
@@ -294,11 +295,16 @@ export default function NfcEnrollmentPage() {
                         flexDirection: 'column',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: scanning ? 'primary.50' : serialNumber ? 'success.50' : 'grey.100',
+                        bgcolor: (theme) =>
+                            scanning
+                                ? alpha(theme.palette.primary.main, 0.08)
+                                : serialNumber
+                                    ? alpha(theme.palette.success.main, 0.08)
+                                    : theme.palette.action.hover,
                         borderRadius: 2,
                         mb: 2,
                         border: '2px dashed',
-                        borderColor: scanning ? 'primary.main' : serialNumber ? 'success.main' : 'grey.300',
+                        borderColor: scanning ? 'primary.main' : serialNumber ? 'success.main' : 'divider',
                         transition: 'all 0.3s',
                     }}>
                         {scanning ? (
