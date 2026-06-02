@@ -45,6 +45,17 @@
 
   var TAG = 'fivucsas-launcher';
 
+  // Capture the loader <script> NOW — document.currentScript is only valid
+  // during this synchronous top-level execution, not inside the deferred
+  // autoMount/connectedCallback. A monolingual host page (one with NO Turkish
+  // variant — e.g. the Swagger reference subpages) can suppress the otherwise
+  // dead EN|TR toggle by adding `data-no-lang-toggle` to its loader tag:
+  //   <script src="…/launcher.js?v=…" data-no-lang-toggle defer></script>
+  // The launcher then hides the language row AND does not force a stored
+  // suite-wide language onto the page (it would have nothing to translate).
+  var LOADER_SCRIPT = (typeof document !== 'undefined' && document.currentScript) || null;
+  var LOADER_NO_LANG = !!(LOADER_SCRIPT && LOADER_SCRIPT.hasAttribute('data-no-lang-toggle'));
+
   // Persist the chosen language across the whole suite. localStorage is
   // per-origin, but every suite site shares this same key + value scheme, so
   // each site that honours it on load starts in the language the visitor last
@@ -236,12 +247,19 @@
         }
         if (this._built) return;
         this._built = true;
+        // A monolingual page suppresses the EN|TR toggle (and the cross-site
+        // language sync) — via the element attribute or the loader-script flag.
+        this._noLang = this.hasAttribute('no-lang-toggle') ||
+          this.hasAttribute('data-no-lang-toggle') || LOADER_NO_LANG;
         // Start in the suite-wide stored choice if there is one, else mirror
         // the language the host page already rendered.
         this._lang = resolveInitialLang();
         this._render();
         this._bind();
-        this._syncStoredLangToDocument();
+        // Only mirror the suite-wide language onto pages that can localise. On
+        // a monolingual page there is nothing to translate, so forcing 'tr'
+        // would just relabel the launcher while the page stays English.
+        if (!this._noLang) this._syncStoredLangToDocument();
       };
 
       // If the visitor previously picked a language anywhere in the suite,
@@ -545,7 +563,9 @@
 
         panel.appendChild(hd);
         panel.appendChild(ul);
-        panel.appendChild(ft);
+        // Omit the language-toggle footer entirely on a monolingual page so it
+        // never shows a control that does nothing (the #1 "unfinished" tell).
+        if (!this._noLang) panel.appendChild(ft);
 
         // ---- collapsed button (app-switcher) in its FAB shell ----
         var fab = document.createElement('div');
@@ -660,7 +680,8 @@
         var e = this._els;
         var list = [e.closeBtn];
         for (var i = 0; i < e.links.length; i++) list.push(e.links[i].a);
-        list.push(e.enBtn, e.trBtn);
+        // The EN|TR buttons are not in the panel on a monolingual page.
+        if (!this._noLang) list.push(e.enBtn, e.trBtn);
         return list;
       };
 
@@ -726,6 +747,9 @@
   function autoMount() {
     if (document.querySelector(TAG)) return;
     var el = document.createElement(TAG);
+    // Reflect the loader-script's monolingual flag onto the element so the
+    // suppression is visible in the DOM (and survives a later re-read).
+    if (LOADER_NO_LANG) el.setAttribute('no-lang-toggle', '');
     (document.body || document.documentElement).appendChild(el);
   }
 
