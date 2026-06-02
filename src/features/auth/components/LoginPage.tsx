@@ -194,20 +194,21 @@ export default function LoginPage() {
         return () => { cancelled = true; clearTimeout(fallback) }
     }, [httpClient])
 
-    // Perf (USER-BUG-7): warm BiometricEngine / MediaPipe initialization in
-    // the background while the user is typing email + password. By the time
-    // MFA dispatches FaceCaptureStep, the WASM + .task model may already be
-    // loaded, so the "MediaPipe (CDN)" badge appears immediately and
-    // detection can start on the first frame. This optimizes warm-up timing,
-    // not necessarily login-bundle composition: TwoFactorDispatcher (which
-    // is statically imported by LoginPage) statically pulls in
-    // BiometricEngine, so the engine code is already in the login chunk —
-    // the `import(...)` below is just a deferred warm-up trigger, not a
-    // chunk-split. Failures are non-fatal because face-detect hooks
-    // re-attempt on FaceCaptureStep mount. BiometricEngine.initialize() is
-    // single-flight (shared in-flight promise) so this warm-up never races
-    // with the first FaceCaptureStep mount.
+    // Perf (USER-BUG-7 → audit CC-3): warm BiometricEngine / MediaPipe ONLY
+    // once FACE is actually a possible next step, never on the bare
+    // email/password screen. The heavy MediaPipe FaceLandmarker WASM/WebGL
+    // graph used to spin up on every login-page mount, contributing to a
+    // near-blank first paint and wasting CPU/battery for users who only type
+    // a password (VISUAL_AUDIT_ALLSITES_2026-06-01 CC-3). `availableMethods`
+    // is empty until the first factor resolves, so gating on a FACE method
+    // there defers the graph past the password step while preserving the
+    // warm-up's intent (FaceCaptureStep finds the engine ready on mount).
+    // Removing the gate entirely would still be correct — useFaceDetection
+    // calls BiometricEngine.initialize() on its own mount (single-flight, so
+    // no race) — this just keeps the head-start for genuine face flows.
+    const faceIsAvailable = availableMethods.some((m) => m.methodType === 'FACE')
     useEffect(() => {
+        if (!faceIsAvailable) return
         let cancelled = false
         const idle =
             (window as Window & { requestIdleCallback?: (cb: () => void) => void })
@@ -226,7 +227,7 @@ export default function LoginPage() {
         return () => {
             cancelled = true
         }
-    }, [])
+    }, [faceIsAvailable])
 
     // Forgot password state
     const [forgotPasswordOpen, setForgotPasswordOpen] = useState(false)
