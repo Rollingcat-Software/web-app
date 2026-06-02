@@ -868,6 +868,17 @@
   "authFlows": {
     "title": "Authentication Flows",
     "subtitle": "Configure multi-step authentication sequences per operation type",
+    "operationTypes": {
+      "APP_LOGIN": "App Login",
+      "DOOR_ACCESS": "Door Access",
+      "BUILDING_ACCESS": "Building Access",
+      "API_ACCESS": "API Access",
+      "TRANSACTION": "Transaction",
+      "ENROLLMENT": "Enrollment",
+      "GUEST_ACCESS": "Guest Access",
+      "EXAM_PROCTORING": "Exam Proctoring",
+      "CUSTOM": "Custom"
+    },
     "createFlow": "Create Flow",
     "editFlow": "Edit Authentication Flow",
     "createFlowTitle": "Create Authentication Flow",

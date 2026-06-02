@@ -298,7 +298,7 @@ export function AuthFlowBuilder({
                                         >
                                             {OPERATION_TYPE_OPTIONS.map((op) => (
                                                 <MenuItem key={op.value} value={op.value}>
-                                                    {op.label}
+                                                    {t(`authFlows.operationTypes.${op.value}`, { defaultValue: op.label })}
                                                 </MenuItem>
                                             ))}
                                         </Select>

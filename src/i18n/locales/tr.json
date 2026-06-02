@@ -868,6 +868,17 @@
   "authFlows": {
     "title": "Kimlik Doğrulama Akışları",
     "subtitle": "İşlem türüne göre çok adımlı kimlik doğrulama dizileri yapılandırın",
+    "operationTypes": {
+      "APP_LOGIN": "Uygulama Girişi",
+      "DOOR_ACCESS": "Kapı Erişimi",
+      "BUILDING_ACCESS": "Bina Erişimi",
+      "API_ACCESS": "API Erişimi",
+      "TRANSACTION": "İşlem",
+      "ENROLLMENT": "Kayıt",
+      "GUEST_ACCESS": "Misafir Erişimi",
+      "EXAM_PROCTORING": "Sınav Gözetimi",
+      "CUSTOM": "Özel"
+    },
     "createFlow": "Akış Oluştur",
     "editFlow": "Kimlik Doğrulama Akışını Düzenle",
     "createFlowTitle": "Kimlik Doğrulama Akışı Oluştur",
