@@ -237,7 +237,7 @@ export default function HostedLoginApp() {
     const isFramed =
         typeof window !== 'undefined' && window.top !== window.self
 
-    const { t } = useTranslation()
+    const { t, i18n } = useTranslation()
     const [config] = useState(parseHostedParams)
 
     const theme = useMemo(() => createAppTheme(config.theme), [config.theme])
@@ -738,6 +738,59 @@ export default function HostedLoginApp() {
             <DependencyProvider container={container}>
                 <HostedFrame>
                     <Stack spacing={3}>
+                        {/* Minimal EN|TR toggle — uses the SAME i18n engine as the
+                            cross-site launcher, but NOT the launcher web-component
+                            (that is an app-switcher, wrong for a focused tenant login).
+                            Seeded from ui_locales; lets a TR user switch on-screen. */}
+                        <Box sx={{ display: 'flex', justifyContent: 'flex-end', mb: -1.5 }}>
+                            <Stack
+                                direction="row"
+                                role="group"
+                                aria-label={t('common.language', { defaultValue: 'Language' })}
+                                sx={{
+                                    borderRadius: 999,
+                                    overflow: 'hidden',
+                                    border: (th) => `1px solid ${alpha(th.palette.divider, 0.6)}`,
+                                }}
+                            >
+                                {(['en', 'tr'] as const).map((lng) => {
+                                    const active = (i18n.language || 'en').toLowerCase().startsWith(lng)
+                                    return (
+                                        <Box
+                                            key={lng}
+                                            component="button"
+                                            type="button"
+                                            aria-pressed={active}
+                                            aria-label={lng === 'en' ? 'English' : 'Türkçe'}
+                                            onClick={() => {
+                                                void i18n.changeLanguage(lng)
+                                                document.documentElement.lang = lng
+                                                try {
+                                                    sessionStorage.setItem('fivucsas:hosted-locale', lng)
+                                                } catch {
+                                                    /* private mode — ignore */
+                                                }
+                                            }}
+                                            sx={{
+                                                border: 0,
+                                                cursor: 'pointer',
+                                                px: 1.25,
+                                                py: 0.4,
+                                                fontSize: '0.7rem',
+                                                fontWeight: 700,
+                                                letterSpacing: '0.06em',
+                                                fontFamily: '"JetBrains Mono", ui-monospace, monospace',
+                                                backgroundColor: active ? 'primary.main' : 'transparent',
+                                                color: active ? 'primary.contrastText' : 'text.secondary',
+                                                transition: 'background-color .15s',
+                                            }}
+                                        >
+                                            {lng.toUpperCase()}
+                                        </Box>
+                                    )
+                                })}
+                            </Stack>
+                        </Box>
                         <Box>
                             <Box
                                 sx={{
