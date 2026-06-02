@@ -179,17 +179,32 @@ export default function AuthFlowsPage() {
                 // delete the old flow, then rename back and (re)apply the default flag via
                 // updateFlow — which atomically dethrones any other default.
                 const wantDefault = command.isDefault === true
+                // Temp name avoids a duplicate-name 409 while BOTH rows briefly coexist.
                 const replacement = await authFlowRepo.createFlow(tenantId, {
                     ...command,
                     name: `${command.name} (updating…)`,
                     isDefault: false,
                 })
-                await authFlowRepo.deleteFlow(tenantId, editingFlow.id)
+                // If deleting the old flow fails, roll back the just-created replacement so
+                // we never strand a "(updating…)"-named orphan (and never leave it default).
+                try {
+                    await authFlowRepo.deleteFlow(tenantId, editingFlow.id)
+                } catch (delErr) {
+                    await authFlowRepo.deleteFlow(tenantId, replacement.id).catch(() => {})
+                    throw delErr
+                }
+                // The old row is gone, so the real name is free. Rename FIRST (low risk), then
+                // claim default SEPARATELY: a failed default-claim (uq_auth_flow_default) must
+                // not leave the temporary name persisted — that was the stuck "(updating…)" bug.
                 await authFlowRepo.updateFlow(tenantId, replacement.id, {
                     name: command.name,
-                    isDefault: wantDefault,
                     isActive: true,
                 })
+                if (wantDefault) {
+                    await authFlowRepo.updateFlow(tenantId, replacement.id, {
+                        isDefault: true,
+                    })
+                }
                 setEditingFlow(null)
             } else {
                 await authFlowRepo.createFlow(tenantId, command)
