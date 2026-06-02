@@ -144,7 +144,9 @@ const SCRIPT_TAG_EXAMPLE = `<!DOCTYPE html>
 </body>
 </html>`
 
-const PROGRAMMATIC_EXAMPLE = `import { FivucsasAuth } from '@fivucsas/auth-js';
+const PROGRAMMATIC_EXAMPLE = `// Load the SDK from the CDN (npm packages coming soon):
+// <script src="https://verify.fivucsas.com/fivucsas-auth.js"></script>
+// FivucsasAuth is then available as a global.
 
 const auth = new FivucsasAuth({
   clientId: 'your-client-id',
@@ -170,8 +172,9 @@ const result = await auth.verify({
 console.log(result.success, result.completedMethods);`
 
 const REACT_EXAMPLE = `import { useRef, useState, useCallback } from 'react';
-import { FivucsasAuth } from '@fivucsas/auth-js';
-import type { VerifyResult } from '@fivucsas/auth-js';
+// Load the SDK from the CDN: <script src="https://verify.fivucsas.com/fivucsas-auth.js"></script>
+// FivucsasAuth + its VerifyResult type are exposed by the global bundle.
+// (The @fivucsas/auth-js npm package is coming soon.)
 
 interface VerifyButtonProps {
   userId: string;

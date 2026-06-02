@@ -1031,13 +1031,15 @@ function IntegratorLanding() {
                             overflowX: 'auto',
                             lineHeight: 1.55,
                         }}
-                    >{`import { FivucsasAuth } from '@fivucsas/auth-js'
+                    >{`<script src="https://verify.fivucsas.com/fivucsas-auth.js"></script>
 
-const auth = new FivucsasAuth({ clientId: 'YOUR_CLIENT_ID' })
-auth.loginRedirect({
-    redirectUri: 'https://your-app.com/callback',
-    scope: 'openid profile email',
-})`}</Box>
+<script>
+  const auth = new FivucsasAuth({ clientId: 'YOUR_CLIENT_ID' })
+  auth.loginRedirect({
+      redirectUri: 'https://your-app.com/callback',
+      scope: 'openid profile email',
+  })
+</script>`}</Box>
                 </Box>
 
                 <Box>

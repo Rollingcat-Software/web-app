@@ -1841,7 +1841,7 @@
       "section1Title": "Bu yüzey ne işe yarar",
       "section1Body": "verify.fivucsas.com, barındırılan giriş uç noktasıdır. Kiracılar kullanıcıları OAuth 2.0 / OIDC parametreleriyle buraya yönlendirir; biz yapılandırılmış MFA akışını çalıştırır ve yetki koduyla geri yönlendiririz.",
       "section2Title": "Entegre edin",
-      "section2Body": "Kiracı uygulamanızda @fivucsas/auth-js SDK'sını kullanın:",
+      "section2Body": "Kiracı uygulamanızda FIVUCSAS SDK'sını CDN'den (script etiketi) yükleyin — npm paketleri yakında:",
       "section2Cta": "Geliştirici Portalını Aç",
       "section3Title": "Belgelere göz atın",
       "section3Body": "Tam referans, izin verilen istemciler, örnek kodlar ve bir sandbox client_id Geliştirici Portalında mevcuttur.",
