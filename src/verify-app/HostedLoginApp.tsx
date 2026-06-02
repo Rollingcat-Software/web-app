@@ -601,6 +601,26 @@ export default function HostedLoginApp() {
         [handleLoginComplete],
     )
 
+    // Identifier-first preflight propagation. The INITIAL `loginConfig` above was
+    // resolved by OAuth `clientId`, which maps to the OAuth client's bound tenant
+    // (the dashboard/mobile client is on the `system` sentinel tenant) — so before
+    // the user types an email the page previews the SYSTEM flow. When the user
+    // submits their identifier, `LoginMfaFlow` calls `/auth/login/preflight`, which
+    // returns the USER's ACTUAL tenant login-config; we swap the displayed config to
+    // it so the step list / methods / branding shown from that point match the user's
+    // real tenant (the backend already enforces that flow at /auth/login — this only
+    // fixes the DISPLAY mismatch). The backend keeps unknown emails enumeration-safe
+    // by returning a platform-default-looking config, and `LoginMfaFlow` only fires
+    // this with a non-null resolved config, so a preflight error / older API leaves
+    // the displayed config untouched (fallback preserved). Gated to the opening
+    // identity-entry phase so we never re-shape a flow the user has already started.
+    const handlePreflightResolved = useCallback(
+        (resolved: LoginConfig) => {
+            if (onInitialLoginPhase) setLoginConfig(resolved)
+        },
+        [onInitialLoginPhase],
+    )
+
     const handleCancel = useCallback(() => {
         // Best-effort: return user to the origin of the redirect URI.
         if (config.redirectUri) {
@@ -870,6 +890,7 @@ export default function HostedLoginApp() {
                                     onComplete={handleLoginComplete}
                                     onCancel={handleCancel}
                                     onInitialPhaseChange={setOnInitialLoginPhase}
+                                    onPreflightResolved={handlePreflightResolved}
                                     loginConfig={loginConfig}
                                 />
 

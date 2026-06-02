@@ -75,9 +75,25 @@ interface LoginMfaFlowProps {
      * legacy behaviour (always start on the password step).
      */
     loginConfig?: LoginConfig | null
+    /**
+     * Identifier-first preflight propagation. The hosted page's INITIAL config
+     * is resolved by OAuth `clientId`, which maps to the client's bound tenant
+     * (the dashboard/mobile client is on the `system` sentinel tenant) — so the
+     * page previews the SYSTEM flow until the user enters an email. When the user
+     * submits their identifier we call `/auth/login/preflight`, which returns the
+     * USER's ACTUAL tenant login-config; this callback hands that resolved config
+     * up to the shell (HostedLoginApp) so the displayed flow (step list / methods
+     * / branding) switches to the user's real tenant from that point on.
+     *
+     * Only fired with a non-null resolved config (an older API returning only
+     * `{eligible}`, or any failure, yields null → the displayed config is left
+     * unchanged, preserving the fallback). The backend keeps unknown emails
+     * enumeration-safe by returning a platform-default-looking config.
+     */
+    onPreflightResolved?: (loginConfig: LoginConfig) => void
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, onPreflightResolved }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -307,7 +323,18 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             setLoading(true)
             setError(undefined)
             try {
-                await authRepository.checkLoginEligibility(identifier.trim(), clientId || undefined)
+                // The hosted page's INITIAL config was resolved by OAuth clientId
+                // → the client's bound tenant (typically the `system` sentinel),
+                // so the previewed flow may be the SYSTEM flow, not the user's.
+                // The preflight resolves the USER's ACTUAL tenant login-config;
+                // hand it up so the displayed flow switches to the user's tenant.
+                // A null result (older API / failure) leaves the displayed config
+                // unchanged — fallback preserved.
+                const resolved = await authRepository.checkLoginEligibility(
+                    identifier.trim(),
+                    clientId || undefined,
+                )
+                if (resolved && onPreflightResolved) onPreflightResolved(resolved)
                 setPhase(FlowPhase.Password)
             } catch (err) {
                 // TENANT_MISMATCH (or any pre-flight error) is shown inline on the
@@ -351,7 +378,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         } finally {
             setLoading(false)
         }
-    }, [authRepository, identifier, clientId, configLayer1Methods, engineActive, passwordIsLayer1, layer1IsChoice, t])
+    }, [authRepository, identifier, clientId, configLayer1Methods, engineActive, passwordIsLayer1, layer1IsChoice, onPreflightResolved, t])
 
     // ─── Method Selection ───────────────────────────────────────
 
