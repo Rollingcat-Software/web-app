@@ -125,15 +125,21 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     // Identifier-first entry (config without PASSWORD): the typed email.
     const [identifier, setIdentifier] = useState('')
 
-    // Perf (USER-BUG-7): warm MediaPipe FaceLandmarker in the background while
-    // the user is still on the password step. By the time MFA dispatches the
-    // face capture step, the WASM + .task model are already cached. Lazy
-    // import keeps BiometricEngine off the password-step critical path.
-    // Copilot post-merge round 5: BiometricEngine.initialize() is now
-    // single-flight (shared in-flight promise) so this idle warm-up cannot
-    // race with useFaceDetection's on-mount init. Failures are non-fatal —
-    // useFaceDetection retries on demand.
+    // Perf (USER-BUG-7 → audit CC-3): warm MediaPipe FaceLandmarker ONLY when
+    // FACE is actually a possible step — never on the bare identifier/password
+    // screen. The heavy WASM/WebGL FaceLandmarker graph used to initialize on
+    // every hosted-login mount, before any factor was chosen, contributing to
+    // a near-blank first paint and wasting CPU/battery for password-only users
+    // (VISUAL_AUDIT_ALLSITES_2026-06-01 CC-3). FACE is "possible" if the tenant
+    // login-config declares it on Layer 1, or once it appears in the resolved
+    // availableMethods after the first factor. Removing the warm-up entirely
+    // would also be correct (useFaceDetection calls initialize() single-flight
+    // on its own mount) — this just keeps the head-start for genuine face flows.
+    const faceIsPossible =
+        availableMethods.some((m) => m.methodType === AuthMethodType.FACE) ||
+        (loginConfig?.layer1.methods ?? []).some((m) => m.type === AuthMethodType.FACE)
     useEffect(() => {
+        if (!faceIsPossible) return
         let cancelled = false
         const win = window as Window & { requestIdleCallback?: (cb: () => void) => void }
         const idle = win.requestIdleCallback ?? ((cb: () => void) => setTimeout(cb, 1))
@@ -151,7 +157,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         return () => {
             cancelled = true
         }
-    }, [])
+    }, [faceIsPossible])
 
     // Notify parent bridge when the login/MFA phase changes
     useEffect(() => {
