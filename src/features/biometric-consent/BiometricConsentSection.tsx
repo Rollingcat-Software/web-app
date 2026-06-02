@@ -100,7 +100,7 @@ export default function BiometricConsentSection({
                             />
                         )}
 
-                        {consents.length > 0 && (
+                        {consents.some((c) => c.tenantId !== currentTenantId) && (
                             <>
                                 <Divider sx={{ my: 2 }} />
                                 <Typography
@@ -110,7 +110,8 @@ export default function BiometricConsentSection({
                                 >
                                     {t('biometricConsent.grantedTenants')}
                                 </Typography>
-                                {consents.map((c) => (
+                                {/* current tenant already shown by the toggle above; list only OTHER orgs */}
+                                {consents.filter((c) => c.tenantId !== currentTenantId).map((c) => (
                                     <FormControlLabel
                                         key={c.id}
                                         sx={{ display: 'flex' }}
@@ -125,7 +126,7 @@ export default function BiometricConsentSection({
                                         }
                                         label={
                                             <Typography variant="body2">
-                                                {c.tenantId}
+                                                {c.tenantName ?? c.tenantId}
                                                 {c.method ? ` · ${c.method}` : ''}
                                             </Typography>
                                         }

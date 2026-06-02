@@ -28,8 +28,6 @@ import {
     Add,
     ContentCopy,
     Delete,
-    Visibility,
-    VisibilityOff,
     Code,
     CheckCircle,
     Login,
@@ -109,8 +107,6 @@ export default function DeveloperPortalPage() {
     // Credentials reveal dialog
     const [credentialsApp, setCredentialsApp] = useState<OAuth2App | null>(null)
 
-    // View secret (not functional for existing apps — secret is hashed server-side)
-    const [visibleSecrets] = useState<Record<string, boolean>>({})
 
     // Delete confirm
     const [deleteTarget, setDeleteTarget] = useState<OAuth2App | null>(null)
@@ -254,34 +250,27 @@ export default function DeveloperPortalPage() {
     }
 
     // --- Quick Start code snippets ---
-    const scriptSnippet = `<!-- Auth widget SDK (replace with your build or CDN URL) -->
-<script src="https://api.fivucsas.com/sdk/auth-widget.js"></script>
+    const scriptSnippet = `<!-- FIVUCSAS hosted-login SDK -->
+<script src="https://verify.fivucsas.com/fivucsas-auth.js"></script>
 <script>
-  FivucsasAuth.init({
-    clientId: 'YOUR_CLIENT_ID',
+  const auth = new FivucsasAuth({ clientId: 'YOUR_CLIENT_ID' });
+
+  // Redirects the user to verify.fivucsas.com/login (PKCE). After they
+  // authenticate, the browser returns to redirectUri with ?code=…&state=…
+  auth.loginRedirect({
     redirectUri: 'https://yourapp.com/callback',
-    scopes: ['openid', 'profile', 'email'],
+    scope: 'openid profile email',
   });
 </script>`
 
-    const callbackSnippet = `// Handle the OAuth2 callback
-const params = new URLSearchParams(window.location.search);
-const code = params.get('code');
+    const callbackSnippet = `// On your callback page (e.g. https://yourapp.com/callback)
+const auth = new FivucsasAuth({ clientId: 'YOUR_CLIENT_ID' });
 
-if (code) {
-  const response = await fetch('https://api.fivucsas.com/api/v1/oauth2/token', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: new URLSearchParams({
-      grant_type: 'authorization_code',
-      code,
-      client_id: 'YOUR_CLIENT_ID',
-      client_secret: 'YOUR_CLIENT_SECRET',
-      redirect_uri: 'https://yourapp.com/callback',
-    }),
-  });
-  const { access_token, id_token } = await response.json();
-}`
+// Validates state + exchanges the code via PKCE — no client secret in the browser.
+const result = await auth.handleRedirectCallback();
+
+// result.accessToken, result.idToken, result.email, result.displayName, result.completedMethods
+console.log(result.email, result.accessToken);`
 
     return (
         <PageTransition>
@@ -380,7 +369,7 @@ if (code) {
                         <Button
                             variant="contained"
                             endIcon={<OpenInNew sx={{ fontSize: 16 }} />}
-                            href="https://github.com/fivucsas/docs/blob/main/INTEGRATION_GUIDE.md"
+                            href="https://docs.fivucsas.com/"
                             target="_blank"
                             rel="noopener noreferrer"
                             sx={{ flexShrink: 0, width: { xs: '100%', sm: 'auto' } }}
@@ -520,21 +509,6 @@ if (code) {
                                         </TableCell>
                                         <TableCell align="right">
                                             <Box sx={{ display: 'flex', justifyContent: 'flex-end', gap: 0.5 }}>
-                                                <Tooltip title={t('developerPortal.viewSecret')}>
-                                                    <span>
-                                                        <IconButton
-                                                            size="small"
-                                                            disabled
-                                                            aria-label={t('common.aria.view')}
-                                                        >
-                                                            {visibleSecrets[app.id] ? (
-                                                                <VisibilityOff fontSize="small" />
-                                                            ) : (
-                                                                <Visibility fontSize="small" />
-                                                            )}
-                                                        </IconButton>
-                                                    </span>
-                                                </Tooltip>
                                                 <Tooltip title={t('common.delete')}>
                                                     <IconButton
                                                         size="small"

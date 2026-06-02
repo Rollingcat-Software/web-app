@@ -967,31 +967,33 @@ export default function LoginPage() {
                             }
                             aria-label={t('auth.loginFormLabel')}
                         >
-                            {/* Step 2 (identifier-first): read-only identity chip + "Change",
-                                so the password is the only input — mirrors verify.fivucsas. */}
+                            {/* Step 2 (identifier-first): read-only identity display + a hidden
+                                username input (a11y / password managers). NO per-step "change
+                                email" affordance — the uniform shell-level "Not you? Start over"
+                                is the single identity control across ALL factors (matches
+                                verify.fivucsas). PR #145 had re-added a password-only "Change"
+                                button here, which made the password step inconsistent with every
+                                other first factor — removed 2026-06-02. */}
                             {showEmailAsChip && (
                                 <motion.div variants={itemVariants}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1, mb: 0.5 }}>
-                                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, overflow: 'hidden' }}>
-                                            <EmailOutlined sx={{ fontSize: 18, color: 'rgba(0,0,0,0.54)' }} />
-                                            <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
-                                                {getValues('email')}
-                                            </strong>
-                                        </Box>
-                                        <Button
-                                            size="small"
-                                            variant="text"
-                                            disabled={formBusy}
-                                            onClick={() => {
-                                                setPasswordRevealed(false)
-                                                setLoginError(null)
-                                                setTimeout(() => setFocus('email'), 0)
-                                            }}
-                                            sx={{ textTransform: 'none', minWidth: 0, color: 'primary.main', fontWeight: 600 }}
-                                        >
-                                            {t('auth.changeIdentity')}
-                                        </Button>
+                                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, overflow: 'hidden', mt: 1, mb: 0.5 }}>
+                                        <EmailOutlined sx={{ fontSize: 18, color: 'rgba(0,0,0,0.54)' }} />
+                                        <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
+                                            {getValues('email')}
+                                        </strong>
                                     </Box>
+                                    {/* paired username field so the password field has an
+                                        associated identifier for a11y + password managers */}
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        autoComplete="username"
+                                        value={getValues('email')}
+                                        readOnly
+                                        aria-hidden="true"
+                                        tabIndex={-1}
+                                        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                                    />
                                 </motion.div>
                             )}
 
