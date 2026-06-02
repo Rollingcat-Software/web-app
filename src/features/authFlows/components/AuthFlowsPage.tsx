@@ -379,7 +379,7 @@ export default function AuthFlowsPage() {
                             <MenuItem value="">{t('authFlows.allOperations')}</MenuItem>
                             {OPERATION_TYPE_OPTIONS.map((operationType) => (
                                 <MenuItem key={operationType.value} value={operationType.value}>
-                                    {operationType.label}
+                                    {t(`authFlows.operationTypes.${operationType.value}`, { defaultValue: operationType.label })}
                                 </MenuItem>
                             ))}
                         </Select>
@@ -430,7 +430,7 @@ export default function AuthFlowsPage() {
                                             )}
                                         </TableCell>
                                         <TableCell>
-                                            <Chip label={getOperationTypeLabel(flow.operationType)} size="small" variant="outlined" />
+                                            <Chip label={t(`authFlows.operationTypes.${flow.operationType}`, { defaultValue: getOperationTypeLabel(flow.operationType) })} size="small" variant="outlined" />
                                         </TableCell>
                                         <TableCell>
                                             <Chip label={`${flow.steps?.length ?? 0} ${t('common.steps')}`} size="small" />
