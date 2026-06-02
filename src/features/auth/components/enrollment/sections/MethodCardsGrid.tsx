@@ -23,7 +23,7 @@ import {
     Grid,
     Typography,
 } from '@mui/material'
-import { CheckCircle } from '@mui/icons-material'
+import { CheckCircle, InfoOutlined } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { AuthMethodType } from '@domain/models/AuthMethod'
@@ -86,7 +86,10 @@ export default function MethodCardsGrid({
         <Grid container spacing={3}>
             {METHOD_CONFIGS.map((config, index) => {
                 const enrolled = isMethodEnrolled(config.type)
-                const available = isMethodAvailable(config)
+                // Informational cards (e.g. APPROVE_LOGIN) have NO web-side enroll
+                // flow — they show an explanatory note instead of Enroll/Revoke.
+                const informational = config.informational === true
+                const available = !informational && isMethodAvailable(config)
                 const isLoading = actionLoading === config.type
 
                 return (
@@ -108,7 +111,9 @@ export default function MethodCardsGrid({
                                     borderColor: enrolled
                                         ? 'success.light'
                                         : 'divider',
-                                    opacity: available ? 1 : 0.6,
+                                    // Informational cards stay at full opacity (they
+                                    // are not "unavailable", just not enrolled here).
+                                    opacity: available || informational ? 1 : 0.6,
                                     transition: 'all 0.3s ease',
                                     '&:hover': available
                                         ? {
@@ -150,6 +155,15 @@ export default function MethodCardsGrid({
                                                 size="small"
                                                 color="success"
                                                 sx={{ fontWeight: 600 }}
+                                            />
+                                        ) : informational ? (
+                                            <Chip
+                                                icon={<InfoOutlined />}
+                                                label={t('enrollmentPage.statusMobileApp')}
+                                                size="small"
+                                                color="info"
+                                                variant="outlined"
+                                                sx={{ fontWeight: 500 }}
                                             />
                                         ) : !available ? (
                                             <Chip
@@ -201,9 +215,25 @@ export default function MethodCardsGrid({
                                             display: 'flex',
                                             gap: 1,
                                             flexWrap: 'wrap',
+                                            alignItems: 'center',
                                         }}
                                     >
-                                        {!enrolled && available && (
+                                        {/* Informational-only method (e.g. APPROVE_LOGIN):
+                                            no web enroll flow — explain where to set it up
+                                            instead of showing a button that does nothing. */}
+                                        {informational && (
+                                            <Typography
+                                                variant="caption"
+                                                color="text.secondary"
+                                                sx={{ fontStyle: 'italic' }}
+                                            >
+                                                {t(
+                                                    config.informationalHint ??
+                                                        'enrollmentPage.setupInMobileApp',
+                                                )}
+                                            </Typography>
+                                        )}
+                                        {!informational && !enrolled && available && (
                                             <Button
                                                 variant="contained"
                                                 size="small"
@@ -233,7 +263,7 @@ export default function MethodCardsGrid({
                                                 {t('enrollmentPage.enroll')}
                                             </Button>
                                         )}
-                                        {enrolled && (
+                                        {!informational && enrolled && (
                                             <>
                                                 {/* Re-enroll / optimize. Hidden for auto-bound
                                                     stateless methods (EMAIL_OTP/SMS_OTP/QR_CODE)

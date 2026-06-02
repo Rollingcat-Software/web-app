@@ -19,7 +19,7 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { formatApiError } from '@utils/formatApiError'
 import type { ShowSnackbar } from './types'
 
-export type WebAuthnMode = 'platform' | 'hardware-key'
+export type WebAuthnMode = 'platform' | 'hardware-key' | 'passkey'
 export type SmsPhase = 'phone' | 'otp' | null
 
 interface CreateEnrollmentInput {
@@ -82,6 +82,13 @@ export function useEnrollmentDispatcher({
                     break
                 case AuthMethodType.HARDWARE_KEY:
                     setWebauthnMode('hardware-key')
+                    setWebauthnEnrollOpen(true)
+                    break
+                case AuthMethodType.PASSKEY:
+                    // A passkey is a DISCOVERABLE WebAuthn credential — same register
+                    // ceremony as FINGERPRINT/HARDWARE_KEY but with residentKey=required
+                    // (handled by the WebAuthnEnrollment `passkey` mode).
+                    setWebauthnMode('passkey')
                     setWebauthnEnrollOpen(true)
                     break
                 case AuthMethodType.TOTP:
@@ -197,6 +204,13 @@ export function useEnrollmentDispatcher({
                 case AuthMethodType.HARDWARE_KEY:
                     setReEnrollMode(false)
                     setWebauthnMode('hardware-key')
+                    setWebauthnEnrollOpen(true)
+                    break
+                case AuthMethodType.PASSKEY:
+                    // No averaged template — registering another discoverable
+                    // credential IS the correct "add another / re-enroll".
+                    setReEnrollMode(false)
+                    setWebauthnMode('passkey')
                     setWebauthnEnrollOpen(true)
                     break
                 case AuthMethodType.TOTP:

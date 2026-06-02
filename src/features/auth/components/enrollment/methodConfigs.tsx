@@ -13,8 +13,10 @@ import {
     Mic,
     Nfc,
     PhonelinkLock,
+    PhoneIphone,
     QrCode2,
     SmsOutlined,
+    VpnKey,
 } from '@mui/icons-material'
 import { AuthMethodType } from '@domain/models/AuthMethod'
 import type { MethodCardConfig } from './types'
@@ -109,5 +111,34 @@ export const METHOD_CONFIGS: MethodCardConfig[] = [
         alwaysAvailable: false,
         gradient: 'linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)',
         bgColor: 'rgba(124, 58, 237, 0.08)',
+    },
+    {
+        // PASSKEY = discoverable WebAuthn credential (usernameless sign-in). Real,
+        // working enroll: reuses WebAuthnEnrollment in `passkey` mode (residentKey
+        // required). Gated on generic WebAuthn support (platform OR roaming/hybrid).
+        type: AuthMethodType.PASSKEY,
+        label: 'enrollmentPage.methods.PASSKEY.label',
+        description: 'enrollmentPage.methods.PASSKEY.description',
+        icon: <VpnKey sx={{ fontSize: 32, color: 'white' }} />,
+        capabilityKey: 'webauthn',
+        alwaysAvailable: false,
+        gradient: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
+        bgColor: 'rgba(99, 102, 241, 0.08)',
+    },
+    {
+        // APPROVE_LOGIN = number-matching cross-device approval. There is NO web-side
+        // enrollment — the approver is the FIVUCSAS mobile app the user is already
+        // signed in to. Render as an INFORMATIONAL card (no Enroll button) instead of
+        // shipping a broken dialog. See useEnrollmentDispatcher / MethodCardsGrid.
+        type: AuthMethodType.APPROVE_LOGIN,
+        label: 'enrollmentPage.methods.APPROVE_LOGIN.label',
+        description: 'enrollmentPage.methods.APPROVE_LOGIN.description',
+        icon: <PhoneIphone sx={{ fontSize: 32, color: 'white' }} />,
+        capabilityKey: null,
+        alwaysAvailable: true,
+        gradient: 'linear-gradient(135deg, #0ea5e9 0%, #2563eb 100%)',
+        bgColor: 'rgba(14, 165, 233, 0.08)',
+        informational: true,
+        informationalHint: 'enrollmentPage.methods.APPROVE_LOGIN.setupHint',
     },
 ]
