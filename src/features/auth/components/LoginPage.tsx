@@ -1042,10 +1042,14 @@ export default function LoginPage() {
                                                 '& .MuiInputLabel-root.Mui-focused': {
                                                     color: '#6366f1',
                                                 },
-                                                '& input:-webkit-autofill': {
-                                                    WebkitBoxShadow: '0 0 0 100px #f8fafc inset',
+                                                '& input:-webkit-autofill, & input:-webkit-autofill:hover, & input:-webkit-autofill:focus, & input:-webkit-autofill:active': {
+                                                    WebkitBoxShadow: '0 0 0 100px #ffffff inset',
                                                     WebkitTextFillColor: '#1a1a2e',
                                                     caretColor: '#1a1a2e',
+                                                    // The long transition is the standard trick that stops Chrome
+                                                    // from REPAINTING its light-blue autofill background back over
+                                                    // our override (the missing piece that left it "still blue").
+                                                    transition: 'background-color 9999s ease-in-out 0s',
                                                 },
                                             }}
                                         />
@@ -1124,10 +1128,14 @@ export default function LoginPage() {
                                                 '& .MuiInputLabel-root.Mui-focused': {
                                                     color: '#6366f1',
                                                 },
-                                                '& input:-webkit-autofill': {
-                                                    WebkitBoxShadow: '0 0 0 100px #f8fafc inset',
+                                                '& input:-webkit-autofill, & input:-webkit-autofill:hover, & input:-webkit-autofill:focus, & input:-webkit-autofill:active': {
+                                                    WebkitBoxShadow: '0 0 0 100px #ffffff inset',
                                                     WebkitTextFillColor: '#1a1a2e',
                                                     caretColor: '#1a1a2e',
+                                                    // The long transition is the standard trick that stops Chrome
+                                                    // from REPAINTING its light-blue autofill background back over
+                                                    // our override (the missing piece that left it "still blue").
+                                                    transition: 'background-color 9999s ease-in-out 0s',
                                                 },
                                             }}
                                         />
