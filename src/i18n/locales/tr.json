@@ -530,7 +530,9 @@
     "status": {
       "PENDING_ENROLLMENT": "Kayıt Bekliyor",
       "ACTIVE": "Aktif",
+      "INACTIVE": "Pasif",
       "SUSPENDED": "Askıya Alındı",
+      "DELETED": "Silindi",
       "LOCKED": "Kilitli"
     },
     "error": {

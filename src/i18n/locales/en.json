@@ -530,7 +530,9 @@
     "status": {
       "PENDING_ENROLLMENT": "Pending Enrollment",
       "ACTIVE": "Active",
+      "INACTIVE": "Inactive",
       "SUSPENDED": "Suspended",
+      "DELETED": "Deleted",
       "LOCKED": "Locked"
     },
     "error": {

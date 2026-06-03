@@ -330,7 +330,9 @@ export default function UserFormPage() {
                                     >
                                         <MenuItem value={UserStatus.PENDING_ENROLLMENT}>{t('users.status.PENDING_ENROLLMENT')}</MenuItem>
                                         <MenuItem value={UserStatus.ACTIVE}>{t('users.status.ACTIVE')}</MenuItem>
+                                        <MenuItem value={UserStatus.INACTIVE}>{t('users.status.INACTIVE')}</MenuItem>
                                         <MenuItem value={UserStatus.SUSPENDED}>{t('users.status.SUSPENDED')}</MenuItem>
+                                        <MenuItem value={UserStatus.DELETED}>{t('users.status.DELETED')}</MenuItem>
                                         <MenuItem value={UserStatus.LOCKED}>{t('users.status.LOCKED')}</MenuItem>
                                     </TextField>
                                 )}
