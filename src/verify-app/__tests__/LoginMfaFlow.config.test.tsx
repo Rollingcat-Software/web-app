@@ -127,6 +127,36 @@ describe('LoginMfaFlow — config-driven Layer 1', () => {
         expect(mockLogin).not.toHaveBeenCalled()
     })
 
+    it('uses the PREFLIGHT-resolved totalSteps for the password-screen counter (regression: no 1/2 → 2/3 jump)', async () => {
+        // The mount-time config under-reports the flow (totalSteps: 2). The
+        // preflight resolves the caller's REAL tenant flow (totalSteps: 3). The
+        // password screen's step counter must read "1 of 3" (from the preflight,
+        // stored in flowTotalSteps) — NOT "1 of 2" (the mount config) — otherwise
+        // it jumps to 2/3 on the first MFA step (the reported bug, issue #13).
+        const mountConfig = normalizeLoginConfig({
+            engineActive: true,
+            totalSteps: 2,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        mockCheckEligibility.mockResolvedValue(
+            normalizeLoginConfig({
+                engineActive: true,
+                totalSteps: 3,
+                layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+            }),
+        )
+        render(<LoginMfaFlow {...baseProps} loginConfig={mountConfig} />)
+        fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'staff@marmara.edu.tr' } })
+        fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+        await waitFor(() => expect(screen.getByLabelText('Password')).toBeInTheDocument())
+        // The counter's denominator comes from the preflight (3), not the mount config (2).
+        const bar = screen.getByRole('progressbar', { name: /step 1 of 3/i })
+        expect(bar).toHaveAttribute('aria-valuemax', '3')
+        expect(bar).toHaveAttribute('aria-valuenow', '1')
+        expect(screen.queryByRole('progressbar', { name: /step 1 of 2/i })).toBeNull()
+    })
+
     it('shows the tenant-mismatch error on the EMAIL step and does NOT reveal the password screen', async () => {
         mockCheckEligibility.mockRejectedValue(
             Object.assign(new Error('tenant'), {
