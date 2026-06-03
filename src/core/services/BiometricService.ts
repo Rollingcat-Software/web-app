@@ -214,33 +214,35 @@ export class BiometricService {
     }
 
     /**
-     * Map biometric API errors to user-friendly messages.
+     * Normalize a biometric-enrollment error before re-throwing.
+     *
+     * We intentionally PRESERVE the original axios error (rather than collapsing
+     * it into a plain `Error` with a hardcoded English message). Every call site
+     * renders the thrown error through `formatApiError(err, t)` (i18n EN/TR), and
+     * `formatApiError` now maps the FastAPI `error_code` (FACE_NOT_DETECTED /
+     * MULTIPLE_FACES / POOR_IMAGE_QUALITY / FACE_ALREADY_ENROLLED) to localized
+     * `errors.*` keys. Collapsing to English here would lose the code and force
+     * the generic `errors.unknown` fallback.
+     *
+     * The only normalization we do is to synthesize a `FACE_ALREADY_ENROLLED`
+     * code for a 409 that lacks one, so `formatApiError` can localize the
+     * "already enrolled" case (the biometric proxy returns a bare 409).
      */
     private mapEnrollmentError(error: unknown): Error {
         if (axios.isAxiosError(error) && error.response) {
             const status = error.response.status
-            const data = error.response.data
-            const errorCode = data?.error_code ?? ''
-            const detail = data?.detail ?? data?.message ?? ''
-
-            if (status === 400) {
-                switch (errorCode) {
-                    case 'FACE_NOT_DETECTED':
-                        return new Error('No face detected in the captured image. Please try again with better lighting and ensure your face is clearly visible.')
-                    case 'MULTIPLE_FACES':
-                        return new Error('Multiple faces detected. Please ensure only your face is in the frame.')
-                    case 'POOR_IMAGE_QUALITY':
-                        return new Error('Image quality is too low. Please try again with better lighting and hold still during capture.')
-                    default:
-                        return new Error(detail || 'Face enrollment failed. Please try again.')
-                }
+            const data = (error.response.data ?? {}) as { error_code?: string }
+            if (status === 409 && !data.error_code) {
+                // Tag the response so formatApiError maps it to
+                // `errors.faceAlreadyEnrolled` instead of the generic conflict.
+                data.error_code = 'FACE_ALREADY_ENROLLED'
+                error.response.data = data
             }
-            if (status === 409) {
-                return new Error('Face is already enrolled. Revoke the existing enrollment first to re-enroll.')
-            }
-            return new Error(detail || `Face enrollment failed (HTTP ${status}). Please try again.`)
+            // axios errors are Error instances — re-throw as-is so the response
+            // (status + error_code) survives to formatApiError for i18n.
+            return error
         }
-        return error instanceof Error ? error : new Error('Face enrollment failed. Please try again.')
+        return error instanceof Error ? error : new Error('Face enrollment failed.')
     }
 
     /**

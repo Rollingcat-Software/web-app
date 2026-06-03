@@ -1452,7 +1452,7 @@
       "capturedCount": "{{count}} images captured",
       "retry": "Retry",
       "captureAlt": "Capture {{n}}",
-      "autoAdvanceHint": "Follow the instruction above. It will auto-advance if needed.",
+      "autoAdvanceHint": "Follow the instruction above. Each step advances once you complete it.",
       "startingCamera": "Starting Camera...",
       "beginEnrollment": "Begin Enrollment",
       "confirmSave": "Confirm & Save",
@@ -1910,6 +1910,11 @@
     "failedToLoadSessions": "Failed to load sessions",
     "biometricProcessingFailed": "Biometric processing failed",
     "enrollmentSyncFailed": "Enrollment sync failed",
+    "faceNotDetected": "No face detected in the captured image. Please try again with better lighting and ensure your face is clearly visible.",
+    "multipleFaces": "Multiple faces detected. Please ensure only your face is in the frame.",
+    "poorImageQuality": "Image quality is too low. Please try again with better lighting and hold still during capture.",
+    "faceEnrollmentFailed": "Face enrollment failed. Please try again.",
+    "faceAlreadyEnrolled": "Face is already enrolled. Revoke the existing enrollment first to re-enroll.",
     "sessionExpired": "Session expired. Please login again.",
     "unexpectedRetry": "An unexpected error occurred. Please try again.",
     "unexpected": "An unexpected error occurred.",
@@ -2006,7 +2011,8 @@
     "qualityBlurry": "Too blurry — hold your phone steady and keep your face still.",
     "qualityDark": "Too dark — move to brighter, even lighting.",
     "qualityBright": "Too bright — reduce glare or move away from strong light.",
-    "qualitySmall": "Move a little closer so your face fills the frame."
+    "qualitySmall": "Move a little closer so your face fills the frame.",
+    "gestureStillWaiting": "Still waiting — please perform the gesture shown above to continue."
   },
   "register": {
     "verificationFailed": "Verification failed. Please try again.",

@@ -50,7 +50,16 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
     const { initialized: detectorReady, initFailed: detectorFailed } = detection
     const detectionRef = useRef(detection)
     detectionRef.current = detection
-    const { challengeState, updateChallenge, resetChallenge } = useFaceChallenge()
+    const { challengeState, updateChallenge, resetChallenge, markStarted } = useFaceChallenge()
+
+    // Begin enrollment: reset the stage clock to "now" (markStarted) BEFORE the
+    // capture loop runs, then flip `started`. `stageStartRef` was initialised at
+    // hook mount (dialog open), so without this Step 1 could instant-capture on a
+    // stale soft-timeout clock that already elapsed while the user read the intro.
+    const handleBegin = useCallback(() => {
+        markStarted()
+        setStarted(true)
+    }, [markStarted])
 
     const startCamera = useCallback(async () => {
         try {
@@ -431,7 +440,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                             fullWidth
                             variant="contained"
                             size="large"
-                            onClick={() => setStarted(true)}
+                            onClick={handleBegin}
                             disabled={!cameraActive}
                             startIcon={!cameraActive ? <CircularProgress size={18} color="inherit" /> : undefined}
                             sx={{

@@ -44,6 +44,18 @@ function errorCodeToI18nKey(code: string | undefined): string | null {
         // in formatApiError (so they are NOT mapped here).
         case 'AUTH_METHOD_DISABLED':
             return 'errors.authMethodDisabled'
+        // Biometric-processor FACE enrollment errors. The proxy surfaces these
+        // SCREAMING_SNAKE codes in `error_code` (read into the unified code by
+        // `formatApiError`); previously they were rendered as hardcoded English
+        // in BiometricService.mapEnrollmentError. See useFaceChallenge fixes.
+        case 'FACE_NOT_DETECTED':
+            return 'errors.faceNotDetected'
+        case 'MULTIPLE_FACES':
+            return 'errors.multipleFaces'
+        case 'POOR_IMAGE_QUALITY':
+            return 'errors.poorImageQuality'
+        case 'FACE_ALREADY_ENROLLED':
+            return 'errors.faceAlreadyEnrolled'
         default:
             return null
     }
@@ -225,6 +237,14 @@ export function formatApiError(err: unknown, t: TFunction): string {
             data?: {
                 message?: string
                 errorCode?: string
+                /**
+                 * Biometric-processor / FastAPI envelope uses snake_case
+                 * `error_code` (e.g. FACE_NOT_DETECTED) rather than Spring's
+                 * camelCase `errorCode`. Treated as an equivalent code source.
+                 */
+                error_code?: string
+                /** FastAPI default error body field. */
+                detail?: string
                 error?: string
                 error_description?: string
                 /** MFA-step inline failure (HTTP 200 with status=FAILED). */
@@ -259,7 +279,9 @@ export function formatApiError(err: unknown, t: TFunction): string {
         // Pick the right "code" depending on the envelope shape. We MUST NOT
         // mix Spring + OAuth2 codes into one bucket — `invalid_request` and
         // `INVALID_CREDENTIALS` mean different things in different namespaces.
-        const errorCode = data?.errorCode
+        // `error_code` (snake) is the FastAPI/biometric-processor spelling of
+        // the Spring `errorCode` (camel); both carry SCREAMING_SNAKE codes.
+        const errorCode = data?.errorCode ?? data?.error_code
         const errorField = data?.error
         const springCode = isSpringErrorCode(errorCode)
             ? errorCode
@@ -356,7 +378,7 @@ export function formatApiError(err: unknown, t: TFunction): string {
         // Prefer OAuth2 `error_description` over the generic `message` when
         // both are present; OAuth2 errors carry their detail in
         // `error_description` per RFC 6749 §5.2.
-        const backendMsg = data?.error_description ?? data?.message
+        const backendMsg = data?.error_description ?? data?.message ?? data?.detail
         if (isSafeBackendMessage(backendMsg)) {
             return backendMsg
         }
