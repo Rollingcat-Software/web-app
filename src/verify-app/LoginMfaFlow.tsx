@@ -91,9 +91,25 @@ interface LoginMfaFlowProps {
      * enumeration-safe by returning a platform-default-looking config.
      */
     onPreflightResolved?: (loginConfig: LoginConfig) => void
+    /**
+     * Multi-step bridge (Contract A). A usernameless Layer-1 factor approved on
+     * another device (APPROVE_LOGIN / QR_CODE) for a MULTI-STEP tenant flow hands
+     * back an MFA session — NOT tokens — because remaining steps follow. The shell
+     * passes that handoff here so this flow RESUMES into the MFA leg (the method
+     * picker for the next step) instead of the user dead-ending at "extra step
+     * needed, continue here". `null`/undefined ⇒ no resume (unchanged behaviour).
+     * Seeded into MFA state exactly once, and only while no MFA session is already
+     * open, so it can never yank a user out of an in-progress flow.
+     */
+    resumeSession?: {
+        mfaSessionToken: string
+        currentStep?: number
+        totalSteps?: number
+        availableMethods?: string[]
+    } | null
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, onPreflightResolved }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, onPreflightResolved, resumeSession }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -224,6 +240,42 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         )
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loginConfig])
+
+    // ─── Multi-step bridge resume (Contract A) ──────────────────
+    //
+    // When a usernameless Layer-1 factor (APPROVE_LOGIN / QR_CODE) is approved on
+    // another device for a MULTI-STEP tenant, the shell hands us the resulting MFA
+    // session via `resumeSession`. Seed the MFA state from it and jump straight to
+    // the method picker for the next step — mirroring how `handleMfaResult` seeds
+    // the same state on STEP_COMPLETED. This is what turns "approved on phone but
+    // web dead-ends at 'extra step needed'" into a continuing flow.
+    //
+    // Guards: seed ONCE (ref latch) and ONLY when no MFA session is already open,
+    // so a resume can never pull a user out of an in-progress flow.
+    const resumeSyncedRef = useRef(false)
+    useEffect(() => {
+        if (resumeSyncedRef.current) return
+        if (!resumeSession || !resumeSession.mfaSessionToken) return
+        if (mfaSessionToken) return // already in an MFA flow — never interrupt it
+        resumeSyncedRef.current = true
+
+        setMfaSessionToken(resumeSession.mfaSessionToken)
+        const methods: AvailableMfaMethod[] = (resumeSession.availableMethods ?? []).map(
+            (m) => ({
+                methodType: m,
+                name: m,
+                category: '',
+                enrolled: true,
+                preferred: false,
+                requiresEnrollment: false,
+            }),
+        )
+        setAvailableMethods(methods)
+        if (resumeSession.currentStep) setCurrentStep(resumeSession.currentStep)
+        if (resumeSession.totalSteps) setTotalSteps((prev) => Math.max(prev, resumeSession.totalSteps!))
+        setPhase(FlowPhase.MethodPicker)
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [resumeSession])
 
     // ─── Password Submit ────────────────────────────────────────
 

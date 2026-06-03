@@ -261,6 +261,18 @@ export default function HostedLoginApp() {
     // can be active at a time; `null` means the default email/password+MFA flow.
     const [altFlow, setAltFlow] = useState<'approveLogin' | null>(null)
     const [altError, setAltError] = useState<string | null>(null)
+    // Multi-step bridge (Contract A). When an approve-login is approved on another
+    // device but the tenant flow has REMAINING MFA steps, the panel hands back an
+    // MFA session (not tokens). We stash it here and feed it to LoginMfaFlow as
+    // `resumeSession`, which seeds its MFA state and jumps to the method picker so
+    // the phone-approved login CONTINUES into the remaining steps. `null` ⇒ no
+    // resume in flight (the default password/MFA flow).
+    const [resumeSession, setResumeSession] = useState<{
+        mfaSessionToken: string
+        currentStep?: number
+        totalSteps?: number
+        availableMethods?: string[]
+    } | null>(null)
     // Whether the inner LoginMfaFlow is on its OPENING identity-entry screen.
     // The usernameless shortcuts (passkey / approve) are ALTERNATIVES to typing
     // an identifier, so — mirroring the dashboard's `onInitialIdentityEntry`
@@ -601,6 +613,21 @@ export default function HostedLoginApp() {
         [handleLoginComplete],
     )
 
+    // Multi-step bridge (Contract A). The approve-login was approved on the other
+    // device, but the tenant flow has REMAINING MFA steps, so the panel handed back
+    // an MFA session instead of tokens. Close the approve-login surface and stash
+    // the handoff in `resumeSession`; LoginMfaFlow consumes it (`resumeSession`
+    // prop) to seed its MFA state and continue into the method picker for the next
+    // step — instead of the user dead-ending at "extra step needed, continue here".
+    const handleApproveLoginMfaPending = useCallback(
+        (p: { mfaSessionToken: string; currentStep?: number; totalSteps?: number; availableMethods?: string[] }) => {
+            setAltError(null)
+            setAltFlow(null)
+            setResumeSession(p)
+        },
+        [],
+    )
+
     // Identifier-first preflight propagation. The INITIAL `loginConfig` above was
     // resolved by OAuth `clientId`, which maps to the OAuth client's bound tenant
     // (the dashboard/mobile client is on the `system` sentinel tenant) — so before
@@ -872,6 +899,7 @@ export default function HostedLoginApp() {
                         ) : altFlow === 'approveLogin' ? (
                             <ApproveLoginPanel
                                 onApproved={handleApproveLoginApproved}
+                                onMfaPending={handleApproveLoginMfaPending}
                                 onCancel={() => {
                                     setAltError(null)
                                     setAltFlow(null)
@@ -892,6 +920,7 @@ export default function HostedLoginApp() {
                                     onInitialPhaseChange={setOnInitialLoginPhase}
                                     onPreflightResolved={handlePreflightResolved}
                                     loginConfig={loginConfig}
+                                    resumeSession={resumeSession}
                                 />
 
                                 {/* Config-driven usernameless shortcuts (G-web).

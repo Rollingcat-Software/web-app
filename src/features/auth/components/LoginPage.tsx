@@ -516,6 +516,50 @@ export default function LoginPage() {
         [completeTokenLogin],
     )
 
+    // Multi-step bridge (Contract A) — dashboard surface. The approve-login was
+    // approved on the other device but the tenant flow has REMAINING MFA steps, so
+    // the panel handed back an MFA session instead of tokens. Seed the same
+    // method-picker / TwoFactorDispatcher state the password & identifier-first
+    // paths use (mfaSessionToken + availableMethods + completed/step counts) and
+    // route into the method picker, so the phone-approved login CONTINUES into the
+    // remaining steps instead of dead-ending. Mirrors `onSubmit`'s twoFactorRequired
+    // branch. Methods arrive as AuthMethodType NAME strings → AvailableMfaMethod[].
+    const handleApproveLoginMfaPending = useCallback(
+        (p: { mfaSessionToken: string; currentStep?: number; totalSteps?: number; availableMethods?: string[] }) => {
+            setLoginError(null)
+            setShowApproveLogin(false)
+            setMfaSessionToken(p.mfaSessionToken)
+            if (p.totalSteps) setFlowTotalSteps(p.totalSteps)
+            // The approved usernameless factor satisfied Layer 1; the server is
+            // authoritative on completed methods, but we have only step counts here,
+            // so seed an empty completed set and let the next /auth/mfa/step response
+            // reaffirm it (parity with the identifier-first path).
+            setCompletedMfaMethods([])
+            const methods: AvailableMfaMethod[] = (p.availableMethods ?? []).map((m) => ({
+                methodType: m,
+                name: m,
+                category: '',
+                enrolled: true,
+                preferred: false,
+                requiresEnrollment: false,
+            }))
+            setAvailableMethods(methods)
+            const enrolled = methods.filter((m) => m.enrolled)
+            if (enrolled.length > 1) {
+                setShowMethodPicker(true)
+            } else if (enrolled.length === 1) {
+                setTwoFactorMethod(enrolled[0].methodType)
+                setSelectedMethod(enrolled[0].methodType)
+                setShowSecondaryAuth(true)
+            } else {
+                // No methods reported — show the picker (it renders the empty/“set up”
+                // hint) rather than guessing a factor.
+                setShowMethodPicker(true)
+            }
+        },
+        [],
+    )
+
     // Step/layer progress (parity with verify.fivucsas LoginMfaFlow). The DASHBOARD
     // login uses the PLATFORM login-config, which reports totalSteps=1 — MFA here is
     // dynamic per-user (not a configured layer), so we can't know upfront. We treat
@@ -580,6 +624,7 @@ export default function LoginPage() {
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                         <ApproveLoginPanel
                             onApproved={handleApproveLoginApproved}
+                            onMfaPending={handleApproveLoginMfaPending}
                             onCancel={() => setShowApproveLogin(false)}
                         />
                     </CardContent>
