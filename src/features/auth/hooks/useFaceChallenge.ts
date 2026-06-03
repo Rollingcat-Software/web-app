@@ -111,7 +111,12 @@ const ENROLLMENT_STAGES: { stage: ChallengeStage; instructionKey: string; holdMs
     { stage: 'frontal', instructionKey: 'faceChallenge.lookStraight', holdMs: 300, softTimeoutAllowed: true },
     { stage: 'turn_left', instructionKey: 'faceChallenge.turnLeft', holdMs: 300, softTimeoutAllowed: false },
     { stage: 'turn_right', instructionKey: 'faceChallenge.turnRight', holdMs: 300, softTimeoutAllowed: false },
-    { stage: 'blink', instructionKey: 'faceChallenge.blink', holdMs: 400, softTimeoutAllowed: false },
+    // NOTE: the 'blink' stage was removed (2026-06-03). Client-side blink detection
+    // proved unreliable across devices (it depends on sampling the ~50–100ms eye-closed
+    // phase, which low/variable camera FPS misses). The server runs the authoritative
+    // passive-liveness check on the captured frames, and the two head-turns provide an
+    // active "live person" gesture, so the client blink added fragility with no real
+    // anti-spoof value. The blink detection machinery below is retained but unreferenced.
 ]
 
 const HEAD_TURN_THRESHOLD = 0.06 // relaxed for mobile front cameras
