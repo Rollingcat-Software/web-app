@@ -2,6 +2,42 @@
 
 ## [Unreleased]
 
+### 2026-06-03 — Face enrollment overhaul: reliable step-by-step capture (now 3 steps, no blink)
+
+The dashboard face-enrollment wizard (`useFaceChallenge` + `FaceEnrollmentFlow` /
+`FaceEnrollmentDialog`) was reported buggy: steps silently auto-skipped, the flow
+could get permanently stuck, and the step counter / percentage / instruction were
+inconsistent. Fixed end-to-end (PRs #193–#197):
+
+- **Mandatory gestures, no silent auto-skip (#193).** turn_left / turn_right now
+  require the real gesture instead of auto-capturing after a 6 s timeout
+  (`softTimeoutAllowed` per stage; only the look/center step keeps a soft
+  timeout). A liveness miss re-prompts the CURRENT stage instead of resetting to
+  Step 1; the stage clock resets on "Begin"; progress starts at 0; enrollment
+  errors are routed through i18n (`formatApiError`).
+- **Never trap on blink (#194).** Blink is only detectable when the 478-pt
+  MediaPipe FaceLandmarker is active (`avgEAR`); on the BlazeFace fallback it's
+  undetectable and — once mandatory — trapped the user. Added an avgEAR-aware
+  timeout safety net so the flow can never be permanently stuck.
+- **Higher detection FPS (#195).** `numFaces: 5 → 1` in `FaceDetector` (auth has a
+  single subject; ~5× less per-frame inference → higher FPS so fast gestures are
+  actually sampled). `findPrimaryFace` already picks the largest face.
+- **Dropped the blink step (#196).** Client-side blink detection proved unreliable
+  across devices (it must sample the ~50–100 ms eye-closed phase through the
+  camera). Removed it — the **server** passive-liveness check is authoritative and
+  the head-turns provide the active "live person" gesture, so no anti-spoof value
+  was lost. The blink machinery in the hook is retained but unreferenced.
+- **Consistent step display + merged redundant frontal (#197).** The step counter
+  and percentage now both derive from current/total (no more "3/4 at 50 %"); the
+  instruction chip is hidden on the completion screen; and the near-duplicate
+  `position` + `frontal` "look at the camera" captures were merged into one.
+  **Enrollment is now 3 reliable steps: center / look → turn left → turn right
+  (counter X/3), every step genuinely executed.**
+
+Backend counterparts shipped separately: identity-core-api #200 (enrollment
+flag-consistency — closes the "enrolled-but-412" class) and biometric-processor
+#135/#136 (MediaPipe libs + multi-image quality-floor alignment).
+
 ### 2026-06-02 — Reject malformed login emails (1-char TLD) at the identifier step
 
 `user@gmail.x` advanced past the identifier step to the password step on both
