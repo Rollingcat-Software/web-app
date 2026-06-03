@@ -108,8 +108,8 @@ const SCRIPT_TAG_EXAMPLE = `<!DOCTYPE html>
 <body>
   <h1>My App</h1>
 
-  <!-- 1. Include the SDK (9.5KB gzipped, zero dependencies) -->
-  <script src="https://cdn.fivucsas.com/auth.min.js">${'<'}/script>
+  <!-- 1. Include the SDK (~5.8KB gzipped, zero dependencies) -->
+  <script src="https://verify.fivucsas.com/fivucsas-auth.js">${'<'}/script>
 
   <!-- 2. Add the Web Component -->
   <fivucsas-verify
@@ -515,7 +515,7 @@ export default function WidgetDemoPage() {
                 </Grid>
                 <Grid item xs={6} sm={3}>
                     <StatCard
-                        value="9.5KB"
+                        value="~5.8KB"
                         label={t('widgetDemo.sdkSize')}
                         icon={<Inventory2 sx={{ fontSize: 28 }} />}
                     />

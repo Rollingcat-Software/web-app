@@ -583,20 +583,6 @@ export default function ResetPasswordPage() {
                         ) : null}
                     </CardContent>
                 </Card>
-
-                <motion.div variants={itemVariants}>
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            display: 'block',
-                            textAlign: 'center',
-                            mt: 3,
-                            color: 'rgba(255, 255, 255, 0.8)',
-                        }}
-                    >
-                        Protected by enterprise-grade security
-                    </Typography>
-                </motion.div>
             </motion.div>
         </Box>
     )
