@@ -29,6 +29,15 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
   method: `face/`, `voice/`, `nfc/`, `sms/`, `totp/`, `webauthn/`. New
   enrollment methods follow the same pattern — each method owns its hook,
   step components, and DI wiring under its own subdirectory.
+- **Face enrollment flow (`hooks/useFaceChallenge.ts`, 2026-06-03):** a **3-step**
+  guided capture — **center/look → turn left → turn right** (counter X/3), one
+  image per step. Head-turn gestures are **mandatory** (no silent auto-skip); a
+  liveness miss re-prompts the current step (never resets to Step 1); step
+  counter + percentage both derive from current/total. **No blink step** —
+  client-side blink detection (EAR via the 478-pt FaceLandmarker `avgEAR`) was too
+  unreliable across devices/FPS; server passive-liveness is authoritative. The
+  shared `BlazeFace` detector runs at `numFaces:1` for auth (single subject →
+  higher FPS). Don't re-add a hard-required client blink. See CHANGELOG 2026-06-03.
 - `src/features/auth/constants.ts` - Centralized enums: AuthMethodType, MfaStepStatus, WEBAUTHN, AUTH_API
 - `src/features/auth/webauthn-utils.ts` - Shared WebAuthn: resolveChallenge, mapWebAuthnError, base64 helpers
 - `src/features/authFlows/` - Auth flow builder and management. The builder
