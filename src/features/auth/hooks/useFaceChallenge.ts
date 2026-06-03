@@ -131,6 +131,16 @@ const HEAD_TURN_THRESHOLD = 0.06 // relaxed for mobile front cameras
 // at save. See USER-BUG-1.
 const STAGE_TIMEOUT_MS = 6000
 
+// Blink-specific timeouts. A blink is only DETECTABLE when the active backend
+// exposes eye landmarks (avgEAR != null — the MediaPipe 478-pt FaceLandmarker,
+// NOT the BlazeFace fallback, which has no eye landmarks). When eyes are NOT
+// detectable, requiring a blink would trap the user, so we capture after a SHORT
+// timeout. When eyes ARE detectable, blink stays mandatory but a GENEROUS safety
+// timeout still prevents a permanent stuck if a real blink never registers.
+// (turn_left/turn_right stay strictly mandatory — bbox-based, always detectable.)
+const BLINK_SAFETY_TIMEOUT_MS = 12000
+const BLINK_NO_EYES_TIMEOUT_MS = 4000
+
 // After this long waiting on a MANDATORY gesture stage (where the soft timeout
 // never auto-passes), surface a gentle "still waiting for the gesture" hint so
 // the user understands the flow is waiting on THEM, not stuck. This is a UI
@@ -158,7 +168,14 @@ export function useFaceChallenge() {
     // Canonical close→re-open blink transition tracker — the SAME implementation
     // the puzzle BlinkDetector uses, so enrollment and puzzles agree on what a
     // blink is. Replaces the old face-detection-confidence-dip heuristic.
-    const blinkTrackerRef = useRef<BlinkTransitionTracker>(new BlinkTransitionTracker())
+    // Enrollment uses a more LENIENT consecutiveFrames=1 (vs the anti-spoof
+    // default 2): at low enrollment frame rates a fast natural blink may only
+    // span a single closed frame, so requiring 2 consecutive could miss it. The
+    // server runs the authoritative passive-liveness check, so leniency here is
+    // safe and just makes the on-screen blink step easier to complete.
+    const blinkTrackerRef = useRef<BlinkTransitionTracker>(
+        new BlinkTransitionTracker(undefined, undefined, 1),
+    )
     const blinkDetectedRef = useRef(false)
     const stageStartRef = useRef<number>(Date.now())
 
@@ -281,10 +298,19 @@ export function useFaceChallenge() {
         // satisfied, after STAGE_TIMEOUT_MS we capture anyway with a shortened
         // hold to be forgiving of mobile detection noise.
         //
-        // For the 3 MANDATORY gestures (turn_left/turn_right/blink) this is
-        // ALWAYS false, so they can ONLY advance via `conditionMet` — a gesture
-        // the user never performed is never silently auto-captured.
-        const timeoutReached = currentStage.softTimeoutAllowed && stageElapsed > STAGE_TIMEOUT_MS
+        // turn_left / turn_right are strictly mandatory (softTimeoutAllowed=false):
+        // they advance ONLY via `conditionMet`. Blink is special — it can only be
+        // DETECTED when avgEAR is available; if the backend can't see eyes (avgEAR
+        // null) or a real blink never registers within a generous window, capture
+        // anyway so the flow is never permanently stuck on an undetectable gesture
+        // (a real blink still advances instantly when detected).
+        let timeoutAllowed = currentStage.softTimeoutAllowed
+        let timeoutThreshold = STAGE_TIMEOUT_MS
+        if (currentStage.stage === 'blink' && !blinkDetectedRef.current) {
+            timeoutAllowed = true
+            timeoutThreshold = detection.avgEAR !== null ? BLINK_SAFETY_TIMEOUT_MS : BLINK_NO_EYES_TIMEOUT_MS
+        }
+        const timeoutReached = timeoutAllowed && stageElapsed > timeoutThreshold
 
         if (conditionMet || timeoutReached) {
             if (!holdStartRef.current) {
