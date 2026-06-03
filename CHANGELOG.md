@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### 2026-06-03 — Hosted login: stable step counter (no 1/2 → 2/3 jump) (#202)
+
+The hosted login (`verify.fivucsas.com`) showed an inconsistent step denominator —
+"1/2" on the password screen, then "2/3" on the first MFA step — when the mount-time
+login-config under-reported the flow vs. the caller's real tenant flow. Mobile sign-in
+redirects here, so this was visible during the OAuth handoff (reported issue #13).
+
+Ports the dashboard's preflight-authoritative fix (#158) into
+`verify-app/LoginMfaFlow.tsx`: the identifier-step pre-flight
+(`checkLoginEligibility`) already resolves the caller's REAL tenant login-config but
+its `totalSteps` was discarded. It's now captured into a new `flowTotalSteps` state
+(monotonic via `Math.max`), reaffirmed from each `/auth/mfa/step` response, and the
+step-counter denominator reads `flowTotalSteps ?? loginConfig.totalSteps ?? 1` instead
+of re-maxing disagreeing totals every render. Display-only, additive, reversible
+(no behavioural/auth change). `tsc` clean; verify-app config suite green + a new
+regression test asserting the password screen reads "1 of 3" (preflight), never "1 of 2".
+
 ### 2026-06-03 — Cross-device sign-in: re-homed Approve-login + new QR scan-to-login
 
 Two additive Layer-1 sign-in alternatives on the initial identity-entry screen of

@@ -122,6 +122,14 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     const [selectedMethod, setSelectedMethod] = useState<string>('')
     const [currentStep, setCurrentStep] = useState(1)
     const [totalSteps, setTotalSteps] = useState(1)
+    // Backend-authoritative flow size (the SINGLE denominator for the step
+    // counter), set from the identifier-step preflight that resolves the
+    // caller's real tenant flow and reaffirmed (never shrunk) by each
+    // /auth/login + /auth/mfa/step response. Mirrors the dashboard's #158 fix:
+    // without it the password screen used `loginConfig.totalSteps` while the MFA
+    // steps used the runtime `totalSteps`, and when those disagreed the
+    // denominator jumped (the reported "1/2 then 2/3" bug).
+    const [flowTotalSteps, setFlowTotalSteps] = useState<number | null>(null)
     const [usedMethods, setUsedMethods] = useState<string[]>([])
     // Identifier-first entry (config without PASSWORD): the typed email.
     const [identifier, setIdentifier] = useState('')
@@ -235,7 +243,10 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                 setMfaSessionToken(token)
                 // Backend-authoritative step counts: PASSWORD satisfied step 1, so
                 // the flow resumes at step 2 of N ("2/N").
-                if (result.totalSteps) setTotalSteps(result.totalSteps)
+                if (result.totalSteps) {
+                    setTotalSteps(result.totalSteps)
+                    setFlowTotalSteps((prev) => Math.max(prev ?? 0, result.totalSteps!))
+                }
                 setCurrentStep(result.currentStep ?? 2)
 
                 const methods = result.availableMethods ?? []
@@ -315,7 +326,14 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             setLoading(true)
             setError(undefined)
             try {
-                await authRepository.checkLoginEligibility(identifier.trim(), clientId || undefined)
+                // The preflight resolves the caller's REAL tenant login-config.
+                // Capture its `totalSteps` so the password screen already shows the
+                // correct denominator (e.g. 1/3) instead of the mount-time config's
+                // estimate — preventing the 1/2 → 2/3 jump on the MFA step.
+                const resolved = await authRepository.checkLoginEligibility(identifier.trim(), clientId || undefined)
+                if (resolved?.totalSteps) {
+                    setFlowTotalSteps((prev) => Math.max(prev ?? 0, resolved.totalSteps))
+                }
                 setPhase(FlowPhase.Password)
             } catch (err) {
                 // TENANT_MISMATCH (or any pre-flight error) is shown inline on the
@@ -453,7 +471,10 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
             if (res.mfaSessionToken) setMfaSessionToken(res.mfaSessionToken)
             if (res.currentStep) setCurrentStep(res.currentStep)
-            if (res.totalSteps) setTotalSteps((prev) => Math.max(prev, res.totalSteps!))
+            if (res.totalSteps) {
+                setTotalSteps((prev) => Math.max(prev, res.totalSteps!))
+                setFlowTotalSteps((prev) => Math.max(prev ?? 0, res.totalSteps!))
+            }
 
             const methods = res.availableMethods ?? availableMethods
             setAvailableMethods(methods)
@@ -558,14 +579,16 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
                         // Single backend-authoritative denominator shared by the
                         // password screen (the first factor, step 1) and every MFA
-                        // step. Prefer the config's `totalSteps`; fall back to the
-                        // live `totalSteps` / `currentStep` so the bar can never read
-                        // fewer steps than the user has already taken. No `Math.max(…,2,…)`
-                        // floor — that mismatched the password screen's
-                        // `loginConfig.totalSteps` and over-reported short flows.
+                        // step. Prefer `flowTotalSteps` (set from the identifier-step
+                        // preflight and reaffirmed by each /auth/login + /auth/mfa/step
+                        // response); fall back to the mount-time config, then to a
+                        // floor of `currentStep` so the bar can never read fewer steps
+                        // than the user has already taken. Runtime `totalSteps` is NOT
+                        // a co-equal input here — it is folded into `flowTotalSteps`
+                        // upstream — otherwise a config↔runtime disagreement made the
+                        // denominator jump mid-flow (the reported "1/2 then 2/3" bug).
                         const flowTotal = Math.max(
-                            loginConfig?.totalSteps ?? 0,
-                            totalSteps,
+                            flowTotalSteps ?? loginConfig?.totalSteps ?? 1,
                             currentStep,
                         )
                         if (phase === FlowPhase.Password) {
