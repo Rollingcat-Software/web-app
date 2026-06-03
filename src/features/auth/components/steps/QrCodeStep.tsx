@@ -80,7 +80,15 @@ export default function QrCodeStep({
             setGeneratedToken(result.token)
             setExpiresInSeconds(result.expiresInSeconds)
             setRemainingSeconds(result.expiresInSeconds)
-            setToken(result.token)
+            // SECURITY (Fix #2, 2026-06-03): do NOT auto-fill the just-generated
+            // token into the verification input. Auto-filling + clicking Verify
+            // submitted the SAME token the server issued to THIS browser — no
+            // separate-device possession proof, so the step always self-passed.
+            // The token must now be read from the QR (scanned by another, already
+            // signed-in device) and entered here, so QR_CODE proves cross-device
+            // possession. We still TRACK the token for expiry/cleanup, but the
+            // input box starts empty. (Full cross-device auto-approve handoff is
+            // the real fix — see QrLoginPanel; tracked below.)
             currentTokenRef.current = result.token
             setRateLimitedUntil(null)
         } catch (err) {
@@ -343,8 +351,12 @@ export default function QrCodeStep({
                         color="text.secondary"
                         sx={{ textAlign: 'center', mb: 2 }}
                     >
+                        {/* Fix #2: the token is NO LONGER auto-filled — it must be
+                            read from the QR by a separate, already-signed-in device
+                            and entered here, so this step proves cross-device
+                            possession instead of self-verifying. */}
                         {generatedToken
-                            ? t('mfa.qrCode.tokenAutoFilled')
+                            ? t('mfa.qrCode.scanWithDevice')
                             : t('mfa.qrCode.enterManually')}
                     </Typography>
                     <TextField
