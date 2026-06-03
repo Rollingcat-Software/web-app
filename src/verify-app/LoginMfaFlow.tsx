@@ -15,6 +15,7 @@ import {
     Card,
     CardContent,
     InputAdornment,
+    Skeleton,
     TextField,
     Typography,
 } from '@mui/material'
@@ -76,9 +77,23 @@ interface LoginMfaFlowProps {
      * legacy behaviour (always start on the password step).
      */
     loginConfig?: LoginConfig | null
+    /**
+     * True while the parent is STILL fetching `loginConfig` (it has not settled
+     * yet, so `loginConfig == null` is "unknown", not "failed/legacy"). When
+     * true, the OPENING Layer-1 screen renders a brief skeleton instead of the
+     * legacy password form, so the password box never flashes before the config
+     * resolves to identifier-first (the "sometimes email+password, sometimes
+     * just email" report). Once the fetch settles the parent passes `false`; a
+     * genuine config FAILURE leaves `loginConfig=null` + `configLoading=false`,
+     * which correctly falls back to the email+password form (admins never get
+     * locked out). Defaults to `false` ⇒ existing callers are unaffected. This
+     * only gates the opening identity-entry screen — never an in-progress MFA
+     * step (once an identifier/session is committed the skeleton is suppressed).
+     */
+    configLoading?: boolean
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, configLoading = false }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -530,6 +545,20 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
     // ─── Render ─────────────────────────────────────────────────
 
+    // Show a brief Layer-1 skeleton (instead of the legacy password form) while
+    // the parent is STILL fetching loginConfig — but ONLY on the opening
+    // identity-entry screen, and ONLY before anything is committed. This kills
+    // the "password box flashes then swaps to email-first" report. A settled
+    // fetch (configLoading=false) drops the skeleton; a genuine config failure
+    // (null + not-loading) renders the email+password form so no admin is ever
+    // locked out. Once an identifier/MFA session exists we never skeleton (the
+    // user is mid-flow), nor on the MFA / method-picker phases.
+    const showLayer1Skeleton =
+        configLoading &&
+        !mfaSessionToken &&
+        !identifier.trim() &&
+        (phase === FlowPhase.Password || phase === FlowPhase.Identifier)
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -682,6 +711,16 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                     </Box>
 
                     {/* Content */}
+                    {showLayer1Skeleton ? (
+                        /* Layer-1 placeholder while loginConfig is still loading
+                           — prevents the password-form flash before the config
+                           resolves to identifier-first (Fix #1). */
+                        <Box data-testid="login-config-skeleton">
+                            <Skeleton variant="text" width="55%" sx={{ mb: 2, fontSize: '0.95rem' }} />
+                            <Skeleton variant="rounded" height={56} sx={{ mb: 2, borderRadius: '12px' }} />
+                            <Skeleton variant="rounded" height={48} sx={{ mt: 1, borderRadius: '12px' }} />
+                        </Box>
+                    ) : (
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={phase + selectedMethod}
@@ -802,6 +841,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                             )}
                         </motion.div>
                     </AnimatePresence>
+                    )}
 
                     {/* Bottom step counter removed — StepProgress at the top is the
                         single authoritative indicator per Fix 4 (2026-04-18c). */}

@@ -68,6 +68,43 @@ describe('LoginMfaFlow — config-driven Layer 1', () => {
         expect(screen.getByLabelText('Password')).toBeInTheDocument()
     })
 
+    it('shows a Layer-1 skeleton (no password flash) while configLoading, then the real form (Fix #1)', async () => {
+        // While the parent is still fetching loginConfig, the opening screen must
+        // be a skeleton — NOT the legacy password form (which would flash before
+        // an identifier-first config resolves).
+        const { rerender } = render(
+            <LoginMfaFlow {...baseProps} loginConfig={null} configLoading />,
+        )
+        expect(screen.getByTestId('login-config-skeleton')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Password')).toBeNull()
+
+        // Config settles to identifier-first → skeleton gone, email-only form.
+        const config = normalizeLoginConfig({
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        rerender(<LoginMfaFlow {...baseProps} loginConfig={config} configLoading={false} />)
+        expect(screen.queryByTestId('login-config-skeleton')).toBeNull()
+        // The opening phase re-derives to identifier-first in a post-render effect.
+        await waitFor(() => {
+            expect(screen.queryByLabelText('Password')).toBeNull()
+        })
+        expect(screen.getByLabelText('Email Address')).toBeInTheDocument()
+    })
+
+    it('falls back to the email+password form when configLoading settles with a null config (no lockout, Fix #1)', () => {
+        // A GENUINE config failure = null + not-loading → must render the safe
+        // legacy password form so an admin is never locked out.
+        const { rerender } = render(
+            <LoginMfaFlow {...baseProps} loginConfig={null} configLoading />,
+        )
+        expect(screen.getByTestId('login-config-skeleton')).toBeInTheDocument()
+
+        rerender(<LoginMfaFlow {...baseProps} loginConfig={null} configLoading={false} />)
+        expect(screen.queryByTestId('login-config-skeleton')).toBeNull()
+        expect(screen.getByLabelText('Password')).toBeInTheDocument()
+    })
+
     it('renders identifier-first entry (no password field) when PASSWORD is absent', async () => {
         const config = normalizeLoginConfig({
             layer1: { identifierRequired: true, methods: [{ type: 'EMAIL_OTP' }] },

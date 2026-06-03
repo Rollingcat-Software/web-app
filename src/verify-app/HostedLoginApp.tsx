@@ -895,6 +895,13 @@ export default function HostedLoginApp() {
                                     onCancel={handleCancel}
                                     onInitialPhaseChange={setOnInitialLoginPhase}
                                     loginConfig={loginConfig}
+                                    // The hosted shell already resolves loginConfig
+                                    // INSIDE the metaLoading gate (it only mounts this
+                                    // flow once meta+config have settled), so this is
+                                    // false here. Passing it makes the no-flash
+                                    // contract explicit + future-proofs the flow if the
+                                    // mount gate ever changes (Fix #1, defense-in-depth).
+                                    configLoading={metaLoading}
                                 />
 
                                 {/* Config-driven usernameless shortcuts (G-web).
