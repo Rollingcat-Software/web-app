@@ -2500,5 +2500,22 @@
     "approved": "Onaylandı — giriş yapılıyor…",
     "startFailed": "Onay isteği başlatılamadı. Lütfen tekrar deneyin.",
     "emailRequired": "Devam etmek için e-postanızı girin."
+  },
+  "qrLogin": {
+    "button": "Telefonunuzla giriş yapın",
+    "buttonHint": "FIVUCSAS uygulamasıyla telefonunuzdan bir QR kodu tarayın",
+    "title": "Giriş için tarayın",
+    "instruction": "Telefonunuzda FIVUCSAS'ı açın, “QR ile Giriş” bölümüne gidin ve bu kodu tarayın.",
+    "qrAria": "Telefonunuzla giriş yapmak için QR kodu",
+    "waiting": "Taramanız bekleniyor…",
+    "scanned": "Tarandı — girişi telefonunuzdan onaylayın…",
+    "expiresIn": "Süre: {{time}}",
+    "expired": "Bu kodun süresi doldu. Yeni bir kod almak için yeniden başlayın.",
+    "approved": "Onaylandı — giriş yapılıyor…",
+    "mfaRequired": "Telefonunuzdan onaylandı. Bu hesap için ek bir adım gerekiyor — lütfen girişi buradan sürdürün.",
+    "restart": "Yeniden başla",
+    "cancel": "İptal",
+    "back": "Geri",
+    "startFailed": "QR ile giriş başlatılamadı. Lütfen tekrar deneyin."
   }
 }

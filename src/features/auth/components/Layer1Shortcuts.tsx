@@ -1,21 +1,24 @@
 /**
- * Layer1Shortcuts — the NO-EMAIL ("usernameless") sign-in cluster.
+ * Layer1Shortcuts — the cross-device sign-in cluster shown on the initial
+ * identity-entry screen, beside the email/password form.
  *
- * Shows the cross-device methods that need NO identifier typed first — the
- * factor itself resolves the user. Today that is the discoverable **passkey**
- * ("use your phone" via the OS). A QR scan-to-login is a planned addition.
+ * Three alternatives to typing a password here:
+ *   • Passkey — discoverable WebAuthn, fully usernameless (no email typed).
+ *   • Approve on another device — number-matching. The ApproveLoginPanel it
+ *     opens collects the email itself, so it lives here as a peer affordance
+ *     (an earlier note removed it for being "identifier-first"; since the panel
+ *     self-collects the email, it's fine as a Layer-1 alternative).
+ *   • Sign in with your phone — cross-device QR scan-to-login. The QrLoginPanel
+ *     it opens needs no identifier (the scanning phone resolves the user).
  *
- * NOTE: "Approve on another device" (number-matching) is deliberately NOT here.
- * It requires the user's email up front (the server must know whose device to
- * ping), so it is identifier-first and is rendered by the caller AFTER the email
- * field — not as a no-email peer of passkey. Listing it here made the login page
- * promise "no email needed" and then demand an email.
- *
- * When no login-config is available (fetch failed) `config` is null and the
- * caller's `fallbackAll` keeps the passkey shortcut visible (legacy surface).
+ * Approve and QR render only when the caller wires `onApproveClick`/`onQrClick`;
+ * the caller gates them to the initial identity-entry phase. When no login-config
+ * is available (fetch failed) `config` is null and `fallbackAll` keeps the
+ * passkey shortcut visible (legacy surface).
  */
 
-import { Divider, Typography } from '@mui/material'
+import { Button, Divider, Stack, Typography } from '@mui/material'
+import { PhonelinkLock, QrCode2 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import PasskeyLoginButton from './PasskeyLoginButton'
 import {
@@ -42,12 +45,16 @@ interface Layer1ShortcutsProps<T> {
     onPasskeySuccess: (login: T) => void
     onPasskeyError: (message: string) => void
     /**
-     * @deprecated Approve-on-another-device is identifier-first (needs email), so
-     * it is no longer a no-email shortcut here. Accepted but IGNORED for caller
-     * compatibility; the approve affordance is being re-homed AFTER the email
-     * step. Remove once callers stop passing it.
+     * Open the "Approve on another device" (number-matching) panel. When
+     * provided, an approve button renders here. The panel collects the email
+     * itself, so this works as a no-typing-first alternative.
      */
     onApproveClick?: () => void
+    /**
+     * Open the cross-device "Sign in with your phone" (QR scan-to-login) panel.
+     * When provided, a QR button renders here.
+     */
+    onQrClick?: () => void
     disabled?: boolean
     /** Hide the "or" divider (e.g. when there is no primary form above). */
     hideDivider?: boolean
@@ -59,6 +66,8 @@ export default function Layer1Shortcuts<T = unknown>({
     fallbackAll = false,
     onPasskeySuccess,
     onPasskeyError,
+    onApproveClick,
+    onQrClick,
     disabled,
     hideDivider = false,
     passkeySx,
@@ -72,8 +81,10 @@ export default function Layer1Shortcuts<T = unknown>({
     // instantly revertible by the API engine flag with no web redeploy.
     const configDriven = config?.engineActive === true
     const showPasskey = configDriven ? hasUsernamelessPasskey(config!) : fallbackAll
+    const showApprove = Boolean(onApproveClick)
+    const showQr = Boolean(onQrClick)
 
-    if (!showPasskey) return null
+    if (!showPasskey && !showApprove && !showQr) return null
 
     return (
         <>
@@ -85,12 +96,58 @@ export default function Layer1Shortcuts<T = unknown>({
                 </Divider>
             )}
 
-            <PasskeyLoginButton<T>
-                onSuccess={onPasskeySuccess}
-                onError={onPasskeyError}
-                disabled={disabled}
-                sx={passkeySx}
-            />
+            <Stack spacing={1.5}>
+                {showPasskey && (
+                    <PasskeyLoginButton<T>
+                        onSuccess={onPasskeySuccess}
+                        onError={onPasskeyError}
+                        disabled={disabled}
+                        sx={passkeySx}
+                    />
+                )}
+
+                {showApprove && (
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        size="large"
+                        onClick={onApproveClick}
+                        disabled={disabled}
+                        startIcon={<PhonelinkLock />}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            ...passkeySx,
+                        }}
+                    >
+                        {t('approveLogin.button')}
+                    </Button>
+                )}
+
+                {showQr && (
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        size="large"
+                        onClick={onQrClick}
+                        disabled={disabled}
+                        startIcon={<QrCode2 />}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            ...passkeySx,
+                        }}
+                    >
+                        {t('qrLogin.button')}
+                    </Button>
+                )}
+            </Stack>
         </>
     )
 }

@@ -2500,5 +2500,22 @@
     "approved": "Approved — signing you in…",
     "startFailed": "Couldn't start the approval request. Please try again.",
     "emailRequired": "Enter your email to continue."
+  },
+  "qrLogin": {
+    "button": "Sign in with your phone",
+    "buttonHint": "Scan a QR code with the FIVUCSAS app on your phone",
+    "title": "Scan to sign in",
+    "instruction": "Open FIVUCSAS on your phone, go to “Scan QR to Login”, and scan this code.",
+    "qrAria": "QR code to sign in with your phone",
+    "waiting": "Waiting for you to scan…",
+    "scanned": "Scanned — approve the sign-in on your phone…",
+    "expiresIn": "Expires in {{time}}",
+    "expired": "This code expired. Start again to get a new one.",
+    "approved": "Approved — signing you in…",
+    "mfaRequired": "Approved on your phone. This account needs another step — please continue signing in here.",
+    "restart": "Start again",
+    "cancel": "Cancel",
+    "back": "Back",
+    "startFailed": "Couldn't start QR sign-in. Please try again."
   }
 }

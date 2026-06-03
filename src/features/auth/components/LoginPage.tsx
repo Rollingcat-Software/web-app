@@ -41,6 +41,7 @@ import TwoFactorDispatcher from './TwoFactorDispatcher'
 import MethodPickerStep from './steps/MethodPickerStep'
 import Layer1Shortcuts from './Layer1Shortcuts'
 import ApproveLoginPanel, { type ApproveLoginResult } from './ApproveLoginPanel'
+import QrLoginPanel, { type QrLoginResult } from './QrLoginPanel'
 import type { AvailableMfaMethod, MfaStepResponse, IAuthRepository } from '@domain/interfaces/IAuthRepository'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -178,6 +179,7 @@ export default function LoginPage() {
     const [completedMfaMethods, setCompletedMfaMethods] = useState<string[]>([])
     // Approve-login (number-matching) panel toggle for the dashboard login.
     const [showApproveLogin, setShowApproveLogin] = useState(false)
+    const [showQrLogin, setShowQrLogin] = useState(false)
 
     // Fetch the platform Layer-1 login config, and only reveal the form (drop the
     // skeleton) once that fetch has SETTLED. Previously the page flipped to ready
@@ -525,6 +527,18 @@ export default function LoginPage() {
         [completeTokenLogin],
     )
 
+    const handleQrLoginApproved = useCallback(
+        (result: QrLoginResult) => {
+            setLoginError(null)
+            setShowQrLogin(false)
+            void completeTokenLogin({
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+            })
+        },
+        [completeTokenLogin],
+    )
+
     // Step/layer progress (parity with verify.fivucsas LoginMfaFlow). The DASHBOARD
     // login uses the PLATFORM login-config, which reports totalSteps=1 — MFA here is
     // dynamic per-user (not a configured layer), so we can't know upfront. We treat
@@ -590,6 +604,54 @@ export default function LoginPage() {
                         <ApproveLoginPanel
                             onApproved={handleApproveLoginApproved}
                             onCancel={() => setShowApproveLogin(false)}
+                        />
+                    </CardContent>
+                </Card>
+            </Box>
+        )
+    }
+
+    // Cross-device QR sign-in panel — same glass card shell as the other
+    // interstitials. Additive: the main login path is untouched, so this reverts
+    // cleanly by not opening the panel.
+    if (showQrLogin) {
+        return (
+            <Box
+                sx={{
+                    minHeight: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflowY: 'auto',
+                    py: 4,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 15s ease infinite',
+                    '@keyframes gradientShift': {
+                        '0%': { backgroundPosition: '0% 50%' },
+                        '50%': { backgroundPosition: '100% 50%' },
+                        '100%': { backgroundPosition: '0% 50%' },
+                    },
+                }}
+            >
+                <Card
+                    sx={{
+                        maxWidth: 480,
+                        width: '100%',
+                        mx: 2,
+                        borderRadius: '24px',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        color: '#1a1a2e',
+                        '& .MuiTypography-root': { color: '#1a1a2e' },
+                        '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                    }}
+                >
+                    <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                        <QrLoginPanel
+                            onApproved={handleQrLoginApproved}
+                            onCancel={() => setShowQrLogin(false)}
                         />
                     </CardContent>
                 </Card>
@@ -1241,6 +1303,10 @@ export default function LoginPage() {
                                 onApproveClick={() => {
                                     setLoginError(null)
                                     setShowApproveLogin(true)
+                                }}
+                                onQrClick={() => {
+                                    setLoginError(null)
+                                    setShowQrLogin(true)
                                 }}
                                 disabled={formBusy}
                                 hideDivider={!showPasswordForm}
