@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### 2026-06-03 — Cross-device sign-in: re-homed Approve-login + new QR scan-to-login
+
+Two additive Layer-1 sign-in alternatives on the initial identity-entry screen of
+both the dashboard login (`LoginPage`) and the hosted login (`HostedLoginApp`). The
+core email/password path is untouched, so both revert cleanly by not opening the panel.
+
+- **Approve on another device — re-homed.** The number-matching approve-login was
+  fully built (panel + `approve-login.ts` + backend) but its launch button had been
+  removed from `Layer1Shortcuts` and never re-attached, so the mobile "Login requests"
+  screen was permanently empty (nothing could initiate a request). `Layer1Shortcuts`
+  now renders the "Approve on another device" button again (both surfaces already
+  passed `onApproveClick`); the `ApproveLoginPanel` collects the email itself.
+- **Sign in with your phone (QR) — new.** New `qr-login.ts` client + `QrLoginPanel`
+  create a QR session (`POST /auth/qr/session`), render a QR encoding the **sessionId**
+  (as `fivucsas://qr-login?session=<id>` — the value the mobile approver resolves; the
+  random `qrContent` is NOT a lookup key, so encoding it would 404), and poll
+  `GET /auth/qr/session/{id}` until the phone approves. On APPROVED with tokens the
+  user is signed in; a multi-step tenant flow (mfaRequired) shows a "continue here"
+  message rather than hanging (step-up handoff via mfaSessionToken is a tracked
+  follow-up). EN + TR strings added (`qrLogin.*`).
+
 ### 2026-06-03 — Face enrollment overhaul: reliable step-by-step capture (now 3 steps, no blink)
 
 The dashboard face-enrollment wizard (`useFaceChallenge` + `FaceEnrollmentFlow` /
