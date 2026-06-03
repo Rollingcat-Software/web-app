@@ -61,6 +61,8 @@ export interface QrLoginPoll {
     mfaSessionToken?: string
     currentStep?: number
     totalSteps?: number
+    /** Next step's selectable methods (AuthMethodType NAME strings) — for the bridge. */
+    availableMethods?: string[]
 }
 
 /** How often to poll the session status, in milliseconds. */

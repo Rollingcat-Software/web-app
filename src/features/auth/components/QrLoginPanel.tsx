@@ -46,6 +46,12 @@ export interface QrLoginResult {
 export interface QrLoginPanelProps {
     /** Called with tokens when the sign-in is APPROVED on the phone. */
     onApproved: (result: QrLoginResult) => void
+    /**
+     * Called when the phone APPROVED a MULTI-STEP tenant's Layer-1 — hands the MFA
+     * session up so the shell RESUMES the step-up flow (the bridge) instead of
+     * dead-ending at "continue here". When omitted, falls back to that message.
+     */
+    onMfaPending?: (handoff: { mfaSessionToken: string; currentStep?: number; totalSteps?: number; availableMethods?: string[] }) => void
     /** Dismiss the panel (back to the main login form). */
     onCancel: () => void
 }
@@ -60,7 +66,7 @@ function formatTime(seconds: number): string {
     return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export default function QrLoginPanel({ onApproved, onCancel }: QrLoginPanelProps) {
+export default function QrLoginPanel({ onApproved, onMfaPending, onCancel }: QrLoginPanelProps) {
     const { t } = useTranslation()
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
 
@@ -73,6 +79,8 @@ export default function QrLoginPanel({ onApproved, onCancel }: QrLoginPanelProps
 
     const onApprovedRef = useRef(onApproved)
     onApprovedRef.current = onApproved
+    const onMfaPendingRef = useRef(onMfaPending)
+    onMfaPendingRef.current = onMfaPending
 
     // Create a session (and re-create on restart).
     useEffect(() => {
@@ -136,10 +144,19 @@ export default function QrLoginPanel({ onApproved, onCancel }: QrLoginPanelProps
                         expiresIn: poll.expiresIn,
                         role: poll.role,
                     })
+                } else if (onMfaPendingRef.current && poll.mfaSessionToken) {
+                    // Approved on the phone, but the tenant flow needs more steps —
+                    // bridge the MFA session up so the shell RESUMES the step-up flow
+                    // (the user continues into FACE/etc., like an email-first login).
+                    onMfaPendingRef.current({
+                        mfaSessionToken: poll.mfaSessionToken,
+                        currentStep: poll.currentStep,
+                        totalSteps: poll.totalSteps,
+                        availableMethods: poll.availableMethods,
+                    })
                 } else {
-                    // Approved, but the tenant flow needs more steps. We don't
-                    // (yet) bridge the mfaSessionToken into the step-up flow, so
-                    // tell the user to continue here rather than hang.
+                    // No bridge wired (or no session token) — fall back to the
+                    // "continue here" message rather than hang.
                     setPhase('mfa')
                 }
             } else if (poll.status === 'PENDING_APPROVAL') {

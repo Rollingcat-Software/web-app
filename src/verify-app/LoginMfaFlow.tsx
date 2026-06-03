@@ -91,9 +91,19 @@ interface LoginMfaFlowProps {
      * step (once an identifier/session is committed the skeleton is suppressed).
      */
     configLoading?: boolean
+    /**
+     * Multi-step bridge (Contract A): a usernameless Layer-1 (APPROVE_LOGIN/QR_CODE)
+     * approved on ANOTHER device for a MULTI-STEP tenant hands back an MFA session
+     * (not tokens). The shell passes that handoff here so this flow RESUMES into the
+     * MFA leg (method picker for the next step) instead of dead-ending at
+     * "extra step needed, continue here". Seeded ONCE, only while no MFA session is
+     * already open (so it can never yank a user out of an in-progress flow).
+     * `null`/undefined ⇒ unchanged behaviour.
+     */
+    resumeSession?: { mfaSessionToken: string; currentStep?: number; totalSteps?: number; availableMethods?: string[] } | null
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, configLoading = false }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, configLoading = false, resumeSession = null }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -210,6 +220,23 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                 (phase === FlowPhase.Password && !engineActive))
         onInitialPhaseChange(isInitial)
     }, [phase, engineActive, mfaSessionToken, onInitialPhaseChange])
+
+    // Multi-step bridge: a phone-approved usernameless Layer-1 (APPROVE_LOGIN/QR_CODE)
+    // on a multi-step tenant hands back an MFA session (not tokens). Seed the MFA leg
+    // so we RESUME into the method picker instead of dead-ending. The `!mfaSessionToken`
+    // guard makes this one-shot (it sets the token) and prevents pulling a user out of
+    // an already-open flow.
+    useEffect(() => {
+        if (!resumeSession?.mfaSessionToken || mfaSessionToken) return
+        setMfaSessionToken(resumeSession.mfaSessionToken)
+        setAvailableMethods((resumeSession.availableMethods ?? []).map((m) => ({
+            methodType: m, name: m, category: 'mfa', enrolled: true, preferred: false, requiresEnrollment: false,
+        })))
+        if (resumeSession.currentStep) setCurrentStep(resumeSession.currentStep)
+        if (resumeSession.totalSteps) setTotalSteps((p) => Math.max(p, resumeSession.totalSteps!))
+        setSelectedMethod('')
+        setPhase(FlowPhase.MethodPicker)
+    }, [resumeSession, mfaSessionToken])
 
     // loginConfig is fetched ASYNCHRONOUSLY by the parent (HostedLoginApp /
     // LoginPage), so on first mount it is null and the `useState` initializer

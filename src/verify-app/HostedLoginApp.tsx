@@ -264,6 +264,11 @@ export default function HostedLoginApp() {
     // can be active at a time; `null` means the default email/password+MFA flow.
     const [altFlow, setAltFlow] = useState<'approveLogin' | 'qrLogin' | null>(null)
     const [altError, setAltError] = useState<string | null>(null)
+    // Multi-step bridge: a phone-approved usernameless Layer-1 (approve/QR) on a
+    // multi-step tenant hands back an MFA session (not tokens). We close the
+    // alt-flow and pass it to LoginMfaFlow so it RESUMES the step-up flow instead
+    // of dead-ending at "continue here".
+    const [resumeSession, setResumeSession] = useState<{ mfaSessionToken: string; currentStep?: number; totalSteps?: number; availableMethods?: string[] } | null>(null)
     // Whether the inner LoginMfaFlow is on its OPENING identity-entry screen.
     // The usernameless shortcuts (passkey / approve) are ALTERNATIVES to typing
     // an identifier, so — mirroring the dashboard's `onInitialIdentityEntry`
@@ -868,6 +873,7 @@ export default function HostedLoginApp() {
                         ) : altFlow === 'approveLogin' ? (
                             <ApproveLoginPanel
                                 onApproved={handleApproveLoginApproved}
+                                onMfaPending={(h) => { setAltError(null); setAltFlow(null); setResumeSession(h) }}
                                 onCancel={() => {
                                     setAltError(null)
                                     setAltFlow(null)
@@ -876,6 +882,7 @@ export default function HostedLoginApp() {
                         ) : altFlow === 'qrLogin' ? (
                             <QrLoginPanel
                                 onApproved={handleQrLoginApproved}
+                                onMfaPending={(h) => { setAltError(null); setAltFlow(null); setResumeSession(h) }}
                                 onCancel={() => {
                                     setAltError(null)
                                     setAltFlow(null)
@@ -895,6 +902,7 @@ export default function HostedLoginApp() {
                                     onCancel={handleCancel}
                                     onInitialPhaseChange={setOnInitialLoginPhase}
                                     loginConfig={loginConfig}
+                                    resumeSession={resumeSession}
                                     // The hosted shell already resolves loginConfig
                                     // INSIDE the metaLoading gate (it only mounts this
                                     // flow once meta+config have settled), so this is

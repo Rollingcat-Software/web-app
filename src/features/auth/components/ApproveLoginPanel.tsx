@@ -47,6 +47,20 @@ export interface ApproveLoginPanelProps {
     initialEmail?: string
     /** Called with tokens when the request is APPROVED on the other device. */
     onApproved: (result: ApproveLoginResult) => void
+    /**
+     * Multi-step bridge (Contract A). Called when the request is APPROVED on the
+     * other device but the tenant's flow has REMAINING MFA steps — so instead of
+     * tokens the poll returns an MFA session handoff. The caller seeds its MFA
+     * flow from this and continues into the method picker, rather than
+     * dead-ending at "extra step needed". When unset, the panel keeps its
+     * current behaviour (a multi-step approval simply never resolves here).
+     */
+    onMfaPending?: (p: {
+        mfaSessionToken: string
+        currentStep?: number
+        totalSteps?: number
+        availableMethods?: string[]
+    }) => void
     /** Dismiss the panel (back to the main login form). */
     onCancel: () => void
 }
@@ -64,6 +78,7 @@ function formatTime(seconds: number): string {
 export default function ApproveLoginPanel({
     initialEmail = '',
     onApproved,
+    onMfaPending,
     onCancel,
 }: ApproveLoginPanelProps) {
     const { t } = useTranslation()
@@ -79,6 +94,11 @@ export default function ApproveLoginPanel({
     // Keep the approved callback stable for the polling effect.
     const onApprovedRef = useRef(onApproved)
     onApprovedRef.current = onApproved
+
+    // Same for the multi-step-bridge callback (Contract A), so the polling effect
+    // doesn't have to depend on it.
+    const onMfaPendingRef = useRef(onMfaPending)
+    onMfaPendingRef.current = onMfaPending
 
     const handleStart = useCallback(async () => {
         const trimmed = email.trim()
@@ -134,6 +154,26 @@ export default function ApproveLoginPanel({
             }
             if (cancelled) return
             setError(null)
+
+            // Multi-step bridge (Contract A): APPROVED on the other device but the
+            // tenant flow has REMAINING MFA steps, so the poll carries an MFA
+            // session handoff instead of tokens. Hand it to the caller (which seeds
+            // its MFA flow and continues into the method picker) and stop here —
+            // before the token branch, since a pending response has no accessToken.
+            if (
+                poll.status === 'APPROVED' &&
+                poll.mfaRequired &&
+                poll.mfaSessionToken &&
+                onMfaPendingRef.current
+            ) {
+                onMfaPendingRef.current({
+                    mfaSessionToken: poll.mfaSessionToken,
+                    currentStep: poll.currentStep,
+                    totalSteps: poll.totalSteps,
+                    availableMethods: poll.availableMethods,
+                })
+                return
+            }
 
             if (poll.status === 'APPROVED' && poll.accessToken) {
                 onApprovedRef.current({

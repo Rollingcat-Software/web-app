@@ -51,6 +51,24 @@ export interface ApproveLoginPoll {
     refreshToken?: string
     expiresIn?: number
     role?: string
+    /**
+     * Multi-step bridge (Contract A). When the approved Layer-1 factor belongs to
+     * a MULTI-STEP tenant flow, the session is APPROVED but NOT complete: there
+     * are remaining MFA steps. In that case the poll carries the MFA session
+     * handoff instead of tokens, so the web can continue into the remaining steps
+     * (the method picker) rather than dead-ending at "extra step needed".
+     *  - `mfaRequired`     — true when remaining steps exist.
+     *  - `mfaSessionToken` — the session token to drive `/auth/mfa/step`.
+     *  - `currentStep` / `totalSteps` — backend-authoritative step counts.
+     *  - `availableMethods` — AuthMethodType enum NAME strings for the NEXT step.
+     * Only present when the config-driven engine is ON for the tenant
+     * (APP_AUTH_CONFIG_DRIVEN_LOGIN[_TENANTS]) — that flag is the kill-switch.
+     */
+    mfaRequired?: boolean
+    mfaSessionToken?: string
+    currentStep?: number
+    totalSteps?: number
+    availableMethods?: string[]
 }
 
 /** How often to poll the session status, in milliseconds. */
