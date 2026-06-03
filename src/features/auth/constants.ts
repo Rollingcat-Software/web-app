@@ -76,7 +76,19 @@ export enum WebAuthnErrorName {
 export const AUTH_API = {
     MFA_STEP: '/auth/mfa/step',
     MFA_SEND_OTP: '/auth/mfa/send-otp',
+    /** Legacy single-device QR token generator (kept behind the backend flag). */
     MFA_QR_GENERATE: '/auth/mfa/qr-generate',
+    /**
+     * Cross-device QR FACTOR: create a QR MFA session bound to the in-flight
+     * mfaSessionToken (+ its user). The web renders the SESSION QR; a SEPARATE
+     * already-signed-in device scans + approves it. The step passes only the
+     * resulting `qrSessionId` to /auth/mfa/step — never a self-issued token —
+     * so QR_CODE proves cross-device possession. Reuses QrSessionService on the
+     * backend (same machinery as Layer-1 scan-to-login), bound to the MFA step.
+     */
+    MFA_QR_SESSION: '/auth/mfa/qr-session',
+    MFA_QR_SESSION_BY_ID: (qrSessionId: string) =>
+        `/auth/mfa/qr-session/${encodeURIComponent(qrSessionId)}`,
     WEBAUTHN_REGISTER_OPTIONS: (userId: string) => `/webauthn/register/options/${userId}`,
     WEBAUTHN_REGISTER_VERIFY: '/webauthn/register/verify',
     WEBAUTHN_REGISTER_SELF_OPTIONS: '/webauthn/register-options',
