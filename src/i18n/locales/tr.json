@@ -1452,7 +1452,7 @@
       "capturedCount": "{{count}} görüntü yakalandı",
       "retry": "Tekrar Dene",
       "captureAlt": "Yakalama {{n}}",
-      "autoAdvanceHint": "Yukarıdaki talimatı izleyin. Gerekirse otomatik olarak ilerleyecektir.",
+      "autoAdvanceHint": "Yukarıdaki talimatı izleyin. Her adım, onu tamamladığınızda ilerler.",
       "startingCamera": "Kamera Başlatılıyor...",
       "beginEnrollment": "Kayda Başla",
       "confirmSave": "Onayla ve Kaydet",
@@ -1910,6 +1910,11 @@
     "failedToLoadSessions": "Oturumlar yüklenemedi",
     "biometricProcessingFailed": "Biyometrik işleme başarısız",
     "enrollmentSyncFailed": "Kayıt senkronizasyonu başarısız",
+    "faceNotDetected": "Yakalanan görüntüde yüz algılanmadı. Lütfen daha iyi bir ışıkta tekrar deneyin ve yüzünüzün net göründüğünden emin olun.",
+    "multipleFaces": "Birden fazla yüz algılandı. Lütfen karede yalnızca kendi yüzünüzün olduğundan emin olun.",
+    "poorImageQuality": "Görüntü kalitesi çok düşük. Lütfen daha iyi bir ışıkta tekrar deneyin ve yakalama sırasında sabit durun.",
+    "faceEnrollmentFailed": "Yüz kaydı başarısız oldu. Lütfen tekrar deneyin.",
+    "faceAlreadyEnrolled": "Yüz zaten kayıtlı. Yeniden kaydetmek için önce mevcut kaydı iptal edin.",
     "sessionExpired": "Oturumunuz sona erdi. Lütfen tekrar giriş yapın.",
     "unexpectedRetry": "Beklenmeyen bir hata oluştu. Lütfen tekrar deneyin.",
     "unexpected": "Beklenmeyen bir hata oluştu.",
@@ -2006,7 +2011,8 @@
     "qualityBlurry": "Çok bulanık — telefonu sabit tutun ve yüzünüzü kıpırdatmayın.",
     "qualityDark": "Çok karanlık — daha aydınlık ve dengeli bir ışığa geçin.",
     "qualityBright": "Çok parlak — parlamayı azaltın veya güçlü ışıktan uzaklaşın.",
-    "qualitySmall": "Yüzünüz kareyi dolduracak şekilde biraz yaklaşın."
+    "qualitySmall": "Yüzünüz kareyi dolduracak şekilde biraz yaklaşın.",
+    "gestureStillWaiting": "Bekleniyor — devam etmek için lütfen yukarıda gösterilen hareketi yapın."
   },
   "register": {
     "verificationFailed": "Doğrulama başarısız oldu. Lütfen tekrar deneyin.",

@@ -1,32 +1,40 @@
 /**
- * Regression test for USER-BUG-1 (face enrollment "ceiling capture").
+ * Tests for useFaceChallenge — the 5-step face-enrollment wizard.
  *
- * Bug report (Turkish, 2026-04-30):
+ * Covers:
+ *   1. USER-BUG-1 ceiling-capture gate (no-face must NOT advance).
+ *   2. Mandatory gestures (2026-06-03): the soft STAGE_TIMEOUT_MS auto-pass
+ *      applies ONLY to `position` + `frontal`. The 3 active gestures
+ *      (turn_left / turn_right / blink) must require the real condition and
+ *      must NOT auto-capture on a timeout.
+ *   3. Liveness-miss recovery: a passive-liveness failure RE-PROMPTS the current
+ *      stage (security check unchanged) instead of snapping back to Step 1.
+ *
+ * Bug report for (1) (Turkish, 2026-04-30):
  *   "Tavanı göstersem bile devam ediyor yüz görmeden. Ama db kaydı başarısız
- *    dedi. O noktada kontrol ediyor sanki."
- *
- * Translation: "Even when I aim the camera at the ceiling, [enrollment]
- * continues without seeing a face. But it said DB save failed at the end.
- * It's like it's only checking at THAT point."
- *
- * Cause: useFaceChallenge had a "hard timeout" branch that auto-advanced the
- * stage even when `detection.detected === false`, plus a center-crop fallback
- * that synthesized an image when no bounding box was available. The fix gates
- * BOTH on a real `detection.detected === true` signal.
+ *    dedi." — "Even aimed at the ceiling it continues without seeing a face,
+ *    but said DB save failed at the end."
  */
 
-import { describe, it, expect, vi } from 'vitest'
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
 import { useFaceChallenge } from '../useFaceChallenge'
 import type { FaceDetectionState } from '../useFaceDetection'
 
-// BiometricEngine is touched only inside the capture branch (passive liveness
-// + landmark embedding). The no-face path never reaches it, so a minimal stub
-// is sufficient.
+// ── BiometricEngine stub ─────────────────────────────────────────────────────
+// Mutable handles let individual tests flip liveness availability / score so we
+// can exercise both the "liveness passes → stage advances" and "liveness fails →
+// re-prompt current stage" paths. qualityAssessor + embeddingComputer are kept
+// unavailable so the quality gate is skipped and embedding extraction is a no-op.
+const liveness = { available: true, score: 100 }
 vi.mock('../../../../lib/biometric-engine/core/BiometricEngine', () => ({
     BiometricEngine: {
         getInstance: () => ({
-            livenessDetector: { isAvailable: () => false, check: () => ({ score: 100 }) },
+            livenessDetector: {
+                isAvailable: () => liveness.available,
+                check: () => ({ score: liveness.score }),
+            },
+            qualityAssessor: { isAvailable: () => false, assess: () => null },
             embeddingComputer: { isAvailable: () => false, extract: async () => null },
         }),
     },
@@ -36,6 +44,33 @@ vi.mock('../../utils/faceCropper', () => ({
     dataURLToImageData: async () => null,
 }))
 
+// ── DOM stubs: a <video> with a real frame + a 2d canvas context ─────────────
+// The capture path reads `document.querySelector('video')` (for the liveness
+// ROI) and draws onto an offscreen canvas. jsdom has no media stack, so we stub
+// videoWidth/Height and getContext('2d') with the minimal surface used.
+function installVideoAndCanvasStubs() {
+    const video = document.createElement('video')
+    Object.defineProperty(video, 'videoWidth', { value: 640, configurable: true })
+    Object.defineProperty(video, 'videoHeight', { value: 480, configurable: true })
+    document.body.appendChild(video)
+
+    const fakeCtx = {
+        drawImage: vi.fn(),
+        getImageData: () => ({
+            data: new Uint8ClampedArray(4),
+            width: 1,
+            height: 1,
+            colorSpace: 'srgb',
+        }),
+    } as unknown as CanvasRenderingContext2D
+    vi.spyOn(HTMLCanvasElement.prototype, 'getContext').mockReturnValue(fakeCtx as never)
+
+    return () => {
+        video.remove()
+        vi.restoreAllMocks()
+    }
+}
+
 const NO_FACE: FaceDetectionState = {
     detected: false,
     centered: false,
@@ -44,6 +79,20 @@ const NO_FACE: FaceDetectionState = {
     hint: 'faceDetection.noFace',
     confidence: 0,
     boundingBox: null,
+    avgEAR: null,
+}
+
+// Face dead-centre: satisfies `position` + `frontal` (centered) but NOT the
+// turn gestures (centerX ≈ 0.5, neither shifted left nor right).
+const CENTERED: FaceDetectionState = {
+    detected: true,
+    centered: true,
+    tooClose: false,
+    tooFar: false,
+    hint: '',
+    confidence: 0.99,
+    boundingBox: { x: 0.3, y: 0.3, width: 0.4, height: 0.4 }, // centerX = 0.5
+    avgEAR: 0.3,
 }
 
 function makeCanvasRef(): React.RefObject<HTMLCanvasElement | null> {
@@ -51,19 +100,37 @@ function makeCanvasRef(): React.RefObject<HTMLCanvasElement | null> {
     return { current: canvas }
 }
 
+/**
+ * Drive the hook through whole-stage completions by feeding a satisfying
+ * detection state across the stage's hold window. Returns when `stageIndex`
+ * has advanced to (at least) `targetIndex` or `maxTicks` is exhausted.
+ */
+function advanceToStage(
+    result: { current: ReturnType<typeof useFaceChallenge> },
+    state: FaceDetectionState,
+    cropFace: () => string | null,
+    canvasRef: React.RefObject<HTMLCanvasElement | null>,
+    targetIndex: number,
+    maxTicks = 60,
+) {
+    for (let i = 0; i < maxTicks && result.current.challengeState.stageIndex < targetIndex; i++) {
+        vi.advanceTimersByTime(150)
+        act(() => {
+            result.current.updateChallenge(state, cropFace, canvasRef)
+        })
+    }
+}
+
 describe('useFaceChallenge — USER-BUG-1 ceiling-capture gate', () => {
     it('does not advance the stage when no face is detected, even after hard-timeout', () => {
         const { result } = renderHook(() => useFaceChallenge())
         const canvasRef = makeCanvasRef()
-        const cropFace = vi.fn(() => null) // mirrors no-face: cropFaceToDataURL returns null
+        const cropFace = vi.fn(() => null)
 
-        // Initial state: stage 'position', stageIndex 0
         expect(result.current.challengeState.stage).toBe('position')
         expect(result.current.challengeState.stageIndex).toBe(0)
         expect(result.current.challengeState.captures).toHaveLength(0)
 
-        // Simulate 60 update ticks across what would have been > 2 * STAGE_TIMEOUT_MS
-        // (the old code's "hard timeout" was 12s; we fast-forward Date.now via fake timers).
         vi.useFakeTimers()
         try {
             for (let i = 0; i < 60; i++) {
@@ -76,14 +143,10 @@ describe('useFaceChallenge — USER-BUG-1 ceiling-capture gate', () => {
             vi.useRealTimers()
         }
 
-        // The flow MUST still be stuck on stage 'position' with 0 captures.
-        // Before the fix, the hard-timeout branch would have auto-advanced the
-        // stage and the center-crop fallback would have produced a "capture".
         expect(result.current.challengeState.stage).toBe('position')
         expect(result.current.challengeState.stageIndex).toBe(0)
         expect(result.current.challengeState.captures).toHaveLength(0)
         expect(result.current.challengeState.instruction).toBe('faceChallenge.noFaceDetected')
-        // cropFace must never have been invoked — we never even attempt a capture.
         expect(cropFace).not.toHaveBeenCalled()
     })
 
@@ -95,5 +158,126 @@ describe('useFaceChallenge — USER-BUG-1 ceiling-capture gate', () => {
         expect(result.current.challengeState.stage).toBe('position')
         expect(result.current.challengeState.stageIndex).toBe(0)
         expect(result.current.challengeState.captures).toEqual([])
+        // Polish: progress starts at 0 (not 1/5) so % agrees with "Step 1/5".
+        expect(result.current.challengeState.progress).toBe(0)
+    })
+})
+
+describe('useFaceChallenge — mandatory gestures (no silent auto-skip)', () => {
+    let teardown: () => void
+    beforeEach(() => {
+        liveness.available = true
+        liveness.score = 100
+        vi.useFakeTimers()
+        teardown = installVideoAndCanvasStubs()
+    })
+    afterEach(() => {
+        teardown()
+        vi.useRealTimers()
+    })
+
+    it('soft-captures position + frontal via the timeout, but STOPS at turn_left', () => {
+        const { result } = renderHook(() => useFaceChallenge())
+        const canvasRef = makeCanvasRef()
+        const cropFace = vi.fn(() => 'data:image/jpeg;base64,Zm9v')
+
+        act(() => result.current.markStarted())
+
+        // CENTERED satisfies position + frontal directly (centered === true),
+        // so they advance on `conditionMet`; this proves those soft stages work.
+        advanceToStage(result, CENTERED, cropFace, canvasRef, 2)
+        expect(result.current.challengeState.stageIndex).toBe(2)
+        expect(result.current.challengeState.stage).toBe('turn_left')
+        expect(result.current.challengeState.captures).toHaveLength(2)
+
+        const capturesAfterFrontal = result.current.challengeState.captures.length
+
+        // Now sit on turn_left with a CENTERED face (turn condition NEVER met)
+        // for well beyond STAGE_TIMEOUT_MS (6 s). A soft timeout MUST NOT fire
+        // here — the gesture is mandatory.
+        for (let i = 0; i < 120; i++) {
+            vi.advanceTimersByTime(150) // 18 s on turn_left
+            act(() => {
+                result.current.updateChallenge(CENTERED, cropFace, canvasRef)
+            })
+        }
+
+        // Still on turn_left, no new capture — the gesture did not auto-pass.
+        expect(result.current.challengeState.stage).toBe('turn_left')
+        expect(result.current.challengeState.stageIndex).toBe(2)
+        expect(result.current.challengeState.captures).toHaveLength(capturesAfterFrontal)
+        // After GESTURE_HINT_MS the gentle "still waiting" nudge is shown.
+        expect(result.current.challengeState.instruction).toBe('faceChallenge.gestureStillWaiting')
+    })
+
+    it('advances past turn_left only when the turn gesture is actually performed', () => {
+        const { result } = renderHook(() => useFaceChallenge())
+        const canvasRef = makeCanvasRef()
+        const cropFace = vi.fn(() => 'data:image/jpeg;base64,Zm9v')
+
+        act(() => result.current.markStarted())
+        advanceToStage(result, CENTERED, cropFace, canvasRef, 2)
+        expect(result.current.challengeState.stage).toBe('turn_left')
+
+        // Head turned left = bbox shifted right in mirrored video (centerX high).
+        const TURNED_LEFT: FaceDetectionState = {
+            ...CENTERED,
+            centered: false,
+            boundingBox: { x: 0.5, y: 0.3, width: 0.4, height: 0.4 }, // centerX = 0.7 > 0.56
+        }
+        advanceToStage(result, TURNED_LEFT, cropFace, canvasRef, 3)
+
+        expect(result.current.challengeState.stageIndex).toBe(3)
+        expect(result.current.challengeState.stage).toBe('turn_right')
+        expect(result.current.challengeState.captures).toHaveLength(3)
+    })
+})
+
+describe('useFaceChallenge — liveness miss re-prompts the current stage', () => {
+    let teardown: () => void
+    beforeEach(() => {
+        liveness.available = true
+        liveness.score = 100
+        vi.useFakeTimers()
+        teardown = installVideoAndCanvasStubs()
+    })
+    afterEach(() => {
+        teardown()
+        vi.useRealTimers()
+    })
+
+    it('keeps the current stage + earned captures when liveness fails (no reset to Step 1)', () => {
+        const { result } = renderHook(() => useFaceChallenge())
+        const canvasRef = makeCanvasRef()
+        const cropFace = vi.fn(() => 'data:image/jpeg;base64,Zm9v')
+
+        act(() => result.current.markStarted())
+
+        // Pass position + frontal with liveness OK so we land on turn_left with 2 captures.
+        advanceToStage(result, CENTERED, cropFace, canvasRef, 2)
+        expect(result.current.challengeState.stageIndex).toBe(2)
+        expect(result.current.challengeState.captures).toHaveLength(2)
+
+        // Now make liveness FAIL, and perform the turn gesture so capture is attempted.
+        liveness.score = 0
+        const TURNED_LEFT: FaceDetectionState = {
+            ...CENTERED,
+            centered: false,
+            boundingBox: { x: 0.5, y: 0.3, width: 0.4, height: 0.4 },
+        }
+        for (let i = 0; i < 40; i++) {
+            vi.advanceTimersByTime(150)
+            act(() => {
+                result.current.updateChallenge(TURNED_LEFT, cropFace, canvasRef)
+            })
+            if (result.current.challengeState.instruction === 'faceChallenge.livenessCheckFailed') break
+        }
+
+        // Liveness miss must RE-PROMPT the CURRENT stage (turn_left, index 2),
+        // NOT snap back to Step 1 (position, index 0). Earned captures kept.
+        expect(result.current.challengeState.instruction).toBe('faceChallenge.livenessCheckFailed')
+        expect(result.current.challengeState.stage).toBe('turn_left')
+        expect(result.current.challengeState.stageIndex).toBe(2)
+        expect(result.current.challengeState.captures).toHaveLength(2)
     })
 })

@@ -91,31 +91,60 @@ export interface VerificationState {
     capturedImage: string | null
 }
 
-const ENROLLMENT_STAGES: { stage: ChallengeStage; instructionKey: string; holdMs: number }[] = [
-    { stage: 'position', instructionKey: 'faceChallenge.positionOval', holdMs: 300 },
-    { stage: 'frontal', instructionKey: 'faceChallenge.lookStraight', holdMs: 300 },
-    { stage: 'turn_left', instructionKey: 'faceChallenge.turnLeft', holdMs: 300 },
-    { stage: 'turn_right', instructionKey: 'faceChallenge.turnRight', holdMs: 300 },
-    { stage: 'blink', instructionKey: 'faceChallenge.blink', holdMs: 400 },
+/**
+ * `softTimeoutAllowed` controls whether the soft STAGE_TIMEOUT_MS auto-pass
+ * applies to a stage.
+ *
+ *   • `position` / `frontal` — passive "hold still" stages. A soft timeout is
+ *     acceptable here: the user is already facing the camera, head-pose / centering
+ *     estimation is just noisy, so capturing after STAGE_TIMEOUT_MS does NOT skip a
+ *     deliberate action — the user IS doing what was asked.
+ *
+ *   • `turn_left` / `turn_right` / `blink` — MANDATORY active gestures. These MUST
+ *     be performed; a soft timeout here would silently auto-pass a gesture the user
+ *     never made, defeating the liveness intent. So these require `conditionMet`
+ *     and NEVER capture on a timeout alone (owner-approved decision, 2026-06-03 —
+ *     gestures are mandatory, no silent auto-skip).
+ */
+const ENROLLMENT_STAGES: { stage: ChallengeStage; instructionKey: string; holdMs: number; softTimeoutAllowed: boolean }[] = [
+    { stage: 'position', instructionKey: 'faceChallenge.positionOval', holdMs: 300, softTimeoutAllowed: true },
+    { stage: 'frontal', instructionKey: 'faceChallenge.lookStraight', holdMs: 300, softTimeoutAllowed: true },
+    { stage: 'turn_left', instructionKey: 'faceChallenge.turnLeft', holdMs: 300, softTimeoutAllowed: false },
+    { stage: 'turn_right', instructionKey: 'faceChallenge.turnRight', holdMs: 300, softTimeoutAllowed: false },
+    { stage: 'blink', instructionKey: 'faceChallenge.blink', holdMs: 400, softTimeoutAllowed: false },
 ]
 
 const HEAD_TURN_THRESHOLD = 0.06 // relaxed for mobile front cameras
-// Soft timeout: if a face IS detected but the stage-specific gesture (turn left,
-// blink, etc.) is not satisfied for this long, capture anyway. This is forgiving
-// of mobile front-camera quirks where head-pose estimation is noisy.
+// Soft timeout: ONLY for stages with `softTimeoutAllowed === true` (position +
+// frontal). For those, if a face IS detected but the centering/pose isn't yet
+// satisfied for this long, we capture anyway with a shortened hold — forgiving
+// of mobile front-camera quirks where detection is noisy.
 //
-// IMPORTANT: timeouts must NEVER fire while `detection.detected === false`.
-// Pointing the camera at the ceiling (or anywhere with no face) must NOT
-// advance the flow — the server rejects an empty descriptor at pgvector insert
-// time and the user only sees the failure at save. See USER-BUG-1.
+// The 3 mandatory gestures (turn_left/turn_right/blink) have
+// `softTimeoutAllowed === false`: they NEVER auto-capture on a timeout, so a
+// gesture the user never performed is never silently accepted.
+//
+// IMPORTANT: even for soft-timeout stages, timeouts must NEVER fire while
+// `detection.detected === false`. Pointing the camera at the ceiling (or
+// anywhere with no face) must NOT advance the flow — the server rejects an
+// empty descriptor at pgvector insert time and the user only sees the failure
+// at save. See USER-BUG-1.
 const STAGE_TIMEOUT_MS = 6000
+
+// After this long waiting on a MANDATORY gesture stage (where the soft timeout
+// never auto-passes), surface a gentle "still waiting for the gesture" hint so
+// the user understands the flow is waiting on THEM, not stuck. This is a UI
+// nudge ONLY — it never captures and never advances the stage.
+const GESTURE_HINT_MS = 6000
 
 export function useFaceChallenge() {
     const [challengeState, setChallengeState] = useState<ChallengeState>({
         stage: 'position',
         stageIndex: 0,
         totalStages: ENROLLMENT_STAGES.length,
-        progress: 1 / ENROLLMENT_STAGES.length,
+        // Progress = COMPLETED stages / total, so it reads 0% at Step 1/5 and
+        // 100% at completion — the % and the "Step n/5" counter now agree.
+        progress: 0,
         stageProgress: 0,
         instruction: ENROLLMENT_STAGES[0].instructionKey,
         captures: [],
@@ -145,12 +174,27 @@ export function useFaceChallenge() {
             stage: 'position',
             stageIndex: 0,
             totalStages: ENROLLMENT_STAGES.length,
-            progress: 1 / ENROLLMENT_STAGES.length,
+            progress: 0,
             stageProgress: 0,
             instruction: ENROLLMENT_STAGES[0].instructionKey,
             captures: [],
             clientEmbeddings: [],
         })
+    }, [])
+
+    /**
+     * Reset the stage clock to "now" when enrollment actually BEGINS.
+     *
+     * The capture loop only runs after the user clicks "Begin" in
+     * FaceEnrollmentFlow, but `stageStartRef` is initialised at hook mount
+     * (dialog open). Without this, Step 1's soft-timeout clock could already
+     * have elapsed by the time the user clicks Begin, letting the first stage
+     * instant-capture on a stale 6s clock. Call this from the consumer at the
+     * moment enrollment starts so the soft-timeout countdown starts fresh.
+     */
+    const markStarted = useCallback(() => {
+        stageStartRef.current = Date.now()
+        holdStartRef.current = null
     }, [])
 
     const checkStageCondition = useCallback((
@@ -225,17 +269,22 @@ export function useFaceChallenge() {
             setChallengeState(prev => ({
                 ...prev,
                 stageProgress: 0,
-                progress: (idx + 1) / ENROLLMENT_STAGES.length,
+                progress: idx / ENROLLMENT_STAGES.length,
                 instruction: 'faceChallenge.noFaceDetected',
             }))
             return
         }
 
         const stageElapsed = Date.now() - stageStartRef.current
-        // Soft timeout: face IS detected but the gesture (turn left, blink…)
-        // is not satisfied. After STAGE_TIMEOUT_MS we capture anyway with a
-        // shortened hold to be forgiving of mobile head-pose noise.
-        const timeoutReached = stageElapsed > STAGE_TIMEOUT_MS
+        // Soft timeout — ONLY for `softTimeoutAllowed` stages (position +
+        // frontal). For those, when a face IS detected but centering isn't yet
+        // satisfied, after STAGE_TIMEOUT_MS we capture anyway with a shortened
+        // hold to be forgiving of mobile detection noise.
+        //
+        // For the 3 MANDATORY gestures (turn_left/turn_right/blink) this is
+        // ALWAYS false, so they can ONLY advance via `conditionMet` — a gesture
+        // the user never performed is never silently auto-captured.
+        const timeoutReached = currentStage.softTimeoutAllowed && stageElapsed > STAGE_TIMEOUT_MS
 
         if (conditionMet || timeoutReached) {
             if (!holdStartRef.current) {
@@ -267,7 +316,7 @@ export function useFaceChallenge() {
                     setChallengeState(prev => ({
                         ...prev,
                         stageProgress: 0,
-                        progress: (idx + 1) / ENROLLMENT_STAGES.length,
+                        progress: idx / ENROLLMENT_STAGES.length,
                         instruction: 'faceChallenge.noFaceDetected',
                     }))
                     return
@@ -294,7 +343,7 @@ export function useFaceChallenge() {
                         setChallengeState(prev => ({
                             ...prev,
                             stageProgress: 0,
-                            progress: (idx + 1) / ENROLLMENT_STAGES.length,
+                            progress: idx / ENROLLMENT_STAGES.length,
                             instruction,
                         }))
                         return
@@ -356,24 +405,26 @@ export function useFaceChallenge() {
                     })()
 
                     if (!livenessPassed) {
-                        // Reset challenge — liveness gate not satisfied.
-                        stageIndexRef.current = 0
-                        capturesRef.current = []
-                        clientEmbeddingsRef.current = []
+                        // Liveness gate not satisfied. SECURITY: the check itself
+                        // is unchanged (we still fail-closed and discard this
+                        // frame). Only the RECOVERY UX changes: re-prompt the
+                        // CURRENT stage instead of snapping the user all the way
+                        // back to Step 1. We reset only the current hold + stage
+                        // clock and show the liveness-retry instruction — mirroring
+                        // the quality-gate behavior above. Captures already earned
+                        // on earlier stages are kept, and stageIndex is preserved.
                         holdStartRef.current = null
+                        stageStartRef.current = Date.now()
+                        // Blink stage: clear the latched blink so the user must
+                        // blink again for a fresh live frame on the retry.
                         blinkTrackerRef.current.reset()
                         blinkDetectedRef.current = false
-                        stageStartRef.current = Date.now()
-                        setChallengeState({
-                            stage: 'position',
-                            stageIndex: 0,
-                            totalStages: ENROLLMENT_STAGES.length,
-                            progress: 1 / ENROLLMENT_STAGES.length,
+                        setChallengeState(prev => ({
+                            ...prev,
                             stageProgress: 0,
+                            progress: idx / ENROLLMENT_STAGES.length,
                             instruction: 'faceChallenge.livenessCheckFailed',
-                            captures: [],
-                            clientEmbeddings: [],
-                        })
+                        }))
                         return
                     }
                     // ─────────────────────────────────────────────────────────────────────
@@ -431,7 +482,8 @@ export function useFaceChallenge() {
                         stage: ENROLLMENT_STAGES[nextIdx].stage,
                         stageIndex: nextIdx,
                         totalStages: ENROLLMENT_STAGES.length,
-                        progress: (nextIdx + 1) / ENROLLMENT_STAGES.length,
+                        // `nextIdx` stages are now complete.
+                        progress: nextIdx / ENROLLMENT_STAGES.length,
                         stageProgress: 0,
                         instruction: ENROLLMENT_STAGES[nextIdx].instructionKey,
                         captures: capturesRef.current,
@@ -442,21 +494,33 @@ export function useFaceChallenge() {
                 setChallengeState(prev => ({
                     ...prev,
                     stageProgress,
-                    progress: (idx + 1) / ENROLLMENT_STAGES.length,
+                    progress: idx / ENROLLMENT_STAGES.length,
                 }))
             }
         } else {
-            // Condition not met — reset hold timer
+            // Condition not met — reset hold timer. The stage NEVER auto-passes
+            // here for mandatory gestures; we just keep waiting for the user to
+            // perform the gesture.
             holdStartRef.current = null
+            // Gentle nudge: for a mandatory gesture stage that the user has been
+            // on for a while without performing the gesture, swap the instruction
+            // to a "still waiting" hint so it's clear the flow is waiting on THEM
+            // (it never captures — purely informational). Soft-timeout stages keep
+            // their normal instruction since they auto-advance anyway.
+            const showGestureHint =
+                !currentStage.softTimeoutAllowed && stageElapsed > GESTURE_HINT_MS
             setChallengeState(prev => ({
                 ...prev,
                 stageProgress: 0,
-                progress: (idx + 1) / ENROLLMENT_STAGES.length,
+                progress: idx / ENROLLMENT_STAGES.length,
+                instruction: showGestureHint
+                    ? 'faceChallenge.gestureStillWaiting'
+                    : currentStage.instructionKey,
             }))
         }
     }, [checkStageCondition])
 
-    return { challengeState, updateChallenge, resetChallenge }
+    return { challengeState, updateChallenge, resetChallenge, markStarted }
 }
 
 export function useFaceVerification() {
