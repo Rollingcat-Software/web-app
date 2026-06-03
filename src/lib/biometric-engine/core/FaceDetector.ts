@@ -106,7 +106,12 @@ export class FaceDetector implements IFaceDetector {
             delegate: 'GPU',
           },
           runningMode: 'VIDEO',
-          numFaces: 5, // Python: max_num_faces=5
+          // Auth/enroll only ever has ONE subject. Detecting up to 5 faces per
+          // frame is ~5x the inference cost and lowers effective FPS — which on a
+          // CPU/WASM fallback makes the per-frame sampling too slow to catch a
+          // short blink (the closed phase falls between frames). One face keeps
+          // inference fast. findPrimaryFace already picks the largest face anyway.
+          numFaces: 1,
           minFaceDetectionConfidence: 0.5, // Python line 191
           minFacePresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
@@ -129,7 +134,7 @@ export class FaceDetector implements IFaceDetector {
             delegate: 'CPU',
           },
           runningMode: 'VIDEO',
-          numFaces: 5,
+          numFaces: 1, // single subject for auth/enroll — faster inference (higher FPS)
           minFaceDetectionConfidence: 0.5,
           minFacePresenceConfidence: 0.5,
           minTrackingConfidence: 0.5,
