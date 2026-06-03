@@ -106,10 +106,18 @@ task #16 / PR #163) — never hardcode the password-first form.
   tenant flows and then continue through `/auth/mfa/step` like a password login.
 - `LoginPage.tsx` (dashboard) gates the password form the same way; the
   no-password path routes through `TwoFactorDispatcher`.
-- `Layer1Shortcuts.tsx` renders the usernameless shortcuts (passkey / approve)
-  **strictly per the config when it positively declares a usernameless Layer-1
-  method**; when it declares none (null config OR the flag-OFF password-first
-  shape) `fallbackAll` keeps today's passkey + approve buttons.
+- `Layer1Shortcuts.tsx` renders the cross-device sign-in cluster on the initial
+  identity-entry screen: the **passkey** button (config-driven — shown strictly per
+  the config when it declares a usernameless Layer-1 method; `fallbackAll` keeps it
+  on a null/flag-OFF config), plus **"Approve on another device"** and **"Sign in
+  with your phone" (QR)** when the caller passes `onApproveClick` / `onQrClick` (both
+  `LoginPage` and `HostedLoginApp` do). The approve + QR panels self-collect what they
+  need (email / a scanned session), so they work as no-typing-first alternatives.
+  (web-app #199, 2026-06-03 — approve had been removed from here and was re-homed;
+  QR is new. See `qr-login.ts` + `QrLoginPanel.tsx` / `ApproveLoginPanel.tsx`. QR
+  encodes the **sessionId** as `fivucsas://qr-login?session=<id>` — NOT the API's
+  random `qrContent`, which is not a Redis lookup key. Multi-step tenants return
+  `mfaRequired`; the step-up handoff via `mfaSessionToken` is a tracked follow-up.)
 - **Reversibility**: the UI is 100% config-driven + always has the
   email+password fallback, so flipping the API flag OFF (which returns the
   current password-first shape) reverts the whole feature with **no web

@@ -23,6 +23,11 @@ core email/password path is untouched, so both revert cleanly by not opening the
   message rather than hanging (step-up handoff via mfaSessionToken is a tracked
   follow-up). EN + TR strings added (`qrLogin.*`).
 
+**Deployed 2026-06-03:** `app.fivucsas.com` auto-deployed via the Hostinger workflow on
+merge; `verify.fivucsas.com` rebuilt + redeployed (Docker). Browser-verified live on the
+dashboard — both buttons render and the QR panel creates a real session + polls with no
+console errors.
+
 ### 2026-06-03 — Face enrollment overhaul: reliable step-by-step capture (now 3 steps, no blink)
 
 The dashboard face-enrollment wizard (`useFaceChallenge` + `FaceEnrollmentFlow` /
