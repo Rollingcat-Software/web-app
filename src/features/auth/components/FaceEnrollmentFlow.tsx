@@ -234,12 +234,12 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                             })}
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'rgba(255,255,255,0.5)' }}>
-                            {Math.round(challengeState.progress * 100)}%
+                            {Math.round((Math.min(challengeState.stageIndex + 1, challengeState.totalStages) / challengeState.totalStages) * 100)}%
                         </Typography>
                     </Box>
                     <LinearProgress
                         variant="determinate"
-                        value={challengeState.progress * 100}
+                        value={(Math.min(challengeState.stageIndex + 1, challengeState.totalStages) / challengeState.totalStages) * 100}
                         sx={{
                             height: 6,
                             borderRadius: 3,
@@ -346,8 +346,9 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                     </AnimatePresence>
                 </Box>
 
-                {/* Instruction */}
+                {/* Instruction (hidden on the completion screen) */}
                 <Box sx={{ textAlign: 'center', px: 3, py: 1.5 }} aria-live="polite" aria-atomic="true">
+                    {challengeState.stage !== 'complete' && (
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={challengeState.stage}
@@ -380,6 +381,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
                             />
                         </motion.div>
                     </AnimatePresence>
+                    )}
 
                     {started && challengeState.stage !== 'complete' && (
                         <Typography

@@ -176,21 +176,21 @@ describe('useFaceChallenge — mandatory gestures (no silent auto-skip)', () => 
         vi.useRealTimers()
     })
 
-    it('soft-captures position + frontal via the timeout, but STOPS at turn_left', () => {
+    it('soft-captures position via the timeout, but STOPS at turn_left', () => {
         const { result } = renderHook(() => useFaceChallenge())
         const canvasRef = makeCanvasRef()
         const cropFace = vi.fn(() => 'data:image/jpeg;base64,Zm9v')
 
         act(() => result.current.markStarted())
 
-        // CENTERED satisfies position + frontal directly (centered === true),
-        // so they advance on `conditionMet`; this proves those soft stages work.
-        advanceToStage(result, CENTERED, cropFace, canvasRef, 2)
-        expect(result.current.challengeState.stageIndex).toBe(2)
+        // CENTERED satisfies position directly (centered === true), so it advances
+        // on `conditionMet`; this proves the soft stage works.
+        advanceToStage(result, CENTERED, cropFace, canvasRef, 1)
+        expect(result.current.challengeState.stageIndex).toBe(1)
         expect(result.current.challengeState.stage).toBe('turn_left')
-        expect(result.current.challengeState.captures).toHaveLength(2)
+        expect(result.current.challengeState.captures).toHaveLength(1)
 
-        const capturesAfterFrontal = result.current.challengeState.captures.length
+        const capturesAfterPosition = result.current.challengeState.captures.length
 
         // Now sit on turn_left with a CENTERED face (turn condition NEVER met)
         // for well beyond STAGE_TIMEOUT_MS (6 s). A soft timeout MUST NOT fire
@@ -204,8 +204,8 @@ describe('useFaceChallenge — mandatory gestures (no silent auto-skip)', () => 
 
         // Still on turn_left, no new capture — the gesture did not auto-pass.
         expect(result.current.challengeState.stage).toBe('turn_left')
-        expect(result.current.challengeState.stageIndex).toBe(2)
-        expect(result.current.challengeState.captures).toHaveLength(capturesAfterFrontal)
+        expect(result.current.challengeState.stageIndex).toBe(1)
+        expect(result.current.challengeState.captures).toHaveLength(capturesAfterPosition)
         // After GESTURE_HINT_MS the gentle "still waiting" nudge is shown.
         expect(result.current.challengeState.instruction).toBe('faceChallenge.gestureStillWaiting')
     })
@@ -216,7 +216,7 @@ describe('useFaceChallenge — mandatory gestures (no silent auto-skip)', () => 
         const cropFace = vi.fn(() => 'data:image/jpeg;base64,Zm9v')
 
         act(() => result.current.markStarted())
-        advanceToStage(result, CENTERED, cropFace, canvasRef, 2)
+        advanceToStage(result, CENTERED, cropFace, canvasRef, 1)
         expect(result.current.challengeState.stage).toBe('turn_left')
 
         // Head turned left = bbox shifted right in mirrored video (centerX high).
@@ -225,11 +225,11 @@ describe('useFaceChallenge — mandatory gestures (no silent auto-skip)', () => 
             centered: false,
             boundingBox: { x: 0.5, y: 0.3, width: 0.4, height: 0.4 }, // centerX = 0.7 > 0.56
         }
-        advanceToStage(result, TURNED_LEFT, cropFace, canvasRef, 3)
+        advanceToStage(result, TURNED_LEFT, cropFace, canvasRef, 2)
 
-        expect(result.current.challengeState.stageIndex).toBe(3)
+        expect(result.current.challengeState.stageIndex).toBe(2)
         expect(result.current.challengeState.stage).toBe('turn_right')
-        expect(result.current.challengeState.captures).toHaveLength(3)
+        expect(result.current.challengeState.captures).toHaveLength(2)
     })
 })
 
@@ -253,10 +253,10 @@ describe('useFaceChallenge — liveness miss re-prompts the current stage', () =
 
         act(() => result.current.markStarted())
 
-        // Pass position + frontal with liveness OK so we land on turn_left with 2 captures.
-        advanceToStage(result, CENTERED, cropFace, canvasRef, 2)
-        expect(result.current.challengeState.stageIndex).toBe(2)
-        expect(result.current.challengeState.captures).toHaveLength(2)
+        // Pass position with liveness OK so we land on turn_left with 1 capture.
+        advanceToStage(result, CENTERED, cropFace, canvasRef, 1)
+        expect(result.current.challengeState.stageIndex).toBe(1)
+        expect(result.current.challengeState.captures).toHaveLength(1)
 
         // Now make liveness FAIL, and perform the turn gesture so capture is attempted.
         liveness.score = 0
@@ -273,11 +273,11 @@ describe('useFaceChallenge — liveness miss re-prompts the current stage', () =
             if (result.current.challengeState.instruction === 'faceChallenge.livenessCheckFailed') break
         }
 
-        // Liveness miss must RE-PROMPT the CURRENT stage (turn_left, index 2),
+        // Liveness miss must RE-PROMPT the CURRENT stage (turn_left, index 1),
         // NOT snap back to Step 1 (position, index 0). Earned captures kept.
         expect(result.current.challengeState.instruction).toBe('faceChallenge.livenessCheckFailed')
         expect(result.current.challengeState.stage).toBe('turn_left')
-        expect(result.current.challengeState.stageIndex).toBe(2)
-        expect(result.current.challengeState.captures).toHaveLength(2)
+        expect(result.current.challengeState.stageIndex).toBe(1)
+        expect(result.current.challengeState.captures).toHaveLength(1)
     })
 })
