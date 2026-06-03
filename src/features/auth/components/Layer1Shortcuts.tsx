@@ -2,23 +2,23 @@
  * Layer1Shortcuts — the cross-device sign-in cluster shown on the initial
  * identity-entry screen, beside the email/password form.
  *
- * Three alternatives to typing a password here:
+ * Two usernameless alternatives to typing a password here:
  *   • Passkey — discoverable WebAuthn, fully usernameless (no email typed).
- *   • Approve on another device — number-matching. The ApproveLoginPanel it
- *     opens collects the email itself, so it lives here as a peer affordance
- *     (an earlier note removed it for being "identifier-first"; since the panel
- *     self-collects the email, it's fine as a Layer-1 alternative).
  *   • Sign in with your phone — cross-device QR scan-to-login. The QrLoginPanel
  *     it opens needs no identifier (the scanning phone resolves the user).
  *
- * Approve and QR render only when the caller wires `onApproveClick`/`onQrClick`;
- * the caller gates them to the initial identity-entry phase. When no login-config
- * is available (fetch failed) `config` is null and `fallbackAll` keeps the
- * passkey shortcut visible (legacy surface).
+ * Approve-login is deliberately NOT here: it REQUIRES the user's email, so it is
+ * an auth FACTOR (a mid-flow step), not a usernameless identifier-layer login.
+ * `onApproveClick` is accepted-but-ignored for caller compatibility (the approve
+ * button no longer renders). See the APPROVE_LOGIN MFA step instead.
+ *
+ * QR renders only when the caller wires `onQrClick`; the caller gates it to the
+ * initial identity-entry phase. When no login-config is available (fetch failed)
+ * `config` is null and `fallbackAll` keeps the passkey shortcut visible.
  */
 
 import { Button, Divider, Stack, Typography } from '@mui/material'
-import { PhonelinkLock, QrCode2 } from '@mui/icons-material'
+import { QrCode2 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import PasskeyLoginButton from './PasskeyLoginButton'
 import {
@@ -45,9 +45,9 @@ interface Layer1ShortcutsProps<T> {
     onPasskeySuccess: (login: T) => void
     onPasskeyError: (message: string) => void
     /**
-     * Open the "Approve on another device" (number-matching) panel. When
-     * provided, an approve button renders here. The panel collects the email
-     * itself, so this works as a no-typing-first alternative.
+     * @deprecated Accepted for caller compatibility but IGNORED — approve-login
+     * requires the user's email, so it is a mid-flow auth FACTOR, not a
+     * usernameless identifier-layer login. The button no longer renders here.
      */
     onApproveClick?: () => void
     /**
@@ -66,7 +66,6 @@ export default function Layer1Shortcuts<T = unknown>({
     fallbackAll = false,
     onPasskeySuccess,
     onPasskeyError,
-    onApproveClick,
     onQrClick,
     disabled,
     hideDivider = false,
@@ -81,10 +80,9 @@ export default function Layer1Shortcuts<T = unknown>({
     // instantly revertible by the API engine flag with no web redeploy.
     const configDriven = config?.engineActive === true
     const showPasskey = configDriven ? hasUsernamelessPasskey(config!) : fallbackAll
-    const showApprove = Boolean(onApproveClick)
     const showQr = Boolean(onQrClick)
 
-    if (!showPasskey && !showApprove && !showQr) return null
+    if (!showPasskey && !showQr) return null
 
     return (
         <>
@@ -104,27 +102,6 @@ export default function Layer1Shortcuts<T = unknown>({
                         disabled={disabled}
                         sx={passkeySx}
                     />
-                )}
-
-                {showApprove && (
-                    <Button
-                        fullWidth
-                        variant="outlined"
-                        size="large"
-                        onClick={onApproveClick}
-                        disabled={disabled}
-                        startIcon={<PhonelinkLock />}
-                        sx={{
-                            py: 1.5,
-                            borderRadius: '12px',
-                            fontSize: '0.95rem',
-                            fontWeight: 600,
-                            textTransform: 'none',
-                            ...passkeySx,
-                        }}
-                    >
-                        {t('approveLogin.button')}
-                    </Button>
                 )}
 
                 {showQr && (

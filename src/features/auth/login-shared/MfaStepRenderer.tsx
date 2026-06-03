@@ -24,7 +24,9 @@
 
 import { Alert } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import { AuthMethodType, AUTH_API } from '../constants'
+import { AuthMethodType, AUTH_API, MfaStepAction } from '../constants'
+import { pollQrLoginSession } from '../qr-login'
+import { pollApproveLoginSession } from '../approve-login'
 import type { ChallengeResponse } from '../webauthn-utils'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { MfaStepResponse } from '@domain/interfaces/IAuthRepository'
@@ -34,7 +36,8 @@ import SmsOtpStep from '../components/steps/SmsOtpStep'
 import FaceCaptureStep from '../components/steps/FaceCaptureStep'
 import VoiceStep from '../components/steps/VoiceStep'
 import FingerprintStep from '../components/steps/FingerprintStep'
-import QrCodeStep from '../components/steps/QrCodeStep'
+import QrSessionMfaStep from '../components/steps/QrSessionMfaStep'
+import ApproveLoginMfaStep from '../components/steps/ApproveLoginMfaStep'
 import HardwareKeyStep from '../components/steps/HardwareKeyStep'
 import NfcStep from '../components/steps/NfcStep'
 import EmailOtpMfaStep from '../components/steps/EmailOtpMfaStep'
@@ -216,16 +219,57 @@ export default function MfaStepRenderer({
 
         case AuthMethodType.QR_CODE:
             return (
-                <QrCodeStep
-                    userId="mfa-session"
-                    onGenerateToken={async () => {
-                        const res = await httpClient.post<{ token: string; expiresInSeconds: number }>(
-                            AUTH_API.MFA_QR_GENERATE,
-                            { sessionToken: mfaSessionToken }
-                        )
-                        return res.data
+                <QrSessionMfaStep
+                    onRequestSession={async () => {
+                        // Phase 1 — ask the QR_CODE step (two-phase, action:challenge)
+                        // for a STEP-BOUND session. The web renders + polls it; the
+                        // user's phone scans + approves. No token to type → no cheat.
+                        const res = await httpClient.post<MfaStepResponse>(AUTH_API.MFA_STEP, {
+                            sessionToken: mfaSessionToken,
+                            method: AuthMethodType.QR_CODE,
+                            data: { action: MfaStepAction.CHALLENGE },
+                        })
+                        const body = (res.data?.data ?? {}) as {
+                            qrSessionId?: string
+                            expiresAtEpochSeconds?: number
+                        }
+                        return body.qrSessionId
+                            ? { qrSessionId: body.qrSessionId, expiresAtEpochSeconds: body.expiresAtEpochSeconds }
+                            : null
                     }}
-                    onSubmit={(token) => verifyStep(AuthMethodType.QR_CODE, { token })}
+                    pollSession={(id) => pollQrLoginSession(httpClient, id)}
+                    onSubmit={(qrSessionId) => verifyStep(AuthMethodType.QR_CODE, { qrSessionId })}
+                    loading={loading}
+                    error={error}
+                />
+            )
+
+        case AuthMethodType.APPROVE_LOGIN:
+            return (
+                <ApproveLoginMfaStep
+                    onRequestApproval={async () => {
+                        // Phase 1 — challenge the APPROVE_LOGIN step → step-bound
+                        // approve session (match number) for this user.
+                        const res = await httpClient.post<MfaStepResponse>(AUTH_API.MFA_STEP, {
+                            sessionToken: mfaSessionToken,
+                            method: AuthMethodType.APPROVE_LOGIN,
+                            data: { action: MfaStepAction.CHALLENGE },
+                        })
+                        const body = (res.data?.data ?? {}) as {
+                            approveSessionId?: string
+                            matchNumber?: string
+                            expiresAtEpochSeconds?: number
+                        }
+                        return body.approveSessionId
+                            ? {
+                                approveSessionId: body.approveSessionId,
+                                matchNumber: body.matchNumber ?? '',
+                                expiresAtEpochSeconds: body.expiresAtEpochSeconds,
+                            }
+                            : null
+                    }}
+                    pollApproval={(id) => pollApproveLoginSession(httpClient, id)}
+                    onSubmit={(approveSessionId) => verifyStep(AuthMethodType.APPROVE_LOGIN, { approveSessionId })}
                     loading={loading}
                     error={error}
                 />

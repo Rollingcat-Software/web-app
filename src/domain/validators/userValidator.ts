@@ -23,12 +23,12 @@ export const CreateUserSchema = z.object({
         .string()
         .min(1, 'First name is required')
         .max(100, 'First name is too long')
-        .regex(/^[a-zA-Z\s'-]+$/, 'First name contains invalid characters'),
+        .regex(/^[\p{L}\s'-]+$/u, 'First name contains invalid characters'),
     lastName: z
         .string()
         .min(1, 'Last name is required')
         .max(100, 'Last name is too long')
-        .regex(/^[a-zA-Z\s'-]+$/, 'Last name contains invalid characters'),
+        .regex(/^[\p{L}\s'-]+$/u, 'Last name contains invalid characters'),
     password: z
         .string()
         .min(12, 'Password must be at least 12 characters')
@@ -59,13 +59,13 @@ export const UpdateUserSchema = z.object({
         .string()
         .min(1, 'First name is required')
         .max(100, 'First name is too long')
-        .regex(/^[a-zA-Z\s'-]+$/, 'First name contains invalid characters')
+        .regex(/^[\p{L}\s'-]+$/u, 'First name contains invalid characters')
         .optional(),
     lastName: z
         .string()
         .min(1, 'Last name is required')
         .max(100, 'Last name is too long')
-        .regex(/^[a-zA-Z\s'-]+$/, 'Last name contains invalid characters')
+        .regex(/^[\p{L}\s'-]+$/u, 'Last name contains invalid characters')
         .optional(),
     role: z.nativeEnum(UserRole).optional(),
     status: z.nativeEnum(UserStatus).optional(),
