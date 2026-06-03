@@ -953,7 +953,10 @@
     "saveDisabledEmptyLayer": "Every layer must have at least one selected method before saving."
   },
   "login": {
-    "identifierFirstSubtitle": "Enter your email to continue. We'll guide you through the rest."
+    "identifierFirstSubtitle": "Enter your email to continue. We'll guide you through the rest.",
+    "configUnavailable": "We couldn't load your sign-in options. You can still sign in with your email and password below, or retry.",
+    "configRetry": "Retry",
+    "configRetrying": "Retrying…"
   },
   "devices": {
     "title": "Registered Devices",

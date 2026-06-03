@@ -154,6 +154,12 @@ export default function LoginPage() {
     // Tenant Layer-1 login config (D). null while loading / on failure → the UI
     // falls back to the legacy email+password form + all shortcuts.
     const [loginConfig, setLoginConfig] = useState<LoginConfig | null>(null)
+    // True once the login-config fetch has SETTLED with no usable config
+    // (network / unreachable API / malformed). Drives a "couldn't load — retry"
+    // banner so the legacy email+password fallback below is EXPLAINED rather than
+    // silently shown (a silent degrade read as a stale / old-looking login page).
+    const [configLoadFailed, setConfigLoadFailed] = useState(false)
+    const [configRetrying, setConfigRetrying] = useState(false)
     // Backend-authoritative total step count for the resolved login flow. Set
     // from the identifier-step preflight (the caller's ACTUAL tenant flow) and
     // from each /auth/mfa/step response, so the step indicator shows the real
@@ -194,9 +200,25 @@ export default function LoginPage() {
         const reveal = () => { if (!cancelled) setPageReady(true) }
         const fallback = setTimeout(reveal, 2000)
         void fetchLoginConfig(httpClient)
-            .then((cfg) => { if (!cancelled) setLoginConfig(cfg) })
+            .then((cfg) => { if (!cancelled) { setLoginConfig(cfg); setConfigLoadFailed(cfg === null) } })
             .finally(() => { clearTimeout(fallback); reveal() })
         return () => { cancelled = true; clearTimeout(fallback) }
+    }, [httpClient])
+
+    // Re-fetch the login-config when the user taps "Retry" on the
+    // config-unavailable banner (the initial fetch failed, almost always because
+    // the API was unreachable). On success the banner clears and the real Layer-1
+    // surface renders; on repeat failure the banner stays. The legacy
+    // email+password fallback remains usable throughout.
+    const handleRetryLoginConfig = useCallback(async () => {
+        setConfigRetrying(true)
+        try {
+            const cfg = await fetchLoginConfig(httpClient)
+            setLoginConfig(cfg)
+            setConfigLoadFailed(cfg === null)
+        } finally {
+            setConfigRetrying(false)
+        }
     }, [httpClient])
 
     // Perf (USER-BUG-7 → audit CC-3): warm BiometricEngine / MediaPipe ONLY
@@ -936,6 +958,39 @@ export default function LoginPage() {
                                 </Typography>
                             </Box>
                         </motion.div>
+
+                        {/* Config-unavailable banner (2026-06-03): the login-config
+                            fetch settled with no usable config — almost always
+                            because the API was unreachable (e.g. a filtered network
+                            blocking api.fivucsas.com). We STILL render the legacy
+                            email+password fallback below (resilience), but tell the
+                            user WHY it looks basic and offer a retry, instead of
+                            silently degrading to the old-looking form. */}
+                        {configLoadFailed && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <Alert
+                                    severity="warning"
+                                    role="status"
+                                    sx={{ mb: 3, borderRadius: '12px' }}
+                                    action={
+                                        <Button
+                                            color="inherit"
+                                            size="small"
+                                            onClick={() => void handleRetryLoginConfig()}
+                                            disabled={configRetrying}
+                                        >
+                                            {configRetrying ? t('login.configRetrying') : t('login.configRetry')}
+                                        </Button>
+                                    }
+                                >
+                                    {t('login.configUnavailable')}
+                                </Alert>
+                            </motion.div>
+                        )}
 
                         {/* Error Alert — shown in both password and identifier-first modes */}
                         {(error || loginError) && (
