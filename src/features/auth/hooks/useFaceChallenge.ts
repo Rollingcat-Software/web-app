@@ -107,8 +107,11 @@ export interface VerificationState {
  *     gestures are mandatory, no silent auto-skip).
  */
 const ENROLLMENT_STAGES: { stage: ChallengeStage; instructionKey: string; holdMs: number; softTimeoutAllowed: boolean }[] = [
+    // 'position' captures the centered, well-framed FRONTAL image (it gates on
+    // centered + correct distance). The old separate 'frontal' step was a
+    // near-duplicate "look at the camera" capture and was removed (2026-06-03) —
+    // it confused users ("how many times do I look?") with no quality benefit.
     { stage: 'position', instructionKey: 'faceChallenge.positionOval', holdMs: 300, softTimeoutAllowed: true },
-    { stage: 'frontal', instructionKey: 'faceChallenge.lookStraight', holdMs: 300, softTimeoutAllowed: true },
     { stage: 'turn_left', instructionKey: 'faceChallenge.turnLeft', holdMs: 300, softTimeoutAllowed: false },
     { stage: 'turn_right', instructionKey: 'faceChallenge.turnRight', holdMs: 300, softTimeoutAllowed: false },
     // NOTE: the 'blink' stage was removed (2026-06-03). Client-side blink detection
