@@ -651,6 +651,34 @@ export default function LoginPage() {
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                         <QrLoginPanel
                             onApproved={handleQrLoginApproved}
+                            onMfaPending={(h) => {
+                                // Multi-step bridge (parity with verify.fivucsas
+                                // LoginMfaFlow.resumeSession): the phone APPROVED the
+                                // Layer-1 QR but this tenant's flow needs more factors.
+                                // Seed the MFA session and route into the SAME
+                                // picker / TwoFactorDispatcher machinery the password
+                                // path uses — instead of dead-ending at "continue here".
+                                setLoginError(null)
+                                setShowQrLogin(false)
+                                setMfaSessionToken(h.mfaSessionToken)
+                                setCompletedMfaMethods(['QR_CODE'])
+                                if (h.totalSteps) setFlowTotalSteps(h.totalSteps)
+                                const methods: AvailableMfaMethod[] = (h.availableMethods ?? []).map((m) => ({
+                                    methodType: m,
+                                    name: m,
+                                    category: 'mfa',
+                                    enrolled: true,
+                                    preferred: false,
+                                    requiresEnrollment: false,
+                                }))
+                                if (methods.length > 1) {
+                                    setAvailableMethods(methods)
+                                    setShowMethodPicker(true)
+                                } else {
+                                    setTwoFactorMethod(methods[0]?.methodType || 'EMAIL_OTP')
+                                    setShowSecondaryAuth(true)
+                                }
+                            }}
                             onCancel={() => setShowQrLogin(false)}
                         />
                     </CardContent>

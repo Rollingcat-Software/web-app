@@ -38,6 +38,14 @@ export const WEBAUTHN = {
     ALG_RS256: -257,
     /** Attestation type */
     ATTESTATION_DIRECT: 'direct' as const,
+    /**
+     * 'none' attestation — the most compatible. The backend (WebAuthnService)
+     * never validates attestation STATEMENTS (only challenge/origin/type), so
+     * 'direct' buys nothing and on Android Chrome it triggers an extra OS
+     * attestation-consent step that frequently aborts the platform-authenticator
+     * ceremony (NotAllowedError → enrollment dead-ends). Use 'none' for enrollment.
+     */
+    ATTESTATION_NONE: 'none' as const,
     /** Attestation format */
     FORMAT_PACKED: 'packed' as const,
     /** Authenticator attachment types */

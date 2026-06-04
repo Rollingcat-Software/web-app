@@ -223,7 +223,10 @@ export default function WebAuthnEnrollment({
                               userVerification: WEBAUTHN.UV_PREFERRED,
                           },
                     excludeCredentials,
-                    attestation: WEBAUTHN.ATTESTATION_DIRECT,
+                    // 'none' (not 'direct'): the backend never validates attestation
+                    // statements, and 'direct' aborts the platform ceremony on Android
+                    // Chrome (extra OS consent → NotAllowedError). See WEBAUTHN.ATTESTATION_NONE.
+                    attestation: WEBAUTHN.ATTESTATION_NONE,
                     timeout: WEBAUTHN.TIMEOUT_MS,
                 },
             })) as PublicKeyCredential | null
