@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import {
+    Box,
     IconButton,
     InputAdornment,
+    Link,
     TextField,
 } from '@mui/material'
 import {
@@ -35,9 +37,16 @@ interface PasswordStepProps {
      * uniform — PasswordStep no longer carries its own change link.
      */
     presetEmail?: string
+    /**
+     * When set, render a "Forgot password?" link pointing here. Used by the
+     * hosted login surface (verify.fivucsas), which otherwise had no password-
+     * reset affordance. The dashboard's primary login form carries its own link,
+     * so it does NOT pass this (the mid-flow PASSWORD MFA step also omits it).
+     */
+    forgotPasswordHref?: string
 }
 
-export default function PasswordStep({ onSubmit, loading, error, presetEmail }: PasswordStepProps) {
+export default function PasswordStep({ onSubmit, loading, error, presetEmail, forgotPasswordHref }: PasswordStepProps) {
     const { t } = useTranslation()
     const [showPassword, setShowPassword] = useState(false)
     const identifierFirst = Boolean(presetEmail)
@@ -197,6 +206,21 @@ export default function PasswordStep({ onSubmit, loading, error, presetEmail }: 
                         )}
                     />
                 </motion.div>
+                {forgotPasswordHref && (
+                    <motion.div variants={itemVariants}>
+                        <Box sx={{ textAlign: 'right', mt: 1 }}>
+                            <Link
+                                href={forgotPasswordHref}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                underline="hover"
+                                sx={{ fontSize: '0.875rem', color: 'primary.main', fontWeight: 500 }}
+                            >
+                                {t('auth.forgotPasswordQuestion', { defaultValue: 'Forgot password?' })}
+                            </Link>
+                        </Box>
+                    </motion.div>
+                )}
                 {/* Hidden submit input so Enter-to-submit still works inside the form.
                     The visible submit button is rendered by StepLayout via primaryAction. */}
                 <button type="submit" style={{ display: 'none' }} aria-hidden="true" tabIndex={-1} />

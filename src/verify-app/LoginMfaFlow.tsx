@@ -761,6 +761,11 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                                     onSubmit={handlePasswordSubmit}
                                     loading={loading}
                                     error={error}
+                                    // Hosted login had no password-reset affordance; point
+                                    // at the dashboard's reset flow (email-based, tenant-
+                                    // agnostic). Opens in a new tab so the OIDC flow is not
+                                    // abandoned. (Parity with app.fivucsas's forgot link.)
+                                    forgotPasswordHref="https://app.fivucsas.com/forgot-password"
                                     presetEmail={
                                         engineActive && passwordIsLayer1 && identifier.trim()
                                             ? identifier.trim()
