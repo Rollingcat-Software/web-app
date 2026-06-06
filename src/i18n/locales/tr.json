@@ -953,7 +953,10 @@
     "saveDisabledEmptyLayer": "Kaydetmeden önce her katmanın en az bir seçili yöntemi olmalıdır."
   },
   "login": {
-    "identifierFirstSubtitle": "Devam etmek için e-postanızı girin. Gerisinde size yol göstereceğiz."
+    "identifierFirstSubtitle": "Devam etmek için e-postanızı girin. Gerisinde size yol göstereceğiz.",
+    "configUnavailable": "Giriş seçenekleriniz yüklenemedi. Aşağıdan e-posta ve şifrenizle giriş yapabilir ya da yeniden deneyebilirsiniz.",
+    "configRetry": "Yeniden dene",
+    "configRetrying": "Yeniden deneniyor…"
   },
   "devices": {
     "title": "Kayıtlı Cihazlar",

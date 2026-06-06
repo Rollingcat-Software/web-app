@@ -122,6 +122,16 @@ task #16 / PR #163) — never hardcode the password-first form.
   email+password fallback, so flipping the API flag OFF (which returns the
   current password-first shape) reverts the whole feature with **no web
   redeploy**. Don't bake the new behaviour into the components.
+- **Config-unavailable banner (2026-06-03)**: when `fetchLoginConfig` settles
+  with no usable config (network / unreachable API / malformed), `LoginPage`
+  sets `configLoadFailed` and renders a `role="status"` warning banner +
+  **Retry** (`login.configUnavailable` / `configRetry` / `configRetrying`)
+  ABOVE the still-rendered legacy fallback. This stops a config-fetch failure
+  from looking like a stale/old login page (it read that way on filtered
+  networks that block `api.fivucsas.com`). The fallback form is unchanged — the
+  banner is purely additive messaging. **Hosted parity TODO**: the same banner
+  is NOT yet on `verify-app/HostedLoginApp.tsx` (its config-failure fallback is
+  still silent) — deferred to avoid touching the live OIDC path.
 
 Contract is provisional (api task #16): the client normalizer absorbs
 field/casing deltas and never hard-fails.
@@ -238,6 +248,12 @@ Current strategy:
   `dist/sw.js`. Verify after any change: `npm run build` then grep `dist/sw.js`
   for the `"navigate"===…mode` → `NetworkFirst({cacheName:"app-shell"…})` route and
   confirm NO `NavigationRoute` / `createHandlerBoundToURL` remains.
+- **SW cache headers (2026-06-03)**: `public/.htaccess` must serve `sw.js` +
+  `registerSW.js` (fixed-name, NOT build-hashed) as `no-cache, must-revalidate`,
+  via `<Files>` overrides placed AFTER the blanket `\.(js|css)$ → immutable` rule.
+  Without this the SW script gets pinned `immutable, 1yr` and a new deploy's SW
+  can never take over → users stuck on a stale build (observed 2026-06-03). Only
+  these two fixed-name files are exempted; hashed `/assets/*` stay immutable.
 - **One-time clear caveat**: users whose browser already installed the OLD
   cache-first SW need ONE cache clear (or for the old SW to update itself) to pick
   up this new SW. After that, all future deploys are fresh with no manual clear.

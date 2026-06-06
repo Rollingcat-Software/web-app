@@ -28,6 +28,20 @@ RewriteRule . /index.html [L]
   <Files "launcher.js">
     Header set Cache-Control "public, max-age=300, must-revalidate"
   </Files>
+
+  # Service worker + its registrar are FIXED filenames (not build-hashed), so the
+  # blanket ".js immutable" rule above would otherwise pin them for a year and a
+  # new deploy's SW could never take over — leaving users stuck on a stale build.
+  # The SW script MUST be revalidated on every load (this is the vite-plugin-pwa
+  # / web.dev guidance) so updates propagate. Hashed /assets/* stay immutable
+  # (correct); only these two fixed-name files are exempted. Placed after the
+  # blanket .js rule so these overrides win.
+  <Files "sw.js">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </Files>
+  <Files "registerSW.js">
+    Header set Cache-Control "no-cache, must-revalidate"
+  </Files>
 </IfModule>
 
 # Security Headers

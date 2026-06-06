@@ -2,6 +2,32 @@
 
 ## [Unreleased]
 
+### 2026-06-03 — Login resilience: SW cache headers + explicit "config unavailable" banner
+
+Two low-risk fixes for a confusing failure mode: when the dashboard couldn't reach
+`api.fivucsas.com` (e.g. on a filtered network that blocks the API's IP), it silently
+fell back to the legacy email+password form — which read as a stale / "old" login
+page — while the same failed fetch raised a bare "Sunucuya bağlanılamıyor" toast.
+
+- **`public/.htaccess` — service worker is no longer cached immutable.** The blanket
+  `<FilesMatch "\.(js|css)$"> immutable, 1yr` rule also matched the fixed-name `sw.js`
+  + `registerSW.js`, so a new deploy's service worker could not take over and a stale
+  build could persist in the browser. Added `<Files "sw.js">` / `<Files "registerSW.js">`
+  `no-cache, must-revalidate` overrides (same pattern as the existing `launcher.js`
+  override). Hashed `/assets/*` stay immutable (correct); `index.html` stays no-cache.
+- **`LoginPage.tsx` — explicit config-unavailable banner + Retry.** When
+  `fetchLoginConfig` settles with no usable config, the dashboard now shows a
+  `role="status"` warning banner ("We couldn't load your sign-in options … or retry")
+  with a Retry button that re-fetches, instead of silently degrading. The legacy
+  email+password fallback STILL renders underneath (resilience unchanged); only the
+  messaging is added. Fully i18n'd (en + tr); additive, reversible. New tests in
+  `pages/__tests__/LoginPage.configBanner.test.tsx` (failure → banner → retry → clear);
+  `tsc`/eslint clean.
+- **Follow-up (tracked):** apply the same banner to the hosted surface
+  (`verify-app/HostedLoginApp.tsx`) for app⇄verify parity — deferred from this PR to
+  avoid touching the live OIDC tenant-login path; its config-failure fallback is
+  currently still silent.
+
 ### 2026-06-03 — Hosted login: stable step counter (no 1/2 → 2/3 jump) (#202)
 
 The hosted login (`verify.fivucsas.com`) showed an inconsistent step denominator —
