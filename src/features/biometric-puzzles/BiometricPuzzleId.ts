@@ -6,14 +6,15 @@
  * `biometric-engine/types/ChallengeType` and are detected client-side by
  * `BiometricPuzzle` (port of `practice-and-test/demo_local_fast.py`). 9 hand
  * gesture challenges originate from `practice-and-test/GestureAnalysis/*.py`
- * and are currently simulated until the MediaPipe HandLandmarker integration
- * lands on the gesture-phase2 branch.
+ * and are detected client-side via the MediaPipe HandLandmarker integration
+ * (`useHandLandmarker` + `HandGesturePuzzle`), with authoritative re-scoring
+ * server-side in the biometric service (`active_gesture_liveness_manager.py`).
  *
- * NOTE: this enum is *not* `AuthMethodType`. AuthMethodType identifies the 9
+ * NOTE: this enum is *not* `AuthMethodType`. AuthMethodType identifies the
  * pluggable authentication methods (EMAIL_OTP, FACE, etc.). BiometricPuzzleId
  * identifies the fine-grained micro-challenges that power active liveness
- * *within* the FACE auth method (and, later, within a GESTURE_LIVENESS
- * auth method once it lands server-side).
+ * *within* the FACE auth method; gesture challenges are an anti-spoofing
+ * sub-component of FACE, not a standalone auth method.
  */
 export enum BiometricPuzzleId {
     // 14 face challenges — mirrors biometric-engine ChallengeType.
