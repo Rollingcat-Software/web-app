@@ -25,16 +25,25 @@
  */
 
 import { preprocessFace, FACENET_INPUT_DIMS, type RgbaImage } from './facePreprocess';
+import { getModel } from './modelCache';
 
 /** Length of a Facenet512 embedding. */
 export const EMBEDDING_DIMENSION = 512;
 
 /**
  * Default model location served by Hostinger (`public/models/`, fetched at build
- * time). The browser uses the FP32 (or future FP16) model; the INT8 model is NOT
- * web-compatible (see file header). Override for tests / alternative hosting.
+ * time). FP16 export (47 MB, opset 17). INT8 is NOT web-compatible (ConvInteger
+ * unimplemented on onnxruntime-web WASM EP — see file header).
+ * Override for tests / alternative hosting.
  */
-export const DEFAULT_FACENET_MODEL_URL = '/models/facenet512.onnx';
+export const DEFAULT_FACENET_MODEL_URL = '/models/facenet512-1ad91552.fp16.onnx';
+
+/**
+ * SHA256 of the FP16 model. Verified at runtime by `getModel` before the bytes
+ * are cached or passed to ONNX Runtime.
+ */
+export const DEFAULT_FACENET_MODEL_SHA256 =
+  '1ad9155214adb83595b60492b0624bbd44300427c5c3921c876f390c7b44bd66';
 
 /** Minimal structural type for the bits of onnxruntime-web we use. */
 interface OrtLike {
@@ -42,7 +51,8 @@ interface OrtLike {
   Tensor: new (type: 'float32', data: Float32Array, dims: readonly number[]) => unknown;
   InferenceSession: {
     create: (
-      uri: string,
+      // onnxruntime-web accepts a URI string or an ArrayBuffer.
+      source: string | ArrayBuffer,
       options: { executionProviders: string[] },
     ) => Promise<OrtSession>;
   };
@@ -78,6 +88,11 @@ export function cosineSimilarity(a: Float32Array, b: Float32Array): number {
  * Construct with an injected `ort` module (dynamic `import('onnxruntime-web')`)
  * so the heavy WASM runtime is code-split out of the main bundle and so tests can
  * supply the same module without a bundler. Mirrors `CardDetector`/`VoiceVAD`.
+ *
+ * When `modelSha256` is provided (default: the shipped FP16 hash), model bytes
+ * are routed through `getModel` which enforces download-once + SHA256 verification
+ * before handing the buffer to ONNX Runtime. Pass `null` explicitly to bypass
+ * (tests that supply their own model path).
  */
 export class FacenetEmbedder {
   private session: OrtSession | null = null;
@@ -87,6 +102,7 @@ export class FacenetEmbedder {
     private readonly ort: OrtLike,
     private readonly modelUrl: string = DEFAULT_FACENET_MODEL_URL,
     private readonly wasmPaths: string | undefined = undefined,
+    private readonly modelSha256: string | null = DEFAULT_FACENET_MODEL_SHA256,
   ) {}
 
   /** Load (or reuse) the ONNX session. */
@@ -96,7 +112,15 @@ export class FacenetEmbedder {
 
     this.loading = (async () => {
       if (this.wasmPaths) this.ort.env.wasm.wasmPaths = this.wasmPaths;
-      const session = await this.ort.InferenceSession.create(this.modelUrl, {
+
+      // Obtain model bytes via the download-once cache when a SHA256 is known;
+      // fall back to the URI directly when sha256 is null (e.g. test fixtures).
+      const source: string | ArrayBuffer =
+        this.modelSha256 != null
+          ? await getModel(this.modelUrl, this.modelSha256)
+          : this.modelUrl;
+
+      const session = await this.ort.InferenceSession.create(source, {
         executionProviders: ['wasm'],
       });
       this.session = session;
