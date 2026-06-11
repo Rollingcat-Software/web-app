@@ -8,8 +8,9 @@
  * the 512-d embedding locally and uploads only the vector — the raw image never
  * leaves the device.
  *
- * Phase 5 may additionally drive this from login-config; until then it is a
- * client build flag, default OFF.
+ * This is a build-time env flag ONLY (`VITE_CLIENT_SIDE_EMBEDDING`), baked at
+ * build time; it is not driven from login-config. Driving it per-tenant from
+ * login-config is a future Phase-6 item and is NOT implemented yet.
  *
  * Read via a function (not a module-load constant) so the value is injectable /
  * mockable in tests and so it is evaluated at call time rather than frozen at
