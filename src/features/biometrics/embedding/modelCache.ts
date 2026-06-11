@@ -5,7 +5,10 @@
  *   getModel(url, sha256) checks Cache API → IndexedDB → fetch.
  *   Bytes are stored in both Cache API and IndexedDB after first download.
  *   A second call returns cached bytes with zero network requests.
- *   SHA256 mismatch throws — unverified bytes are never returned.
+ *   SHA256 is enforced on EVERY read (cached or fresh): cached bytes are
+ *   re-hashed before return, a mismatch evicts that entry and falls through to
+ *   the next layer, and a failed fresh download throws. Unverified bytes are
+ *   never returned.
  *
  * The two-layer cache:
  *   • Cache API — fast, response-level, evictable by the browser under storage
@@ -51,6 +54,14 @@ function idbPut(db: IDBDatabase, key: string, value: ArrayBuffer): Promise<void>
   });
 }
 
+function idbDelete(db: IDBDatabase, key: string): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const req = db.transaction(IDB_STORE, 'readwrite').objectStore(IDB_STORE).delete(key);
+    req.onsuccess = () => resolve();
+    req.onerror = () => reject(req.error);
+  });
+}
+
 // ── SHA256 verification ───────────────────────────────────────────────────────
 
 async function sha256Hex(buf: ArrayBuffer): Promise<string> {
@@ -70,41 +81,58 @@ async function sha256Hex(buf: ArrayBuffer): Promise<string> {
  *   2. IndexedDB (raw ArrayBuffer)
  *   3. fetch() — verified, then stored in both caches
  *
- * Throws with a message containing "sha256" if the digest mismatches.
- * Never returns bytes that did not pass verification.
+ * SHA256 is enforced on EVERY layer, not just the network download: cached bytes
+ * (Cache API or IndexedDB) are re-hashed before being returned. On a mismatch the
+ * poisoned entry is evicted and the lookup falls through to the next layer
+ * (Cache API miss → IndexedDB → fetch). This guarantees unverified bytes are
+ * never returned, even after cache corruption / tampering / a model-URL collision.
+ * If even a fresh download fails verification, getModel throws with a message
+ * containing "sha256".
+ *
+ * Re-hashing a 47 MB buffer is ~3 ms via SubtleCrypto — negligible against the
+ * one-time download and the ONNX session warm-up that follows.
  */
 export async function getModel(url: string, sha256: string): Promise<ArrayBuffer> {
-  // 1. Cache API
+  let db: IDBDatabase | null = null;
+
+  // 1. Cache API — verify on read; evict + fall through on mismatch.
   try {
     const cache = await caches.open(CACHE_NAME);
     const cached = await cache.match(url);
     if (cached) {
-      return cached.arrayBuffer();
+      const buf = await cached.arrayBuffer();
+      if ((await sha256Hex(buf)) === sha256) {
+        return buf;
+      }
+      // Poisoned Cache API entry — drop it so we don't serve it again.
+      await cache.delete(url);
     }
   } catch {
     // Cache API unavailable (e.g. non-secure context) — fall through.
   }
 
-  // 2. IndexedDB
-  let db: IDBDatabase | null = null;
+  // 2. IndexedDB — verify on read; evict + fall through on mismatch.
   try {
     db = await openIdb();
     const stored = await idbGet(db, url);
     if (stored) {
-      return stored;
+      if ((await sha256Hex(stored)) === sha256) {
+        return stored;
+      }
+      // Poisoned IndexedDB entry — drop it so we don't serve it again.
+      await idbDelete(db, url);
     }
   } catch {
     // IndexedDB unavailable — fall through to fetch.
   }
 
-  // 3. Network
+  // 3. Network — fail-closed on verification.
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`Failed to fetch model: HTTP ${response.status} for ${url}`);
   }
   const buf = await response.arrayBuffer();
 
-  // Verify before storing or returning.
   const actual = await sha256Hex(buf);
   if (actual !== sha256) {
     throw new Error(
@@ -112,20 +140,20 @@ export async function getModel(url: string, sha256: string): Promise<ArrayBuffer
     );
   }
 
-  // Store in Cache API.
+  // Store in Cache API (best-effort dual-store).
   try {
     const cache = await caches.open(CACHE_NAME);
     await cache.put(url, new Response(buf.slice(0)));
   } catch {
-    // Non-fatal: fall back to IndexedDB-only caching.
+    // Non-fatal: best-effort dual-store.
   }
 
-  // Store in IndexedDB.
+  // Store in IndexedDB (best-effort dual-store).
   if (db) {
     try {
       await idbPut(db, url, buf);
     } catch {
-      // Non-fatal: cached in Cache API above.
+      // Non-fatal: best-effort dual-store.
     }
   }
 

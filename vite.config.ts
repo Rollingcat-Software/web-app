@@ -199,8 +199,8 @@ export default defineConfig(({ mode }) => ({
                     {
                         // ONNX model files — CacheFirst, effectively no expiry.
                         //
-                        // "facenet bir kere inmeli ve hiç silinmemeli": the model
-                        // downloads exactly once and is never evicted by the SW.
+                        // The Facenet model must download once and never be evicted:
+                        // it downloads exactly once and is never evicted by the SW.
                         // Model filenames embed a content hash (e.g.
                         // facenet512-1ad91552.fp16.onnx) so a new model version
                         // produces a new URL and the old entry stays cached without

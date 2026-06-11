@@ -41,6 +41,10 @@ function makeIdbStub(initial: Map<string, ArrayBuffer> = new Map()) {
       store.set(key, value);
       return request<IDBValidKey>(key);
     }),
+    delete: vi.fn((key: string) => {
+      store.delete(key);
+      return request<undefined>(undefined);
+    }),
   };
 
   const tx = {
@@ -83,6 +87,7 @@ function makeCacheStub(initial: Map<string, ArrayBuffer> = new Map()) {
     put: vi.fn(async (url: string, res: Response) => {
       store.set(url, await res.arrayBuffer());
     }),
+    delete: vi.fn(async (url: string) => store.delete(url)),
     _store: store,
   };
   const caches = { open: vi.fn(async () => cache) };
@@ -150,6 +155,60 @@ describe('getModel — download-once SHA-verified model cache', () => {
     const buf = await getModel(MODEL_URL, VALID_SHA);
 
     expect(fetchSpy).not.toHaveBeenCalled();
+    expect(buf).toBeInstanceOf(ArrayBuffer);
+  });
+
+  it('returns IndexedDB bytes on a Cache API miss, with zero fetches', async () => {
+    // Cache API empty → match() resolves undefined.
+    const { caches } = makeCacheStub();
+    Object.defineProperty(globalThis, 'caches', {
+      value: caches,
+      writable: true,
+      configurable: true,
+    });
+    // IndexedDB pre-populated with the model.
+    const { idbOpen, objStore } = makeIdbStub(new Map([[MODEL_URL, MODEL_BYTES]]));
+    Object.defineProperty(globalThis, 'indexedDB', {
+      value: { open: idbOpen },
+      writable: true,
+      configurable: true,
+    });
+
+    const buf = await getModel(MODEL_URL, VALID_SHA);
+
+    expect(fetchSpy).not.toHaveBeenCalled();
+    expect(objStore.get).toHaveBeenCalledWith(MODEL_URL);
+    expect(buf).toBeInstanceOf(ArrayBuffer);
+  });
+
+  it('evicts a poisoned Cache API entry and re-fetches a verified copy', async () => {
+    // Cache API holds WRONG bytes under the model URL.
+    const { caches, cache } = makeCacheStub(new Map([[MODEL_URL, MODEL_BYTES]]));
+    Object.defineProperty(globalThis, 'caches', {
+      value: caches,
+      writable: true,
+      configurable: true,
+    });
+    const { idbOpen } = makeIdbStub();
+    Object.defineProperty(globalThis, 'indexedDB', {
+      value: { open: idbOpen },
+      writable: true,
+      configurable: true,
+    });
+
+    // First digest (the cached-read verification) returns a NON-matching hash,
+    // forcing eviction + fall-through; the post-fetch digest then matches.
+    const badHashBytes = new Uint8Array([0xde, 0xad]).buffer;
+    digestSpy
+      .mockResolvedValueOnce(badHashBytes) // cache-read verify → mismatch
+      .mockResolvedValue(VALID_SHA_BYTES); // post-fetch verify → match
+
+    const buf = await getModel(MODEL_URL, VALID_SHA);
+
+    // Poisoned entry must be evicted, then a fresh verified copy fetched.
+    expect(cache.delete).toHaveBeenCalledWith(MODEL_URL);
+    expect(fetchSpy).toHaveBeenCalledOnce();
+    expect(fetchSpy).toHaveBeenCalledWith(MODEL_URL);
     expect(buf).toBeInstanceOf(ArrayBuffer);
   });
 
