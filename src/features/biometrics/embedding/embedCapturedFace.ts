@@ -13,14 +13,18 @@
  * decode failure, inference error) so the FACE submit path can fall back to the
  * legacy image upload and never block a login.
  *
- * NOTE on alignment: the embedder's contract is "already-aligned RGBA crop in".
- * The production aligner (MediaPipe FaceLandmarker eye-landmark similarity
- * transform, applied BEFORE preprocess) is not yet wired here; the bbox crop is
- * used as-is. Self-consistency improves once explicit alignment lands — see the
- * Phase-0 spike report and `selfConsistency.test.ts`.
+ * ALIGNMENT: the embedder's contract is "already-aligned RGBA crop in". When the
+ * caller supplies the FaceLandmarker 478-pt mesh captured with the frame, we run
+ * `alignFace` (eye-landmark similarity transform → canonical eye positions) BEFORE
+ * `preprocessFace`, which is what makes the client embedding self-consistent across
+ * captures (probe and enrollment template both go through THIS identical aligner).
+ * When landmarks are absent (e.g. BlazeFace fallback) or alignment is degenerate,
+ * we fall back to the raw bbox crop — lower quality, but the login is never blocked.
+ * See the Phase-0 spike report and `alignFace.ts` / `selfConsistency.test.ts`.
  */
 
 import { dataURLToImageData } from '@features/auth/utils/faceCropper'
+import { alignFace, type LandmarkArray } from './alignFace'
 import { FacenetEmbedder, EMBEDDING_DIMENSION } from './facenetEmbedder'
 
 /**
@@ -55,15 +59,27 @@ async function getEmbedder(): Promise<FacenetEmbedder> {
  * Compute the client-side Facenet512 embedding for a captured FACE data-URL.
  *
  * @param imageDataUrl Cropped face JPEG data-URL (as the legacy path uploads).
+ * @param landmarks    Optional 478-pt MediaPipe mesh captured with the SAME frame.
+ *                     When present, the face is aligned (eyes → canonical positions)
+ *                     before embedding, which is what gives the embedding client
+ *                     self-consistency. When absent or alignment is degenerate, the
+ *                     raw crop is embedded as-is (lower quality, login not blocked).
  * @returns A 512-number embedding array, or `null` on any failure.
  */
-export async function embedCapturedFace(imageDataUrl: string): Promise<number[] | null> {
+export async function embedCapturedFace(
+    imageDataUrl: string,
+    landmarks?: LandmarkArray,
+): Promise<number[] | null> {
     try {
         const imageData = await dataURLToImageData(imageDataUrl)
         if (!imageData) return null
 
+        // Align when landmarks are available; otherwise embed the unaligned crop.
+        const aligned = landmarks ? alignFace(imageData, landmarks) : null
+        const face = aligned ?? imageData
+
         const instance = await getEmbedder()
-        const vec = await instance.embed(imageData)
+        const vec = await instance.embed(face)
         if (!vec || vec.length !== EMBEDDING_DIMENSION) return null
 
         return Array.from(vec)

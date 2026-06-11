@@ -19,6 +19,7 @@ import {
 } from '@mui/icons-material'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
+import type { NormalizedLandmark } from '../../../../lib/biometric-engine/types'
 import { useFaceDetection } from '../../hooks/useFaceDetection'
 import { useQualityAssessment } from '../../hooks/useQualityAssessment'
 import { usePerf } from '../../../../contexts/PerfContextHook'
@@ -28,7 +29,20 @@ import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
 
 interface FaceCaptureStepProps {
-    onSubmit: (image: string, clientEmbedding?: number[]) => void
+    /**
+     * @param image           The captured (mirror-corrected) face crop data-URL.
+     * @param clientEmbedding  Optional legacy landmark-geometry embedding (log-only, D2).
+     * @param faceLandmarks    The 478-pt MediaPipe mesh captured WITH this frame, when
+     *                         the FaceLandmarker backend was active. Threaded to the
+     *                         client-side Facenet512 ALIGNER so probe and template
+     *                         share the same canonical alignment. Undefined when the
+     *                         active backend has no dense landmarks (BlazeFace fallback).
+     */
+    onSubmit: (
+        image: string,
+        clientEmbedding?: number[],
+        faceLandmarks?: NormalizedLandmark[],
+    ) => void
     loading: boolean
     error?: string
 }
@@ -45,12 +59,18 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const [cameraError, setCameraError] = useState<string | null>(null)
 
+    // 478-pt mesh captured at the same instant as `capturedImage`, for the
+    // client-side aligner. Snapshotted on capture (not read live) so it matches
+    // the exact frame the user submits. Null when the backend lacks dense landmarks.
+    const capturedLandmarksRef = useRef<NormalizedLandmark[] | null>(null)
+
     const {
         detected,
         centered,
         hint,
         boundingBox,
         cropFace,
+        captureLandmarks,
         backend,
         initialized,
         initFailed,
@@ -175,11 +195,16 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             return
         }
 
+        // Snapshot the dense mesh for THIS frame so the client-side aligner uses the
+        // landmarks that match the captured image (not a later live frame).
+        capturedLandmarksRef.current = captureLandmarks()
+
         setCapturedImage(cropped)
         stopCamera()
-    }, [stopCamera, detected, boundingBox, cropFace, t])
+    }, [stopCamera, detected, boundingBox, cropFace, captureLandmarks, t])
 
     const retakePhoto = useCallback(() => {
+        capturedLandmarksRef.current = null
         setCapturedImage(null)
         startCamera()
     }, [startCamera])
@@ -207,7 +232,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             // Non-critical: embedding extraction failure is silently ignored.
         }
 
-        onSubmit(capturedImage, clientEmbedding)
+        onSubmit(capturedImage, clientEmbedding, capturedLandmarksRef.current ?? undefined)
     }, [capturedImage, onSubmit])
 
     // Determine bounding box overlay color

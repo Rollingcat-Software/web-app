@@ -161,19 +161,23 @@ export default function MfaStepRenderer({
         case AuthMethodType.FACE:
             return (
                 <FaceCaptureStep
-                    onSubmit={async (image) => {
+                    onSubmit={async (image, _clientEmbedding, faceLandmarks) => {
                         // Client-side-embedding path (flag-gated, mirrors the
                         // server flag `app.auth.client-side-embedding`). When ON,
                         // compute the 512-d Facenet512 embedding in the browser
                         // from the SAME captured frame and upload ONLY the vector
-                        // — the raw image never leaves the device.
+                        // — the raw image never leaves the device. The captured
+                        // 478-pt mesh is passed through so the embedder ALIGNS the
+                        // face (eyes → canonical positions) first — this is what
+                        // makes the client embedding self-consistent capture-to-
+                        // capture; without it the embedding is an unaligned crop.
                         //
                         // Resilient: a null embedding (no model / ORT load fail /
                         // inference error) falls back to the unchanged legacy
                         // image upload so a login is never blocked. Flag OFF is
                         // byte-identical to the legacy `{ image }` path.
                         if (isClientSideEmbeddingEnabled()) {
-                            const embedding = await embedCapturedFace(image)
+                            const embedding = await embedCapturedFace(image, faceLandmarks)
                             if (embedding) {
                                 verifyStep(AuthMethodType.FACE, { embedding })
                                 return

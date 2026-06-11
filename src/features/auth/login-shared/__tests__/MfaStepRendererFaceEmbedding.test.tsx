@@ -32,13 +32,25 @@ vi.mock('@/lib/biometric-engine/core/BiometricEngine', () => ({
 
 // The captured frame the (mocked) FaceCaptureStep hands up on submit.
 const CAPTURED_IMAGE = 'data:image/jpeg;base64,AAAA'
+// The 478-pt mesh the real FaceCaptureStep surfaces alongside the frame, for the
+// aligner. A 3-point stub is enough to assert it is threaded through unchanged.
+const CAPTURED_LANDMARKS = [
+    { x: 0.38, y: 0.42, z: 0 },
+    { x: 0.62, y: 0.42, z: 0 },
+    { x: 0.5, y: 0.6, z: 0 },
+]
 
 // Mock FaceCaptureStep down to a single Submit button so we drive ONLY the
-// renderer's onSubmit routing — no camera / canvas / detection in jsdom.
+// renderer's onSubmit routing — no camera / canvas / detection in jsdom. It hands
+// up BOTH the captured image and the captured landmarks, mirroring the real step.
 vi.mock('@features/auth/components/steps/FaceCaptureStep', () => ({
     __esModule: true,
-    default: ({ onSubmit }: { onSubmit: (image: string) => void }) => (
-        <button type="button" onClick={() => onSubmit(CAPTURED_IMAGE)}>
+    default: ({
+        onSubmit,
+    }: {
+        onSubmit: (image: string, clientEmbedding?: number[], faceLandmarks?: unknown) => void
+    }) => (
+        <button type="button" onClick={() => onSubmit(CAPTURED_IMAGE, undefined, CAPTURED_LANDMARKS)}>
             face-submit
         </button>
     ),
@@ -108,7 +120,10 @@ describe('MfaStepRenderer — FACE submit: client embedding vs legacy image', ()
         await userEvent.click(screen.getByRole('button', { name: 'face-submit' }))
 
         await waitFor(() => expect(verifyStep).toHaveBeenCalledTimes(1))
-        expect(embedCapturedFaceMock).toHaveBeenCalledWith(CAPTURED_IMAGE)
+        // The renderer threads the captured face landmarks (for the aligner) as the
+        // 2nd arg of embedCapturedFace, so the aligner maps eyes → canonical before
+        // the local embedding (the self-consistency-critical step).
+        expect(embedCapturedFaceMock).toHaveBeenCalledWith(CAPTURED_IMAGE, CAPTURED_LANDMARKS)
 
         const [method, payload] = verifyStep.mock.calls[0]
         expect(method).toBe(AuthMethodType.FACE)
