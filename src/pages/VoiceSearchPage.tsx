@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from 'react'
 import {
+    alpha,
     Alert,
     Box,
     Button,
@@ -298,7 +299,12 @@ export default function VoiceSearchPage() {
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        bgcolor: recording ? 'error.50' : hasRecording ? 'success.50' : 'grey.100',
+                        bgcolor: (theme) =>
+                            recording
+                                ? alpha(theme.palette.error.main, 0.08)
+                                : hasRecording
+                                    ? alpha(theme.palette.success.main, 0.08)
+                                    : theme.palette.action.hover,
                         borderRadius: 2,
                         mb: 2,
                         transition: 'background-color 0.3s',

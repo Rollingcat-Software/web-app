@@ -28,6 +28,7 @@ import {useActiveTenant} from '@features/tenants/context/ActiveTenantContext'
 import {useSessionCountdown} from '@features/auth/hooks/useSessionCountdown'
 import AccountSwitcher from '@features/accountSwitcher/AccountSwitcher'
 import {roleLabel} from '@utils/roleLabel'
+import {setPendingToast} from '@core/services/pendingToast'
 
 /**
  * Feature flag: the SUPER_ADMIN tenant switcher is hidden until the backend
@@ -63,9 +64,19 @@ export default function TopBar({drawerWidth, onMenuClick}: TopBarProps) {
     const contextRole = user?.role ?? null
 
     const handleTenantSwitch = (event: SelectChangeEvent) => {
-        setActiveTenantId(event.target.value)
+        const targetId = event.target.value
+        setActiveTenantId(targetId)
+        // Confirmation toast — survives the reload below via the pending-toast
+        // bridge (a toast enqueued just before reload would otherwise be wiped).
+        const targetName = tenants.find((tnt) => tnt.id === targetId)?.name
+        setPendingToast(
+            t('topbar.tenantSwitcher.switchSuccess', {
+                tenant: targetName ?? t('topbar.context.platform'),
+            }),
+            'success',
+        )
         // Reload so every already-fetched admin surface re-queries under the
-        // new X-Active-Tenant scope (matches the app's per-page fetch model).
+        // new X-Tenant-ID scope (matches the app's per-page fetch model).
         window.location.reload()
     }
 

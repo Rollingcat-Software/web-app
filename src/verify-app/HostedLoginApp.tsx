@@ -37,6 +37,9 @@ import Layer1Shortcuts from '@features/auth/components/Layer1Shortcuts'
 import ApproveLoginPanel, {
     type ApproveLoginResult,
 } from '@features/auth/components/ApproveLoginPanel'
+import QrLoginPanel, {
+    type QrLoginResult,
+} from '@features/auth/components/QrLoginPanel'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { fetchLoginConfig } from '@features/auth/login-config'
@@ -259,7 +262,7 @@ export default function HostedLoginApp() {
     const [finalError, setFinalError] = useState<string | null>(null)
     // Alternate sign-in surfaces shown alongside the password/MFA flow. Only one
     // can be active at a time; `null` means the default email/password+MFA flow.
-    const [altFlow, setAltFlow] = useState<'approveLogin' | null>(null)
+    const [altFlow, setAltFlow] = useState<'approveLogin' | 'qrLogin' | null>(null)
     const [altError, setAltError] = useState<string | null>(null)
     // Whether the inner LoginMfaFlow is on its OPENING identity-entry screen.
     // The usernameless shortcuts (passkey / approve) are ALTERNATIVES to typing
@@ -621,6 +624,19 @@ export default function HostedLoginApp() {
         [onInitialLoginPhase],
     )
 
+    const handleQrLoginApproved = useCallback(
+        (result: QrLoginResult) => {
+            setAltError(null)
+            setAltFlow(null)
+            void handleLoginComplete({
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+                userId: '',
+            })
+        },
+        [handleLoginComplete],
+    )
+
     const handleCancel = useCallback(() => {
         // Best-effort: return user to the origin of the redirect URI.
         if (config.redirectUri) {
@@ -877,6 +893,14 @@ export default function HostedLoginApp() {
                                     setAltFlow(null)
                                 }}
                             />
+                        ) : altFlow === 'qrLogin' ? (
+                            <QrLoginPanel
+                                onApproved={handleQrLoginApproved}
+                                onCancel={() => {
+                                    setAltError(null)
+                                    setAltFlow(null)
+                                }}
+                            />
                         ) : (
                             <Stack spacing={2.5}>
                                 {altError && (
@@ -892,6 +916,13 @@ export default function HostedLoginApp() {
                                     onInitialPhaseChange={setOnInitialLoginPhase}
                                     onPreflightResolved={handlePreflightResolved}
                                     loginConfig={loginConfig}
+                                    // The hosted shell already resolves loginConfig
+                                    // INSIDE the metaLoading gate (it only mounts this
+                                    // flow once meta+config have settled), so this is
+                                    // false here. Passing it makes the no-flash
+                                    // contract explicit + future-proofs the flow if the
+                                    // mount gate ever changes (Fix #1, defense-in-depth).
+                                    configLoading={metaLoading}
                                 />
 
                                 {/* Config-driven usernameless shortcuts (G-web).
@@ -919,6 +950,10 @@ export default function HostedLoginApp() {
                                     onApproveClick={() => {
                                         setAltError(null)
                                         setAltFlow('approveLogin')
+                                    }}
+                                    onQrClick={() => {
+                                        setAltError(null)
+                                        setAltFlow('qrLogin')
                                     }}
                                     disabled={redirecting}
                                 />

@@ -341,7 +341,7 @@ export default function EnrollmentDetailsPage() {
 
                 {/* Enrollment ID Card */}
                 <Grid item xs={12} md={4}>
-                    <Paper sx={{ p: 2, bgcolor: 'grey.50', height: '100%' }}>
+                    <Paper sx={{ p: 2, bgcolor: 'background.default', height: '100%' }}>
                         <Typography variant="caption" color="text.secondary">
                             {t('enrollments.enrollmentId')}
                         </Typography>

@@ -2,6 +2,133 @@
 
 ## [Unreleased]
 
+### 2026-06-03 — Login resilience: SW cache headers + explicit "config unavailable" banner
+
+Two low-risk fixes for a confusing failure mode: when the dashboard couldn't reach
+`api.fivucsas.com` (e.g. on a filtered network that blocks the API's IP), it silently
+fell back to the legacy email+password form — which read as a stale / "old" login
+page — while the same failed fetch raised a bare "Sunucuya bağlanılamıyor" toast.
+
+- **`public/.htaccess` — service worker is no longer cached immutable.** The blanket
+  `<FilesMatch "\.(js|css)$"> immutable, 1yr` rule also matched the fixed-name `sw.js`
+  + `registerSW.js`, so a new deploy's service worker could not take over and a stale
+  build could persist in the browser. Added `<Files "sw.js">` / `<Files "registerSW.js">`
+  `no-cache, must-revalidate` overrides (same pattern as the existing `launcher.js`
+  override). Hashed `/assets/*` stay immutable (correct); `index.html` stays no-cache.
+- **`LoginPage.tsx` — explicit config-unavailable banner + Retry.** When
+  `fetchLoginConfig` settles with no usable config, the dashboard now shows a
+  `role="status"` warning banner ("We couldn't load your sign-in options … or retry")
+  with a Retry button that re-fetches, instead of silently degrading. The legacy
+  email+password fallback STILL renders underneath (resilience unchanged); only the
+  messaging is added. Fully i18n'd (en + tr); additive, reversible. New tests in
+  `pages/__tests__/LoginPage.configBanner.test.tsx` (failure → banner → retry → clear);
+  `tsc`/eslint clean.
+- **Follow-up (tracked):** apply the same banner to the hosted surface
+  (`verify-app/HostedLoginApp.tsx`) for app⇄verify parity — deferred from this PR to
+  avoid touching the live OIDC tenant-login path; its config-failure fallback is
+  currently still silent.
+
+### 2026-06-03 — Hosted login: stable step counter (no 1/2 → 2/3 jump) (#202)
+
+The hosted login (`verify.fivucsas.com`) showed an inconsistent step denominator —
+"1/2" on the password screen, then "2/3" on the first MFA step — when the mount-time
+login-config under-reported the flow vs. the caller's real tenant flow. Mobile sign-in
+redirects here, so this was visible during the OAuth handoff (reported issue #13).
+
+Ports the dashboard's preflight-authoritative fix (#158) into
+`verify-app/LoginMfaFlow.tsx`: the identifier-step pre-flight
+(`checkLoginEligibility`) already resolves the caller's REAL tenant login-config but
+its `totalSteps` was discarded. It's now captured into a new `flowTotalSteps` state
+(monotonic via `Math.max`), reaffirmed from each `/auth/mfa/step` response, and the
+step-counter denominator reads `flowTotalSteps ?? loginConfig.totalSteps ?? 1` instead
+of re-maxing disagreeing totals every render. Display-only, additive, reversible
+(no behavioural/auth change). `tsc` clean; verify-app config suite green + a new
+regression test asserting the password screen reads "1 of 3" (preflight), never "1 of 2".
+
+### 2026-06-03 — Cross-device sign-in: re-homed Approve-login + new QR scan-to-login
+
+Two additive Layer-1 sign-in alternatives on the initial identity-entry screen of
+both the dashboard login (`LoginPage`) and the hosted login (`HostedLoginApp`). The
+core email/password path is untouched, so both revert cleanly by not opening the panel.
+
+- **Approve on another device — re-homed.** The number-matching approve-login was
+  fully built (panel + `approve-login.ts` + backend) but its launch button had been
+  removed from `Layer1Shortcuts` and never re-attached, so the mobile "Login requests"
+  screen was permanently empty (nothing could initiate a request). `Layer1Shortcuts`
+  now renders the "Approve on another device" button again (both surfaces already
+  passed `onApproveClick`); the `ApproveLoginPanel` collects the email itself.
+- **Sign in with your phone (QR) — new.** New `qr-login.ts` client + `QrLoginPanel`
+  create a QR session (`POST /auth/qr/session`), render a QR encoding the **sessionId**
+  (as `fivucsas://qr-login?session=<id>` — the value the mobile approver resolves; the
+  random `qrContent` is NOT a lookup key, so encoding it would 404), and poll
+  `GET /auth/qr/session/{id}` until the phone approves. On APPROVED with tokens the
+  user is signed in; a multi-step tenant flow (mfaRequired) shows a "continue here"
+  message rather than hanging (step-up handoff via mfaSessionToken is a tracked
+  follow-up). EN + TR strings added (`qrLogin.*`).
+
+**Deployed 2026-06-03:** `app.fivucsas.com` auto-deployed via the Hostinger workflow on
+merge; `verify.fivucsas.com` rebuilt + redeployed (Docker). Browser-verified live on the
+dashboard — both buttons render and the QR panel creates a real session + polls with no
+console errors.
+
+### 2026-06-03 — Face enrollment overhaul: reliable step-by-step capture (now 3 steps, no blink)
+
+The dashboard face-enrollment wizard (`useFaceChallenge` + `FaceEnrollmentFlow` /
+`FaceEnrollmentDialog`) was reported buggy: steps silently auto-skipped, the flow
+could get permanently stuck, and the step counter / percentage / instruction were
+inconsistent. Fixed end-to-end (PRs #193–#197):
+
+- **Mandatory gestures, no silent auto-skip (#193).** turn_left / turn_right now
+  require the real gesture instead of auto-capturing after a 6 s timeout
+  (`softTimeoutAllowed` per stage; only the look/center step keeps a soft
+  timeout). A liveness miss re-prompts the CURRENT stage instead of resetting to
+  Step 1; the stage clock resets on "Begin"; progress starts at 0; enrollment
+  errors are routed through i18n (`formatApiError`).
+- **Never trap on blink (#194).** Blink is only detectable when the 478-pt
+  MediaPipe FaceLandmarker is active (`avgEAR`); on the BlazeFace fallback it's
+  undetectable and — once mandatory — trapped the user. Added an avgEAR-aware
+  timeout safety net so the flow can never be permanently stuck.
+- **Higher detection FPS (#195).** `numFaces: 5 → 1` in `FaceDetector` (auth has a
+  single subject; ~5× less per-frame inference → higher FPS so fast gestures are
+  actually sampled). `findPrimaryFace` already picks the largest face.
+- **Dropped the blink step (#196).** Client-side blink detection proved unreliable
+  across devices (it must sample the ~50–100 ms eye-closed phase through the
+  camera). Removed it — the **server** passive-liveness check is authoritative and
+  the head-turns provide the active "live person" gesture, so no anti-spoof value
+  was lost. The blink machinery in the hook is retained but unreferenced.
+- **Consistent step display + merged redundant frontal (#197).** The step counter
+  and percentage now both derive from current/total (no more "3/4 at 50 %"); the
+  instruction chip is hidden on the completion screen; and the near-duplicate
+  `position` + `frontal` "look at the camera" captures were merged into one.
+  **Enrollment is now 3 reliable steps: center / look → turn left → turn right
+  (counter X/3), every step genuinely executed.**
+
+Backend counterparts shipped separately: identity-core-api #200 (enrollment
+flag-consistency — closes the "enrolled-but-412" class) and biometric-processor
+#135/#136 (MediaPipe libs + multi-image quality-floor alignment).
+
+### 2026-06-02 — Reject malformed login emails (1-char TLD) at the identifier step
+
+`user@gmail.x` advanced past the identifier step to the password step on both
+`verify.fivucsas` (`LoginMfaFlow`) and the dashboard (`LoginPage`), which read as
+if the malformed address had "passed identity verification". It had not — the
+password step still returned a generic 401 and no such account exists — but the
+step transition was misleading.
+
+Root cause: the identifier-first handlers only checked `.trim()`, and the
+combined screens used Zod `.email()`, which **accepts a one-character TLD**.
+
+- New shared `domain/validators/emailValidator.ts` → `isLikelyValidEmail()`
+  requiring a TLD of **≥ 2 chars** (catches `.x`/`.c`/missing-TLD typos without
+  rejecting any real address — shortest live TLDs are 2 chars).
+- Wired into every login identifier entry point (`LoginMfaFlow` +
+  `LoginPage.handleIdentifierSubmit`) and the login/register Zod schemas
+  (`.email()` → `.refine(isLikelyValidEmail)` in `PasswordStep`, `LoginPage`,
+  `RegisterPage`).
+- **Format-only check** — never queries the backend for account existence, so the
+  identifier step stays enumeration-resistant. Reuses the existing
+  `auth.validation.invalidEmail` i18n key (en+tr). 5 new unit tests.
+
 ### 2026-06-01 — Biometric-puzzle blink/wink fixed (close→re-open transition)
 
 The browser biometric-puzzle BLINK challenge required squeezing the eyes shut

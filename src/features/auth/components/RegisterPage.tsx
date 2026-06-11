@@ -38,6 +38,7 @@ import { motion, Variants } from 'framer-motion'
 import { getService } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { isLikelyValidEmail } from '@domain/validators/emailValidator'
 
 /**
  * Register form validation schema
@@ -45,7 +46,7 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 const registerSchema = z.object({
     firstName: z.string().min(1, 'First name is required').max(50, 'First name too long'),
     lastName: z.string().min(1, 'Last name is required').max(50, 'Last name too long'),
-    email: z.string().min(1, 'Email is required').email('Invalid email address'),
+    email: z.string().min(1, 'Email is required').refine(isLikelyValidEmail, 'Invalid email address'),
     password: z.string()
         .min(8, 'Password must be at least 8 characters')
         .regex(/[A-Z]/, 'Password must contain uppercase letter')
@@ -871,21 +872,6 @@ export default function RegisterPage() {
                         </>)}
                     </CardContent>
                 </Card>
-
-                {/* Footer */}
-                <motion.div variants={itemVariants}>
-                    <Typography
-                        variant="caption"
-                        sx={{
-                            display: 'block',
-                            textAlign: 'center',
-                            mt: 3,
-                            color: 'rgba(255, 255, 255, 0.8)',
-                        }}
-                    >
-                        Protected by enterprise-grade security
-                    </Typography>
-                </motion.div>
             </motion.div>
         </Box>
     )

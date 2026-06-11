@@ -29,6 +29,15 @@ export interface MethodCardConfig {
     alwaysAvailable: boolean
     gradient: string
     bgColor: string
+    /**
+     * INFORMATIONAL-ONLY card: this method has NO web-side enrollment flow — it is
+     * set up elsewhere (e.g. APPROVE_LOGIN, where the approver is the FIVUCSAS mobile
+     * app the user is already signed in to). The card shows an explanatory note +
+     * disabled state instead of an Enroll button, so we never ship a broken dialog.
+     * `informationalHint` is an i18n key for the explanation rendered on the card.
+     */
+    informational?: boolean
+    informationalHint?: string
 }
 
 /**

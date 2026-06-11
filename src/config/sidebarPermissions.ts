@@ -77,7 +77,10 @@ export const SIDEBAR_ENTRIES: SidebarEntry[] = [
 
     // Security
     { labelKey: 'nav.authFlows',              path: '/auth-flows',             group: 'security',   visibleToRoles: ADMIN_ROLES },
-    { labelKey: 'nav.authSessions',           path: '/auth-sessions',          group: 'security',   visibleToRoles: ADMIN_ROLES },
+    // 'Auth Sessions' (/auth-sessions) hidden from nav 2026-06-02: the auth_sessions
+    // table has no production writer (POST /auth/sessions is unreached on web/widget/
+    // mobile), so the page can never populate. Route kept in App.tsx; re-add this entry
+    // if the stepped-auth-session engine is ever wired to a real flow.
     { labelKey: 'nav.devices',                path: '/devices',                group: 'security',   visibleToRoles: ADMIN_ROLES },
     // Audit logs list is tenant-scoped on the backend after #24, but the
     // full cross-tenant view only renders for platform owners.

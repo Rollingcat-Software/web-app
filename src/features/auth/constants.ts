@@ -46,6 +46,10 @@ export const WEBAUTHN = {
     /** User verification levels */
     UV_REQUIRED: 'required' as const,
     UV_PREFERRED: 'preferred' as const,
+    /** Resident-key requirement for discoverable (passkey) credentials */
+    RESIDENT_KEY_REQUIRED: 'required' as const,
+    /** Default device name (i18n key) for a discoverable passkey */
+    DEVICE_NAME_PASSKEY: 'webauthn.defaultDevicePasskey',
     /** Credential type */
     CREDENTIAL_TYPE: 'public-key' as const,
     /** Transport types */

@@ -20,7 +20,7 @@ import {
     TextField,
     Typography,
 } from '@mui/material'
-import { Key, CheckCircle, Delete, UsbOutlined, Fingerprint } from '@mui/icons-material'
+import { Key, CheckCircle, Delete, UsbOutlined, Fingerprint, VpnKey } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
@@ -33,7 +33,16 @@ interface WebAuthnEnrollmentProps {
     onClose: () => void
     onSuccess: () => void
     userId: string
-    mode?: 'hardware-key' | 'platform'
+    /**
+     * Which kind of WebAuthn credential to register:
+     *  - `platform`     — device-bound biometric (Touch ID / Windows Hello), surfaced as FINGERPRINT.
+     *  - `hardware-key` — roaming FIDO2 security key, surfaced as HARDWARE_KEY.
+     *  - `passkey`      — DISCOVERABLE / resident credential (`residentKey=required`, no
+     *                     attachment restriction so the hybrid "use your phone" QR flow works),
+     *                     surfaced as PASSKEY. This is the credential that powers usernameless
+     *                     sign-in (the empty-`allowCredentials` `navigator.credentials.get()` path).
+     */
+    mode?: 'hardware-key' | 'platform' | 'passkey'
 }
 
 interface WebAuthnCredential {
@@ -93,8 +102,18 @@ export default function WebAuthnEnrollment({
     }, [open])
 
     const isPlatform = mode === WEBAUTHN.ATTACHMENT_PLATFORM
-    const title = isPlatform ? t('webauthn.enrollment.registerFingerprint') : t('webauthn.enrollment.registerHardwareKey')
-    const icon = isPlatform ? <Fingerprint sx={{ fontSize: 28, color: 'white' }} /> : <Key sx={{ fontSize: 28, color: 'white' }} />
+    const isPasskey = mode === 'passkey'
+    // A passkey shares the platform-authenticator's purple/biometric visual styling
+    // (it is most commonly device-bound + UV), unlike the amber roaming-key styling.
+    const isPlatformLike = isPlatform || isPasskey
+    const title = isPlatform
+        ? t('webauthn.enrollment.registerFingerprint')
+        : isPasskey
+            ? t('webauthn.enrollment.registerPasskey')
+            : t('webauthn.enrollment.registerHardwareKey')
+    const icon = isPlatform || isPasskey
+        ? (isPasskey ? <VpnKey sx={{ fontSize: 28, color: 'white' }} /> : <Fingerprint sx={{ fontSize: 28, color: 'white' }} />)
+        : <Key sx={{ fontSize: 28, color: 'white' }} />
 
     // Check WebAuthn support on mount
     useEffect(() => {
@@ -185,11 +204,24 @@ export default function WebAuthnEnrollment({
                         { type: WEBAUTHN.CREDENTIAL_TYPE, alg: WEBAUTHN.ALG_ES256 },
                         { type: WEBAUTHN.CREDENTIAL_TYPE, alg: WEBAUTHN.ALG_RS256 },
                     ],
-                    authenticatorSelection: {
-                        authenticatorAttachment: isPlatform ? WEBAUTHN.ATTACHMENT_PLATFORM : WEBAUTHN.ATTACHMENT_CROSS_PLATFORM,
-                        requireResidentKey: false,
-                        userVerification: WEBAUTHN.UV_PREFERRED,
-                    },
+                    // PASSKEY = discoverable / resident credential: residentKey "required"
+                    // (so the credential carries the user handle and powers the
+                    // usernameless `navigator.credentials.get()` with an empty
+                    // allowCredentials), UV required, and NO attachment restriction so the
+                    // platform offers the hybrid "use your phone" QR transport too.
+                    // FINGERPRINT (platform) / HARDWARE_KEY (cross-platform) stay
+                    // non-discoverable as before.
+                    authenticatorSelection: isPasskey
+                        ? {
+                              residentKey: WEBAUTHN.RESIDENT_KEY_REQUIRED,
+                              requireResidentKey: true,
+                              userVerification: WEBAUTHN.UV_REQUIRED,
+                          }
+                        : {
+                              authenticatorAttachment: isPlatform ? WEBAUTHN.ATTACHMENT_PLATFORM : WEBAUTHN.ATTACHMENT_CROSS_PLATFORM,
+                              requireResidentKey: false,
+                              userVerification: WEBAUTHN.UV_PREFERRED,
+                          },
                     excludeCredentials,
                     attestation: WEBAUTHN.ATTESTATION_DIRECT,
                     timeout: WEBAUTHN.TIMEOUT_MS,
@@ -210,14 +242,22 @@ export default function WebAuthnEnrollment({
             // Try to get the raw public key via getPublicKey() (supported in most modern browsers)
             const publicKeyBytes = attestationResponse.getPublicKey?.()
 
-            // Determine actual transports from the authenticator response
-            let transports: string = isPlatform ? WEBAUTHN.TRANSPORT_INTERNAL : WEBAUTHN.TRANSPORT_USB
+            // Determine actual transports from the authenticator response. A passkey
+            // is discoverable and may live on this device or a phone (hybrid), so its
+            // fallback is internal+hybrid; platform → internal; hardware key → usb.
+            let transports: string = isPasskey
+                ? `${WEBAUTHN.TRANSPORT_INTERNAL},${WEBAUTHN.TRANSPORT_HYBRID}`
+                : isPlatform ? WEBAUTHN.TRANSPORT_INTERNAL : WEBAUTHN.TRANSPORT_USB
             if (typeof attestationResponse.getTransports === 'function') {
                 const reportedTransports = attestationResponse.getTransports()
                 if (reportedTransports.length > 0) {
                     transports = reportedTransports.join(',')
                 }
             }
+
+            const defaultDeviceNameKey = isPasskey
+                ? WEBAUTHN.DEVICE_NAME_PASSKEY
+                : isPlatform ? WEBAUTHN.DEVICE_NAME_PLATFORM : WEBAUTHN.DEVICE_NAME_KEY
 
             // Build registration payload with base64url encoding (matching backend expectations)
             const registrationData = {
@@ -230,7 +270,7 @@ export default function WebAuthnEnrollment({
                 clientDataJSON: bytesToBase64url(attestationResponse.clientDataJSON),
                 attestationFormat: WEBAUTHN.FORMAT_PACKED,
                 transports,
-                deviceName: deviceName || t(isPlatform ? WEBAUTHN.DEVICE_NAME_PLATFORM : WEBAUTHN.DEVICE_NAME_KEY),
+                deviceName: deviceName || t(defaultDeviceNameKey),
             }
 
             // Step 5: Send to backend for verification
@@ -257,7 +297,7 @@ export default function WebAuthnEnrollment({
         } finally {
             setLoading(false)
         }
-    }, [httpClient, userId, deviceName, isPlatform, loadCredentials, onSuccess, t])
+    }, [httpClient, userId, deviceName, isPlatform, isPasskey, loadCredentials, onSuccess, t])
 
     const handleDeleteCredential = useCallback(async (id: string) => {
         try {
@@ -283,7 +323,7 @@ export default function WebAuthnEnrollment({
                         width: 40,
                         height: 40,
                         borderRadius: '10px',
-                        background: isPlatform
+                        background: isPlatformLike
                             ? 'linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%)'
                             : 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
                         display: 'flex',
@@ -324,7 +364,7 @@ export default function WebAuthnEnrollment({
                                             width: 80,
                                             height: 80,
                                             borderRadius: '20px',
-                                            background: isPlatform
+                                            background: isPlatformLike
                                                 ? 'rgba(139, 92, 246, 0.08)'
                                                 : 'rgba(245, 158, 11, 0.08)',
                                             display: 'flex',
@@ -334,21 +374,27 @@ export default function WebAuthnEnrollment({
                                             mb: 2,
                                         }}
                                     >
-                                        {isPlatform ? (
+                                        {isPasskey ? (
+                                            <VpnKey sx={{ fontSize: 48, color: 'primary.main' }} />
+                                        ) : isPlatform ? (
                                             <Fingerprint sx={{ fontSize: 48, color: 'primary.main' }} />
                                         ) : (
                                             <UsbOutlined sx={{ fontSize: 48, color: 'warning.main' }} />
                                         )}
                                     </Box>
                                     <Typography variant="body1" sx={{ mb: 1 }}>
-                                        {isPlatform
-                                            ? t('webauthn.enrollment.platformDescription')
-                                            : t('webauthn.enrollment.hardwareKeyDescription')}
+                                        {isPasskey
+                                            ? t('webauthn.enrollment.passkeyDescription')
+                                            : isPlatform
+                                                ? t('webauthn.enrollment.platformDescription')
+                                                : t('webauthn.enrollment.hardwareKeyDescription')}
                                     </Typography>
                                     <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                        {isPlatform
-                                            ? t('webauthn.enrollment.platformHint')
-                                            : t('webauthn.enrollment.hardwareKeyHint')}
+                                        {isPasskey
+                                            ? t('webauthn.enrollment.passkeyHint')
+                                            : isPlatform
+                                                ? t('webauthn.enrollment.platformHint')
+                                                : t('webauthn.enrollment.hardwareKeyHint')}
                                     </Typography>
                                 </Box>
 
@@ -357,12 +403,22 @@ export default function WebAuthnEnrollment({
                                     label={t('webauthn.enrollment.deviceNameLabel')}
                                     value={deviceName}
                                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setDeviceName(e.target.value)}
-                                    placeholder={isPlatform ? t('webauthn.enrollment.deviceNamePlaceholderPlatform') : t('webauthn.enrollment.deviceNamePlaceholderKey')}
+                                    placeholder={isPasskey
+                                        ? t('webauthn.enrollment.deviceNamePlaceholderPasskey')
+                                        : isPlatform
+                                            ? t('webauthn.enrollment.deviceNamePlaceholderPlatform')
+                                            : t('webauthn.enrollment.deviceNamePlaceholderKey')}
                                     InputLabelProps={{ shrink: true }}
                                     sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
                                 />
 
-                                {!isPlatform && (
+                                {isPasskey && (
+                                    <Alert severity="info" sx={{ mb: 3 }}>
+                                        {t('webauthn.enrollment.passkeyInfo')}
+                                    </Alert>
+                                )}
+
+                                {!isPlatformLike && (
                                     <Alert severity="info" sx={{ mb: 3 }}>
                                         {t('webauthn.enrollment.hardwareKeyInfo')}
                                     </Alert>
@@ -379,11 +435,11 @@ export default function WebAuthnEnrollment({
                                         py: 1.5,
                                         borderRadius: '12px',
                                         fontWeight: 600,
-                                        background: isPlatform
+                                        background: isPlatformLike
                                             ? 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)'
                                             : 'linear-gradient(135deg, #f59e0b 0%, #ef4444 100%)',
                                         '&:hover': {
-                                            background: isPlatform
+                                            background: isPlatformLike
                                                 ? 'linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%)'
                                                 : 'linear-gradient(135deg, #d97706 0%, #dc2626 100%)',
                                         },
@@ -413,15 +469,21 @@ export default function WebAuthnEnrollment({
                                     {t('webauthn.enrollment.complete')}
                                 </Typography>
                                 <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                    {isPlatform
-                                        ? t('webauthn.enrollment.completePlatformHint')
-                                        : t('webauthn.enrollment.completeHardwareKeyHint')}
+                                    {isPasskey
+                                        ? t('webauthn.enrollment.completePasskeyHint')
+                                        : isPlatform
+                                            ? t('webauthn.enrollment.completePlatformHint')
+                                            : t('webauthn.enrollment.completeHardwareKeyHint')}
                                 </Typography>
                                 <Alert severity="success" variant="outlined" sx={{ textAlign: 'left' }}>
                                     <Typography variant="body2">
                                         {t('webauthn.enrollment.howToVerify', {
-                                            method: isPlatform ? t('mfa.fingerprint.title') : t('mfa.hardwareKey.title'),
-                                            device: isPlatform ? 'Touch ID, Windows Hello' : t('webauthn.defaultDeviceKey'),
+                                            method: isPasskey
+                                                ? t('webauthn.enrollment.passkeyMethodName')
+                                                : isPlatform ? t('mfa.fingerprint.title') : t('mfa.hardwareKey.title'),
+                                            device: isPasskey
+                                                ? t('webauthn.defaultDevicePasskey')
+                                                : isPlatform ? 'Touch ID, Windows Hello' : t('webauthn.defaultDeviceKey'),
                                         })}
                                     </Typography>
                                 </Alert>
@@ -432,7 +494,9 @@ export default function WebAuthnEnrollment({
                         {(() => {
                             const filtered = credentials.filter((c) => {
                                 const tr = (c.transports || '').toLowerCase()
-                                if (isPlatform) return tr.includes(WEBAUTHN.TRANSPORT_INTERNAL) || tr.includes(WEBAUTHN.TRANSPORT_HYBRID) || tr === ''
+                                // Passkeys (discoverable) and platform authenticators share the
+                                // internal/hybrid transports; roaming security keys use usb/ble/nfc.
+                                if (isPlatformLike) return tr.includes(WEBAUTHN.TRANSPORT_INTERNAL) || tr.includes(WEBAUTHN.TRANSPORT_HYBRID) || tr === ''
                                 return tr.includes(WEBAUTHN.TRANSPORT_USB) || tr.includes(WEBAUTHN.TRANSPORT_BLE) || tr.includes(WEBAUTHN.TRANSPORT_NFC)
                             })
                             return filtered.length > 0 && activeStep === 0 ? (

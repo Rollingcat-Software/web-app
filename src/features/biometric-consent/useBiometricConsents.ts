@@ -11,6 +11,7 @@ import type { ILogger } from '@domain/interfaces/ILogger'
 export interface BiometricConsent {
     id: string
     tenantId: string
+    tenantName?: string | null
     method: string | null
     granted: boolean
     grantedAt?: string | null
@@ -40,7 +41,9 @@ export function useBiometricConsents() {
         try {
             const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
             const res = await httpClient.get<BiometricConsent[]>(CONSENTS_URL)
-            setConsents(res.data ?? [])
+            // `?? []` only guards null/undefined; a malformed (non-array) body would
+            // still be stored and crash consumers (consents.some/.filter/.find). Pin to an array.
+            setConsents(Array.isArray(res.data) ? res.data : [])
         } catch (e) {
             const logger = container.get<ILogger>(TYPES.Logger)
             logger.error('Failed to load biometric consents', e)

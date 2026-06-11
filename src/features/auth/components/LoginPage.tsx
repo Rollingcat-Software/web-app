@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@utils/formatApiError'
+import { isLikelyValidEmail } from '@domain/validators/emailValidator'
 import { useNavigate } from 'react-router-dom'
 import {
     Alert,
@@ -40,6 +41,7 @@ import TwoFactorDispatcher from './TwoFactorDispatcher'
 import MethodPickerStep from './steps/MethodPickerStep'
 import Layer1Shortcuts from './Layer1Shortcuts'
 import ApproveLoginPanel, { type ApproveLoginResult } from './ApproveLoginPanel'
+import QrLoginPanel, { type QrLoginResult } from './QrLoginPanel'
 import type { AvailableMfaMethod, MfaStepResponse, IAuthRepository } from '@domain/interfaces/IAuthRepository'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -54,7 +56,9 @@ import StepProgress from '../../../verify-app/StepProgress'
  * Login form validation schema
  */
 const loginSchema = z.object({
-    email: z.string().min(1, 'Email is required').email('Invalid email address'),
+    // `.refine(isLikelyValidEmail)` is stricter than Zod's `.email()` (which
+    // accepts a 1-char TLD like `user@gmail.x`) — see emailValidator.ts.
+    email: z.string().min(1, 'Email is required').refine(isLikelyValidEmail, 'Invalid email address'),
     password: z.string().min(1, 'Password is required'),
 })
 
@@ -150,6 +154,12 @@ export default function LoginPage() {
     // Tenant Layer-1 login config (D). null while loading / on failure → the UI
     // falls back to the legacy email+password form + all shortcuts.
     const [loginConfig, setLoginConfig] = useState<LoginConfig | null>(null)
+    // True once the login-config fetch has SETTLED with no usable config
+    // (network / unreachable API / malformed). Drives a "couldn't load — retry"
+    // banner so the legacy email+password fallback below is EXPLAINED rather than
+    // silently shown (a silent degrade read as a stale / old-looking login page).
+    const [configLoadFailed, setConfigLoadFailed] = useState(false)
+    const [configRetrying, setConfigRetrying] = useState(false)
     // Backend-authoritative total step count for the resolved login flow. Set
     // from the identifier-step preflight (the caller's ACTUAL tenant flow) and
     // from each /auth/mfa/step response, so the step indicator shows the real
@@ -175,6 +185,7 @@ export default function LoginPage() {
     const [completedMfaMethods, setCompletedMfaMethods] = useState<string[]>([])
     // Approve-login (number-matching) panel toggle for the dashboard login.
     const [showApproveLogin, setShowApproveLogin] = useState(false)
+    const [showQrLogin, setShowQrLogin] = useState(false)
 
     // Fetch the platform Layer-1 login config, and only reveal the form (drop the
     // skeleton) once that fetch has SETTLED. Previously the page flipped to ready
@@ -189,9 +200,25 @@ export default function LoginPage() {
         const reveal = () => { if (!cancelled) setPageReady(true) }
         const fallback = setTimeout(reveal, 2000)
         void fetchLoginConfig(httpClient)
-            .then((cfg) => { if (!cancelled) setLoginConfig(cfg) })
+            .then((cfg) => { if (!cancelled) { setLoginConfig(cfg); setConfigLoadFailed(cfg === null) } })
             .finally(() => { clearTimeout(fallback); reveal() })
         return () => { cancelled = true; clearTimeout(fallback) }
+    }, [httpClient])
+
+    // Re-fetch the login-config when the user taps "Retry" on the
+    // config-unavailable banner (the initial fetch failed, almost always because
+    // the API was unreachable). On success the banner clears and the real Layer-1
+    // surface renders; on repeat failure the banner stays. The legacy
+    // email+password fallback remains usable throughout.
+    const handleRetryLoginConfig = useCallback(async () => {
+        setConfigRetrying(true)
+        try {
+            const cfg = await fetchLoginConfig(httpClient)
+            setLoginConfig(cfg)
+            setConfigLoadFailed(cfg === null)
+        } finally {
+            setConfigRetrying(false)
+        }
     }, [httpClient])
 
     // Perf (USER-BUG-7 → audit CC-3): warm BiometricEngine / MediaPipe ONLY
@@ -387,6 +414,12 @@ export default function LoginPage() {
             setLoginError(t('auth.validation.emailRequired'))
             return
         }
+        // Reject obvious typos (e.g. `user@gmail.x`) before opening an MFA
+        // session. Format-only check — preserves enumeration resistance.
+        if (!isLikelyValidEmail(identifier)) {
+            setLoginError(t('auth.validation.invalidEmail'))
+            return
+        }
         setLoginError(null)
         setIdentifierSubmitting(true)
         try {
@@ -516,6 +549,18 @@ export default function LoginPage() {
         [completeTokenLogin],
     )
 
+    const handleQrLoginApproved = useCallback(
+        (result: QrLoginResult) => {
+            setLoginError(null)
+            setShowQrLogin(false)
+            void completeTokenLogin({
+                accessToken: result.accessToken,
+                refreshToken: result.refreshToken,
+            })
+        },
+        [completeTokenLogin],
+    )
+
     // Step/layer progress (parity with verify.fivucsas LoginMfaFlow). The DASHBOARD
     // login uses the PLATFORM login-config, which reports totalSteps=1 — MFA here is
     // dynamic per-user (not a configured layer), so we can't know upfront. We treat
@@ -581,6 +626,54 @@ export default function LoginPage() {
                         <ApproveLoginPanel
                             onApproved={handleApproveLoginApproved}
                             onCancel={() => setShowApproveLogin(false)}
+                        />
+                    </CardContent>
+                </Card>
+            </Box>
+        )
+    }
+
+    // Cross-device QR sign-in panel — same glass card shell as the other
+    // interstitials. Additive: the main login path is untouched, so this reverts
+    // cleanly by not opening the panel.
+    if (showQrLogin) {
+        return (
+            <Box
+                sx={{
+                    minHeight: '100vh',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    overflowY: 'auto',
+                    py: 4,
+                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
+                    backgroundSize: '400% 400%',
+                    animation: 'gradientShift 15s ease infinite',
+                    '@keyframes gradientShift': {
+                        '0%': { backgroundPosition: '0% 50%' },
+                        '50%': { backgroundPosition: '100% 50%' },
+                        '100%': { backgroundPosition: '0% 50%' },
+                    },
+                }}
+            >
+                <Card
+                    sx={{
+                        maxWidth: 480,
+                        width: '100%',
+                        mx: 2,
+                        borderRadius: '24px',
+                        background: 'rgba(255, 255, 255, 0.95)',
+                        backdropFilter: 'blur(20px)',
+                        boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+                        color: '#1a1a2e',
+                        '& .MuiTypography-root': { color: '#1a1a2e' },
+                        '& .MuiTypography-colorTextSecondary': { color: 'rgba(0,0,0,0.6)' },
+                    }}
+                >
+                    <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
+                        <QrLoginPanel
+                            onApproved={handleQrLoginApproved}
+                            onCancel={() => setShowQrLogin(false)}
                         />
                     </CardContent>
                 </Card>
@@ -866,6 +959,39 @@ export default function LoginPage() {
                             </Box>
                         </motion.div>
 
+                        {/* Config-unavailable banner (2026-06-03): the login-config
+                            fetch settled with no usable config — almost always
+                            because the API was unreachable (e.g. a filtered network
+                            blocking api.fivucsas.com). We STILL render the legacy
+                            email+password fallback below (resilience), but tell the
+                            user WHY it looks basic and offer a retry, instead of
+                            silently degrading to the old-looking form. */}
+                        {configLoadFailed && (
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ duration: 0.3 }}
+                            >
+                                <Alert
+                                    severity="warning"
+                                    role="status"
+                                    sx={{ mb: 3, borderRadius: '12px' }}
+                                    action={
+                                        <Button
+                                            color="inherit"
+                                            size="small"
+                                            onClick={() => void handleRetryLoginConfig()}
+                                            disabled={configRetrying}
+                                        >
+                                            {configRetrying ? t('login.configRetrying') : t('login.configRetry')}
+                                        </Button>
+                                    }
+                                >
+                                    {t('login.configUnavailable')}
+                                </Alert>
+                            </motion.div>
+                        )}
+
                         {/* Error Alert — shown in both password and identifier-first modes */}
                         {(error || loginError) && (
                             <motion.div
@@ -967,31 +1093,33 @@ export default function LoginPage() {
                             }
                             aria-label={t('auth.loginFormLabel')}
                         >
-                            {/* Step 2 (identifier-first): read-only identity chip + "Change",
-                                so the password is the only input — mirrors verify.fivucsas. */}
+                            {/* Step 2 (identifier-first): read-only identity display + a hidden
+                                username input (a11y / password managers). NO per-step "change
+                                email" affordance — the uniform shell-level "Not you? Start over"
+                                is the single identity control across ALL factors (matches
+                                verify.fivucsas). PR #145 had re-added a password-only "Change"
+                                button here, which made the password step inconsistent with every
+                                other first factor — removed 2026-06-02. */}
                             {showEmailAsChip && (
                                 <motion.div variants={itemVariants}>
-                                    <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 1, mb: 0.5 }}>
-                                        <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, overflow: 'hidden' }}>
-                                            <EmailOutlined sx={{ fontSize: 18, color: 'rgba(0,0,0,0.54)' }} />
-                                            <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
-                                                {getValues('email')}
-                                            </strong>
-                                        </Box>
-                                        <Button
-                                            size="small"
-                                            variant="text"
-                                            disabled={formBusy}
-                                            onClick={() => {
-                                                setPasswordRevealed(false)
-                                                setLoginError(null)
-                                                setTimeout(() => setFocus('email'), 0)
-                                            }}
-                                            sx={{ textTransform: 'none', minWidth: 0, color: 'primary.main', fontWeight: 600 }}
-                                        >
-                                            {t('auth.changeIdentity')}
-                                        </Button>
+                                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, overflow: 'hidden', mt: 1, mb: 0.5 }}>
+                                        <EmailOutlined sx={{ fontSize: 18, color: 'rgba(0,0,0,0.54)' }} />
+                                        <strong style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: '#1a1a2e' }}>
+                                            {getValues('email')}
+                                        </strong>
                                     </Box>
+                                    {/* paired username field so the password field has an
+                                        associated identifier for a11y + password managers */}
+                                    <input
+                                        type="text"
+                                        name="username"
+                                        autoComplete="username"
+                                        value={getValues('email')}
+                                        readOnly
+                                        aria-hidden="true"
+                                        tabIndex={-1}
+                                        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                                    />
                                 </motion.div>
                             )}
 
@@ -1230,6 +1358,10 @@ export default function LoginPage() {
                                 onApproveClick={() => {
                                     setLoginError(null)
                                     setShowApproveLogin(true)
+                                }}
+                                onQrClick={() => {
+                                    setLoginError(null)
+                                    setShowQrLogin(true)
                                 }}
                                 disabled={formBusy}
                                 hideDivider={!showPasswordForm}

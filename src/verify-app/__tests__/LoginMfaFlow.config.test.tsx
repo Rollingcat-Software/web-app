@@ -68,6 +68,43 @@ describe('LoginMfaFlow — config-driven Layer 1', () => {
         expect(screen.getByLabelText('Password')).toBeInTheDocument()
     })
 
+    it('shows a Layer-1 skeleton (no password flash) while configLoading, then the real form (Fix #1)', async () => {
+        // While the parent is still fetching loginConfig, the opening screen must
+        // be a skeleton — NOT the legacy password form (which would flash before
+        // an identifier-first config resolves).
+        const { rerender } = render(
+            <LoginMfaFlow {...baseProps} loginConfig={null} configLoading />,
+        )
+        expect(screen.getByTestId('login-config-skeleton')).toBeInTheDocument()
+        expect(screen.queryByLabelText('Password')).toBeNull()
+
+        // Config settles to identifier-first → skeleton gone, email-only form.
+        const config = normalizeLoginConfig({
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        rerender(<LoginMfaFlow {...baseProps} loginConfig={config} configLoading={false} />)
+        expect(screen.queryByTestId('login-config-skeleton')).toBeNull()
+        // The opening phase re-derives to identifier-first in a post-render effect.
+        await waitFor(() => {
+            expect(screen.queryByLabelText('Password')).toBeNull()
+        })
+        expect(screen.getByLabelText('Email Address')).toBeInTheDocument()
+    })
+
+    it('falls back to the email+password form when configLoading settles with a null config (no lockout, Fix #1)', () => {
+        // A GENUINE config failure = null + not-loading → must render the safe
+        // legacy password form so an admin is never locked out.
+        const { rerender } = render(
+            <LoginMfaFlow {...baseProps} loginConfig={null} configLoading />,
+        )
+        expect(screen.getByTestId('login-config-skeleton')).toBeInTheDocument()
+
+        rerender(<LoginMfaFlow {...baseProps} loginConfig={null} configLoading={false} />)
+        expect(screen.queryByTestId('login-config-skeleton')).toBeNull()
+        expect(screen.getByLabelText('Password')).toBeInTheDocument()
+    })
+
     it('renders identifier-first entry (no password field) when PASSWORD is absent', async () => {
         const config = normalizeLoginConfig({
             layer1: { identifierRequired: true, methods: [{ type: 'EMAIL_OTP' }] },
@@ -194,6 +231,36 @@ describe('LoginMfaFlow — config-driven Layer 1', () => {
             expect(screen.getByLabelText('Password')).toBeInTheDocument()
         })
         expect(onPreflightResolved).not.toHaveBeenCalled()
+    })
+
+    it('uses the PREFLIGHT-resolved totalSteps for the password-screen counter (regression: no 1/2 → 2/3 jump)', async () => {
+        // The mount-time config under-reports the flow (totalSteps: 2). The
+        // preflight resolves the caller's REAL tenant flow (totalSteps: 3). The
+        // password screen's step counter must read "1 of 3" (from the preflight,
+        // stored in flowTotalSteps) — NOT "1 of 2" (the mount config) — otherwise
+        // it jumps to 2/3 on the first MFA step (the reported bug, issue #13).
+        const mountConfig = normalizeLoginConfig({
+            engineActive: true,
+            totalSteps: 2,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        mockCheckEligibility.mockResolvedValue(
+            normalizeLoginConfig({
+                engineActive: true,
+                totalSteps: 3,
+                layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+            }),
+        )
+        render(<LoginMfaFlow {...baseProps} loginConfig={mountConfig} />)
+        fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'staff@marmara.edu.tr' } })
+        fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+        await waitFor(() => expect(screen.getByLabelText('Password')).toBeInTheDocument())
+        // The counter's denominator comes from the preflight (3), not the mount config (2).
+        const bar = screen.getByRole('progressbar', { name: /step 1 of 3/i })
+        expect(bar).toHaveAttribute('aria-valuemax', '3')
+        expect(bar).toHaveAttribute('aria-valuenow', '1')
+        expect(screen.queryByRole('progressbar', { name: /step 1 of 2/i })).toBeNull()
     })
 
     it('shows the tenant-mismatch error on the EMAIL step and does NOT reveal the password screen', async () => {

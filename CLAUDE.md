@@ -29,6 +29,15 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
   method: `face/`, `voice/`, `nfc/`, `sms/`, `totp/`, `webauthn/`. New
   enrollment methods follow the same pattern — each method owns its hook,
   step components, and DI wiring under its own subdirectory.
+- **Face enrollment flow (`hooks/useFaceChallenge.ts`, 2026-06-03):** a **3-step**
+  guided capture — **center/look → turn left → turn right** (counter X/3), one
+  image per step. Head-turn gestures are **mandatory** (no silent auto-skip); a
+  liveness miss re-prompts the current step (never resets to Step 1); step
+  counter + percentage both derive from current/total. **No blink step** —
+  client-side blink detection (EAR via the 478-pt FaceLandmarker `avgEAR`) was too
+  unreliable across devices/FPS; server passive-liveness is authoritative. The
+  shared `BlazeFace` detector runs at `numFaces:1` for auth (single subject →
+  higher FPS). Don't re-add a hard-required client blink. See CHANGELOG 2026-06-03.
 - `src/features/auth/constants.ts` - Centralized enums: AuthMethodType, MfaStepStatus, WEBAUTHN, AUTH_API
 - `src/features/auth/webauthn-utils.ts` - Shared WebAuthn: resolveChallenge, mapWebAuthnError, base64 helpers
 - `src/features/authFlows/` - Auth flow builder and management. The builder
@@ -97,14 +106,32 @@ task #16 / PR #163) — never hardcode the password-first form.
   tenant flows and then continue through `/auth/mfa/step` like a password login.
 - `LoginPage.tsx` (dashboard) gates the password form the same way; the
   no-password path routes through `TwoFactorDispatcher`.
-- `Layer1Shortcuts.tsx` renders the usernameless shortcuts (passkey / approve)
-  **strictly per the config when it positively declares a usernameless Layer-1
-  method**; when it declares none (null config OR the flag-OFF password-first
-  shape) `fallbackAll` keeps today's passkey + approve buttons.
+- `Layer1Shortcuts.tsx` renders the cross-device sign-in cluster on the initial
+  identity-entry screen: the **passkey** button (config-driven — shown strictly per
+  the config when it declares a usernameless Layer-1 method; `fallbackAll` keeps it
+  on a null/flag-OFF config), plus **"Approve on another device"** and **"Sign in
+  with your phone" (QR)** when the caller passes `onApproveClick` / `onQrClick` (both
+  `LoginPage` and `HostedLoginApp` do). The approve + QR panels self-collect what they
+  need (email / a scanned session), so they work as no-typing-first alternatives.
+  (web-app #199, 2026-06-03 — approve had been removed from here and was re-homed;
+  QR is new. See `qr-login.ts` + `QrLoginPanel.tsx` / `ApproveLoginPanel.tsx`. QR
+  encodes the **sessionId** as `fivucsas://qr-login?session=<id>` — NOT the API's
+  random `qrContent`, which is not a Redis lookup key. Multi-step tenants return
+  `mfaRequired`; the step-up handoff via `mfaSessionToken` is a tracked follow-up.)
 - **Reversibility**: the UI is 100% config-driven + always has the
   email+password fallback, so flipping the API flag OFF (which returns the
   current password-first shape) reverts the whole feature with **no web
   redeploy**. Don't bake the new behaviour into the components.
+- **Config-unavailable banner (2026-06-03)**: when `fetchLoginConfig` settles
+  with no usable config (network / unreachable API / malformed), `LoginPage`
+  sets `configLoadFailed` and renders a `role="status"` warning banner +
+  **Retry** (`login.configUnavailable` / `configRetry` / `configRetrying`)
+  ABOVE the still-rendered legacy fallback. This stops a config-fetch failure
+  from looking like a stale/old login page (it read that way on filtered
+  networks that block `api.fivucsas.com`). The fallback form is unchanged — the
+  banner is purely additive messaging. **Hosted parity TODO**: the same banner
+  is NOT yet on `verify-app/HostedLoginApp.tsx` (its config-failure fallback is
+  still silent) — deferred to avoid touching the live OIDC path.
 
 Contract is provisional (api task #16): the client normalizer absorbs
 field/casing deltas and never hard-fails.
@@ -221,6 +248,12 @@ Current strategy:
   `dist/sw.js`. Verify after any change: `npm run build` then grep `dist/sw.js`
   for the `"navigate"===…mode` → `NetworkFirst({cacheName:"app-shell"…})` route and
   confirm NO `NavigationRoute` / `createHandlerBoundToURL` remains.
+- **SW cache headers (2026-06-03)**: `public/.htaccess` must serve `sw.js` +
+  `registerSW.js` (fixed-name, NOT build-hashed) as `no-cache, must-revalidate`,
+  via `<Files>` overrides placed AFTER the blanket `\.(js|css)$ → immutable` rule.
+  Without this the SW script gets pinned `immutable, 1yr` and a new deploy's SW
+  can never take over → users stuck on a stale build (observed 2026-06-03). Only
+  these two fixed-name files are exempted; hashed `/assets/*` stay immutable.
 - **One-time clear caveat**: users whose browser already installed the OLD
   cache-first SW need ONE cache clear (or for the old SW to update itself) to pick
   up this new SW. After that, all future deploys are fresh with no manual clear.

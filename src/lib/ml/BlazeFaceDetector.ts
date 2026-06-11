@@ -81,6 +81,12 @@ export class BlazeFaceDetector {
       const blazefaceModule = await import('@tensorflow-models/blazeface');
       this.model = await blazefaceModule.load({
         maxFaces: 5,
+        // The package default fetches from tfhub.dev, which is NOT in the
+        // verify.fivucsas.com CSP connect-src → the load is CSP-blocked (noisy
+        // console errors + loss of this secondary detector). This is the canonical
+        // TF.js BlazeFace graph mirror on storage.googleapis.com, which IS allowed
+        // by connect-src. (Primary detector is MediaPipe FaceLandmarker.)
+        modelUrl: 'https://storage.googleapis.com/learnjs-data/face_detector/model.json',
       });
 
       this.ready = true;

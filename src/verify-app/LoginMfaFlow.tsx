@@ -15,6 +15,7 @@ import {
     Card,
     CardContent,
     InputAdornment,
+    Skeleton,
     TextField,
     Typography,
 } from '@mui/material'
@@ -33,6 +34,7 @@ import MfaStepRenderer from '@features/auth/login-shared/MfaStepRenderer'
 import { makeRequestWebAuthnChallenge } from '@features/auth/login-shared/webauthnChallenge'
 import StepProgress from './StepProgress'
 import { hasPasswordLayer1, needsIdentifier, type LoginConfig } from '@domain/models/LoginConfig'
+import { isLikelyValidEmail } from '@domain/validators/emailValidator'
 
 /**
  * The discrete screens of the login flow. Named constants (not bare string
@@ -91,9 +93,23 @@ interface LoginMfaFlowProps {
      * enumeration-safe by returning a platform-default-looking config.
      */
     onPreflightResolved?: (loginConfig: LoginConfig) => void
+    /**
+     * True while the parent is STILL fetching `loginConfig` (it has not settled
+     * yet, so `loginConfig == null` is "unknown", not "failed/legacy"). When
+     * true, the OPENING Layer-1 screen renders a brief skeleton instead of the
+     * legacy password form, so the password box never flashes before the config
+     * resolves to identifier-first (the "sometimes email+password, sometimes
+     * just email" report). Once the fetch settles the parent passes `false`; a
+     * genuine config FAILURE leaves `loginConfig=null` + `configLoading=false`,
+     * which correctly falls back to the email+password form (admins never get
+     * locked out). Defaults to `false` ⇒ existing callers are unaffected. This
+     * only gates the opening identity-entry screen — never an in-progress MFA
+     * step (once an identifier/session is committed the skeleton is suppressed).
+     */
+    configLoading?: boolean
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, onPreflightResolved }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, onPreflightResolved, configLoading = false }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -137,6 +153,14 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
     const [selectedMethod, setSelectedMethod] = useState<string>('')
     const [currentStep, setCurrentStep] = useState(1)
     const [totalSteps, setTotalSteps] = useState(1)
+    // Backend-authoritative flow size (the SINGLE denominator for the step
+    // counter), set from the identifier-step preflight that resolves the
+    // caller's real tenant flow and reaffirmed (never shrunk) by each
+    // /auth/login + /auth/mfa/step response. Mirrors the dashboard's #158 fix:
+    // without it the password screen used `loginConfig.totalSteps` while the MFA
+    // steps used the runtime `totalSteps`, and when those disagreed the
+    // denominator jumped (the reported "1/2 then 2/3" bug).
+    const [flowTotalSteps, setFlowTotalSteps] = useState<number | null>(null)
     const [usedMethods, setUsedMethods] = useState<string[]>([])
     // Identifier-first entry (config without PASSWORD): the typed email.
     const [identifier, setIdentifier] = useState('')
@@ -250,7 +274,10 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                 setMfaSessionToken(token)
                 // Backend-authoritative step counts: PASSWORD satisfied step 1, so
                 // the flow resumes at step 2 of N ("2/N").
-                if (result.totalSteps) setTotalSteps(result.totalSteps)
+                if (result.totalSteps) {
+                    setTotalSteps(result.totalSteps)
+                    setFlowTotalSteps((prev) => Math.max(prev ?? 0, result.totalSteps!))
+                }
                 setCurrentStep(result.currentStep ?? 2)
 
                 const methods = result.availableMethods ?? []
@@ -310,6 +337,13 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             setError(t('auth.validation.emailRequired'))
             return
         }
+        // Reject obvious typos (e.g. `user@gmail.x`) HERE so a malformed address
+        // never advances to the password step. Pure format check — never reveals
+        // whether the account exists, so enumeration resistance is preserved.
+        if (!isLikelyValidEmail(identifier)) {
+            setError(t('auth.validation.invalidEmail'))
+            return
+        }
         // Identifier-first WITH a password factor: we now know who the user is,
         // so reveal the password screen. The /auth/login call happens at the
         // password step (with this email), then any MFA steps follow. No
@@ -323,18 +357,25 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             setLoading(true)
             setError(undefined)
             try {
+                // The preflight resolves the caller's REAL tenant login-config.
                 // The hosted page's INITIAL config was resolved by OAuth clientId
                 // → the client's bound tenant (typically the `system` sentinel),
                 // so the previewed flow may be the SYSTEM flow, not the user's.
-                // The preflight resolves the USER's ACTUAL tenant login-config;
-                // hand it up so the displayed flow switches to the user's tenant.
-                // A null result (older API / failure) leaves the displayed config
-                // unchanged — fallback preserved.
                 const resolved = await authRepository.checkLoginEligibility(
                     identifier.trim(),
                     clientId || undefined,
                 )
+                // Hand the resolved config UP so the hosted shell swaps the
+                // displayed flow (step list / methods / branding) to the user's
+                // ACTUAL tenant. A null result (older API / failure) leaves the
+                // displayed config unchanged — fallback preserved.
                 if (resolved && onPreflightResolved) onPreflightResolved(resolved)
+                // Capture its `totalSteps` so the password screen already shows the
+                // correct denominator (e.g. 1/3) instead of the mount-time config's
+                // estimate — preventing the 1/2 → 2/3 jump on the MFA step.
+                if (resolved?.totalSteps) {
+                    setFlowTotalSteps((prev) => Math.max(prev ?? 0, resolved.totalSteps))
+                }
                 setPhase(FlowPhase.Password)
             } catch (err) {
                 // TENANT_MISMATCH (or any pre-flight error) is shown inline on the
@@ -472,7 +513,10 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
             if (res.mfaSessionToken) setMfaSessionToken(res.mfaSessionToken)
             if (res.currentStep) setCurrentStep(res.currentStep)
-            if (res.totalSteps) setTotalSteps((prev) => Math.max(prev, res.totalSteps!))
+            if (res.totalSteps) {
+                setTotalSteps((prev) => Math.max(prev, res.totalSteps!))
+                setFlowTotalSteps((prev) => Math.max(prev ?? 0, res.totalSteps!))
+            }
 
             const methods = res.availableMethods ?? availableMethods
             setAvailableMethods(methods)
@@ -528,6 +572,20 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
     // ─── Render ─────────────────────────────────────────────────
 
+    // Show a brief Layer-1 skeleton (instead of the legacy password form) while
+    // the parent is STILL fetching loginConfig — but ONLY on the opening
+    // identity-entry screen, and ONLY before anything is committed. This kills
+    // the "password box flashes then swaps to email-first" report. A settled
+    // fetch (configLoading=false) drops the skeleton; a genuine config failure
+    // (null + not-loading) renders the email+password form so no admin is ever
+    // locked out. Once an identifier/MFA session exists we never skeleton (the
+    // user is mid-flow), nor on the MFA / method-picker phases.
+    const showLayer1Skeleton =
+        configLoading &&
+        !mfaSessionToken &&
+        !identifier.trim() &&
+        (phase === FlowPhase.Password || phase === FlowPhase.Identifier)
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 16 }}
@@ -577,14 +635,16 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
                         // Single backend-authoritative denominator shared by the
                         // password screen (the first factor, step 1) and every MFA
-                        // step. Prefer the config's `totalSteps`; fall back to the
-                        // live `totalSteps` / `currentStep` so the bar can never read
-                        // fewer steps than the user has already taken. No `Math.max(…,2,…)`
-                        // floor — that mismatched the password screen's
-                        // `loginConfig.totalSteps` and over-reported short flows.
+                        // step. Prefer `flowTotalSteps` (set from the identifier-step
+                        // preflight and reaffirmed by each /auth/login + /auth/mfa/step
+                        // response); fall back to the mount-time config, then to a
+                        // floor of `currentStep` so the bar can never read fewer steps
+                        // than the user has already taken. Runtime `totalSteps` is NOT
+                        // a co-equal input here — it is folded into `flowTotalSteps`
+                        // upstream — otherwise a config↔runtime disagreement made the
+                        // denominator jump mid-flow (the reported "1/2 then 2/3" bug).
                         const flowTotal = Math.max(
-                            loginConfig?.totalSteps ?? 0,
-                            totalSteps,
+                            flowTotalSteps ?? loginConfig?.totalSteps ?? 1,
                             currentStep,
                         )
                         if (phase === FlowPhase.Password) {
@@ -678,6 +738,16 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                     </Box>
 
                     {/* Content */}
+                    {showLayer1Skeleton ? (
+                        /* Layer-1 placeholder while loginConfig is still loading
+                           — prevents the password-form flash before the config
+                           resolves to identifier-first (Fix #1). */
+                        <Box data-testid="login-config-skeleton">
+                            <Skeleton variant="text" width="55%" sx={{ mb: 2, fontSize: '0.95rem' }} />
+                            <Skeleton variant="rounded" height={56} sx={{ mb: 2, borderRadius: '12px' }} />
+                            <Skeleton variant="rounded" height={48} sx={{ mt: 1, borderRadius: '12px' }} />
+                        </Box>
+                    ) : (
                     <AnimatePresence mode="wait">
                         <motion.div
                             key={phase + selectedMethod}
@@ -798,6 +868,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                             )}
                         </motion.div>
                     </AnimatePresence>
+                    )}
 
                     {/* Bottom step counter removed — StepProgress at the top is the
                         single authoritative indicator per Fix 4 (2026-04-18c). */}

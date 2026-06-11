@@ -18,6 +18,7 @@ import { motion } from 'framer-motion'
 import { Typography } from '@mui/material'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
+import { isLikelyValidEmail } from '@domain/validators/emailValidator'
 
 type PasswordFormData = { email: string; password: string }
 
@@ -42,7 +43,7 @@ export default function PasswordStep({ onSubmit, loading, error, presetEmail }: 
     const identifierFirst = Boolean(presetEmail)
 
     const schema = z.object({
-        email: z.string().min(1, t('auth.validation.emailRequired')).email(t('auth.validation.invalidEmail')),
+        email: z.string().min(1, t('auth.validation.emailRequired')).refine(isLikelyValidEmail, t('auth.validation.invalidEmail')),
         password: z.string().min(8, t('auth.validation.passwordMinLength')),
     })
 
@@ -83,6 +84,7 @@ export default function PasswordStep({ onSubmit, loading, error, presetEmail }: 
                     // read-only, NO email box. The "change identity" / restart
                     // affordance is the shell-level "Not you? Start over" header
                     // link (Fix 1), so it is NOT repeated here per-step.
+                    <>
                     <motion.div variants={itemVariants}>
                         <Typography
                             variant="body2"
@@ -94,6 +96,19 @@ export default function PasswordStep({ onSubmit, loading, error, presetEmail }: 
                             </span>
                         </Typography>
                     </motion.div>
+                    {/* paired username field for a11y + password managers (email is shown
+                        read-only above, not as an input, in identifier-first mode) */}
+                    <input
+                        type="text"
+                        name="username"
+                        autoComplete="username"
+                        value={presetEmail ?? ''}
+                        readOnly
+                        aria-hidden="true"
+                        tabIndex={-1}
+                        style={{ position: 'absolute', width: 1, height: 1, opacity: 0, pointerEvents: 'none' }}
+                    />
+                    </>
                 ) : (
                     <motion.div variants={itemVariants}>
                         <Controller

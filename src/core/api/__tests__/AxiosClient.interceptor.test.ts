@@ -14,6 +14,7 @@
  */
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import type { AxiosAdapter } from 'axios'
+import { AxiosError } from 'axios'
 import { AxiosClient } from '../AxiosClient'
 import { ACTIVE_TENANT_HEADER, setActiveTenantHeader } from '../activeTenant'
 import type { IConfig } from '@domain/interfaces/IConfig'
@@ -119,5 +120,55 @@ describe('AxiosClient request interceptor — X-Tenant-ID scoping', () => {
         await client.post('/users', { name: 'x' })
         const headers = getCaptured()?.headers ?? {}
         expect(headers[ACTIVE_TENANT_HEADER]).toBe('tenant-post')
+    })
+})
+
+describe('AxiosClient response interceptor — 401 refresh+retry is bounded', () => {
+    beforeEach(() => {
+        vi.clearAllMocks()
+        setActiveTenantHeader(null)
+    })
+    afterEach(() => setActiveTenantHeader(null))
+
+    // Adapter that counts calls per URL. /auth/refresh succeeds (the access token is
+    // actually valid and rotates cleanly); every OTHER url returns a persistent 401 — a
+    // "logical" failure (e.g. a wrong 2FA code), modeling the Auth-Methods-Testing flood.
+    function build401Client(token: string | null) {
+        const client = new AxiosClient(config, logger, makeTokenService(token))
+        const counts: Record<string, number> = {}
+        const adapter: AxiosAdapter = async (cfg) => {
+            const url = cfg.url ?? ''
+            counts[url] = (counts[url] ?? 0) + 1
+            if (url.includes('/auth/refresh')) {
+                return {
+                    data: { accessToken: 'new-acc', refreshToken: 'new-ref' },
+                    status: 200, statusText: 'OK', headers: {}, config: cfg,
+                }
+            }
+            throw new AxiosError('Unauthorized', 'ERR_BAD_REQUEST', cfg, null, {
+                data: { message: 'invalid code' },
+                status: 401, statusText: 'Unauthorized', headers: {}, config: cfg,
+            } as never)
+        }
+        client.getAxiosInstance().defaults.adapter = adapter
+        return { client, counts }
+    }
+
+    it('refreshes + retries a generic 401 AT MOST ONCE (no unbounded loop)', async () => {
+        const { client, counts } = build401Client('tok')
+        await expect(client.get('/users')).rejects.toBeTruthy()
+        // original + exactly one retry — NOT the ~190-call loop that tripped the limiter
+        expect(counts['/users']).toBe(2)
+        expect(counts['/auth/refresh']).toBe(1)
+    })
+
+    it('does NOT refresh/retry a 401 from /auth/2fa/verify-method (logical wrong-code)', async () => {
+        const { client, counts } = build401Client('tok')
+        await expect(
+            client.post('/auth/2fa/verify-method', { method: 'TOTP', data: { code: '000000' } }),
+        ).rejects.toBeTruthy()
+        // exactly one call — no refresh, no retry → no audit-log spam, no 5-strike 429
+        expect(counts['/auth/2fa/verify-method']).toBe(1)
+        expect(counts['/auth/refresh'] ?? 0).toBe(0)
     })
 })

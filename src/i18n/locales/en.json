@@ -141,7 +141,8 @@
     },
     "tenantSwitcher": {
       "label": "Active tenant",
-      "tooltip": "Switch the tenant whose data you are viewing and managing"
+      "tooltip": "Switch the tenant whose data you are viewing and managing",
+      "switchSuccess": "Switched to {{tenant}}"
     }
   },
   "accountSwitcher": {
@@ -947,12 +948,15 @@
     "noLayersYet": "No layers yet. Click \"Add Layer\" to start building your authentication flow.",
     "addLayer": "Add Layer",
     "removeLayer": "Remove layer",
-      "requiredHelp": "Required: users must complete this layer to sign in. Turn off to make the layer optional — it's skipped for users not enrolled in any of its methods.",
+    "requiredHelp": "Required: users must complete this layer to sign in. Turn off to make the layer optional — it's skipped for users not enrolled in any of its methods.",
     "saveDisabledNoLayers": "Add at least one layer with a selected method before saving.",
     "saveDisabledEmptyLayer": "Every layer must have at least one selected method before saving."
   },
   "login": {
-    "identifierFirstSubtitle": "Enter your email to continue. We'll guide you through the rest."
+    "identifierFirstSubtitle": "Enter your email to continue. We'll guide you through the rest.",
+    "configUnavailable": "We couldn't load your sign-in options. You can still sign in with your email and password below, or retry.",
+    "configRetry": "Retry",
+    "configRetrying": "Retrying…"
   },
   "devices": {
     "title": "Registered Devices",
@@ -1290,7 +1294,7 @@
     "s5Title": "5. Intellectual Property",
     "s5Body": "All intellectual property rights in the Service, including but not limited to software, algorithms, biometric processing models, documentation, and trademarks, are owned by FIVUCSAS and Marmara University. You are granted a limited, non-exclusive, non-transferable license to use the Service in accordance with these Terms.",
     "s6Title": "6. Service Availability",
-    "s6Body": "FIVUCSAS strives to maintain 99.9% service availability. However, the Service is provided \"as is\" and \"as available.\" We reserve the right to perform scheduled maintenance, updates, and modifications. We do not guarantee uninterrupted access and shall not be liable for any downtime or service disruptions.",
+    "s6Body": "FIVUCSAS strives to maintain high service availability. However, the Service is provided \"as is\" and \"as available.\" We reserve the right to perform scheduled maintenance, updates, and modifications. We do not guarantee uninterrupted access and shall not be liable for any downtime or service disruptions.",
     "s7Title": "7. Limitation of Liability",
     "s7Body": "To the maximum extent permitted by Turkish law, FIVUCSAS, its affiliates, and Marmara University shall not be liable for any indirect, incidental, special, consequential, or punitive damages arising from your use of the Service, including but not limited to loss of data, unauthorized access, or service interruptions. Our total liability shall not exceed the amount you have paid for the Service in the twelve months preceding the claim.",
     "s8Title": "8. Termination",
@@ -1327,7 +1331,7 @@
     "s7Title": "7. Third-Party Sharing",
     "s7Body": "Biometric data is never shared with, sold to, or disclosed to third parties. Personal data may be shared with tenant organizations solely as required to provide identity verification services, and only to the extent authorized by your consent. We do not use biometric data for advertising, profiling, or any purpose beyond identity verification.",
     "s8Title": "8. Data Security",
-    "s8Body": "We implement comprehensive security measures including: AES-256 encryption at rest, TLS 1.3 for data in transit, row-level security in PostgreSQL for multi-tenant isolation, rate limiting and fail2ban for brute-force protection, JWT with refresh token rotation, regular security audits, and SOC 2-aligned operational practices.",
+    "s8Body": "We implement comprehensive security measures including: AES-256 encryption at rest, TLS 1.3 for data in transit, application-layer tenant filtering (Hibernate @Filter) for multi-tenant isolation, with PostgreSQL row-level security defined as defense-in-depth, rate limiting and fail2ban for brute-force protection, JWT with refresh token rotation, and regular security audits.",
     "s9Title": "9. Contact and Data Protection Officer",
     "s9Body": "For privacy-related inquiries, to exercise your data rights, or to contact our Data Protection Officer, please email: bilgisayar@marmara.edu.tr. We will respond to all data subject requests within 30 days as required by KVKK."
   },
@@ -1451,7 +1455,7 @@
       "capturedCount": "{{count}} images captured",
       "retry": "Retry",
       "captureAlt": "Capture {{n}}",
-      "autoAdvanceHint": "Follow the instruction above. It will auto-advance if needed.",
+      "autoAdvanceHint": "Follow the instruction above. Each step advances once you complete it.",
       "startingCamera": "Starting Camera...",
       "beginEnrollment": "Begin Enrollment",
       "confirmSave": "Confirm & Save",
@@ -1526,8 +1530,19 @@
       "NFC_DOCUMENT": {
         "label": "NFC Document",
         "description": "Verify identity via NFC-enabled ID document"
+      },
+      "PASSKEY": {
+        "label": "Passkey",
+        "description": "Create a passkey to sign in without a password — even from another device"
+      },
+      "APPROVE_LOGIN": {
+        "label": "Approve on another device",
+        "description": "Approve sign-ins by tapping a matching number in the FIVUCSAS mobile app",
+        "setupHint": "Set up in the FIVUCSAS mobile app — sign in there once to approve future logins."
       }
     },
+    "statusMobileApp": "Mobile app",
+    "setupInMobileApp": "Set up in the FIVUCSAS mobile app.",
     "phoneDialog": {
       "title": "Phone Number Required",
       "description": "SMS OTP requires a phone number. Please enter your phone number to continue enrollment.",
@@ -1598,10 +1613,12 @@
     "chooseMethod": "Choose Verification Method",
     "chooseMethodSubtitle": "Select how you'd like to verify your identity",
     "notEnrolled": "Not enrolled",
+    "onYourDevice": "On your device",
     "alreadyUsed": "Already used",
     "enrolled": "Ready",
     "preferred": "Preferred",
     "setupInSettings": "Set up in Settings",
+    "deviceImplicitHint": "Set up on your device — use your passkey, or approve in the FIVUCSAS mobile app",
     "backToMethodSelection": "Back to method selection",
     "cancel": "Cancel",
     "verify": "Verify",
@@ -1716,6 +1733,7 @@
       "generateNew": "Generate New QR Code",
       "tokenAutoFilled": "Token has been auto-filled from the QR code",
       "enterManually": "Or enter the authentication token manually",
+      "scanWithDevice": "Scan this QR with another device where you are already signed in, then enter the token it shows below",
       "tokenLabel": "Authentication Token",
       "tokenPlaceholder": "Enter token...",
       "verify": "Verify",
@@ -1769,6 +1787,8 @@
     "enrollment": {
       "registerFingerprint": "Register Fingerprint",
       "registerHardwareKey": "Register Hardware Security Key",
+      "registerPasskey": "Create a Passkey",
+      "passkeyMethodName": "Passkey",
       "steps": {
         "register": "Register Key",
         "verify": "Verify",
@@ -1776,12 +1796,16 @@
       },
       "platformDescription": "Register your device biometric (fingerprint, face, or PIN) for passwordless authentication.",
       "hardwareKeyDescription": "Register a FIDO2/WebAuthn hardware security key for strong two-factor authentication.",
+      "passkeyDescription": "Create a passkey to sign in without a password. Your device or password manager stores it securely.",
       "platformHint": "Uses your device's built-in authenticator (Touch ID, Windows Hello, etc.)",
       "hardwareKeyHint": "Insert your security key (YubiKey, Titan, etc.) and click Register.",
+      "passkeyHint": "Use this device's biometric, or scan a QR code to save the passkey on your phone.",
       "deviceNameLabel": "Device Name (optional)",
       "deviceNamePlaceholderPlatform": "e.g., My Phone, MacBook Touch ID",
       "deviceNamePlaceholderKey": "e.g., YubiKey 5, Titan Key",
+      "deviceNamePlaceholderPasskey": "e.g., My iPhone passkey, 1Password",
       "hardwareKeyInfo": "This requires a FIDO2/WebAuthn compatible security key such as YubiKey, Google Titan, or SoloKey. Regular USB drives will not work.",
+      "passkeyInfo": "A passkey is a discoverable credential — you can sign in later without typing your email. You can save it on this device or, by scanning the QR code, on your phone.",
       "waitingForAuthenticator": "Waiting for authenticator...",
       "registerButton": "Register Authenticator",
       "verifying": "Verifying Registration...",
@@ -1789,6 +1813,7 @@
       "complete": "Registration Complete!",
       "completePlatformHint": "Your device biometric has been registered. You can now use it for authentication.",
       "completeHardwareKeyHint": "Your security key has been registered. You can now use it for authentication.",
+      "completePasskeyHint": "Your passkey has been created. You can now sign in without a password.",
       "howToVerify": "Next time you log in, choose {{method}} as your auth method. Your browser will prompt you to use your {{device}}.",
       "registeredCredentials": "Registered Credentials ({{count}})",
       "noPlatformAuthenticator": "No platform authenticator (fingerprint/biometric) available on this device.",
@@ -1799,7 +1824,8 @@
       "done": "Done"
     },
     "defaultDevicePlatform": "Platform Authenticator",
-    "defaultDeviceKey": "Security Key"
+    "defaultDeviceKey": "Security Key",
+    "defaultDevicePasskey": "Passkey"
   },
   "widget": {
     "verifyIdentity": "Verify Your Identity",
@@ -1890,6 +1916,11 @@
     "failedToLoadSessions": "Failed to load sessions",
     "biometricProcessingFailed": "Biometric processing failed",
     "enrollmentSyncFailed": "Enrollment sync failed",
+    "faceNotDetected": "No face detected in the captured image. Please try again with better lighting and ensure your face is clearly visible.",
+    "multipleFaces": "Multiple faces detected. Please ensure only your face is in the frame.",
+    "poorImageQuality": "Image quality is too low. Please try again with better lighting and hold still during capture.",
+    "faceEnrollmentFailed": "Face enrollment failed. Please try again.",
+    "faceAlreadyEnrolled": "Face is already enrolled. Revoke the existing enrollment first to re-enroll.",
     "sessionExpired": "Session expired. Please login again.",
     "unexpectedRetry": "An unexpected error occurred. Please try again.",
     "unexpected": "An unexpected error occurred.",
@@ -1974,7 +2005,7 @@
     "lookStraight": "Look straight at the camera",
     "turnLeft": "Slowly turn your head left",
     "turnRight": "Slowly turn your head right",
-    "blink": "Blink naturally",
+    "blink": "Close your eyes for a second, then open",
     "enrolledSuccess": "Face enrolled successfully!",
     "holdStill": "Hold still...",
     "capturedVerifying": "Captured! Verifying...",
@@ -1986,7 +2017,8 @@
     "qualityBlurry": "Too blurry — hold your phone steady and keep your face still.",
     "qualityDark": "Too dark — move to brighter, even lighting.",
     "qualityBright": "Too bright — reduce glare or move away from strong light.",
-    "qualitySmall": "Move a little closer so your face fills the frame."
+    "qualitySmall": "Move a little closer so your face fills the frame.",
+    "gestureStillWaiting": "Still waiting — please perform the gesture shown above to continue."
   },
   "register": {
     "verificationFailed": "Verification failed. Please try again.",
@@ -2101,8 +2133,6 @@
     "sectionFaceSubtitle": "Pinned per gesture — blink, smile, look away. Each card runs the real BlazeFace + MediaPipe FaceLandmarker pipeline.",
     "sectionHand": "Hand Gesture Challenges",
     "sectionHandSubtitle": "Tracked through MediaPipe HandLandmarker — finger counts, pinches, traced shapes and more.",
-    "handComingSoon": "Real hand-gesture detection lands with MediaPipe HandLandmarker — this preview simulates success after a short delay.",
-    "simulatingDetection": "Simulating detection…",
     "skipDemo": "Skip demo",
     "tryButton": "Try this puzzle",
     "closeButton": "Close",
@@ -2340,7 +2370,7 @@
     },
     "server_liveness": {
       "title": "5. Server Anti-Spoofing",
-      "subtitle": "POST /api/v1/liveness — bio.fivucsas.com",
+      "subtitle": "POST /api/v1/liveness — api.fivucsas.com",
       "description": "Capture a still and submit it to the biometric processor for a server-side anti-spoof verdict. The server runs deeper checks than the browser can — print attacks, replay screens and 3D mask attempts.",
       "capture": "Capture & analyze",
       "capturing": "Sending capture…",
@@ -2474,5 +2504,22 @@
     "approved": "Approved — signing you in…",
     "startFailed": "Couldn't start the approval request. Please try again.",
     "emailRequired": "Enter your email to continue."
+  },
+  "qrLogin": {
+    "button": "Sign in with your phone",
+    "buttonHint": "Scan a QR code with the FIVUCSAS app on your phone",
+    "title": "Scan to sign in",
+    "instruction": "Open FIVUCSAS on your phone, go to “Scan QR to Login”, and scan this code.",
+    "qrAria": "QR code to sign in with your phone",
+    "waiting": "Waiting for you to scan…",
+    "scanned": "Scanned — approve the sign-in on your phone…",
+    "expiresIn": "Expires in {{time}}",
+    "expired": "This code expired. Start again to get a new one.",
+    "approved": "Approved — signing you in…",
+    "mfaRequired": "Approved on your phone. This account needs another step — please continue signing in here.",
+    "restart": "Start again",
+    "cancel": "Cancel",
+    "back": "Back",
+    "startFailed": "Couldn't start QR sign-in. Please try again."
   }
 }
