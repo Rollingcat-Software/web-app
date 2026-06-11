@@ -40,6 +40,8 @@ import NfcStep from '../components/steps/NfcStep'
 import EmailOtpMfaStep from '../components/steps/EmailOtpMfaStep'
 import GestureLivenessStep from '../components/steps/GestureLivenessStep'
 import PasswordStep from '../components/steps/PasswordStep'
+import { isClientSideEmbeddingEnabled } from '@features/biometrics/embedding/clientEmbeddingFlag'
+import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedFace'
 
 /**
  * Decode a `data:...;base64,...` URL into an ArrayBuffer.
@@ -159,7 +161,26 @@ export default function MfaStepRenderer({
         case AuthMethodType.FACE:
             return (
                 <FaceCaptureStep
-                    onSubmit={(image) => verifyStep(AuthMethodType.FACE, { image })}
+                    onSubmit={async (image) => {
+                        // Client-side-embedding path (flag-gated, mirrors the
+                        // server flag `app.auth.client-side-embedding`). When ON,
+                        // compute the 512-d Facenet512 embedding in the browser
+                        // from the SAME captured frame and upload ONLY the vector
+                        // — the raw image never leaves the device.
+                        //
+                        // Resilient: a null embedding (no model / ORT load fail /
+                        // inference error) falls back to the unchanged legacy
+                        // image upload so a login is never blocked. Flag OFF is
+                        // byte-identical to the legacy `{ image }` path.
+                        if (isClientSideEmbeddingEnabled()) {
+                            const embedding = await embedCapturedFace(image)
+                            if (embedding) {
+                                verifyStep(AuthMethodType.FACE, { embedding })
+                                return
+                            }
+                        }
+                        verifyStep(AuthMethodType.FACE, { image })
+                    }}
                     loading={loading}
                     error={error}
                 />
