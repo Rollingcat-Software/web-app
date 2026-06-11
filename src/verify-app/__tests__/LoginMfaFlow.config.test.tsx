@@ -164,6 +164,75 @@ describe('LoginMfaFlow — config-driven Layer 1', () => {
         expect(mockLogin).not.toHaveBeenCalled()
     })
 
+    it('propagates the RESOLVED tenant login-config from the preflight to onPreflightResolved (identifier-first display fix)', async () => {
+        // The hosted page's INITIAL config is resolved by OAuth clientId → the
+        // client's bound (system) tenant. The preflight returns the USER's ACTUAL
+        // tenant login-config; LoginMfaFlow must hand it UP so the shell can swap
+        // the displayed flow to the user's real tenant.
+        const initialConfig = normalizeLoginConfig({
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        // Resolved (user's real tenant) config returned by /auth/login/preflight.
+        const resolvedConfig = normalizeLoginConfig({
+            engineActive: true,
+            tenantName: 'Marmara University',
+            totalSteps: 3,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        mockCheckEligibility.mockResolvedValue(resolvedConfig)
+        const onPreflightResolved = vi.fn()
+
+        render(
+            <LoginMfaFlow
+                {...baseProps}
+                loginConfig={initialConfig}
+                onPreflightResolved={onPreflightResolved}
+            />,
+        )
+        fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'staff@marmara.edu.tr' } })
+        fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+        await waitFor(() => {
+            expect(onPreflightResolved).toHaveBeenCalledWith(resolvedConfig)
+        })
+        // The password screen is still revealed (login is not broken).
+        await waitFor(() => {
+            expect(screen.getByLabelText('Password')).toBeInTheDocument()
+        })
+    })
+
+    it('does NOT call onPreflightResolved when the preflight returns null (older API / failure → display unchanged)', async () => {
+        // Enumeration-safety + reversibility: a null resolved config (older API
+        // returning only {eligible}, or a normalize failure) must leave the
+        // displayed config untouched and still reveal the password screen.
+        const initialConfig = normalizeLoginConfig({
+            engineActive: true,
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+        })
+        mockCheckEligibility.mockResolvedValue(null)
+        const onPreflightResolved = vi.fn()
+
+        render(
+            <LoginMfaFlow
+                {...baseProps}
+                loginConfig={initialConfig}
+                onPreflightResolved={onPreflightResolved}
+            />,
+        )
+        fireEvent.change(screen.getByLabelText('Email Address'), { target: { value: 'unknown@example.com' } })
+        fireEvent.click(screen.getByRole('button', { name: /continue/i }))
+
+        await waitFor(() => {
+            expect(mockCheckEligibility).toHaveBeenCalled()
+        })
+        // Null resolved config ⇒ no propagation; password screen still revealed.
+        await waitFor(() => {
+            expect(screen.getByLabelText('Password')).toBeInTheDocument()
+        })
+        expect(onPreflightResolved).not.toHaveBeenCalled()
+    })
+
     it('uses the PREFLIGHT-resolved totalSteps for the password-screen counter (regression: no 1/2 → 2/3 jump)', async () => {
         // The mount-time config under-reports the flow (totalSteps: 2). The
         // preflight resolves the caller's REAL tenant flow (totalSteps: 3). The

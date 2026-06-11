@@ -78,6 +78,22 @@ interface LoginMfaFlowProps {
      */
     loginConfig?: LoginConfig | null
     /**
+     * Identifier-first preflight propagation. The hosted page's INITIAL config
+     * is resolved by OAuth `clientId`, which maps to the client's bound tenant
+     * (the dashboard/mobile client is on the `system` sentinel tenant) — so the
+     * page previews the SYSTEM flow until the user enters an email. When the user
+     * submits their identifier we call `/auth/login/preflight`, which returns the
+     * USER's ACTUAL tenant login-config; this callback hands that resolved config
+     * up to the shell (HostedLoginApp) so the displayed flow (step list / methods
+     * / branding) switches to the user's real tenant from that point on.
+     *
+     * Only fired with a non-null resolved config (an older API returning only
+     * `{eligible}`, or any failure, yields null → the displayed config is left
+     * unchanged, preserving the fallback). The backend keeps unknown emails
+     * enumeration-safe by returning a platform-default-looking config.
+     */
+    onPreflightResolved?: (loginConfig: LoginConfig) => void
+    /**
      * True while the parent is STILL fetching `loginConfig` (it has not settled
      * yet, so `loginConfig == null` is "unknown", not "failed/legacy"). When
      * true, the OPENING Layer-1 screen renders a brief skeleton instead of the
@@ -93,7 +109,7 @@ interface LoginMfaFlowProps {
     configLoading?: boolean
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, configLoading = false }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, onPreflightResolved, configLoading = false }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -342,10 +358,21 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             setError(undefined)
             try {
                 // The preflight resolves the caller's REAL tenant login-config.
+                // The hosted page's INITIAL config was resolved by OAuth clientId
+                // → the client's bound tenant (typically the `system` sentinel),
+                // so the previewed flow may be the SYSTEM flow, not the user's.
+                const resolved = await authRepository.checkLoginEligibility(
+                    identifier.trim(),
+                    clientId || undefined,
+                )
+                // Hand the resolved config UP so the hosted shell swaps the
+                // displayed flow (step list / methods / branding) to the user's
+                // ACTUAL tenant. A null result (older API / failure) leaves the
+                // displayed config unchanged — fallback preserved.
+                if (resolved && onPreflightResolved) onPreflightResolved(resolved)
                 // Capture its `totalSteps` so the password screen already shows the
                 // correct denominator (e.g. 1/3) instead of the mount-time config's
                 // estimate — preventing the 1/2 → 2/3 jump on the MFA step.
-                const resolved = await authRepository.checkLoginEligibility(identifier.trim(), clientId || undefined)
                 if (resolved?.totalSteps) {
                     setFlowTotalSteps((prev) => Math.max(prev ?? 0, resolved.totalSteps))
                 }
@@ -392,7 +419,7 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         } finally {
             setLoading(false)
         }
-    }, [authRepository, identifier, clientId, configLayer1Methods, engineActive, passwordIsLayer1, layer1IsChoice, t])
+    }, [authRepository, identifier, clientId, configLayer1Methods, engineActive, passwordIsLayer1, layer1IsChoice, onPreflightResolved, t])
 
     // ─── Method Selection ───────────────────────────────────────
 
