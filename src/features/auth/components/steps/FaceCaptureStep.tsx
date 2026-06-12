@@ -25,6 +25,8 @@ import { useQualityAssessment } from '../../hooks/useQualityAssessment'
 import { usePerf } from '../../../../contexts/PerfContextHook'
 import { BiometricEngine } from '../../../../lib/biometric-engine/core/BiometricEngine'
 import { dataURLToImageData } from '../../utils/faceCropper'
+import { isClientPadAdvisoryEnabled } from '@features/biometrics/pad/clientPadFlag'
+import { computeClientPadScore } from '@features/biometrics/pad/computeClientPadScore'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
 
@@ -37,11 +39,18 @@ interface FaceCaptureStepProps {
      *                         client-side Facenet512 ALIGNER so probe and template
      *                         share the same canonical alignment. Undefined when the
      *                         active backend has no dense landmarks (BlazeFace fallback).
+     * @param clientPadScore   Optional ADVISORY client-side PAD / passive-liveness
+     *                         confidence in [0, 1] (SP-D, defense-in-depth). Computed
+     *                         from the captured frame ONLY when the advisory flag is on
+     *                         and the analyzer succeeds; undefined otherwise. The client
+     *                         NEVER gates on it — it is forwarded to the (authoritative)
+     *                         server purely as a defense-in-depth signal.
      */
     onSubmit: (
         image: string,
         clientEmbedding?: number[],
         faceLandmarks?: NormalizedLandmark[],
+        clientPadScore?: number,
     ) => void
     loading: boolean
     error?: string
@@ -58,6 +67,13 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const [videoReady, setVideoReady] = useState(false)
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const [cameraError, setCameraError] = useState<string | null>(null)
+
+    // ADVISORY client-side PAD / passive-liveness confidence (0..1) for the
+    // captured frame (SP-D). Computed only when the advisory flag is on and the
+    // analyzer succeeds; null otherwise. DISPLAY + forward only — the client
+    // NEVER gates a login on this (untrusted-client caveat; server decides).
+    const [padScore, setPadScore] = useState<number | null>(null)
+    const padScoreRef = useRef<number | null>(null)
 
     // 478-pt mesh captured at the same instant as `capturedImage`, for the
     // client-side aligner. Snapshotted on capture (not read live) so it matches
@@ -199,12 +215,34 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         // landmarks that match the captured image (not a later live frame).
         capturedLandmarksRef.current = captureLandmarks()
 
+        // ADVISORY PAD / passive-liveness score (SP-D, flag-gated). Run the in-repo
+        // passive analyzer on the captured crop and surface the live-confidence to
+        // the user. Fire-and-forget + resilient (null on any failure) so the capture
+        // is NEVER blocked or delayed by it — this is defense-in-depth display only,
+        // not a gate. The score is forwarded to the authoritative server on submit.
+        padScoreRef.current = null
+        setPadScore(null)
+        if (isClientPadAdvisoryEnabled()) {
+            void computeClientPadScore(cropped)
+                .then((pad) => {
+                    if (pad) {
+                        padScoreRef.current = pad.score
+                        setPadScore(pad.score)
+                    }
+                })
+                .catch(() => {
+                    // Non-critical: a failed PAD score just means no advisory shown/sent.
+                })
+        }
+
         setCapturedImage(cropped)
         stopCamera()
     }, [stopCamera, detected, boundingBox, cropFace, captureLandmarks, t])
 
     const retakePhoto = useCallback(() => {
         capturedLandmarksRef.current = null
+        padScoreRef.current = null
+        setPadScore(null)
         setCapturedImage(null)
         startCamera()
     }, [startCamera])
@@ -232,7 +270,15 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             // Non-critical: embedding extraction failure is silently ignored.
         }
 
-        onSubmit(capturedImage, clientEmbedding, capturedLandmarksRef.current ?? undefined)
+        onSubmit(
+            capturedImage,
+            clientEmbedding,
+            capturedLandmarksRef.current ?? undefined,
+            // ADVISORY ONLY (SP-D): forward the client PAD score if one was
+            // computed. undefined when the flag is off or the analyzer failed —
+            // the submit is identical to the legacy path in that case.
+            padScoreRef.current ?? undefined,
+        )
     }, [capturedImage, onSubmit])
 
     // Determine bounding box overlay color
@@ -405,6 +451,32 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                     )}
                 </Box>
             </motion.div>
+
+            {/* Advisory PAD / passive-liveness indicator (SP-D, flag-gated).
+                Shown on the captured-image preview when a client-side PAD score
+                was computed. This is INFORMATIONAL ONLY — it never gates the
+                submit (the authoritative server makes the auth decision); it is
+                a defense-in-depth signal surfaced to the user. */}
+            {capturedImage && padScore !== null && (
+                <motion.div
+                    initial={{ opacity: 0, y: 5 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3 }}
+                >
+                    <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2 }}>
+                        <Chip
+                            icon={<Visibility sx={{ fontSize: 14 }} />}
+                            label={t('mfa.face.padScore', { score: Math.round(padScore * 100) })}
+                            size="small"
+                            color={getScoreColor(padScore * 100)}
+                            variant="outlined"
+                            role="status"
+                            aria-live="polite"
+                            sx={{ fontSize: '0.7rem', height: 24 }}
+                        />
+                    </Box>
+                </motion.div>
+            )}
 
             {/* Quality hint */}
             {cameraActive && !capturedImage && (

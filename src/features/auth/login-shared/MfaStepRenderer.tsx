@@ -174,7 +174,20 @@ export default function MfaStepRenderer({
         case AuthMethodType.FACE:
             return (
                 <FaceCaptureStep
-                    onSubmit={async (image, _clientEmbedding, faceLandmarks) => {
+                    onSubmit={async (image, _clientEmbedding, faceLandmarks, clientPadScore) => {
+                        // ADVISORY client-side PAD score (SP-D, defense-in-depth).
+                        // When the capture step computed a passive-liveness
+                        // confidence, forward it to the server as `client_pad_score`
+                        // — an OPTIONAL, ignored-safe sibling field. UNTRUSTED-CLIENT
+                        // CAVEAT: it is advisory ONLY; the client never gates on it
+                        // and the server treats it as a defense-in-depth signal, not
+                        // a verdict. undefined when the flag is off / analyzer failed,
+                        // in which case the payload is byte-identical to before.
+                        const advisory =
+                            clientPadScore !== undefined
+                                ? { client_pad_score: clientPadScore }
+                                : {}
+
                         // Client-side-embedding path (flag-gated, mirrors the
                         // server flag `app.auth.client-side-embedding`). When ON,
                         // compute the 512-d Facenet512 embedding in the browser
@@ -192,11 +205,11 @@ export default function MfaStepRenderer({
                         if (isClientSideEmbeddingEnabled()) {
                             const embedding = await embedCapturedFace(image, faceLandmarks)
                             if (embedding) {
-                                verifyStep(AuthMethodType.FACE, { embedding })
+                                verifyStep(AuthMethodType.FACE, { embedding, ...advisory })
                                 return
                             }
                         }
-                        verifyStep(AuthMethodType.FACE, { image })
+                        verifyStep(AuthMethodType.FACE, { image, ...advisory })
                     }}
                     loading={loading}
                     error={error}

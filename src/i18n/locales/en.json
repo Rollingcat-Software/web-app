@@ -1680,7 +1680,8 @@
       "retryTipFraming": "Hold the camera at eye level and keep your face centered",
       "retryTipGlasses": "Remove glasses or face coverings if possible",
       "modelLoading": "Preparing face detection… this takes a moment on first use.",
-      "modelLoadFailed": "Face detection couldn't initialize. Check your connection or try a different verification method."
+      "modelLoadFailed": "Face detection couldn't initialize. Check your connection or try a different verification method.",
+      "padScore": "Liveness {{score}}%"
     },
     "voice": {
       "title": "Voice Verification",

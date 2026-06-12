@@ -267,6 +267,50 @@ The config-driven login work (in-flight, feature-flagged `app.auth.config-driven
 OFF) will fold these into a single config-rendered login screen — internals land with their PRs.
 See `ROADMAP_AUTH_2026-05-30.md`.
 
+## Advisory client-side PAD score (SP-D, flag-gated `VITE_CLIENT_PAD_ADVISORY`, default OFF)
+
+Defense-in-depth: during the FACE capture (and the puzzle best-frame moment) the browser runs
+the **real MiniFASNet single-frame anti-spoof model** (UniFace MiniFASNetV2 ONNX — the
+investigation's recommendation, measured AUC 0.945), DISPLAYS the live-confidence to the user (i18n
+`mfa.face.padScore` chip), and forwards it to the server as an **ADVISORY** field `client_pad_score`
+(0..1) in the existing `/auth/mfa/step` `data` payload.
+
+- **Module**: `features/biometrics/pad/` — `clientPadFlag.ts` (build-time env flag, mirrors
+  `clientEmbeddingFlag.ts`) + `MiniFasNetPadAnalyzer.ts` (the ported MiniFASNet single-frame
+  inference) + `computeClientPadScore.ts` (orchestrator, returns `{ score, source, breakdown? }`,
+  **null on any failure**, never throws).
+- **Primary analyzer = real MiniFASNet (Phase-1B swap, 2026-06-12)**: `MiniFasNetPadAnalyzer.ts` is a
+  minimal FAITHFUL PORT of `@rollingcat/spoof-detector`'s `MiniFASNetAnalyzer` — input 80×80 **BGR
+  NCHW float32, NO mean/std norm**, softmax→[pSpoof,pReal], `pReal` = the 0..1 live-confidence. We
+  PORT (not import) because `@rollingcat/spoof-detector` is NOT a web-app dep and importing it pulls
+  the full 26-analyzer fusion session + a 2nd onnxruntime-web; SP-D needs only the single-frame head.
+  It reuses the existing `onnxruntime-web` dep via the same lazy dynamic-import pattern as
+  `CardDetector.ts` (WebGPU→WASM fallback). The SP-D capture path only has a TIGHT face crop (no full
+  frame), so the whole crop is treated as the face region — the documented less-accurate "padded
+  crop" semantics, fine for an advisory-only signal.
+- **Model delivery — model-URL CONSTANT, Phase-2 hosting deferred**: `MINIFASNET_MODEL_URL` defaults
+  to same-origin `/models/minifasnet_v2.onnx`. The 1.7 MB `minifasnet_v2.onnx` is currently served
+  only at `amispoof.fivucsas.com/models/`; it must be hosted at `app.fivucsas.com/models/` (alongside
+  facenet512) in Phase-2. We deliberately do **NOT** add it to `public/models/manifest.json` — a
+  build-prefetch entry would FATAL `fetch-models`/`deploy-hostinger` (the file isn't at
+  app.fivucsas/models yet — the exact failure facenet hit). Since SP-D is flag-OFF + advisory, the
+  model is fetched ONLY at runtime when the flag is ON → zero deploy/CORS impact while dark.
+  Same-origin needs no CORS; a cross-origin Phase-2 host must send `Access-Control-Allow-Origin`.
+- **Fallback = light passive detector (kept)**: on ANY MiniFASNet failure (model not hosted yet /
+  fetch / WebGPU / inference) `computeClientPadScore` falls back to the in-repo
+  `lib/biometric-engine/core/PassiveLivenessDetector.ts` (the 5-component
+  texture/colour/skin-tone/moiré/local-variance scorer, with `breakdown`), and to `null` if that too
+  is unavailable. `source` records which analyzer produced the score (`'minifasnet'` | `'passive'`).
+- **Integration points**: `FaceCaptureStep.tsx` (computes on capture, displays the chip, threads
+  the score as the 4th `onSubmit` arg) → `MfaStepRenderer.tsx` FACE case (adds `client_pad_score`
+  alongside `{ image }` or `{ embedding }`); `PuzzleStep.tsx` (computes from the best frame, adds
+  it to the verdict payload).
+- **UNTRUSTED-CLIENT CAVEAT — advisory ONLY**: the client NEVER blocks/allows a login on this
+  score. Server side it is **ignored-safe** today (`/auth/mfa/step` `data` is `Map<String,Object>`,
+  no fail-on-unknown), so flag OFF (or analyzer failure) leaves the payload byte-identical and the
+  capture/login fully unaffected. A future minimal server change could log/bound it at
+  `FaceVerifyMfaStepHandler.verify()` (the FACE step's only `data` read) — NOT a gate.
+
 ## Production Deployment (Hostinger)
 
 ```bash

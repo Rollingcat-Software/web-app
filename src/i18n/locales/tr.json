@@ -1680,7 +1680,8 @@
       "retryTipFraming": "Kamerayı göz hizasında tutun ve yüzünüzü ortalayın",
       "retryTipGlasses": "Mümkünse gözlük veya yüz örtüsünü çıkarın",
       "modelLoading": "Yüz algılama hazırlanıyor… ilk kullanımda biraz zaman alabilir.",
-      "modelLoadFailed": "Yüz algılama başlatılamadı. Bağlantınızı kontrol edin veya farklı bir doğrulama yöntemi deneyin."
+      "modelLoadFailed": "Yüz algılama başlatılamadı. Bağlantınızı kontrol edin veya farklı bir doğrulama yöntemi deneyin.",
+      "padScore": "Canlılık %{{score}}"
     },
     "voice": {
       "title": "Ses Doğrulama",
