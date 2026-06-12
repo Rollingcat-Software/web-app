@@ -45,6 +45,7 @@ import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { fetchLoginConfig } from '@features/auth/login-config'
 import type { LoginConfig } from '@domain/models/LoginConfig'
+import type { Layer1Continuation } from '@features/auth/login-shared/layer1Continuation'
 import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
 import { config as envConfig } from '@config/env'
 
@@ -273,6 +274,12 @@ export default function HostedLoginApp() {
     // can be active at a time; `null` means the default email/password+MFA flow.
     const [altFlow, setAltFlow] = useState<'approveLogin' | 'qrLogin' | null>(null)
     const [altError, setAltError] = useState<string | null>(null)
+    // When a usernameless Layer-1 method (QR / approve / passkey) satisfied the
+    // first factor but the tenant flow needs MORE steps, the server returns an
+    // mfaSessionToken. We hand it to LoginMfaFlow via `initialContinuation` so it
+    // resumes into the existing MFA steps instead of dead-ending (F1/F3 +
+    // passkey-success). Null = no in-progress cross-device continuation.
+    const [mfaContinuation, setMfaContinuation] = useState<Layer1Continuation | null>(null)
     // Whether the inner LoginMfaFlow is on its OPENING identity-entry screen.
     // The usernameless shortcuts (passkey / approve) are ALTERNATIVES to typing
     // an identifier, so — mirroring the dashboard's `onInitialIdentityEntry`
@@ -671,6 +678,20 @@ export default function HostedLoginApp() {
         [handleLoginComplete],
     )
 
+    // A usernameless Layer-1 method (QR / approve / passkey) satisfied the first
+    // factor but the tenant flow needs MORE steps: the server returned an
+    // mfaSessionToken (no final tokens). Close the alt panel and hand the
+    // continuation to LoginMfaFlow, which resumes into the existing MFA steps —
+    // no dead-end (F1 = F3, and the passkey-success-into-MFA case).
+    const handleLayer1MfaRequired = useCallback(
+        (continuation: Layer1Continuation) => {
+            setAltError(null)
+            setAltFlow(null)
+            setMfaContinuation(continuation)
+        },
+        [],
+    )
+
     const handleCancel = useCallback(() => {
         // Best-effort: return user to the origin of the redirect URI.
         if (config.redirectUri) {
@@ -922,6 +943,7 @@ export default function HostedLoginApp() {
                         ) : altFlow === 'approveLogin' ? (
                             <ApproveLoginPanel
                                 onApproved={handleApproveLoginApproved}
+                                onMfaRequired={handleLayer1MfaRequired}
                                 onCancel={() => {
                                     setAltError(null)
                                     setAltFlow(null)
@@ -930,6 +952,7 @@ export default function HostedLoginApp() {
                         ) : altFlow === 'qrLogin' ? (
                             <QrLoginPanel
                                 onApproved={handleQrLoginApproved}
+                                onMfaRequired={handleLayer1MfaRequired}
                                 onCancel={() => {
                                     setAltError(null)
                                     setAltFlow(null)
@@ -964,6 +987,11 @@ export default function HostedLoginApp() {
                                     onInitialPhaseChange={setOnInitialLoginPhase}
                                     onPreflightResolved={handlePreflightResolved}
                                     loginConfig={loginConfig}
+                                    // Resume into the MFA steps when a usernameless
+                                    // Layer-1 method (QR / approve / passkey) opened a
+                                    // multi-step session outside this flow (F1/F3 +
+                                    // passkey-success). Null in the normal path.
+                                    initialContinuation={mfaContinuation}
                                     // The hosted shell already resolves loginConfig
                                     // INSIDE the metaLoading gate (it only mounts this
                                     // flow once meta+config have settled), so this is
@@ -994,6 +1022,7 @@ export default function HostedLoginApp() {
                                     config={loginConfig}
                                     fallbackAll
                                     onPasskeySuccess={handlePasskeySuccess}
+                                    onPasskeyMfaRequired={handleLayer1MfaRequired}
                                     onPasskeyError={(msg) => setAltError(msg)}
                                     onApproveClick={() => {
                                         setAltError(null)

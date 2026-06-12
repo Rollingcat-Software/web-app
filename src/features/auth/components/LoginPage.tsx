@@ -44,6 +44,7 @@ import ConfigUnavailableBanner from '../login-shared/ConfigUnavailableBanner'
 import Layer1Shortcuts from './Layer1Shortcuts'
 import ApproveLoginPanel, { type ApproveLoginResult } from './ApproveLoginPanel'
 import QrLoginPanel, { type QrLoginResult } from './QrLoginPanel'
+import type { Layer1Continuation } from '../login-shared/layer1Continuation'
 import type { AvailableMfaMethod, MfaStepResponse, IAuthRepository } from '@domain/interfaces/IAuthRepository'
 import type { ITokenService } from '@domain/interfaces/ITokenService'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
@@ -544,6 +545,35 @@ export default function LoginPage() {
         [completeTokenLogin],
     )
 
+    // A usernameless Layer-1 method (QR / approve / passkey) satisfied the first
+    // factor, but the tenant flow needs MORE steps: the server returned an
+    // mfaSessionToken (no final tokens). Continue into the EXISTING method-picker
+    // / TwoFactorDispatcher machinery instead of dead-ending (F1 = F3, and the
+    // passkey-success-into-MFA case). Closes whichever alt panel was open.
+    const handleLayer1MfaRequired = useCallback(
+        (continuation: Layer1Continuation) => {
+            setLoginError(null)
+            setShowApproveLogin(false)
+            setShowQrLogin(false)
+            setMfaSessionToken(continuation.mfaSessionToken)
+            setCompletedMfaMethods(continuation.completedMethods ?? [])
+            if (continuation.totalSteps) setFlowTotalSteps(continuation.totalSteps)
+            const methods = continuation.availableMethods ?? []
+            setAvailableMethods(methods)
+            const enrolled = methods.filter((m) => m.enrolled)
+            if (enrolled.length === 1) {
+                // Exactly one next factor → run it directly.
+                setTwoFactorMethod(enrolled[0].methodType)
+                setShowSecondaryAuth(true)
+            } else {
+                // Multiple (pick) or none-reported (server will drive the next
+                // step / the user can cancel) → show the picker.
+                setShowMethodPicker(true)
+            }
+        },
+        [],
+    )
+
     // Step/layer progress (parity with verify.fivucsas LoginMfaFlow). The DASHBOARD
     // login uses the PLATFORM login-config, which reports totalSteps=1 — MFA here is
     // dynamic per-user (not a configured layer), so we can't know upfront. We treat
@@ -601,6 +631,7 @@ export default function LoginPage() {
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                         <ApproveLoginPanel
                             onApproved={handleApproveLoginApproved}
+                            onMfaRequired={handleLayer1MfaRequired}
                             onCancel={() => setShowApproveLogin(false)}
                         />
                     </CardContent>
@@ -642,6 +673,7 @@ export default function LoginPage() {
                     <CardContent sx={{ p: { xs: 3, sm: 4 } }}>
                         <QrLoginPanel
                             onApproved={handleQrLoginApproved}
+                            onMfaRequired={handleLayer1MfaRequired}
                             onCancel={() => setShowQrLogin(false)}
                         />
                     </CardContent>
@@ -1286,6 +1318,7 @@ export default function LoginPage() {
                                 config={loginConfig}
                                 fallbackAll
                                 onPasskeySuccess={handlePasskeySuccess}
+                                onPasskeyMfaRequired={handleLayer1MfaRequired}
                                 onPasskeyError={(msg) => setLoginError(msg)}
                                 onApproveClick={() => {
                                     setLoginError(null)

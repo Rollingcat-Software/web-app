@@ -26,6 +26,7 @@
  */
 
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { AvailableMfaMethod } from '@domain/interfaces/IAuthRepository'
 
 export const APPROVE_LOGIN_API = {
     SESSION: '/auth/approve-login/session',
@@ -51,6 +52,18 @@ export interface ApproveLoginPoll {
     refreshToken?: string
     expiresIn?: number
     role?: string
+    /**
+     * When the approved Layer-1 needs further tenant MFA steps, the server
+     * returns an `mfaSessionToken` (and, where available, the next step's
+     * `availableMethods`) instead of final tokens — so the web can continue
+     * into the existing MethodPicker / MfaStepRenderer flow.
+     */
+    mfaRequired?: boolean
+    mfaSessionToken?: string
+    availableMethods?: AvailableMfaMethod[]
+    completedMethods?: string[]
+    currentStep?: number
+    totalSteps?: number
 }
 
 /** How often to poll the session status, in milliseconds. */

@@ -25,6 +25,7 @@
  */
 
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { AvailableMfaMethod } from '@domain/interfaces/IAuthRepository'
 
 export const QR_LOGIN_API = {
     SESSION: '/auth/qr/session',
@@ -61,6 +62,14 @@ export interface QrLoginPoll {
     mfaSessionToken?: string
     currentStep?: number
     totalSteps?: number
+    /**
+     * Methods offered for the NEXT MFA step, when the approved Layer-1 needs
+     * further steps. Lets the web continue into the existing MethodPicker /
+     * MfaStepRenderer flow instead of dead-ending. May be absent/empty.
+     */
+    availableMethods?: AvailableMfaMethod[]
+    /** Factors already satisfied (so the next picker can mark them used). */
+    completedMethods?: string[]
 }
 
 /** How often to poll the session status, in milliseconds. */

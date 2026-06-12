@@ -33,6 +33,7 @@ import { makeRequestWebAuthnChallenge } from '@features/auth/login-shared/webaut
 import StepProgress from './StepProgress'
 import { hasPasswordLayer1, needsIdentifier, selectPuzzleConfig, type LoginConfig } from '@domain/models/LoginConfig'
 import { isLikelyValidEmail } from '@domain/validators/emailValidator'
+import type { Layer1Continuation } from '@features/auth/login-shared/layer1Continuation'
 
 /**
  * The discrete screens of the login flow. Named constants (not bare string
@@ -105,9 +106,19 @@ interface LoginMfaFlowProps {
      * step (once an identifier/session is committed the skeleton is suppressed).
      */
     configLoading?: boolean
+    /**
+     * Resume into an in-progress MFA flow that a usernameless Layer-1 method
+     * (QR / approve / passkey) opened OUTSIDE this component. When set, the flow
+     * jumps straight to the method-picker / first MFA step for the given
+     * `mfaSessionToken` + `availableMethods` (instead of its opening
+     * identity-entry screen), so cross-device approval / passkey first-factor
+     * continues into the existing MFA steps rather than dead-ending (F1/F3 +
+     * passkey-success). Consumed once on change; clears on "Start over".
+     */
+    initialContinuation?: Layer1Continuation | null
 }
 
-export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, onPreflightResolved, configLoading = false }: LoginMfaFlowProps) {
+export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepChange, onInitialPhaseChange, loginConfig, onPreflightResolved, configLoading = false, initialContinuation = null }: LoginMfaFlowProps) {
     const { t } = useTranslation()
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -246,6 +257,40 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
         )
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [loginConfig])
+
+    // Resume into an MFA flow opened by a usernameless Layer-1 method (QR /
+    // approve / passkey) outside this component. Consumed ONCE per session
+    // token: jump to the method-picker / first MFA step with the handed-in
+    // session + methods, so the cross-device / passkey first-factor continues
+    // into the existing steps instead of dead-ending (F1/F3 + passkey-success).
+    const consumedContinuationRef = useRef<string | null>(null)
+    useEffect(() => {
+        const c = initialContinuation
+        if (!c || !c.mfaSessionToken) return
+        if (consumedContinuationRef.current === c.mfaSessionToken) return
+        consumedContinuationRef.current = c.mfaSessionToken
+
+        setMfaSessionToken(c.mfaSessionToken)
+        if (c.completedMethods?.length) {
+            setUsedMethods((prev) => Array.from(new Set([...prev, ...c.completedMethods!])))
+        }
+        if (c.totalSteps) {
+            setTotalSteps((prev) => Math.max(prev, c.totalSteps!))
+            setFlowTotalSteps((prev) => Math.max(prev ?? 0, c.totalSteps!))
+        }
+        if (c.currentStep) setCurrentStep(c.currentStep)
+
+        const methods = c.availableMethods ?? []
+        setAvailableMethods(methods)
+        const used = new Set(c.completedMethods ?? [])
+        const enrolled = methods.filter((m) => m.enrolled && !used.has(m.methodType))
+        if (enrolled.length === 1) {
+            setSelectedMethod(enrolled[0].methodType)
+            setPhase(FlowPhase.MfaStep)
+        } else {
+            setPhase(FlowPhase.MethodPicker)
+        }
+    }, [initialContinuation])
 
     // ─── Password Submit ────────────────────────────────────────
 

@@ -21,6 +21,7 @@ import { Button, Divider, Stack, Typography } from '@mui/material'
 import { PhonelinkLock, QrCode2 } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import PasskeyLoginButton from './PasskeyLoginButton'
+import type { Layer1Continuation } from '../login-shared/layer1Continuation'
 import {
     hasUsernamelessPasskey,
     type LoginConfig,
@@ -43,6 +44,12 @@ interface Layer1ShortcutsProps<T> {
      */
     fallbackAll?: boolean
     onPasskeySuccess: (login: T) => void
+    /**
+     * Passkey satisfied Layer 1 but the tenant flow needs MORE steps — the host
+     * continues into its MethodPicker / MfaStepRenderer flow. Forwarded to
+     * PasskeyLoginButton; optional so existing single-step callers are unaffected.
+     */
+    onPasskeyMfaRequired?: (continuation: Layer1Continuation) => void
     onPasskeyError: (message: string) => void
     /**
      * Open the "Approve on another device" (number-matching) panel. When
@@ -65,6 +72,7 @@ export default function Layer1Shortcuts<T = unknown>({
     config,
     fallbackAll = false,
     onPasskeySuccess,
+    onPasskeyMfaRequired,
     onPasskeyError,
     onApproveClick,
     onQrClick,
@@ -100,6 +108,7 @@ export default function Layer1Shortcuts<T = unknown>({
                 {showPasskey && (
                     <PasskeyLoginButton<T>
                         onSuccess={onPasskeySuccess}
+                        onMfaRequired={onPasskeyMfaRequired}
                         onError={onPasskeyError}
                         disabled={disabled}
                         sx={passkeySx}
