@@ -8,6 +8,9 @@
  *
  * Contract verified here (deterministic — embedder + flag are mocked, no ONNX):
  *   - Flag ON  → verifyStep(FACE, { embedding: number[512] }) and NOT { image }.
+ *   - Flag ON + embedding fails → onError(clientPrepFailed) + NO verifyStep
+ *     (GPU-less enforcement: the CPU-only server 400s the image path when ON,
+ *     so we must NEVER silently fall back to uploading the image).
  *   - Flag OFF → verifyStep(FACE, { image }) exactly as the legacy path did.
  *
  * The FaceCaptureStep internals (camera, detection, capture) are mocked to a
@@ -73,6 +76,7 @@ import MfaStepRenderer from '../MfaStepRenderer'
 
 function renderFaceStep() {
     const verifyStep = vi.fn()
+    const onError = vi.fn()
     render(
         <MfaStepRenderer
             method={AuthMethodType.FACE}
@@ -89,10 +93,10 @@ function renderFaceStep() {
             onAuthenticated={vi.fn()}
             onBack={vi.fn()}
             loading={false}
-            onError={vi.fn()}
+            onError={onError}
         />,
     )
-    return { verifyStep }
+    return { verifyStep, onError }
 }
 
 describe('MfaStepRenderer — FACE submit: client embedding vs legacy image', () => {
@@ -133,14 +137,18 @@ describe('MfaStepRenderer — FACE submit: client embedding vs legacy image', ()
         expect((payload as { embedding: number[] }).embedding).toHaveLength(512)
     })
 
-    it('flag ON but embedding fails: falls back to the legacy { image } upload (never blocks auth)', async () => {
+    it('flag ON but embedding fails: surfaces a retryable error and NEVER uploads the image (GPU-less enforcement)', async () => {
         flagState.enabled = true
         embedCapturedFaceMock.mockResolvedValue(null)
-        const { verifyStep } = renderFaceStep()
+        const { verifyStep, onError } = renderFaceStep()
 
         await userEvent.click(screen.getByRole('button', { name: 'face-submit' }))
 
-        await waitFor(() => expect(verifyStep).toHaveBeenCalledTimes(1))
-        expect(verifyStep).toHaveBeenCalledWith(AuthMethodType.FACE, { image: CAPTURED_IMAGE })
+        // The CPU-only server 400s the image path when the flag is ON, so a null
+        // embedding must NOT fall back to { image }. Instead a clear, retryable
+        // error is surfaced and verifyStep is never called.
+        await waitFor(() => expect(onError).toHaveBeenCalledTimes(1))
+        expect(onError).toHaveBeenCalledWith(expect.any(String))
+        expect(verifyStep).not.toHaveBeenCalled()
     })
 })

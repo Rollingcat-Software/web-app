@@ -198,17 +198,27 @@ export default function MfaStepRenderer({
                         // makes the client embedding self-consistent capture-to-
                         // capture; without it the embedding is an unaligned crop.
                         //
-                        // Resilient: a null embedding (no model / ORT load fail /
-                        // inference error) falls back to the unchanged legacy
-                        // image upload so a login is never blocked. Flag OFF is
-                        // byte-identical to the legacy `{ image }` path.
+                        // GPU-LESS ENFORCEMENT (SP-A go-live): the CPU-only server
+                        // EXPECTS the embedding and 400s the legacy image path when
+                        // the identity flag `app.auth.client-side-embedding` is ON.
+                        // So a null embedding (no model / ORT load fail / inference
+                        // error) must NOT silently fall back to uploading the image
+                        // — that upload would just be rejected by the server. Surface
+                        // a clear, RETRYABLE error instead and let the user try again
+                        // (the model cache self-heals on the next attempt + the
+                        // prefetch re-warms it). NEVER send `{ image }` while ON.
                         if (isClientSideEmbeddingEnabled()) {
                             const embedding = await embedCapturedFace(image, faceLandmarks)
                             if (embedding) {
                                 verifyStep(AuthMethodType.FACE, { embedding, ...advisory })
                                 return
                             }
+                            // On-device prep failed — show a retryable message; the
+                            // captured frame stays so the user can simply re-submit.
+                            onError(t('mfa.face.clientPrepFailed'))
+                            return
                         }
+                        // Flag OFF: legacy image upload, byte-identical to before.
                         verifyStep(AuthMethodType.FACE, { image, ...advisory })
                     }}
                     loading={loading}
