@@ -14,6 +14,9 @@ import { AuthMethodType } from '@domain/models/AuthMethod'
 import { getBiometricService } from '@core/services/BiometricService'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { formatApiError } from '@utils/formatApiError'
+import { isClientSideEmbeddingEnabled } from '@features/biometrics/embedding/clientEmbeddingFlag'
+import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedFace'
+import type { NormalizedLandmark } from '@/lib/biometric-engine/types'
 import type { ShowSnackbar } from '../../types'
 
 interface Props {
@@ -48,17 +51,41 @@ export default function FaceEnrollmentDialog({
     const { t } = useTranslation()
 
     const handleComplete = useCallback(
-        async (images: string[], clientEmbeddings?: (number[] | null)[]) => {
+        async (images: string[], clientEmbeddings?: (number[] | null)[], captureLandmarks?: (NormalizedLandmark[] | null)[]) => {
             if (!userId || images.length === 0) return
             setActionLoading(AuthMethodType.FACE)
             try {
                 const biometric = getBiometricService()
-                // Send all captured images — enrollFace will use /enroll/multi
-                // for 2+ images (quality-weighted template fusion).
-                // clientEmbeddings are 512-dim landmark-geometry vectors computed in-browser
-                // via EmbeddingComputer (MediaPipe, log-only per D2). Server stores them for
-                // offline analysis only — never used for auth decisions.
-                await biometric.enrollFace(userId, images, tenantId, clientEmbeddings, optimize)
+                if (isClientSideEmbeddingEnabled()) {
+                    // Client-side-embedding ON: compute the Facenet512 embedding for the best
+                    // frontal capture (index 0 = the centered 'position' frame) entirely in the
+                    // browser and submit ONLY the vector — the raw image never leaves the device.
+                    // The captured 478-pt mesh is threaded so the embedder ALIGNS the face (eyes →
+                    // canonical) first, the same as the verify probe → enroll and verify share one
+                    // aligned space (audit H2). GPU-LESS ENFORCEMENT: the CPU-only server 400s the
+                    // image path when its flag is on, so a null embedding must NOT fall back to an
+                    // image upload — surface a retryable error instead (mirrors MfaStepRenderer).
+                    // NOTE: optimize/template-fusion is not yet supported on the embedding enroll
+                    // route; a re-enroll replaces the template.
+                    const frontalImage = images[0]
+                    const frontalLandmarks = captureLandmarks?.[0] ?? undefined
+                    const embedding = await embedCapturedFace(frontalImage, frontalLandmarks ?? undefined)
+                    if (!embedding) {
+                        // On-device prep failed — retryable, never upload the image while the flag is on.
+                        onClose()
+                        showSnackbar(t('enrollmentPage.faceClientPrepFailed'), 'error')
+                        return
+                    }
+                    await biometric.enrollFaceEmbedding(userId, embedding, tenantId)
+                } else {
+                    // Flag OFF: legacy image upload, byte-identical to before.
+                    // Send all captured images — enrollFace will use /enroll/multi
+                    // for 2+ images (quality-weighted template fusion).
+                    // clientEmbeddings are 512-dim landmark-geometry vectors computed in-browser
+                    // via EmbeddingComputer (MediaPipe, log-only per D2). Server stores them for
+                    // offline analysis only — never used for auth decisions.
+                    await biometric.enrollFace(userId, images, tenantId, clientEmbeddings, optimize)
+                }
 
                 // Create enrollment record and explicitly complete it (FACE is ASYNC_ENROLLMENT_TYPE)
                 await createEnrollment({

@@ -154,6 +154,50 @@ describe('BiometricService — multipart wire contract', () => {
         })
     })
 
+    describe('enrollFaceEmbedding', () => {
+        // The embedding enroll route posts a plain JSON object (NOT FormData), so
+        // read the body straight off the last post call's 2nd arg.
+        function lastJsonBody(): { embedding?: unknown; tenant_id?: unknown } {
+            expect(post).toHaveBeenCalled()
+            const call = post.mock.calls[post.mock.calls.length - 1]
+            return call[1] as { embedding?: unknown; tenant_id?: unknown }
+        }
+
+        const embedding = Array.from({ length: 512 }, (_, i) => (i % 5) / 5)
+
+        it('posts JSON { embedding } to /biometric/enroll-embedding/<userId> and includes tenant_id', async () => {
+            post.mockResolvedValue({ data: { verified: true, confidence: 0.97 } })
+
+            const tenantId = 'tenant-marmara-uuid'
+            await service.enrollFaceEmbedding('user-1', embedding, tenantId)
+
+            const call = post.mock.calls[post.mock.calls.length - 1]
+            expect(call[0]).toBe('/biometric/enroll-embedding/user-1')
+            const body = lastJsonBody()
+            expect(Array.isArray(body.embedding)).toBe(true)
+            expect((body.embedding as number[]).length).toBe(512)
+            expect(body.tenant_id).toBe(tenantId)
+        })
+
+        it('omits tenant_id when blank/whitespace-only', async () => {
+            post.mockResolvedValue({ data: { verified: true } })
+            await service.enrollFaceEmbedding('user-1', embedding, '  ')
+
+            const body = lastJsonBody()
+            expect(Array.isArray(body.embedding)).toBe(true)
+            expect('tenant_id' in body).toBe(false)
+        })
+
+        it('returns { success: true } on a { verified: true } response', async () => {
+            post.mockResolvedValue({ data: { verified: true, confidence: 0.91, message: 'ok' } })
+            const result = await service.enrollFaceEmbedding('user-1', embedding)
+
+            expect(result.success).toBe(true)
+            expect(result.userId).toBe('user-1')
+            expect(result.confidence).toBe(0.91)
+        })
+    })
+
     describe('verifyFace', () => {
         it('forwards tenant_id', async () => {
             post.mockResolvedValue({

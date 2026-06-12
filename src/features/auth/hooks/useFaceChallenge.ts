@@ -3,6 +3,7 @@ import { FaceDetectionState } from './useFaceDetection'
 import { BiometricEngine } from '../../../lib/biometric-engine/core/BiometricEngine'
 import { BlinkTransitionTracker } from '../../../lib/biometric-engine/core/challenges'
 import { dataURLToImageData } from '../utils/faceCropper'
+import type { NormalizedLandmark } from '../../../lib/biometric-engine/types'
 
 /**
  * Client-side passive liveness pre-filter threshold.
@@ -82,6 +83,7 @@ export interface ChallengeState {
     instruction: string
     captures: string[]         // base64 images captured at each stage
     clientEmbeddings: (number[] | null)[]  // 512-dim landmark-geometry embedding per capture (null if landmarks unavailable); log-only per D2
+    captureLandmarks: (NormalizedLandmark[] | null)[]  // 478-pt mesh snapshotted WITH each capture, for the client-side embedder's aligner (null when the active backend lacks dense landmarks, e.g. BlazeFace fallback)
 }
 
 export interface VerificationState {
@@ -167,12 +169,14 @@ export function useFaceChallenge() {
         instruction: ENROLLMENT_STAGES[0].instructionKey,
         captures: [],
         clientEmbeddings: [],
+        captureLandmarks: [],
     })
 
     const holdStartRef = useRef<number | null>(null)
     const stageIndexRef = useRef(0)
     const capturesRef = useRef<string[]>([])
     const clientEmbeddingsRef = useRef<(number[] | null)[]>([])
+    const captureLandmarksRef = useRef<(NormalizedLandmark[] | null)[]>([])
     // Canonical close→re-open blink transition tracker — the SAME implementation
     // the puzzle BlinkDetector uses, so enrollment and puzzles agree on what a
     // blink is. Replaces the old face-detection-confidence-dip heuristic.
@@ -191,6 +195,7 @@ export function useFaceChallenge() {
         stageIndexRef.current = 0
         capturesRef.current = []
         clientEmbeddingsRef.current = []
+        captureLandmarksRef.current = []
         holdStartRef.current = null
         blinkTrackerRef.current.reset()
         blinkDetectedRef.current = false
@@ -204,6 +209,7 @@ export function useFaceChallenge() {
             instruction: ENROLLMENT_STAGES[0].instructionKey,
             captures: [],
             clientEmbeddings: [],
+            captureLandmarks: [],
         })
     }, [])
 
@@ -274,6 +280,7 @@ export function useFaceChallenge() {
         detection: FaceDetectionState,
         cropFace: (canvas: HTMLCanvasElement) => string | null,
         canvasRef: React.RefObject<HTMLCanvasElement | null>,
+        captureLandmarks?: () => NormalizedLandmark[] | null,
     ) => {
         const idx = stageIndexRef.current
         if (idx >= ENROLLMENT_STAGES.length) return
@@ -464,6 +471,11 @@ export function useFaceChallenge() {
                     // ─────────────────────────────────────────────────────────────────────
 
                     capturesRef.current = [...capturesRef.current, capturedImage]
+                    // Snapshot the 478-pt mesh for THIS exact frame so the
+                    // client-side embedder's aligner uses landmarks that match the
+                    // captured crop (null when the active backend lacks dense
+                    // landmarks, e.g. the BlazeFace fallback).
+                    captureLandmarksRef.current = [...captureLandmarksRef.current, typeof captureLandmarks === 'function' ? captureLandmarks() : null]
 
                     // Async: extract client-side landmark-geometry embedding (log-only per D2).
                     // Returns null when landmarks are unavailable; server ignores the field.
@@ -510,6 +522,7 @@ export function useFaceChallenge() {
                         instruction: 'faceChallenge.enrolledSuccess',
                         captures: capturesRef.current,
                         clientEmbeddings: clientEmbeddingsRef.current,
+                        captureLandmarks: captureLandmarksRef.current,
                     })
                 } else {
                     setChallengeState({
@@ -522,6 +535,7 @@ export function useFaceChallenge() {
                         instruction: ENROLLMENT_STAGES[nextIdx].instructionKey,
                         captures: capturesRef.current,
                         clientEmbeddings: clientEmbeddingsRef.current,
+                        captureLandmarks: captureLandmarksRef.current,
                     })
                 }
             } else {
