@@ -101,6 +101,7 @@ export default function IdentifierStep({
                 fullWidth
                 type="email"
                 label={t('auth.emailLabel')}
+                autoComplete="username"
                 value={value}
                 onChange={(e) => onChange(e.target.value)}
                 onKeyDown={(e) => {

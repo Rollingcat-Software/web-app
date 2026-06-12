@@ -1072,7 +1072,7 @@ export default function LoginPage() {
                                             margin="normal"
                                             autoFocus
                                             required
-                                            autoComplete="email"
+                                            autoComplete="username"
                                             inputProps={{ 'aria-required': 'true' }}
                                             disabled={loading}
                                             InputProps={{
