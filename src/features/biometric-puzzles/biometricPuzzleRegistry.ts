@@ -48,15 +48,26 @@ import { ChallengeType } from '@/lib/biometric-engine/types'
 import { isLivenessEligible } from '@/lib/biometric-engine/core/livenessPool'
 import { makeFacePuzzle } from './puzzles/FacePuzzle'
 import { makeHandPuzzle } from './puzzles/HandGesturePuzzle'
+import type { PuzzleServerVerdict } from './useBiometricPuzzleServer'
 
 /**
  * Props every puzzle component receives. Mirrors the auth-methods-testing
  * contract so the two runner modals can stay aligned.
+ *
+ * `onSuccess` optionally carries the server's re-score verdict so an
+ * auth-context caller (PuzzleStep) can forward server evidence to the identity
+ * handler. The standalone training surface ignores the argument.
  */
 export interface BiometricPuzzleProps {
-    onSuccess: () => void
+    onSuccess: (verdict?: PuzzleServerVerdict) => void
     onError: (message: string) => void
     onClose: () => void
+    /**
+     * Server re-score mode for this puzzle attempt. `'auth'` fails closed on a
+     * missing/non-2xx proxy (no soft-pass); `'training'` (default) keeps the
+     * rollout soft-pass. Only the PUZZLE auth step passes `'auth'`.
+     */
+    serverMode?: 'auth' | 'training'
 }
 
 export type BiometricPuzzlePlatform = 'web' | 'android' | 'ios' | 'desktop'

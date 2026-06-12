@@ -1,12 +1,15 @@
 /**
- * PuzzleStep + MfaStepRenderer PUZZLE routing (Task 3.4, 2026-06-12)
+ * PuzzleStep + MfaStepRenderer PUZZLE routing (Task 3.4 + fail-closed/server-
+ * evidence hardening, 2026-06-12)
  *
  * 1. MfaStepRenderer routes PUZZLE → PuzzleStep (landmark string visible)
  * 2. PuzzleStep: no puzzleConfig → shows noChallenges key
  * 3. PuzzleStep: valid config → renders the challenge component from registry
- * 4. PuzzleStep: onSuccess on last challenge → calls verifyStep(PUZZLE, { puzzle_traces })
- * 5. PuzzleStep: useBiometricPuzzleServer is wired with mode:'auth'
- *    (verified indirectly — the hook mock captures the mode argument)
+ *    AND passes serverMode='auth' to it (fail-closed re-score)
+ * 4. PuzzleStep: onSuccess(verdict) on last challenge → calls
+ *    verifyStep(PUZZLE, { server_verdicts:[...] }) carrying the SERVER verdict,
+ *    NOT a client {challengeId, completedAt}-only trace
+ * 5. PuzzleStep: a multi-challenge flow accumulates one verdict per challenge
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
@@ -15,6 +18,7 @@ import { AuthMethodType } from '@features/auth/constants'
 import type { PuzzleConfig } from '@domain/models/AuthMethod'
 import { BiometricPuzzleId } from '@features/biometric-puzzles/BiometricPuzzleId'
 import type { BiometricPuzzleProps } from '@features/biometric-puzzles/biometricPuzzleRegistry'
+import type { PuzzleServerVerdict } from '@features/biometric-puzzles/useBiometricPuzzleServer'
 
 // ── Global mocks ─────────────────────────────────────────────────────
 
@@ -29,8 +33,7 @@ vi.mock('framer-motion', () => ({
     motion: new Proxy(
         {},
         {
-            get: (_target, prop) => {
-                const tag = String(prop)
+            get: () => {
                 return ({ children, ...rest }: Record<string, unknown>) => {
                     const { initial: _i, animate: _a, variants: _v, transition: _tr, ...domProps } =
                         rest
@@ -53,21 +56,26 @@ vi.mock('@/lib/biometric-engine/core/BiometricEngine', () => ({
 
 // ── Puzzle registry mock ─────────────────────────────────────────────
 
-/** Captures onSuccess so the test can fire it. */
-let capturedOnSuccess: (() => void) | null = null
+/** Captures onSuccess + the serverMode the step rendered the challenge with. */
+let capturedOnSuccess: ((verdict?: PuzzleServerVerdict) => void) | null = null
+let capturedServerMode: 'auth' | 'training' | undefined
 
-const MockChallengeComponent = ({ onSuccess }: BiometricPuzzleProps) => {
+const MockChallengeComponent = ({ onSuccess, serverMode }: BiometricPuzzleProps) => {
     capturedOnSuccess = onSuccess
+    capturedServerMode = serverMode
     return <div data-testid="mock-challenge">mock-challenge</div>
 }
 
 vi.mock('@features/biometric-puzzles/biometricPuzzleRegistry', () => ({
     getBiometricPuzzle: (id: string) => {
-        if (id === BiometricPuzzleId.FACE_BLINK) {
+        // Inline valid-id list — vi.mock factory is hoisted, so it cannot
+        // close over module-level consts.
+        const validIds = new Set<string>(['FACE_BLINK', 'FACE_SMILE'])
+        if (validIds.has(id)) {
             return {
                 id,
                 modality: 'face',
-                i18nKey: 'biometricPuzzle.puzzles.face_blink',
+                i18nKey: `biometricPuzzle.puzzles.${id.toLowerCase()}`,
                 component: MockChallengeComponent,
                 difficulty: 'beginner',
                 platforms: ['web'],
@@ -147,7 +155,13 @@ const puzzleConfig: PuzzleConfig = {
 beforeEach(() => {
     vi.clearAllMocks()
     capturedOnSuccess = null
+    capturedServerMode = undefined
 })
+
+/** A representative SERVER verdict the auth-mode re-score would return. */
+function serverVerdict(action: PuzzleServerVerdict['action']): PuzzleServerVerdict {
+    return { action, verified: true, durationSeconds: 1.2 }
+}
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
@@ -195,7 +209,7 @@ describe('PuzzleStep', () => {
         expect(screen.getByText('mfa.puzzle.noChallenges')).toBeInTheDocument()
     })
 
-    it('renders the MockChallengeComponent when a valid BiometricPuzzleId is configured', () => {
+    it('renders the MockChallengeComponent in auth mode (fail-closed re-score)', () => {
         render(
             <PuzzleStep
                 puzzleConfig={puzzleConfig}
@@ -204,9 +218,12 @@ describe('PuzzleStep', () => {
             />,
         )
         expect(screen.getByTestId('mock-challenge')).toBeInTheDocument()
+        // The challenge runs its server re-score in AUTH mode — a missing/non-2xx
+        // proxy must fail the challenge, never soft-pass.
+        expect(capturedServerMode).toBe('auth')
     })
 
-    it('calls verifyStep(PUZZLE, { puzzle_traces }) after onSuccess on the only challenge', async () => {
+    it('submits server_verdicts (not a bare client trace) after onSuccess on the only challenge', async () => {
         const verifyStep = vi.fn()
         render(
             <PuzzleStep
@@ -216,22 +233,68 @@ describe('PuzzleStep', () => {
             />,
         )
 
-        // Trigger the challenge success.
+        // The challenge resolves with the SERVER's re-score verdict.
         await act(async () => {
-            capturedOnSuccess?.()
+            capturedOnSuccess?.(serverVerdict('blink'))
         })
 
         expect(verifyStep).toHaveBeenCalledOnce()
-        expect(verifyStep).toHaveBeenCalledWith(
-            AuthMethodType.PUZZLE,
+        const [method, payload] = verifyStep.mock.calls[0]
+        expect(method).toBe(AuthMethodType.PUZZLE)
+
+        // Carries SERVER evidence …
+        expect(payload).toHaveProperty('server_verdicts')
+        expect(payload.server_verdicts).toEqual([
             expect.objectContaining({
-                puzzle_traces: expect.arrayContaining([
-                    expect.objectContaining({
-                        challengeId: BiometricPuzzleId.FACE_BLINK,
-                        completedAt: expect.any(Number),
-                    }),
-                ]),
+                challengeId: BiometricPuzzleId.FACE_BLINK,
+                completedAt: expect.any(Number),
+                action: 'blink',
+                verified: true,
+                durationSeconds: 1.2,
             }),
+        ])
+        // … and does NOT fall back to the old client-trusting trace shape.
+        expect(payload).not.toHaveProperty('puzzle_traces')
+        // No server-issued session id is available yet (stateless proxy gap).
+        expect(payload.puzzle_session_id).toBeUndefined()
+    })
+
+    it('accumulates one server verdict per challenge across a multi-challenge flow', async () => {
+        const verifyStep = vi.fn()
+        const twoStepConfig: PuzzleConfig = {
+            allowedChallengeTypes: [
+                BiometricPuzzleId.FACE_BLINK,
+                BiometricPuzzleId.FACE_SMILE,
+            ],
+            count: 2,
+            difficulty: 'easy',
+            alsoMatchFaceIdentity: false,
+        }
+        render(
+            <PuzzleStep
+                puzzleConfig={twoStepConfig}
+                verifyStep={verifyStep}
+                loading={false}
+            />,
         )
+
+        // First challenge passes → advances, no submit yet.
+        await act(async () => {
+            capturedOnSuccess?.(serverVerdict('blink'))
+        })
+        expect(verifyStep).not.toHaveBeenCalled()
+
+        // Second (final) challenge passes → submit both verdicts.
+        await act(async () => {
+            capturedOnSuccess?.(serverVerdict('smile'))
+        })
+
+        expect(verifyStep).toHaveBeenCalledOnce()
+        const payload = verifyStep.mock.calls[0][1]
+        expect(payload.server_verdicts).toHaveLength(2)
+        expect(payload.server_verdicts.map((v: { action: string }) => v.action)).toEqual([
+            'blink',
+            'smile',
+        ])
     })
 })

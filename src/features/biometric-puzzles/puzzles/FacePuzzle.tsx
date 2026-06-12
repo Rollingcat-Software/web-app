@@ -68,7 +68,7 @@ interface Props extends BiometricPuzzleProps {
  */
 const ATTEMPT_TIMEOUT_MS = 30_000
 
-function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
+function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = 'training' }: Props) {
     const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -337,14 +337,17 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                         setProgress(100)
 
                         // Bug 4 (2026-05-12) — round-trip the completion through
-                        // the server before resolving onSuccess. The mapper
-                        // returns null for face variants without a 1:1 server
-                        // enum (CLOSE_LEFT/RIGHT, LOOK_UP/DOWN, individual
-                        // brow raises, NOD, SHAKE_HEAD) — in that case the
-                        // local verdict is final because the server can't
-                        // express the same challenge today.
+                        // the server before resolving onSuccess. The mapper now
+                        // maps every face challenge to a server action (3.1-web),
+                        // so a null result means a future unmapped variant. In
+                        // auth mode that's fail-closed (no server evidence is
+                        // possible); in training mode the local verdict is final.
                         const serverAction = faceChallengeToServerAction(challengeType)
                         if (!serverAction) {
+                            if (serverMode === 'auth') {
+                                onError(t('biometricPuzzle.serverError'))
+                                return
+                            }
                             onSuccess()
                             return
                         }
@@ -359,11 +362,22 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                                 metrics: { progress: result.progress },
                             },
                             t,
+                            serverMode,
                         )
                             .then((outcome) => {
                                 setServerVerifying(false)
-                                if (outcome.kind === 'success' || outcome.kind === 'soft_pass') {
-                                    onSuccess()
+                                if (outcome.kind === 'success') {
+                                    onSuccess({
+                                        action: outcome.action,
+                                        verified: true,
+                                        durationSeconds: outcome.durationSeconds,
+                                    })
+                                } else if (outcome.kind === 'soft_pass') {
+                                    onSuccess({
+                                        action: serverAction,
+                                        verified: false,
+                                        softPassReason: outcome.reason,
+                                    })
                                 } else {
                                     onError(outcome.message)
                                 }
@@ -396,7 +410,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey }: Props) {
                 animFrameRef.current = 0
             }
         }
-    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected, verifyChallenge])
+    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected, verifyChallenge, serverMode])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 

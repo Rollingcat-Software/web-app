@@ -61,7 +61,7 @@ const ATTEMPT_TIMEOUT_MS = 45_000
 const HAND_GRADIENT = 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)'
 const HAND_GLOW = '0 8px 24px rgba(236, 72, 153, 0.25)'
 
-function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
+function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode = 'training' }: Props) {
     const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -289,10 +289,15 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                 // Bug 4 (2026-05-12) — round-trip the completion through the
                 // server before resolving onSuccess. The mapper returns null
                 // for hand variants without a 1:1 server enum (currently
-                // HAND_TRACE_TEMPLATE), in which case the local verdict is
-                // final because the server can't express the same challenge.
+                // HAND_TRACE_TEMPLATE). In auth mode that's fail-closed (no
+                // server evidence is possible); in training mode the local
+                // verdict is final because the server can't express it.
                 const serverAction = handPuzzleToServerAction(puzzleId)
                 if (!serverAction) {
+                    if (serverMode === 'auth') {
+                        onError(t('biometricPuzzle.serverError'))
+                        return
+                    }
                     onSuccess()
                     return
                 }
@@ -307,11 +312,22 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                         metrics: { progress: evalResult.progress ?? 0 },
                     },
                     t,
+                    serverMode,
                 )
                     .then((outcome) => {
                         setServerVerifying(false)
-                        if (outcome.kind === 'success' || outcome.kind === 'soft_pass') {
-                            onSuccess()
+                        if (outcome.kind === 'success') {
+                            onSuccess({
+                                action: outcome.action,
+                                verified: true,
+                                durationSeconds: outcome.durationSeconds,
+                            })
+                        } else if (outcome.kind === 'soft_pass') {
+                            onSuccess({
+                                action: serverAction,
+                                verified: false,
+                                softPassReason: outcome.reason,
+                            })
                         } else {
                             onError(outcome.message)
                         }
@@ -338,7 +354,7 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey }: Props) {
                 animFrameRef.current = 0
             }
         }
-    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t, drawHandLandmarks, clearOverlay, verifyChallenge])
+    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t, drawHandLandmarks, clearOverlay, verifyChallenge, serverMode])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 

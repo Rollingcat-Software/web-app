@@ -69,6 +69,8 @@ export interface PuzzleVerifyRequestPayload {
 export interface PuzzleVerifyResult {
     kind: 'success'
     durationSeconds: number
+    /** The server-confirmed challenge action (echoed by the bio re-score). */
+    action: PuzzleServerAction
 }
 export interface PuzzleVerifyError {
     kind: 'error'
@@ -89,6 +91,38 @@ export type PuzzleVerifyOutcome =
     | PuzzleVerifyResult
     | PuzzleVerifyError
     | PuzzleVerifySoftPass
+
+/**
+ * Server evidence for one passed challenge, forwarded to the identity handler
+ * so the PUZZLE auth step is server-authoritative (the handler re-confirms with
+ * bio rather than trusting a client boolean). `verified` is the bio re-score
+ * verdict — `false` is only ever produced by a soft-pass during rollout (the
+ * proxy isn't deployed), so the handler can distinguish a true server pass from
+ * a degraded one.
+ *
+ * NOTE (server-session gap, 2026-06-12): the current bio proxy
+ * (`/biometric/puzzles/verify-challenge`) is STATELESS — it re-scores one
+ * challenge per call and issues NO server-side session id. So a verdict here is
+ * a per-challenge attestation, not a binding to a server-tracked liveness
+ * session. The identity handler still cannot bind these to one another or to
+ * the auth session without a server-issued session id. A server-issued-session
+ * contract is needed for full anti-replay; see PuzzleStep + the Phase 3 bio
+ * task. Until then this is the strongest evidence the client can forward.
+ */
+export interface PuzzleServerVerdict {
+    /** The server challenge action that was re-scored. */
+    action: PuzzleServerAction
+    /** True only for a real server-200 + verified=true; false for a soft-pass. */
+    verified: boolean
+    /** Server-measured challenge duration, when the bio re-score returned one. */
+    durationSeconds?: number
+    /**
+     * Why `verified` is false despite the step advancing. Currently only
+     * `endpoint_not_deployed` (training-mode soft-pass) — never set in auth mode
+     * because auth mode fails closed on a missing proxy.
+     */
+    softPassReason?: PuzzleVerifySoftPass['reason']
+}
 
 /** identity-core-api proxy path for the bio `/liveness/verify-challenge` route. */
 const VERIFY_CHALLENGE_PATH = '/biometric/puzzles/verify-challenge'
@@ -131,6 +165,7 @@ export function useBiometricPuzzleServer() {
                     return {
                         kind: 'success',
                         durationSeconds: res.data.duration_seconds ?? 0,
+                        action: payload.action,
                     }
                 }
                 return {

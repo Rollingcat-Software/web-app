@@ -2,11 +2,24 @@
  * PuzzleStep — PUZZLE auth-method MFA step (Phase 3, 2026-06-12)
  *
  * Drives a sequential challenge session from a tenant-configured PuzzleConfig.
- * Runs challenges one by one using the biometric puzzle registry. When all
- * challenges pass, immediately calls verifyStep(PUZZLE, { puzzle_traces }).
+ * Runs challenges one by one using the biometric puzzle registry, each in
+ * server `serverMode='auth'` so a 404/non-2xx per-challenge re-score FAILS the
+ * challenge (no soft-pass) — the fail-closed contract from 3.2.
  *
- * Mode is always 'auth' — the 404-soft-pass is disabled here so a missing
- * proxy cannot be exploited to bypass liveness (3.2 fail-closed contract).
+ * Server-authoritative: the step does NOT submit a client "I passed" boolean.
+ * It forwards the per-challenge SERVER verdicts returned by the auth-mode
+ * re-score (`{ action, verified, durationSeconds }`) so the identity handler
+ * re-confirms with bio rather than trusting the client. The submitted payload
+ * is `verifyStep(PUZZLE, { puzzle_session_id?, server_verdicts: [...] })`.
+ *
+ * SERVER-SESSION GAP (flagged): the current bio proxy
+ * (`/biometric/puzzles/verify-challenge`) is STATELESS and issues no
+ * server-side session id, so `puzzle_session_id` is absent today. Per-challenge
+ * verdicts are the strongest evidence available. A server-issued-session
+ * contract is needed for full anti-replay binding — the identity handler is
+ * being built to expect server evidence and should treat a missing
+ * `puzzle_session_id` as the known interim state, not silently trust the
+ * verdicts as a bound session. See useBiometricPuzzleServer PuzzleServerVerdict.
  *
  * alsoMatchFaceIdentity (Phase 5) is intentionally not wired in this phase —
  * liveness-only for now.
@@ -20,6 +33,7 @@ import {
     getBiometricPuzzle,
 } from '@features/biometric-puzzles/biometricPuzzleRegistry'
 import { BiometricPuzzleId } from '@features/biometric-puzzles/BiometricPuzzleId'
+import type { PuzzleServerVerdict } from '@features/biometric-puzzles/useBiometricPuzzleServer'
 import type { PuzzleConfig } from '@domain/models/AuthMethod'
 import StepLayout from '../../components/steps/StepLayout'
 
@@ -37,9 +51,17 @@ export interface PuzzleStepProps {
     error?: string
 }
 
-interface PuzzleTrace {
+/**
+ * Per-challenge evidence forwarded to the identity handler. Combines the local
+ * challenge identity (which BiometricPuzzleId ran) with the SERVER verdict from
+ * the auth-mode re-score, so the handler can re-confirm against bio. `verdict`
+ * is absent only for the (currently unreachable in auth) unmapped-challenge
+ * path — in that case the handler must treat the challenge as unverified.
+ */
+interface PuzzleChallengeEvidence {
     challengeId: BiometricPuzzleId
     completedAt: number
+    verdict?: PuzzleServerVerdict
 }
 
 export default function PuzzleStep({
@@ -63,7 +85,7 @@ export default function PuzzleStep({
     )
 
     const [currentIndex, setCurrentIndex] = useState(0)
-    const [traces, setTraces] = useState<PuzzleTrace[]>([])
+    const [evidence, setEvidence] = useState<PuzzleChallengeEvidence[]>([])
     const [challengeError, setChallengeError] = useState<string | null>(null)
     const [completing, setCompleting] = useState(false)
 
@@ -71,27 +93,41 @@ export default function PuzzleStep({
     const total = ids.length
     const currentId = ids[currentIndex] ?? null
 
-    const handleSuccess = useCallback(() => {
-        setChallengeError(null)
-        const trace: PuzzleTrace = { challengeId: currentId!, completedAt: Date.now() }
-        const nextTraces = [...traces, trace]
-        const nextIndex = currentIndex + 1
+    const handleSuccess = useCallback(
+        (verdict?: PuzzleServerVerdict) => {
+            setChallengeError(null)
+            const item: PuzzleChallengeEvidence = {
+                challengeId: currentId!,
+                completedAt: Date.now(),
+                verdict,
+            }
+            const nextEvidence = [...evidence, item]
+            const nextIndex = currentIndex + 1
 
-        if (nextIndex >= total) {
-            // All challenges done — submit immediately.
-            setCompleting(true)
-            setTraces(nextTraces)
-            verifyStep(AuthMethodType.PUZZLE, {
-                puzzle_traces: nextTraces.map((tr) => ({
-                    challengeId: tr.challengeId,
-                    completedAt: tr.completedAt,
-                })),
-            })
-        } else {
-            setTraces(nextTraces)
-            setCurrentIndex(nextIndex)
-        }
-    }, [currentId, currentIndex, total, traces, verifyStep])
+            if (nextIndex >= total) {
+                // All challenges done — submit the SERVER evidence, not a client
+                // boolean. `puzzle_session_id` is omitted while the bio proxy is
+                // stateless (flagged gap); `server_verdicts` carries the bio
+                // re-score attestations so the handler re-confirms server-side.
+                setCompleting(true)
+                setEvidence(nextEvidence)
+                verifyStep(AuthMethodType.PUZZLE, {
+                    server_verdicts: nextEvidence.map((ev) => ({
+                        challengeId: ev.challengeId,
+                        completedAt: ev.completedAt,
+                        action: ev.verdict?.action,
+                        verified: ev.verdict?.verified ?? false,
+                        durationSeconds: ev.verdict?.durationSeconds,
+                        softPassReason: ev.verdict?.softPassReason,
+                    })),
+                })
+            } else {
+                setEvidence(nextEvidence)
+                setCurrentIndex(nextIndex)
+            }
+        },
+        [currentId, currentIndex, total, evidence, verifyStep],
+    )
 
     const handleError = useCallback((message: string) => {
         setChallengeError(message)
@@ -140,12 +176,15 @@ export default function PuzzleStep({
                 </Typography>
             </Box>
 
-            {/* Active challenge component */}
+            {/* Active challenge component — auth mode fails closed on a missing
+                or non-2xx server re-score (no soft-pass). */}
             {ChallengeComponent && !completing && (
                 <ChallengeComponent
+                    key={currentIndex}
                     onSuccess={handleSuccess}
                     onError={handleError}
                     onClose={handleClose}
+                    serverMode="auth"
                 />
             )}
 
