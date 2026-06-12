@@ -81,6 +81,8 @@ See [docs/ARCHITECTURE.md](./docs/ARCHITECTURE.md) for detailed architecture doc
 
 - **Biometric Surfaces**
     - Biometric puzzles (23 micro-challenges with face/hand/gesture overlays)
+    - Puzzle-as-auth-flow-layer (server-issued single-use anti-replay session, optional face-identity binding; flag-gated `app.auth.puzzle-layer`, default OFF)
+    - Client-side face embedding (browser computes the Facenet512 vector via onnxruntime-web and uploads only the 512-d vector; raw image never leaves the device; flag-gated `VITE_CLIENT_SIDE_EMBEDDING`, default OFF — see `docs/plans/CLIENT_SIDE_ML_PLAN.md` v3.0)
     - Auth methods testing page (all 10 methods exercisable in-dashboard)
     - Verification flows builder, dashboard, and session detail
     - Biometric enrollment and tools pages

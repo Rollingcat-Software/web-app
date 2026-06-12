@@ -171,6 +171,52 @@ feature (verify.fivucsas also falls back to password). `AuthResponse` gained
 `currentStep/totalSteps`; `checkLoginEligibility()` now returns the resolved
 `LoginConfig | null`.
 
+## Client-side face embedding (feature-flagged `VITE_CLIENT_SIDE_EMBEDDING`, default OFF)
+
+The browser computes the **authoritative** Facenet512 face embedding locally and
+uploads **only the 512-float vector** — the raw face image never leaves the device.
+This replaces the legacy "pre-filter only, upload a JPEG, server embeds" path (the
+old D1/D2 lock) when the flag is ON; with the flag OFF the legacy image path is
+unchanged and is the default + fallback. See `docs/plans/CLIENT_SIDE_ML_PLAN.md` v3.0
+(in the `docs` submodule) for the full strategy.
+
+- **Embedding module:** `src/features/biometrics/embedding/embedCapturedFace.ts` —
+  in-browser eye **aligner** (similarity transform to canonical eye coords) →
+  DeepFace-parity preprocessing (aligned crop → aspect-preserving resize → centre
+  black-pad 160×160 → `(1,160,160,3)` float32, **BGR**, **[0,1]**, `normalization=base`,
+  NOT prewhiten) → Facenet512 via onnxruntime-web → L2-normalize. **Do NOT add a
+  BGR→RGB swap** (it collapses cosine self-consistency).
+- **Model delivery:** the FP16 `facenet512-<sha256>.onnx` (~47 MB) is fetched from
+  `app.fivucsas.com/models/` via the same `fetch-models` / `manifest.json` SHA256
+  pattern as YOLO/Silero, then cached download-once (Service Worker CacheFirst +
+  IndexedDB, re-verify-on-read). INT8 is rejected (onnxruntime-web WASM lacks the
+  quant ops); FP16 is the ship format.
+- **Upload:** when the flag is ON the FACE MFA step (`MfaStepRenderer.tsx` /
+  `FaceCaptureStep.tsx`) submits `{embedding[512]}` instead of an image; the server
+  routes it to bio `/verify-embedding` (verify) / `/enroll-embedding` (enroll).
+- **Ordering caveat:** flip the Identity Core `app.auth.client-side-embedding` flag
+  **before** `VITE_CLIENT_SIDE_EMBEDDING` — web-ON + identity-OFF breaks FACE login
+  (no image sent → legacy server path fails). Best fix = drive the web flag from
+  login-config.
+- **Privacy framing (honest):** the raw image is not transmitted; the only biometric
+  data sent is a derived, non-invertible 512-d embedding, over TLS, stored encrypted
+  (Fernet) — data minimization, NOT "biometric data never leaves the device".
+
+## Puzzle as a first-class auth-flow layer (feature-flagged `app.auth.puzzle-layer`, default OFF)
+
+The Biometric Puzzle is composable in the `AuthFlowBuilder` as its own LAYER (allowed
+challenge types via checkboxes + count + difficulty + an `alsoMatchFaceIdentity` toggle),
+not a FACE sub-component. `PuzzleStep.tsx` (`src/features/auth/login-shared/steps/`)
+drives a **server-issued, single-use, anti-replay session**: it CREATEs a session
+(`/auth/mfa/puzzle/session`), runs the SERVER-issued challenges with in-browser MediaPipe
+detection, SUBMITs each challenge's landmark/gesture **traces** (no frames), and on
+completion calls `verifyStep(PUZZLE, { puzzle_session_id })` — it submits ONLY the opaque
+`session_id` (never a client-attested "passed" verdict). When identity-binding is on AND
+`VITE_CLIENT_SIDE_EMBEDDING` is ON, it grabs a best frontal frame from the same live
+session, computes the Facenet512 vector, and submits `{ puzzle_session_id, embedding }`
+(raw image not sent) so liveness AND identity come from one capture. Contract:
+`docs/superpowers/plans/2026-06-12-puzzle-session-convergence.md`.
+
 ## Key Patterns
 
 - **i18n**: ALL strings use `t()` with keys in en.json + tr.json. NEVER hardcode English.
