@@ -46,6 +46,7 @@ jobs:
           VITE_ENABLE_ERROR_REPORTING=false
           VITE_ENABLE_DARK_MODE=true
           VITE_ENABLE_MOCK_API=false
+          VITE_CLIENT_SIDE_EMBEDDING=true
           EOF
 
       - run: npm run build
