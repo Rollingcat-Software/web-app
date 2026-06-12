@@ -20,7 +20,11 @@ are extracted into `src/features/auth/login-shared/`.
 | **Login config** | `fetchLoginConfig` + `LoginConfig` model (shared) | same | already shared — unchanged |
 | **Card / page shell** | full-screen animated gradient **glass card** | in-card hosted **OIDC frame** (tenant branding, "Signing in to …") | **INTENTIONALLY DIFFERENT** (dashboard chrome vs hosted OIDC presentation) |
 | **Completion** | store tokens → `navigate('/')` | mint OIDC code via `/oauth2/authorize/complete` → redirect to tenant `redirect_uri` | **INTENTIONALLY DIFFERENT** (OIDC redirect is hosted-only) |
-| **Identifier-first entry markup** | inline in `LoginPage` | inline in `LoginMfaFlow` (FlowPhase.Identifier) | still per-surface (low-risk follow-up candidate; behaviour already matches) |
+| **Identifier-first entry markup** | inline in `LoginPage` | inline in `LoginMfaFlow` (FlowPhase.Identifier) | **UNIFIED (2026-06-12)** → `login-shared/steps/IdentifierStep.tsx` (props inject the surface chrome) |
+| **Config-unavailable banner** | inline banner + Retry in `LoginPage` | **was missing** (silent fallback) | **UNIFIED (2026-06-12)** → `login-shared/ConfigUnavailableBanner.tsx` on BOTH; hosted gained `configLoadFailed`/retry |
+| **Anti-flash on opening screen** | revealed `pageReady` on a 2s timer (could flash password-first then swap) | skeleton-until-config-settles (`showLayer1Skeleton`/`metaLoading`) | **UNIFIED (2026-06-12)** → dashboard `pageReady` now gates on the fetch settle (safety fallback 2s→10s, matching `fetchLoginConfig`'s own timeout) so it never reveals before the config lands |
+| **PUZZLE step config (Phase-5 binding)** | not threaded (binding inert) | not threaded (binding inert) | **UNIFIED (2026-06-12)** → `selectPuzzleConfig(loginConfig, method)` threaded through `MfaStepRenderer` → `PuzzleStep` on BOTH; `LoginConfig` model now parses per-step `puzzleConfig` |
+| **Identifier-step endpoint** | `/auth/login/begin` (opens an MFA session at the identifier step) | lone-password engine-ON: `/auth/login/preflight` (NO session, NO lockout touch); non-password: `/auth/login/begin` | **STILL DIVERGENT** — owner decision (session/lockout semantics). Recommendation: canonicalize on `/auth/login/preflight` at the identifier step (session created at the first real factor submit). |
 
 ## What shipped here
 

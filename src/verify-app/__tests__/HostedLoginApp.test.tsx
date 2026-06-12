@@ -12,7 +12,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
-import { act, render, screen, waitFor } from '@testing-library/react'
+import { act, render, screen, waitFor, within } from '@testing-library/react'
 
 // Use the real i18n runtime — do NOT mock react-i18next
 import '../../i18n'
@@ -488,6 +488,99 @@ describe('HostedLoginApp — B8 surface behavior', () => {
         // error region has rendered. (The recovery button lives in the
         // post-finalError branch covered elsewhere.)
         expect(screen.getByRole('alert')).toBeInTheDocument()
+    })
+})
+
+// ─── B1 — config-unavailable banner (hosted parity, 2026-06-12) ────
+//
+// When the login-config fetch SETTLES with no usable config (the client meta
+// loaded fine, but /auth/login-config was unreachable / malformed), the hosted
+// surface must show the shared ConfigUnavailableBanner + Retry above the login
+// flow — distinguishing "null because FAILED" from "null because the engine is
+// OFF" (which returns a usable password-first config, not null). Mirrors the
+// dashboard's `configLoadFailed`.
+
+describe('HostedLoginApp — config-unavailable banner (B1)', () => {
+    beforeEach(() => {
+        resetEnv()
+        setLocation('?client_id=c1&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb')
+    })
+
+    /** Client meta succeeds; the login-config GET behaves per `loginConfig`. */
+    function wireGets(loginConfig: 'fail' | 'malformed') {
+        mockHttpGet.mockImplementation((url: string) => {
+            if (url.startsWith('/oauth2/clients/')) {
+                return Promise.resolve({
+                    data: { client_id: 'c1', client_name: 'Acme', tenant_name: 'Acme Inc' },
+                })
+            }
+            if (url === '/auth/login-config') {
+                return loginConfig === 'fail'
+                    ? Promise.reject(new Error('network'))
+                    : // malformed body the normalizer rejects → null
+                      Promise.resolve({ data: { not: 'a-login-config' } })
+            }
+            return Promise.resolve({ data: {} })
+        })
+    }
+
+    it('shows the banner + Retry when login-config is unreachable (network)', async () => {
+        wireGets('fail')
+        render(<HostedLoginApp />)
+
+        const banner = await screen.findByRole('status')
+        expect(banner).toHaveTextContent(/sign-in options/i)
+        expect(screen.getByRole('button', { name: /retry/i })).toBeInTheDocument()
+        // The login flow still renders underneath (resilient fallback).
+        expect(screen.getByTestId('login-mfa-flow-stub')).toBeInTheDocument()
+    })
+
+    it('shows the banner when login-config is malformed (normalizer → null)', async () => {
+        wireGets('malformed')
+        render(<HostedLoginApp />)
+
+        const banner = await screen.findByRole('status')
+        expect(banner).toHaveTextContent(/sign-in options/i)
+    })
+
+    it('Retry re-fetches and clears the banner once login-config loads', async () => {
+        // A mutable flag decides the /auth/login-config outcome: it FAILS until the
+        // test flips it just before tapping Retry, so the retry returns a usable
+        // config. (A call-counter mock is brittle under React StrictMode's
+        // double-invoke; a flag flipped at a known point is deterministic.)
+        let loginConfigOk = false
+        mockHttpGet.mockImplementation((url: string) => {
+            if (url.startsWith('/oauth2/clients/')) {
+                return Promise.resolve({ data: { client_id: 'c1', client_name: 'Acme' } })
+            }
+            if (url === '/auth/login-config') {
+                return loginConfigOk
+                    ? Promise.resolve({
+                          data: {
+                              layer1: {
+                                  identifierRequired: true,
+                                  methods: [{ type: 'PASSWORD' }],
+                              },
+                              totalSteps: 1,
+                          },
+                      })
+                    : Promise.reject(new Error('network'))
+            }
+            return Promise.resolve({ data: {} })
+        })
+
+        render(<HostedLoginApp />)
+        const banner = await screen.findByRole('status')
+        // Now make the next login-config fetch succeed, then tap Retry.
+        loginConfigOk = true
+        const retryBtn = within(banner).getByRole('button', { name: /retry/i })
+        await act(async () => {
+            retryBtn.click()
+        })
+
+        await waitFor(() => {
+            expect(screen.queryByRole('status')).toBeNull()
+        })
     })
 })
 

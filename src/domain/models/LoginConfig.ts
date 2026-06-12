@@ -22,7 +22,7 @@
  * is resilient to field-name / casing deltas while the contract settles.
  */
 
-import { AuthMethodType, isAuthMethodType } from './AuthMethod'
+import { AuthMethodType, isAuthMethodType, type PuzzleConfig } from './AuthMethod'
 
 /** A single method offered at Layer 1. */
 export interface LoginConfigLayer1Method {
@@ -35,12 +35,27 @@ export interface LoginConfigLayer1Method {
     usernameless: boolean
     /** True when the method only works for users who have enrolled it. */
     requiresEnrollment: boolean
+    /**
+     * Tenant-authored PUZZLE layer config (Phase-5 identity binding). Present
+     * only when `type === PUZZLE`. The login surfaces thread this down to
+     * `MfaStepRenderer` → `PuzzleStep` so `alsoMatchFaceIdentity` can engage when
+     * the client-embedding flag is on. Absent for non-PUZZLE methods. The backend
+     * may emit it under `puzzleConfig` or `stepConfig.puzzleConfig`.
+     */
+    puzzleConfig?: PuzzleConfig
 }
 
 /** A later (Layer 2..N) step descriptor — `methods.length > 1` ⇒ CHOICE step. */
 export interface LoginConfigLaterStep {
     order: number
     methods: AuthMethodType[]
+    /**
+     * Tenant-authored PUZZLE layer config (Phase-5 identity binding). Present
+     * only when this step includes the PUZZLE method. Threaded down to
+     * `PuzzleStep` so the `alsoMatchFaceIdentity` binding engages. The backend
+     * may emit it under `puzzleConfig` or `stepConfig.puzzleConfig`.
+     */
+    puzzleConfig?: PuzzleConfig
 }
 
 export interface LoginConfig {
@@ -65,18 +80,36 @@ export interface LoginConfig {
 
 // ─── Raw API shape (tolerant) ──────────────────────────────────────
 
+/** Per-step config envelope (Phase 2.4): the backend may nest method-specific
+ *  config (e.g. PUZZLE's puzzleConfig) under a `stepConfig` object, or inline it
+ *  directly on the method / step. The normalizer accepts both shapes. */
+interface RawStepConfig {
+    puzzleConfig?: RawPuzzleConfig
+}
+
+interface RawPuzzleConfig {
+    allowedChallengeTypes?: string[]
+    count?: number
+    difficulty?: string
+    alsoMatchFaceIdentity?: boolean
+}
+
 interface RawMethod {
     type?: string
     methodType?: string
     usernameless?: boolean
     supportsUsernameless?: boolean
     requiresEnrollment?: boolean
+    puzzleConfig?: RawPuzzleConfig
+    stepConfig?: RawStepConfig
 }
 
 interface RawLaterStep {
     order?: number
     stepOrder?: number
     methods?: RawMethod[]
+    puzzleConfig?: RawPuzzleConfig
+    stepConfig?: RawStepConfig
 }
 
 export interface RawLoginConfig {
@@ -97,6 +130,33 @@ function methodType(raw: RawMethod): AuthMethodType | null {
 }
 
 /**
+ * Coerce a raw PUZZLE config (inline `puzzleConfig` or nested
+ * `stepConfig.puzzleConfig`) into a strict {@link PuzzleConfig}. Returns null
+ * when no usable config is present so a non-PUZZLE method stays undefined.
+ *
+ * `alsoMatchFaceIdentity` DEFAULTS TO TRUE (matching the builder default in
+ * {@link AuthMethod}) so a tenant that omits it still gets identity binding —
+ * the higher-assurance, safer default.
+ */
+function puzzleConfigFrom(
+    inline: RawPuzzleConfig | undefined,
+    step: RawStepConfig | undefined,
+): PuzzleConfig | undefined {
+    const raw = inline ?? step?.puzzleConfig
+    if (!raw) return undefined
+    const difficulty: PuzzleConfig['difficulty'] =
+        raw.difficulty === 'easy' || raw.difficulty === 'hard' ? raw.difficulty : 'medium'
+    return {
+        allowedChallengeTypes: Array.isArray(raw.allowedChallengeTypes)
+            ? raw.allowedChallengeTypes.filter((c): c is string => typeof c === 'string')
+            : [],
+        count: typeof raw.count === 'number' && raw.count >= 1 ? raw.count : 1,
+        difficulty,
+        alsoMatchFaceIdentity: raw.alsoMatchFaceIdentity ?? true,
+    }
+}
+
+/**
  * Coerce a raw backend response into a strict {@link LoginConfig}.
  *
  * Tolerant of camelCase / snake-ish deltas (`type` | `methodType`,
@@ -114,6 +174,9 @@ export function normalizeLoginConfig(raw: RawLoginConfig | null | undefined): Lo
                 type,
                 usernameless: Boolean(m.usernameless ?? m.supportsUsernameless ?? false),
                 requiresEnrollment: Boolean(m.requiresEnrollment ?? false),
+                ...(type === AuthMethodType.PUZZLE
+                    ? { puzzleConfig: puzzleConfigFrom(m.puzzleConfig, m.stepConfig) }
+                    : {}),
             }
         })
         .filter((m): m is LoginConfigLayer1Method => m !== null)
@@ -123,12 +186,26 @@ export function normalizeLoginConfig(raw: RawLoginConfig | null | undefined): Lo
     if (layer1Methods.length === 0) return null
 
     const laterSteps: LoginConfigLaterStep[] = (raw.laterSteps ?? [])
-        .map((s, idx): LoginConfigLaterStep => ({
-            order: s.order ?? s.stepOrder ?? idx + 2,
-            methods: (s.methods ?? [])
+        .map((s, idx): LoginConfigLaterStep => {
+            const methods = (s.methods ?? [])
                 .map(methodType)
-                .filter((m): m is AuthMethodType => m !== null),
-        }))
+                .filter((m): m is AuthMethodType => m !== null)
+            // PUZZLE config can live on the step itself or on the PUZZLE method
+            // entry within the step — prefer the step-level value, fall back to
+            // the per-method one.
+            const puzzleMethod = (s.methods ?? []).find((m) => methodType(m) === AuthMethodType.PUZZLE)
+            const puzzleConfig = methods.includes(AuthMethodType.PUZZLE)
+                ? puzzleConfigFrom(
+                      s.puzzleConfig ?? puzzleMethod?.puzzleConfig,
+                      s.stepConfig ?? puzzleMethod?.stepConfig,
+                  )
+                : undefined
+            return {
+                order: s.order ?? s.stepOrder ?? idx + 2,
+                methods,
+                ...(puzzleConfig ? { puzzleConfig } : {}),
+            }
+        })
         .filter((s) => s.methods.length > 0)
         .sort((a, b) => a.order - b.order)
 
@@ -197,4 +274,30 @@ export function needsIdentifier(config: LoginConfig): boolean {
     // Defensive: if PASSWORD is offered we always need an identifier even if the
     // backend forgot to set the flag.
     return hasPasswordLayer1(config)
+}
+
+/**
+ * Resolve the tenant-authored {@link PuzzleConfig} for a PUZZLE auth step, so a
+ * login surface can thread it to `MfaStepRenderer` → `PuzzleStep` and let the
+ * `alsoMatchFaceIdentity` identity-binding engage (Phase-5). The PUZZLE method
+ * can appear on Layer 1 or on a later step; we search both and return the first
+ * config found. Returns undefined when the config is null, when PUZZLE isn't the
+ * method being rendered, or when the tenant authored no puzzleConfig (then
+ * `PuzzleStep` is liveness-only — its existing default).
+ *
+ * `method` lets the caller scope the lookup to the step actually rendering
+ * (the renderer only consumes the config on a PUZZLE step), but the function is
+ * safe to call unconditionally — it no-ops for non-PUZZLE methods.
+ */
+export function selectPuzzleConfig(
+    config: LoginConfig | null | undefined,
+    method: string | null | undefined,
+): PuzzleConfig | undefined {
+    if (!config || method !== AuthMethodType.PUZZLE) return undefined
+    const layer1 = config.layer1.methods.find((m) => m.type === AuthMethodType.PUZZLE)
+    if (layer1?.puzzleConfig) return layer1.puzzleConfig
+    const later = config.laterSteps.find(
+        (s) => s.methods.includes(AuthMethodType.PUZZLE) && s.puzzleConfig,
+    )
+    return later?.puzzleConfig
 }

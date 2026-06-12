@@ -33,6 +33,7 @@ import { createAppTheme } from '../theme'
 import { DependencyProvider } from '@app/providers'
 import { createVerifyContainer } from './verifyContainer'
 import LoginMfaFlow from './LoginMfaFlow'
+import ConfigUnavailableBanner from '@features/auth/login-shared/ConfigUnavailableBanner'
 import Layer1Shortcuts from '@features/auth/components/Layer1Shortcuts'
 import ApproveLoginPanel, {
     type ApproveLoginResult,
@@ -250,6 +251,14 @@ export default function HostedLoginApp() {
     // Tenant Layer-1 login config (D). null until fetched or on failure — the
     // UI falls back to the legacy email+password+shortcuts surface when null.
     const [loginConfig, setLoginConfig] = useState<LoginConfig | null>(null)
+    // True once the login-config fetch SETTLED with no usable config
+    // (network / unreachable API / malformed). Distinguishes "null because
+    // FAILED" from "null because the config-driven engine is OFF" (which yields a
+    // usable password-first config, not null) — drives the shared
+    // ConfigUnavailableBanner so the legacy fallback below is EXPLAINED rather than
+    // silently shown. Parity with the dashboard's `configLoadFailed` (2026-06-03).
+    const [configLoadFailed, setConfigLoadFailed] = useState(false)
+    const [configRetrying, setConfigRetrying] = useState(false)
     const [paramError, setParamError] = useState<string | null>(null)
     // Distinguish "no params at all" (developer hits the bare URL) from "wrong params"
     // (active integration handed us a bad client_id). The first deserves an
@@ -380,7 +389,14 @@ export default function HostedLoginApp() {
                 // the fallback identifier (login-config.ts maps it to the query param).
                 if (cancelled) return undefined
                 return fetchLoginConfig(httpClient, { clientId: config.clientId }).then((cfg) => {
-                    if (!cancelled) setLoginConfig(cfg)
+                    if (!cancelled) {
+                        setLoginConfig(cfg)
+                        // null here = the fetch FAILED (network/unreachable/
+                        // malformed): the engine-OFF path returns a usable
+                        // password-first config, not null. Surface the shared
+                        // banner so the legacy fallback is explained + retryable.
+                        setConfigLoadFailed(cfg === null)
+                    }
                 })
             })
             .then(() => {
@@ -623,6 +639,24 @@ export default function HostedLoginApp() {
         },
         [onInitialLoginPhase],
     )
+
+    // Re-fetch the login-config when the user taps "Retry" on the
+    // config-unavailable banner (the initial fetch failed — almost always because
+    // api.fivucsas.com was unreachable). On success the banner clears and the
+    // config-driven Layer-1 surface renders; on repeat failure the banner stays.
+    // The legacy email+password fallback remains usable throughout. Parity with
+    // the dashboard's `handleRetryLoginConfig`.
+    const handleRetryLoginConfig = useCallback(async () => {
+        setConfigRetrying(true)
+        try {
+            const httpClient = container.get<IHttpClient>(TYPES.HttpClient)
+            const cfg = await fetchLoginConfig(httpClient, { clientId: config.clientId })
+            setLoginConfig(cfg)
+            setConfigLoadFailed(cfg === null)
+        } finally {
+            setConfigRetrying(false)
+        }
+    }, [container, config.clientId])
 
     const handleQrLoginApproved = useCallback(
         (result: QrLoginResult) => {
@@ -907,6 +941,20 @@ export default function HostedLoginApp() {
                                     <Alert severity="error" sx={{ borderRadius: 2 }}>
                                         {altError}
                                     </Alert>
+                                )}
+
+                                {/* Config-unavailable banner (B1, 2026-06-12): the
+                                    login-config fetch settled with no usable config
+                                    (network / unreachable / malformed). The legacy
+                                    email+password fallback still renders below; this
+                                    explains WHY it looks basic and offers a retry —
+                                    parity with the dashboard. Additive only. */}
+                                {configLoadFailed && (
+                                    <ConfigUnavailableBanner
+                                        onRetry={() => void handleRetryLoginConfig()}
+                                        retrying={configRetrying}
+                                        sx={{ borderRadius: 2 }}
+                                    />
                                 )}
 
                                 <LoginMfaFlow

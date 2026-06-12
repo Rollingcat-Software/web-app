@@ -16,6 +16,7 @@ import { useTranslation } from 'react-i18next'
 import { AuthMethodType, MfaStepStatus, EASE_OUT } from '../constants'
 import MfaStepRenderer from '../login-shared/MfaStepRenderer'
 import { makeRequestWebAuthnChallenge } from '../login-shared/webauthnChallenge'
+import type { PuzzleConfig } from '@domain/models/AuthMethod'
 
 interface TwoFactorDispatcherProps {
     method: string
@@ -30,6 +31,13 @@ interface TwoFactorDispatcherProps {
     /** The already-collected identifier — shown read-only on a PASSWORD MFA step
      *  ("Signing in as <email>"); the password completes the step via /auth/mfa/step. */
     email?: string
+    /**
+     * Tenant-authored PUZZLE layer config for the active step (Phase-5 identity
+     * binding). Sourced from the resolved login-config by the caller and threaded
+     * to `MfaStepRenderer` → `PuzzleStep`. Undefined for non-PUZZLE steps / no
+     * config — parity with verify.fivucsas's `LoginMfaFlow`.
+     */
+    puzzleConfig?: PuzzleConfig
 }
 
 /**
@@ -48,6 +56,7 @@ export default function TwoFactorDispatcher({
     stepCurrent,
     stepTotal,
     email,
+    puzzleConfig,
 }: TwoFactorDispatcherProps) {
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -109,6 +118,10 @@ export default function TwoFactorDispatcher({
             error={error}
             onError={setError}
             presetEmail={email}
+            // Phase-5 identity binding: thread the active PUZZLE step's
+            // tenant-authored config (sourced from the login-config by LoginPage)
+            // so `alsoMatchFaceIdentity` engages. Undefined for non-PUZZLE steps.
+            puzzleConfig={puzzleConfig}
         />
     )
 
