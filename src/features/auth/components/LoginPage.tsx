@@ -53,6 +53,8 @@ import { config as envConfig } from '@config/env'
 import { fetchLoginConfig } from '../login-config'
 import { hasPasswordLayer1, selectPuzzleConfig, type LoginConfig } from '@domain/models/LoginConfig'
 import StepProgress from '../../../verify-app/StepProgress'
+import { usePrefersReducedMotion } from '@hooks/usePrefersReducedMotion'
+import { loginShellBackgroundSx, glassCardBackdropFilter } from './loginBackground'
 
 /**
  * Login form validation schema
@@ -106,7 +108,13 @@ const logoVariants: Variants = {
     },
 }
 
-// Floating shapes for background
+// Decorative background orb. ONE-SHOT fade/scale-in only (no `repeat: Infinity`)
+// and a soft radial fill instead of an animated `backdrop-filter: blur` — the
+// continuous orb animation + per-frame backdrop re-blur was a main-thread compositing
+// cost (worst with hardware-acceleration off) that contributed to the login jank.
+// After the entrance it is fully static, so it adds zero per-frame work — the orbs
+// stay as brand decoration without the cost. See loginBackground.ts for the matching
+// static-gradient fix.
 const FloatingShape = ({ delay, size, left, top }: {
     delay: number
     size: number
@@ -114,17 +122,12 @@ const FloatingShape = ({ delay, size, left, top }: {
     top: string
 }) => (
     <motion.div
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{
-            opacity: [0.1, 0.3, 0.1],
-            scale: [1, 1.2, 1],
-            y: [0, -20, 0],
-        }}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 0.28, scale: 1 }}
         transition={{
-            duration: 6,
+            duration: 1.2,
             delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
+            ease: 'easeOut',
         }}
         style={{
             position: 'absolute',
@@ -133,8 +136,8 @@ const FloatingShape = ({ delay, size, left, top }: {
             width: size,
             height: size,
             borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
+            background:
+                'radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 60%, rgba(255,255,255,0) 100%)',
         }}
     />
 )
@@ -146,6 +149,14 @@ const FloatingShape = ({ delay, size, left, top }: {
 export default function LoginPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
+    // The shell gradient is now STATIC for everyone (see loginBackground.ts) and the
+    // orbs are one-shot — so the page has no continuous background animation, the fix
+    // for the login jank (and parity with the smooth verify.fivucsas shell). On top of
+    // that we still honour `prefers-reduced-motion`: those users get no decorative orbs
+    // and a flat (un-blurred) card. The FACE/PUZZLE capture step renders through
+    // TwoFactorDispatcher (an early return below), which additionally drops the glass
+    // blur while the camera is live.
+    const prefersReducedMotion = usePrefersReducedMotion()
     const { login, loading, error, user, logout, refreshUser } = useAuth()
     const tokenService = useService<ITokenService>(TYPES.TokenService)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
@@ -603,14 +614,7 @@ export default function LoginPage() {
                     justifyContent: 'center',
                     overflowY: 'auto',
                     py: 4,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                    backgroundSize: '400% 400%',
-                    animation: 'gradientShift 15s ease infinite',
-                    '@keyframes gradientShift': {
-                        '0%': { backgroundPosition: '0% 50%' },
-                        '50%': { backgroundPosition: '100% 50%' },
-                        '100%': { backgroundPosition: '0% 50%' },
-                    },
+                    ...loginShellBackgroundSx(),
                 }}
             >
                 <Card
@@ -620,7 +624,7 @@ export default function LoginPage() {
                         mx: 2,
                         borderRadius: '24px',
                         background: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(20px)',
+                        backdropFilter: glassCardBackdropFilter(prefersReducedMotion),
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         color: '#1a1a2e',
                         '& .MuiTypography-root': { color: '#1a1a2e' },
@@ -651,14 +655,7 @@ export default function LoginPage() {
                     justifyContent: 'center',
                     overflowY: 'auto',
                     py: 4,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                    backgroundSize: '400% 400%',
-                    animation: 'gradientShift 15s ease infinite',
-                    '@keyframes gradientShift': {
-                        '0%': { backgroundPosition: '0% 50%' },
-                        '50%': { backgroundPosition: '100% 50%' },
-                        '100%': { backgroundPosition: '0% 50%' },
-                    },
+                    ...loginShellBackgroundSx(),
                 }}
             >
                 <Card
@@ -668,7 +665,7 @@ export default function LoginPage() {
                         mx: 2,
                         borderRadius: '24px',
                         background: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(20px)',
+                        backdropFilter: glassCardBackdropFilter(prefersReducedMotion),
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         color: '#1a1a2e',
                         '& .MuiTypography-root': { color: '#1a1a2e' },
@@ -701,14 +698,7 @@ export default function LoginPage() {
                     justifyContent: 'center',
                     overflowY: 'auto',
                     py: 4,
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                    backgroundSize: '400% 400%',
-                    animation: 'gradientShift 15s ease infinite',
-                    '@keyframes gradientShift': {
-                        '0%': { backgroundPosition: '0% 50%' },
-                        '50%': { backgroundPosition: '100% 50%' },
-                        '100%': { backgroundPosition: '0% 50%' },
-                    },
+                    ...loginShellBackgroundSx(),
                 }}
             >
                 <Card
@@ -718,7 +708,7 @@ export default function LoginPage() {
                         mx: 2,
                         borderRadius: '24px',
                         background: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(20px)',
+                        backdropFilter: glassCardBackdropFilter(prefersReducedMotion),
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         color: '#1a1a2e',
                         '& .MuiTypography-root': { color: '#1a1a2e' },
@@ -864,22 +854,20 @@ export default function LoginPage() {
                 justifyContent: 'center',
                 position: 'relative',
                 overflow: 'hidden',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                backgroundSize: '400% 400%',
-                animation: 'gradientShift 15s ease infinite',
-                '@keyframes gradientShift': {
-                    '0%': { backgroundPosition: '0% 50%' },
-                    '50%': { backgroundPosition: '100% 50%' },
-                    '100%': { backgroundPosition: '0% 50%' },
-                },
+                ...loginShellBackgroundSx(),
             }}
         >
-            {/* Animated background shapes */}
-            <FloatingShape delay={0} size={300} left="10%" top="20%" />
-            <FloatingShape delay={1} size={200} left="70%" top="10%" />
-            <FloatingShape delay={2} size={150} left="80%" top="60%" />
-            <FloatingShape delay={0.5} size={100} left="5%" top="70%" />
-            <FloatingShape delay={1.5} size={250} left="50%" top="80%" />
+            {/* Animated background shapes — skipped entirely for users who prefer
+                reduced motion (their infinite rAF animations are decorative only). */}
+            {!prefersReducedMotion && (
+                <>
+                    <FloatingShape delay={0} size={300} left="10%" top="20%" />
+                    <FloatingShape delay={1} size={200} left="70%" top="10%" />
+                    <FloatingShape delay={2} size={150} left="80%" top="60%" />
+                    <FloatingShape delay={0.5} size={100} left="5%" top="70%" />
+                    <FloatingShape delay={1.5} size={250} left="50%" top="80%" />
+                </>
+            )}
 
             <motion.div
                 initial="hidden"
@@ -890,7 +878,7 @@ export default function LoginPage() {
                 <Card
                     sx={{
                         background: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(20px)',
+                        backdropFilter: glassCardBackdropFilter(prefersReducedMotion),
                         borderRadius: '24px',
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         border: '1px solid rgba(255, 255, 255, 0.3)',

@@ -17,6 +17,8 @@ import { AuthMethodType, MfaStepStatus, EASE_OUT } from '../constants'
 import MfaStepRenderer from '../login-shared/MfaStepRenderer'
 import { makeRequestWebAuthnChallenge } from '../login-shared/webauthnChallenge'
 import type { PuzzleConfig } from '@domain/models/AuthMethod'
+import { usePrefersReducedMotion } from '@hooks/usePrefersReducedMotion'
+import { loginShellBackgroundSx, glassCardBackdropFilter } from './loginBackground'
 
 interface TwoFactorDispatcherProps {
     method: string
@@ -61,6 +63,19 @@ export default function TwoFactorDispatcher({
     const authRepository = useService<IAuthRepository>(TYPES.AuthRepository)
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
     const { t } = useTranslation()
+    const prefersReducedMotion = usePrefersReducedMotion()
+
+    // The shell gradient is now STATIC (see loginBackground.ts), so the general
+    // background no longer composites every frame. One per-frame cost remains during
+    // FACE/PUZZLE: those run a live camera + MediaPipe requestAnimationFrame loop, and
+    // the glass card's `backdrop-filter: blur(20px)` re-blurs over changing content
+    // each frame (worst with browser hardware-acceleration off), stealing budget from
+    // the capture loop. So drop the glass blur while a camera step is active (and for
+    // `prefers-reduced-motion`); the gradient/colours are unchanged, so the screens
+    // look identical apart from the (off-camera) glass blur.
+    const isCameraStep =
+        method === AuthMethodType.FACE || method === AuthMethodType.PUZZLE
+    const quietBackground = prefersReducedMotion || isCameraStep
 
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState<string | undefined>(undefined)
@@ -136,14 +151,7 @@ export default function TwoFactorDispatcher({
                     flexDirection: 'column',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                    backgroundSize: '400% 400%',
-                    animation: 'gradientShift 15s ease infinite',
-                    '@keyframes gradientShift': {
-                        '0%': { backgroundPosition: '0% 50%' },
-                        '50%': { backgroundPosition: '100% 50%' },
-                        '100%': { backgroundPosition: '0% 50%' },
-                    },
+                    ...loginShellBackgroundSx(),
                     p: { xs: 2, sm: 3 },
                 }}
             >
@@ -157,7 +165,7 @@ export default function TwoFactorDispatcher({
                         sx={{
                             borderRadius: '24px',
                             background: 'rgba(255, 255, 255, 0.95)',
-                            backdropFilter: 'blur(20px)',
+                            backdropFilter: glassCardBackdropFilter(quietBackground),
                             boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                             color: '#1a1a2e',
                             '& .MuiTypography-root': { color: '#1a1a2e' },
@@ -212,14 +220,7 @@ export default function TwoFactorDispatcher({
                 flexDirection: 'column',
                 alignItems: 'center',
                 justifyContent: 'center',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                backgroundSize: '400% 400%',
-                animation: 'gradientShift 15s ease infinite',
-                '@keyframes gradientShift': {
-                    '0%': { backgroundPosition: '0% 50%' },
-                    '50%': { backgroundPosition: '100% 50%' },
-                    '100%': { backgroundPosition: '0% 50%' },
-                },
+                ...loginShellBackgroundSx(),
                 p: { xs: 2, sm: 3 },
             }}
         >
@@ -233,7 +234,7 @@ export default function TwoFactorDispatcher({
                     sx={{
                         borderRadius: '24px',
                         background: 'rgba(255, 255, 255, 0.95)',
-                        backdropFilter: 'blur(20px)',
+                        backdropFilter: glassCardBackdropFilter(quietBackground),
                         boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
                         color: '#1a1a2e',
                         '& .MuiTypography-root': { color: '#1a1a2e' },
