@@ -46,6 +46,50 @@ import { useBiometricPuzzleServer } from '../useBiometricPuzzleServer'
 import { faceChallengeToServerAction } from '../puzzleServerAction'
 
 /**
+ * Per-gesture direction-reversal counter for NOD (pitch) and SHAKE_HEAD (yaw).
+ *
+ * bio's canonical metric for nod/shake is `oscillation_count` (≥ 2 to pass) —
+ * the number of direction reversals in the head-pose signal. The engine's
+ * Nod/ShakeHeadDetector gate on the pitch/yaw RANGE, not a reversal count, so
+ * this is computed SEPARATELY here purely to SURFACE the scalar. It is read-only
+ * evidence: it never feeds the engine's pass/fail gate (which is unchanged).
+ *
+ * Counts a reversal when the signed first-difference flips sign, gated by a
+ * minimum per-swing amplitude so per-frame jitter (±2-3°) isn't miscounted.
+ */
+const OSCILLATION_MIN_SWING_DEG = 8
+
+class OscillationCounter {
+    private count = 0
+    private lastExtreme: number | null = null
+    private dir: 1 | -1 | 0 = 0
+
+    /** Feed one angle sample (pitch for nod, yaw for shake). */
+    push(angle: number): void {
+        if (this.lastExtreme === null) {
+            this.lastExtreme = angle
+            return
+        }
+        const delta = angle - this.lastExtreme
+        if (Math.abs(delta) < OSCILLATION_MIN_SWING_DEG) return
+        const newDir: 1 | -1 = delta > 0 ? 1 : -1
+        if (this.dir !== 0 && newDir !== this.dir) this.count += 1
+        this.dir = newDir
+        this.lastExtreme = angle
+    }
+
+    get reversals(): number {
+        return this.count
+    }
+
+    reset(): void {
+        this.count = 0
+        this.lastExtreme = null
+        this.dir = 0
+    }
+}
+
+/**
  * Compute the CANONICAL bio metric scalar for a face challenge from the engine's
  * last per-frame `FaceMetrics` + `HeadPose`. The key in the returned record is
  * exactly bio's `ACTION_METRIC_KEY[action]` (see challenge_metric_scorer.py), so
@@ -53,14 +97,15 @@ import { faceChallengeToServerAction } from '../puzzleServerAction'
  * Returns null when the engine produced no usable scalar for the gesture (the
  * caller then flags a metric gap and fails closed in auth mode).
  *
- * NOTE: nod/shake's canonical key is `oscillation_count`, which the engine does
- * NOT expose (NodDetector/ShakeHeadDetector gate on pitch/yaw RANGE, not a
- * reversal count). They return null here — a flagged vocabulary/metric gap.
+ * nod/shake's canonical key is `oscillation_count` — supplied via
+ * `oscillationCount`, the reversal tally accumulated across the gesture by the
+ * component's `OscillationCounter` (the engine itself exposes only a range gate).
  */
 function canonicalFaceMetric(
     challengeType: ChallengeType,
     metrics: FaceMetrics | null,
     headPose: HeadPose | null,
+    oscillationCount: number,
 ): Record<string, number> | null {
     switch (challengeType) {
         case ChallengeType.BLINK:
@@ -82,11 +127,19 @@ function canonicalFaceMetric(
         case ChallengeType.LOOK_UP:
         case ChallengeType.LOOK_DOWN:
             return headPose ? { pitch: headPose.pitch } : null
-        // NOD / SHAKE_HEAD: no `oscillation_count` scalar from the engine — gap.
+        case ChallengeType.NOD:
+        case ChallengeType.SHAKE_HEAD:
+            // Surfaced from the component's reversal counter (not the engine gate).
+            return { oscillation_count: oscillationCount }
         default:
             return null
     }
 }
+
+/** Exported for unit tests — the reversal counter + canonical metric mapper.
+ *  These are pure helpers, not components; HMR fast-refresh doesn't apply. */
+// eslint-disable-next-line react-refresh/only-export-components
+export { OscillationCounter, canonicalFaceMetric }
 
 // Lazily import DrawingUtils + FaceLandmarker statics from MediaPipe so the
 // puzzle bundle can render the 468-point mesh + named contours over the
@@ -140,6 +193,12 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
      */
     const lastMetricsRef = useRef<FaceMetrics | null>(null)
     const lastHeadPoseRef = useRef<HeadPose | null>(null)
+    /**
+     * Reversal counter for NOD (pitch) / SHAKE_HEAD (yaw), accumulated per frame
+     * so the completion path can surface bio's `oscillation_count` scalar. Read
+     * only — independent of the engine's range-based pass/fail gate.
+     */
+    const oscillationRef = useRef<OscillationCounter>(new OscillationCounter())
 
     // Independent puzzle instance pinned to this challenge type. Sharing the
     // engine's metricsCalculator keeps internal state (eyebrow baseline) in
@@ -328,6 +387,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
 
         // Start a fresh single-challenge session.
         puzzle.start([challengeType], 1)
+        oscillationRef.current.reset()
         startTsRef.current = performance.now()
         completedRef.current = false
         setRunning(true)
@@ -364,6 +424,16 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                     // path can derive the canonical bio metric for the gesture.
                     if (face.metrics) lastMetricsRef.current = face.metrics
                     if (face.headPose) lastHeadPoseRef.current = face.headPose
+                    // Accumulate nod/shake direction reversals (oscillation_count).
+                    // Pitch drives NOD, yaw drives SHAKE_HEAD; harmless no-op
+                    // signal for other gestures (their metric ignores it).
+                    if (face.headPose) {
+                        oscillationRef.current.push(
+                            challengeType === ChallengeType.SHAKE_HEAD
+                                ? face.headPose.yaw
+                                : face.headPose.pitch,
+                        )
+                    }
                     const result = puzzle.checkChallenge(
                         face.detection.landmarks478,
                         face.headPose.yaw,
@@ -413,6 +483,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                             challengeType,
                             lastMetricsRef.current,
                             lastHeadPoseRef.current,
+                            oscillationRef.current.reversals,
                         )
                         const confidence = result.detected ? 0.9 : 0.5
                         setServerVerifying(true)

@@ -302,6 +302,20 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
                     return
                 }
                 const endTs = performance.now()
+                // Canonical bio metric scalar the detector surfaced on the
+                // completing frame (finger_count / reversals / orientation_changes
+                // / tap_dist_scaled / pinch_dist_scaled / covered_then_revealed),
+                // keyed by bio's ACTION_METRIC_KEY. Absent for the free-form
+                // shape-trace (a flagged metric gap — see handChallenges.ts).
+                const canonicalMetric = evalResult.metrics ?? null
+                // Auth mode is metric-REQUIRED: with no canonical scalar to SUBMIT,
+                // bio would reject with METRIC_REQUIRED — fail closed rather than
+                // send an empty/placeholder payload. Training mode is unaffected
+                // (the proxy ignores the key) and keeps its byte-identical flow.
+                if (serverMode === 'auth' && !canonicalMetric) {
+                    onError(t('biometricPuzzle.serverError'))
+                    return
+                }
                 setServerVerifying(true)
                 verifyChallenge(
                     {
@@ -309,7 +323,9 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
                         startTimestampMs: startTsRef.current,
                         endTimestampMs: endTs,
                         confidence: 0.9,
-                        metrics: { progress: evalResult.progress ?? 0 },
+                        // The training proxy ignores the key; the canonical metric
+                        // is what the auth session SUBMIT needs.
+                        metrics: canonicalMetric ?? { progress: evalResult.progress ?? 0 },
                     },
                     t,
                     serverMode,
@@ -321,12 +337,20 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
                                 action: outcome.action,
                                 verified: true,
                                 durationSeconds: outcome.durationSeconds,
+                                metrics: canonicalMetric ?? undefined,
+                                startTimestampMs: startTsRef.current,
+                                endTimestampMs: endTs,
+                                confidence: 0.9,
                             })
                         } else if (outcome.kind === 'soft_pass') {
                             onSuccess({
                                 action: serverAction,
                                 verified: false,
                                 softPassReason: outcome.reason,
+                                metrics: canonicalMetric ?? undefined,
+                                startTimestampMs: startTsRef.current,
+                                endTimestampMs: endTs,
+                                confidence: 0.9,
                             })
                         } else {
                             onError(outcome.message)

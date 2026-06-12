@@ -25,9 +25,17 @@ vi.mock('framer-motion', () => {
     }
 })
 
-// The real registry has 23 entries (14 face + 9 hand). We verify the component
-// renders all of them by checking against the registry's own count.
-import { listBiometricPuzzles } from '@features/biometric-puzzles/biometricPuzzleRegistry'
+// The real registry has 23 entries (14 face + 9 hand). The builder offers only
+// the RENDERABLE ones — those a server action maps back to (`isRenderablePuzzleId`).
+import {
+    listBiometricPuzzles,
+    getBiometricPuzzle,
+} from '@features/biometric-puzzles/biometricPuzzleRegistry'
+import {
+    isRenderablePuzzleId,
+    RENDERABLE_PUZZLE_IDS,
+} from '@features/biometric-puzzles/puzzleServerAction'
+import { BiometricPuzzleId } from '@features/biometric-puzzles/BiometricPuzzleId'
 
 describe('PuzzleLayerConfig', () => {
     const defaultConfig: PuzzleConfig = {
@@ -37,17 +45,33 @@ describe('PuzzleLayerConfig', () => {
         alsoMatchFaceIdentity: true,
     }
 
-    it('renders checkboxes for all 23 challenge types (14 face + 9 hand)', () => {
-        const puzzles = listBiometricPuzzles()
+    it('renders one checkbox per RENDERABLE challenge type (22: 14 face + 8 hand)', () => {
+        const renderable = listBiometricPuzzles().filter((p) =>
+            isRenderablePuzzleId(p.id),
+        )
         render(<PuzzleLayerConfig value={defaultConfig} onChange={vi.fn()} />)
-        // Each puzzle entry should have a checkbox. The test keys on i18n keys
-        // (which the test t() stub renders as the key string itself).
-        expect(puzzles).toHaveLength(23)
-        // The component renders one checkbox per puzzle — verify count via role
+        // 22 renderable puzzles are offered (HAND_TRACE_TEMPLATE excluded).
+        expect(renderable).toHaveLength(22)
         const checkboxes = screen.getAllByRole('checkbox')
-        // All 23 puzzle checkboxes + the identity-binding toggle (rendered as
-        // a Switch, which is also role=checkbox in jsdom).
-        expect(checkboxes.length).toBeGreaterThanOrEqual(23)
+        // 22 puzzle checkboxes + the identity-binding Switch (role=checkbox).
+        expect(checkboxes).toHaveLength(renderable.length + 1)
+    })
+
+    it('OFFERS every renderable challenge type by its i18n title', () => {
+        render(<PuzzleLayerConfig value={defaultConfig} onChange={vi.fn()} />)
+        for (const id of RENDERABLE_PUZZLE_IDS) {
+            const i18nKey = getBiometricPuzzle(id).i18nKey
+            expect(screen.getByText(`${i18nKey}.title`)).toBeTruthy()
+        }
+    })
+
+    it('does NOT offer the unrenderable HAND_TRACE_TEMPLATE (no server action)', () => {
+        // light / hold_position have no BiometricPuzzleId at all, so the only
+        // registry entry the filter must drop is the client-only template trace.
+        expect(isRenderablePuzzleId(BiometricPuzzleId.HAND_TRACE_TEMPLATE)).toBe(false)
+        render(<PuzzleLayerConfig value={defaultConfig} onChange={vi.fn()} />)
+        const dropped = getBiometricPuzzle(BiometricPuzzleId.HAND_TRACE_TEMPLATE).i18nKey
+        expect(screen.queryByText(`${dropped}.title`)).toBeNull()
     })
 
     it('renders the count input', () => {

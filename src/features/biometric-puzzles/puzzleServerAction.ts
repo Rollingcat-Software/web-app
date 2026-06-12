@@ -122,6 +122,30 @@ export function serverActionToPuzzleId(
     return ACTION_TO_PUZZLE_ID[action as PuzzleServerAction] ?? null
 }
 
+/**
+ * The set of ``BiometricPuzzleId``s that a server-issued action can resolve to —
+ * i.e. the puzzles the web can actually RENDER as a challenge. This is the image
+ * of `serverActionToPuzzleId`: every FACE_* (all 14 mapped) + the 8 mapped HAND_*
+ * puzzles. It EXCLUDES:
+ *   - `HAND_TRACE_TEMPLATE` (client-only variant — no forward server-action map);
+ *   - actions with no web component at all (`light`, `hold_position`), which have
+ *     no `BiometricPuzzleId` so they never appear here.
+ *
+ * The flow builder uses this to offer ONLY renderable challenge types, so an
+ * admin cannot configure a flow that issues a challenge the web can't render
+ * (the PUZZLE step already fails closed at runtime; this prevents the misconfig).
+ */
+export const RENDERABLE_PUZZLE_IDS: ReadonlySet<BiometricPuzzleId> = new Set(
+    Object.values(ACTION_TO_PUZZLE_ID).filter(
+        (id): id is BiometricPuzzleId => id != null,
+    ),
+)
+
+/** True if the web has a renderable component reachable for this puzzle id. */
+export function isRenderablePuzzleId(id: BiometricPuzzleId): boolean {
+    return RENDERABLE_PUZZLE_IDS.has(id)
+}
+
 // ---------------------------------------------------------------------------
 // Canonical metric key per server action (CV-3) — must match bio
 // ``app/application/services/challenge_metric_scorer.py`` ``ACTION_METRIC_KEY``.

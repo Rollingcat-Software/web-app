@@ -364,6 +364,15 @@ export const TAP_MAX_TOUCH_FRAMES = 20
 
 export class TapTransitionTracker {
     private touchingFrames = 0
+    /**
+     * Smallest normalised tap distance seen during the CURRENT touch phase, and
+     * the value captured on the LAST completed tap (release edge). Exposed as
+     * bio's canonical `tap_dist_scaled` metric — the closest the fingertips
+     * actually came during the tap (a real touch ≈ 0, well under bio's ≤ 0.08
+     * gate). Side output only; never affects the touch/release gating.
+     */
+    private minTouchDistance = Infinity
+    private _lastTapMinDistance = Infinity
 
     constructor(
         private readonly touchThreshold: number = TAP_TOUCH_THRESHOLD,
@@ -374,6 +383,13 @@ export class TapTransitionTracker {
 
     reset(): void {
         this.touchingFrames = 0
+        this.minTouchDistance = Infinity
+        this._lastTapMinDistance = Infinity
+    }
+
+    /** Minimum scaled distance of the last completed tap (bio `tap_dist_scaled`). */
+    get lastTapMinDistance(): number {
+        return this._lastTapMinDistance
     }
 
     /** True while the fingers are currently touching (touch phase). */
@@ -391,6 +407,8 @@ export class TapTransitionTracker {
             // Touch phase. Cap the counter so a long hold can't satisfy a tap on
             // release — a hold is the PINCH challenge, not a tap.
             this.touchingFrames = Math.min(this.touchingFrames + 1, this.maxTouchFrames + 1)
+            // Track how close the fingertips actually came (side output).
+            if (distance < this.minTouchDistance) this.minTouchDistance = distance
             return false
         }
 
@@ -398,7 +416,9 @@ export class TapTransitionTracker {
             const released =
                 this.touchingFrames >= this.consecutiveFrames &&
                 this.touchingFrames <= this.maxTouchFrames
+            if (released) this._lastTapMinDistance = this.minTouchDistance
             this.touchingFrames = 0
+            this.minTouchDistance = Infinity
             return released
         }
 
@@ -460,6 +480,13 @@ export class WaveDetector {
     private minReversals: number
     private minFreq: number
     private maxFreq: number
+    /**
+     * Reversal count from the LAST `isWaving()` evaluation. This is the same
+     * `nReversals` the wave gate already computes (`findExtrema`) — exposed so
+     * the puzzle can surface it as bio's canonical `reversals` metric. 0 until
+     * the first evaluation. Read-only side output; never gates detection.
+     */
+    private _lastReversals = 0
 
     constructor(
         bufferSize = 40,
@@ -486,8 +513,14 @@ export class WaveDetector {
         return this.isWaving()
     }
 
+    /** Reversal count from the last `isWaving()` call (bio `reversals` metric). */
+    get lastReversals(): number {
+        return this._lastReversals
+    }
+
     isWaving(): boolean {
         const [nReversals, extremaTimes] = this.findExtrema()
+        this._lastReversals = nReversals
         if (nReversals < this.minReversals) return false
 
         // Total displacement gate.
@@ -547,6 +580,7 @@ export class WaveDetector {
 
     reset() {
         this.data = []
+        this._lastReversals = 0
     }
 }
 
@@ -557,14 +591,34 @@ export class WaveDetector {
 export class FlipDetector {
     private states: { palm: boolean; ts: number }[] = []
     private windowMs: number
+    /**
+     * Count of palm↔back orientation transitions observed in the window. Bio's
+     * canonical `orientation_changes` metric (gate ≥ 1). Counted as a side
+     * output — it never changes the `sawPalm && sawBack` completion gate (a
+     * completed flip has seen both faces ⇒ ≥ 1 transition). 0 until the first
+     * orientation change.
+     */
+    private _orientationChanges = 0
+    /** Last observed orientation (true=palm) for transition counting. */
+    private _lastPalm: boolean | null = null
 
     constructor(windowMs = 3000) {
         this.windowMs = windowMs
     }
 
+    /** Palm↔back transition count from this session (bio `orientation_changes`). */
+    get orientationChanges(): number {
+        return this._orientationChanges
+    }
+
     push(frame: HandFrame): boolean {
         const palm = palmFacingCamera(frame)
         const ts = frame.timestamp
+        // Count a real orientation transition (side output; gating unchanged).
+        if (this._lastPalm !== null && this._lastPalm !== palm) {
+            this._orientationChanges += 1
+        }
+        this._lastPalm = palm
         this.states.push({ palm, ts })
         while (this.states.length && ts - this.states[0].ts > this.windowMs) {
             this.states.shift()
@@ -580,6 +634,8 @@ export class FlipDetector {
 
     reset() {
         this.states = []
+        this._orientationChanges = 0
+        this._lastPalm = null
     }
 }
 
@@ -606,6 +662,11 @@ export class TapDetector {
     constructor(windowMs = 4000, requiredTaps = 1) {
         this.windowMs = windowMs
         this.requiredTaps = requiredTaps
+    }
+
+    /** Scaled distance of the closest tap so far (bio `tap_dist_scaled`). */
+    get tapDistScaled(): number {
+        return this.tracker.lastTapMinDistance
     }
 
     push(frame: HandFrame): boolean {
@@ -1024,6 +1085,19 @@ export interface HandPuzzleEvalResult {
     completed: boolean
     /** Optional progress 0..100 for hold-style challenges. */
     progress?: number
+    /**
+     * CANONICAL bio metric scalar for this puzzle's action, keyed EXACTLY by
+     * bio's `ACTION_METRIC_KEY` (challenge_metric_scorer.py). Populated ONLY on
+     * the completing frame (`completed: true`), carrying the value the detector
+     * already computed during gating — so the server-authoritative PUZZLE step
+     * can SUBMIT it on bio's metric-REQUIRED path. ADDITIVE: this never affects
+     * `detected`/`completed`/`progress`; the training surface ignores it.
+     *
+     * Absent when the detector cannot produce the canonical scalar for its
+     * action (a flagged metric gap — e.g. the free-form shape-trace, which has
+     * no template to DTW against). The caller fails closed in that case.
+     */
+    metrics?: Record<string, number | boolean>
 }
 
 /**
@@ -1092,7 +1166,16 @@ export function evaluateHandPuzzle(
     const { frame, state } = input
     const now = frame?.timestamp ?? performance.now()
 
-    function holdResult(detected: boolean): HandPuzzleEvalResult {
+    /**
+     * Hold-style result. `metricFor` (optional) returns the canonical bio metric
+     * scalar; it is attached ONLY on the completing frame. The metric is a
+     * read-out of the value the gate already used — surfacing it never changes
+     * the hold timing or completion.
+     */
+    function holdResult(
+        detected: boolean,
+        metricFor?: () => Record<string, number | boolean>,
+    ): HandPuzzleEvalResult {
         if (!detected) {
             hold.detectedSince = null
             return { detected: false, completed: false, progress: 0 }
@@ -1100,10 +1183,12 @@ export function evaluateHandPuzzle(
         if (hold.detectedSince == null) hold.detectedSince = now
         const heldMs = now - hold.detectedSince
         const progress = Math.min(100, (heldMs / HAND_HOLD_MS) * 100)
+        const completed = heldMs >= HAND_HOLD_MS
         return {
             detected: true,
-            completed: heldMs >= HAND_HOLD_MS,
+            completed,
             progress,
+            ...(completed && metricFor ? { metrics: metricFor() } : {}),
         }
     }
 
@@ -1130,40 +1215,81 @@ export function evaluateHandPuzzle(
             } else {
                 count = -1
             }
-            return holdResult(count === target)
+            // Canonical metric: `finger_count` = the observed open-finger count
+            // (== target on completion, which bio's gate requires).
+            return holdResult(count === target, () => ({ finger_count: count }))
         }
         case BiometricPuzzleId.HAND_PINCH: {
             if (!frame) return holdResult(false)
-            return holdResult(isPinching(frame))
+            // Canonical metric: `pinch_dist_scaled` = thumb-tip↔index-tip distance
+            // normalised by hand scale (exactly bio's definition).
+            const f = frame
+            return holdResult(isPinching(f), () => ({
+                pinch_dist_scaled: thumbIndexDistance(f),
+            }))
         }
         case BiometricPuzzleId.HAND_WAVE: {
             if (!frame || !state.wave) return { detected: false, completed: false }
             const ok = state.wave.push(frame)
-            return { detected: ok, completed: ok }
+            // Canonical metric: `reversals` = the wave gate's own reversal count.
+            return {
+                detected: ok,
+                completed: ok,
+                ...(ok ? { metrics: { reversals: state.wave.lastReversals } } : {}),
+            }
         }
         case BiometricPuzzleId.HAND_FLIP: {
             if (!frame || !state.flip) return { detected: false, completed: false }
             const ok = state.flip.push(frame)
-            return { detected: ok, completed: ok }
+            // Canonical metric: `orientation_changes` = palm↔back transition count.
+            return {
+                detected: ok,
+                completed: ok,
+                ...(ok
+                    ? { metrics: { orientation_changes: state.flip.orientationChanges } }
+                    : {}),
+            }
         }
         case BiometricPuzzleId.HAND_FINGER_TAP: {
             if (!frame || !state.tap) return { detected: false, completed: false }
             const ok = state.tap.push(frame)
-            return { detected: ok, completed: ok }
+            // Canonical metric: `tap_dist_scaled` = closest the fingertips came
+            // during the tap (a real touch ≈ 0, under bio's ≤ 0.08 gate).
+            return {
+                detected: ok,
+                completed: ok,
+                ...(ok ? { metrics: { tap_dist_scaled: state.tap.tapDistScaled } } : {}),
+            }
         }
         case BiometricPuzzleId.HAND_PEEK_A_BOO: {
             if (!state.peek) return { detected: false, completed: false }
             const ok = state.peek.push(frame)
-            return { detected: ok, completed: ok }
+            // Canonical metric: `covered_then_revealed` = the boolean the gate
+            // resolves on (true only after a cover-then-reveal sequence).
+            return {
+                detected: ok,
+                completed: ok,
+                ...(ok ? { metrics: { covered_then_revealed: true } } : {}),
+            }
         }
         case BiometricPuzzleId.HAND_SHAPE_TRACE: {
             // Free-form: any closed loop with enough arc length.
+            //
+            // METRIC GAP: bio's `shape_trace` canonical metric is `dtw_cost`
+            // (≤ 0.25) against the SPECIFIC server-issued template. The free-form
+            // `ShapeTraceDetector` gates on arc length + closure only — it never
+            // DTW-matches a template and so computes no `dtw_cost`. Surfacing one
+            // would require switching this puzzle to template-DTW matching (the
+            // `TemplateTraceDetector` does this, but for HAND_TRACE_TEMPLATE) AND
+            // consuming the session's `template_key` param. No honest scalar is
+            // available here, so we surface NONE — the auth step fails closed.
             if (!frame || !state.shape) return { detected: false, completed: false }
             const ok = state.shape.push(frame)
             return { detected: ok, completed: ok }
         }
         case BiometricPuzzleId.HAND_TRACE_TEMPLATE: {
-            // Specific target shape matched via DTW.
+            // Specific target shape matched via DTW. Not reachable from a server
+            // action (client-only variant), so no canonical metric is surfaced.
             if (!frame || !state.templateTrace) return { detected: false, completed: false }
             const ok = state.templateTrace.push(frame)
             return { detected: ok, completed: ok }

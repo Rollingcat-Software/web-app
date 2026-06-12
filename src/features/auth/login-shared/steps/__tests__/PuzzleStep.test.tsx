@@ -66,10 +66,19 @@ const MockChallengeComponent = ({ onSuccess, serverMode }: BiometricPuzzleProps)
     return <div data-testid="mock-challenge">mock-challenge</div>
 }
 
-// FACE_BLINK / FACE_SMILE resolve to a renderable component; anything else does not.
+// FACE/HAND ids that resolve to a renderable component; anything else does not.
+// Includes the hand + nod/shake ids so the SP-B metric-surfacing flow can be
+// driven (finger_count → HAND_FINGER_COUNT, nod → FACE_NOD, etc.).
 vi.mock('@features/biometric-puzzles/biometricPuzzleRegistry', () => ({
     getBiometricPuzzle: (id: string) => {
-        const validIds = new Set<string>(['FACE_BLINK', 'FACE_SMILE'])
+        const validIds = new Set<string>([
+            'FACE_BLINK',
+            'FACE_SMILE',
+            'FACE_NOD',
+            'FACE_SHAKE_HEAD',
+            'HAND_FINGER_COUNT',
+            'HAND_PINCH',
+        ])
         if (validIds.has(id)) {
             return {
                 id,
@@ -373,6 +382,120 @@ describe('PuzzleStep — server-issued session', () => {
         expect(mockSubmitChallenge).not.toHaveBeenCalled()
         expect(verifyStep).not.toHaveBeenCalled()
         expect(screen.getByText('mfa.puzzle.challengeFailed')).toBeInTheDocument()
+    })
+
+    it('SUBMITs the canonical HAND metric (finger_count) for a hand action', async () => {
+        mockCreateSession.mockResolvedValueOnce({
+            session_id: 'psess-hand',
+            challenges: [{ action: 'finger_count', params: { target: 3 } }],
+        })
+        mockSubmitChallenge.mockResolvedValueOnce({
+            verified: true,
+            action: 'finger_count',
+            reason_code: null,
+        })
+        const verifyStep = vi.fn()
+        render(
+            <PuzzleStep
+                mfaSessionToken="sess-abc"
+                verifyStep={verifyStep}
+                loading={false}
+            />,
+        )
+        await flushCreate()
+
+        // The hand component surfaces the canonical scalar under bio's key.
+        await act(async () => {
+            capturedOnSuccess?.({
+                action: 'finger_count',
+                verified: true,
+                metrics: { finger_count: 3 },
+                startTimestampMs: 10,
+                endTimestampMs: 20,
+                confidence: 0.9,
+            })
+        })
+
+        expect(mockSubmitChallenge).toHaveBeenCalledOnce()
+        const submit = mockSubmitChallenge.mock.calls[0][2]
+        expect(submit.action).toBe('finger_count')
+        // Canonical key for finger_count is `finger_count` — and ONLY that key.
+        expect(submit.metrics).toEqual({ finger_count: 3 })
+        expect(verifyStep).toHaveBeenCalledOnce()
+        expect(verifyStep.mock.calls[0][1]).toEqual({
+            puzzle_session_id: 'psess-hand',
+        })
+    })
+
+    it('SUBMITs the canonical NOD metric (oscillation_count)', async () => {
+        mockCreateSession.mockResolvedValueOnce({
+            session_id: 'psess-nod',
+            challenges: [{ action: 'nod', params: null }],
+        })
+        mockSubmitChallenge.mockResolvedValueOnce({
+            verified: true,
+            action: 'nod',
+            reason_code: null,
+        })
+        render(
+            <PuzzleStep
+                mfaSessionToken="sess-abc"
+                verifyStep={vi.fn()}
+                loading={false}
+            />,
+        )
+        await flushCreate()
+
+        await act(async () => {
+            capturedOnSuccess?.({
+                action: 'nod',
+                verified: true,
+                metrics: { oscillation_count: 3 },
+                startTimestampMs: 100,
+                endTimestampMs: 900,
+                confidence: 0.9,
+            })
+        })
+
+        expect(mockSubmitChallenge).toHaveBeenCalledOnce()
+        const submit = mockSubmitChallenge.mock.calls[0][2]
+        expect(submit.action).toBe('nod')
+        expect(submit.metrics).toEqual({ oscillation_count: 3 })
+    })
+
+    it('SUBMITs the canonical SHAKE_HEAD metric (oscillation_count)', async () => {
+        mockCreateSession.mockResolvedValueOnce({
+            session_id: 'psess-shake',
+            challenges: [{ action: 'shake_head', params: null }],
+        })
+        mockSubmitChallenge.mockResolvedValueOnce({
+            verified: true,
+            action: 'shake_head',
+            reason_code: null,
+        })
+        render(
+            <PuzzleStep
+                mfaSessionToken="sess-abc"
+                verifyStep={vi.fn()}
+                loading={false}
+            />,
+        )
+        await flushCreate()
+
+        await act(async () => {
+            capturedOnSuccess?.({
+                action: 'shake_head',
+                verified: true,
+                metrics: { oscillation_count: 4 },
+                startTimestampMs: 100,
+                endTimestampMs: 900,
+                confidence: 0.9,
+            })
+        })
+
+        const submit = mockSubmitChallenge.mock.calls[0][2]
+        expect(submit.action).toBe('shake_head')
+        expect(submit.metrics).toEqual({ oscillation_count: 4 })
     })
 
     it('shows an unsupported-challenge error when an issued action has no component', async () => {

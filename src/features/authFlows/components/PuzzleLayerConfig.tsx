@@ -21,16 +21,28 @@ import {
     listBiometricPuzzlesByModality,
     listBiometricPuzzles,
 } from '@features/biometric-puzzles/biometricPuzzleRegistry'
+import { isRenderablePuzzleId } from '@features/biometric-puzzles/puzzleServerAction'
 
 interface PuzzleLayerConfigProps {
     value: PuzzleConfig
     onChange: (updated: PuzzleConfig) => void
 }
 
-/** All 23 challenge types, face first then hand, from the registry. */
-const ALL_PUZZLES = listBiometricPuzzles()
-const FACE_PUZZLES = listBiometricPuzzlesByModality('face')
-const HAND_PUZZLES = listBiometricPuzzlesByModality('hand')
+/**
+ * Only RENDERABLE challenge types are offered in the builder — those a
+ * server-issued action can map back to a web component (`serverActionToPuzzleId`).
+ * This drops `HAND_TRACE_TEMPLATE` (client-only, no server action) and never
+ * offers the component-less `light` / `hold_position` actions, so an admin can't
+ * configure a flow that issues a challenge the web cannot render. (The PUZZLE
+ * step also fails closed at runtime; this prevents the misconfig up front.)
+ */
+const ALL_PUZZLES = listBiometricPuzzles().filter((p) => isRenderablePuzzleId(p.id))
+const FACE_PUZZLES = listBiometricPuzzlesByModality('face').filter((p) =>
+    isRenderablePuzzleId(p.id),
+)
+const HAND_PUZZLES = listBiometricPuzzlesByModality('hand').filter((p) =>
+    isRenderablePuzzleId(p.id),
+)
 
 export function PuzzleLayerConfig({ value, onChange }: PuzzleLayerConfigProps) {
     const { t } = useTranslation()
