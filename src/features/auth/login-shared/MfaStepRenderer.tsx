@@ -40,8 +40,10 @@ import NfcStep from '../components/steps/NfcStep'
 import EmailOtpMfaStep from '../components/steps/EmailOtpMfaStep'
 import GestureLivenessStep from '../components/steps/GestureLivenessStep'
 import PasswordStep from '../components/steps/PasswordStep'
+import PuzzleStep from './steps/PuzzleStep'
 import { isClientSideEmbeddingEnabled } from '@features/biometrics/embedding/clientEmbeddingFlag'
 import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedFace'
+import type { PuzzleConfig } from '@domain/models/AuthMethod'
 
 /**
  * Decode a `data:...;base64,...` URL into an ArrayBuffer.
@@ -84,6 +86,16 @@ export interface MfaStepRendererProps {
     /** Read-only identifier shown on a PASSWORD MFA step ("Signing in as <email>"). */
     presetEmail?: string
     /** Translate a step-local error (VAD no-speech) — defaults to i18n `t`. */
+    /**
+     * PUZZLE step configuration (present only when method === PUZZLE).
+     *
+     * CV-3 (2026-06-12): the PUZZLE step is now SERVER-DRIVEN — bio randomly
+     * issues the challenges from the server-side flow config, so this is no
+     * longer consumed at render time. Kept on the props for caller compatibility
+     * (both surfaces still pass it) and as the tenant-authored source the backend
+     * reads. Do NOT drive the client challenge list from it.
+     */
+    puzzleConfig?: PuzzleConfig
 }
 
 /**
@@ -280,6 +292,20 @@ export default function MfaStepRenderer({
             return (
                 <GestureLivenessStep
                     onSubmit={(data) => verifyStep(AuthMethodType.GESTURE_LIVENESS, data)}
+                    loading={loading}
+                    error={error}
+                />
+            )
+
+        case AuthMethodType.PUZZLE:
+            // CV-3: PuzzleStep drives the SERVER-ISSUED puzzle session. It needs
+            // the in-progress MFA session token to authorize the CREATE/SUBMIT
+            // proxy calls; the challenges come from the server (flow config), not
+            // the client `puzzleConfig` (which is now unused by the step).
+            return (
+                <PuzzleStep
+                    mfaSessionToken={mfaSessionToken}
+                    verifyStep={verifyStep}
                     loading={loading}
                     error={error}
                 />

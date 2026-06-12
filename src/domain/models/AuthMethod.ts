@@ -25,6 +25,17 @@ export enum AuthMethodType {
      */
     PASSKEY = 'PASSKEY',
     APPROVE_LOGIN = 'APPROVE_LOGIN',
+    /**
+     * PUZZLE: a live challenge-response liveness step composed of 14 face +
+     * 9 hand micro-challenges (BiometricPuzzleId). Tenants configure which
+     * challenge types are allowed, how many to draw, the difficulty, and
+     * whether the same step also verifies face identity.
+     *
+     * Runtime visibility is gated by the backend login-config / auth-methods
+     * response (isActive flag) — PUZZLE only appears in the flow builder when
+     * the backend returns it as an active method for the tenant.
+     */
+    PUZZLE = 'PUZZLE',
 }
 
 /**
@@ -116,6 +127,9 @@ const LOGIN_METHOD_TYPES: ReadonlySet<AuthMethodType> = new Set([
     AuthMethodType.NFC_DOCUMENT,
     AuthMethodType.PASSKEY,
     AuthMethodType.APPROVE_LOGIN,
+    // PUZZLE is a selectable login method (challenge-response liveness step).
+    // GESTURE_LIVENESS remains excluded (FACE anti-spoofing sub-component).
+    AuthMethodType.PUZZLE,
 ])
 
 /**
@@ -130,6 +144,25 @@ export function isLoginMethodType(type: AuthMethodType): boolean {
 
 export function isAuthMethodType(value: string): value is AuthMethodType {
     return Object.values(AuthMethodType).includes(value as AuthMethodType)
+}
+
+/**
+ * Configuration for a PUZZLE authentication layer.
+ * Persisted on {@link AuthFlowStep.puzzleConfig} when methodType is PUZZLE.
+ */
+export interface PuzzleConfig {
+    /** BiometricPuzzleId string values allowed in this flow step. */
+    allowedChallengeTypes: string[]
+    /** Number of challenges to draw per session (≥1). */
+    count: number
+    /** Difficulty bracket for challenge selection. */
+    difficulty: 'easy' | 'medium' | 'hard'
+    /**
+     * When true (default), passing the puzzle also verifies that the subject
+     * matches the enrolled face embedding. When false, the step proves liveness
+     * only — lower assurance, no identity binding.
+     */
+    alsoMatchFaceIdentity: boolean
 }
 
 /**
@@ -158,6 +191,18 @@ export interface AuthFlowStep {
      * {@link AuthMethod.supportsUsernameless} is true.
      */
     usernameless?: boolean
+    /**
+     * PUZZLE layer configuration. Present only when methodType includes PUZZLE.
+     * Specifies which challenge types are allowed, how many to draw, the
+     * difficulty level, and whether face-identity matching is also required.
+     */
+    puzzleConfig?: PuzzleConfig
+    /**
+     * FACE layer option: when true, the FACE verification step also requires the
+     * user to pass an active puzzle liveness check (a PUZZLE sub-step). When
+     * false or absent, the FACE step uses passive liveness only.
+     */
+    requireActivePuzzleLiveness?: boolean
 }
 
 /**
@@ -399,24 +444,43 @@ export function mapAuthMethodResponseToModel(response: AuthMethodApiResponse): A
         return null
     }
 
+    // Some valid login methods are deliberately NOT in the static
+    // DEFAULT_AUTH_METHODS_BASE catalog because they are BACKEND-GATED — they
+    // must only surface when the backend actually returns them (e.g. PUZZLE,
+    // which is feature-flagged per tenant). For those we have no static fallback
+    // entry, so build the model straight from the response with neutral defaults
+    // rather than dropping it. (Dropping it was the PASSKEY/APPROVE_LOGIN bug
+    // class: a backend-returned method silently vanished before reaching the UI.)
     const fallback = DEFAULT_METHOD_BY_TYPE.get(response.type)
-    if (!fallback) {
-        return null
-    }
+    const DEFAULT_PLATFORMS: Platform[] = ['web', 'mobile', 'desktop']
 
     return {
         id: response.type,
         type: response.type,
-        name: response.name?.trim() || fallback.name,
-        description: response.description?.trim() || fallback.description,
-        icon: fallback.icon,
-        platforms: normalizePlatforms(response.platforms, fallback.platforms),
-        isActive: typeof response.isActive === 'boolean' ? response.isActive : fallback.isActive,
-        category: normalizeCategory(response.category, fallback.category),
+        name: response.name?.trim() || fallback?.name || humanizeAuthMethodType(response.type),
+        description: response.description?.trim() || fallback?.description || '',
+        icon: fallback?.icon ?? 'Lock',
+        platforms: normalizePlatforms(response.platforms, fallback?.platforms ?? DEFAULT_PLATFORMS),
+        isActive: typeof response.isActive === 'boolean' ? response.isActive : (fallback?.isActive ?? true),
+        category: normalizeCategory(response.category, fallback?.category ?? 'STANDARD'),
         supportsUsernameless: typeof response.supportsUsernameless === 'boolean'
             ? response.supportsUsernameless
             : isUsernamelessCapable(response.type),
     }
+}
+
+/**
+ * Humanized label for a method type when no static catalog entry exists
+ * (a backend-gated method like PUZZLE). Turns `PUZZLE` → `Puzzle`,
+ * `APPROVE_LOGIN` → `Approve Login`. Mirrors the builder's humanizeMethodType
+ * so a backend-only method never renders a blank name.
+ */
+function humanizeAuthMethodType(type: AuthMethodType): string {
+    return String(type)
+        .toLowerCase()
+        .split('_')
+        .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+        .join(' ')
 }
 
 /**

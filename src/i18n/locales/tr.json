@@ -950,7 +950,9 @@
     "removeLayer": "Katmanı kaldır",
     "requiredHelp": "Zorunlu: kullanıcılar giriş için bu katmanı tamamlamalıdır. Kapatınca katman isteğe bağlı olur — yöntemlerinden hiçbirine kayıtlı olmayan kullanıcılar için atlanır.",
     "saveDisabledNoLayers": "Kaydetmeden önce seçili bir yöntemi olan en az bir katman ekleyin.",
-    "saveDisabledEmptyLayer": "Kaydetmeden önce her katmanın en az bir seçili yöntemi olmalıdır."
+    "saveDisabledEmptyLayer": "Kaydetmeden önce her katmanın en az bir seçili yöntemi olmalıdır.",
+    "requireActivePuzzleLiveness": "Aktif bulmaca canlılığı zorunlu kıl",
+    "requireActivePuzzleLivenessTooltip": "Pasif yüz tanımanın yanı sıra kullanıcının bu adımı tamamlaması için canlı bir meydan okuma-yanıt bulmacasını geçmesi gerekir."
   },
   "login": {
     "identifierFirstSubtitle": "Devam etmek için e-postanızı girin. Gerisinde size yol göstereceğiz.",
@@ -1764,6 +1766,18 @@
         "extended": "Hız limiti etkin. Lütfen birkaç dakika sonra tekrar deneyin."
       }
     },
+    "puzzle": {
+      "title": "Canlılık Bulmacası",
+      "subtitle": "Kimliğinizi doğrulamak için zorlukları tamamlayın",
+      "challengeProgress": "{{current}}. zorluk / {{total}}",
+      "retry": "Tekrar Dene",
+      "noChallenges": "Yapılandırılmış zorluk yok",
+      "completing": "Tamamlanıyor…",
+      "preparing": "Zorluklarınız hazırlanıyor…",
+      "sessionError": "Canlılık bulmacası başlatılamadı. Lütfen tekrar deneyin.",
+      "challengeFailed": "Zorluk doğrulanamadı. Lütfen tekrar deneyin.",
+      "unsupportedChallenge": "Bu zorluk bu cihazda desteklenmiyor. Lütfen başka bir giriş yöntemi deneyin."
+    },
     "errors": {
       "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
       "faceDetectionFailed": "Yüz algılama başarısız. Lütfen iyi ışıklı bir ortamda tekrar deneyin.",
@@ -2302,6 +2316,18 @@
         "description": "Küçük bir aritmetik sorunun cevabını (örneğin 2+3) parmak kaldırarak gösterin.",
         "hint": "İşlemi zihninizde çözün, ardından sonucu kadar parmağınızı kaldırın — avuç içiniz kameraya dönük olsun."
       }
+    },
+    "builder": {
+      "layerLabel": "Bulmaca Canlılık Katmanı",
+      "challengeTypesLabel": "İzin Verilen Meydan Okuma Türleri",
+      "countLabel": "Oturum başına meydan okuma sayısı",
+      "difficultyLabel": "Zorluk",
+      "difficultyEasy": "Kolay",
+      "difficultyMedium": "Orta",
+      "difficultyHard": "Zor",
+      "identityBinding": "Yüz kimliğini de doğrula",
+      "identityBindingHint": "Bulmaca adımı, kullanıcının kayıtlı yüz gömüsüyle eşleştiğini de onaylayacaktır.",
+      "lowerAssuranceWarning": "Düşük güvence: yalnızca canlılık — bu adımda yüz kimliği doğrulanmaz."
     }
   },
   "face_demo": {

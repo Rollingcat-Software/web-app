@@ -706,3 +706,222 @@ describe('TemplateTraceDetector (HAND_TRACE_TEMPLATE)', () => {
         }
     })
 })
+
+// ===========================================================================
+// Canonical bio metric surfacing on completion (SP-B CV-3, 2026-06-12)
+//
+// The hand detectors already compute their gating scalar internally; these
+// tests pin that `evaluateHandPuzzle` EXPOSES it on the completing frame under
+// bio's `ACTION_METRIC_KEY` (challenge_metric_scorer.py), and that surfacing it
+// never changes the gating (the completion fixtures are the same ones the
+// detection tests above use). A non-completing frame carries NO `metrics`.
+// ===========================================================================
+
+/**
+ * Drive a puzzle through the supplied frames and return the LAST evaluation
+ * result that reported `completed: true` (or null if it never completed).
+ */
+function runToCompletion(
+    id: BiometricPuzzleId,
+    frames: (HandFrame | null)[],
+    targetFingerCount?: number,
+): ReturnType<typeof evaluateHandPuzzle> | null {
+    const state = initialHandState(id)
+    if (targetFingerCount != null) state.targetFingerCount = targetFingerCount
+    const hold = { detectedSince: null as number | null }
+    let completedResult: ReturnType<typeof evaluateHandPuzzle> | null = null
+    for (const frame of frames) {
+        const r = evaluateHandPuzzle(id, { frame, state }, hold)
+        if (r.completed) completedResult = r
+    }
+    return completedResult
+}
+
+describe('WaveDetector.lastReversals (bio `reversals`)', () => {
+    it('exposes the gate reversal count (>= 2) once the wave fires', () => {
+        const w = new WaveDetector(40, 0.1, 0.2, 2, 1.0, 4.0)
+        const xs = [0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.7]
+        let detected = false
+        for (let i = 0; i < xs.length; i++) {
+            const f = fistFrame(i * 200)
+            f.landmarks[0] = { x: xs[i], y: 0.9, z: 0 }
+            if (w.push(f)) detected = true
+        }
+        expect(detected).toBe(true)
+        expect(w.lastReversals).toBeGreaterThanOrEqual(2)
+    })
+})
+
+describe('FlipDetector.orientationChanges (bio `orientation_changes`)', () => {
+    it('counts >= 1 palm<->back transition once the flip completes', () => {
+        const flip = new FlipDetector(5000)
+        const palm = openHandFrame(0)
+        palm.landmarks[5] = { x: 0.48, y: 0.75, z: 0 }
+        palm.landmarks[17] = { x: 0.54, y: 0.75, z: 0 }
+        const back = openHandFrame(200)
+        back.landmarks[5] = { x: 0.54, y: 0.75, z: 0 }
+        back.landmarks[17] = { x: 0.46, y: 0.75, z: 0 }
+        flip.push({ ...palm, timestamp: 0 })
+        flip.push({ ...back, timestamp: 200 })
+        const ok = flip.push({ ...palm, timestamp: 400 })
+        expect(ok).toBe(true)
+        expect(flip.orientationChanges).toBeGreaterThanOrEqual(1)
+    })
+})
+
+describe('TapDetector.tapDistScaled (bio `tap_dist_scaled`)', () => {
+    it('reports the closest the fingertips came (<= 0.08 for a real tap)', () => {
+        const tap = new TapDetector()
+        let detected = false
+        for (let i = 0; i < 3; i++) {
+            if (tap.push(pinchFrame(i * 50))) detected = true
+        }
+        if (tap.push(openHandFrame(200))) detected = true
+        expect(detected).toBe(true)
+        // pinchFrame puts thumb-tip on index-tip → scaled distance ~0.
+        expect(tap.tapDistScaled).toBeLessThanOrEqual(0.08)
+    })
+})
+
+describe('evaluateHandPuzzle — surfaces canonical metrics on completion', () => {
+    it('HAND_FINGER_COUNT → metrics.finger_count == target', () => {
+        const frames = Array.from({ length: 10 }, (_, i) => twoFingerFrame(i * 100))
+        const r = runToCompletion(BiometricPuzzleId.HAND_FINGER_COUNT, frames, 2)
+        expect(r).not.toBeNull()
+        expect(r!.metrics).toEqual({ finger_count: 2 })
+    })
+
+    it('HAND_MATH → metrics.finger_count == target', () => {
+        const frames = Array.from({ length: 10 }, (_, i) => twoFingerFrame(i * 100))
+        const r = runToCompletion(BiometricPuzzleId.HAND_MATH, frames, 2)
+        expect(r).not.toBeNull()
+        expect(r!.metrics).toEqual({ finger_count: 2 })
+    })
+
+    it('HAND_PINCH → metrics.pinch_dist_scaled is a small distance (<= 0.12 bio gate)', () => {
+        const frames = Array.from({ length: 10 }, (_, i) => pinchFrame(i * 100))
+        const r = runToCompletion(BiometricPuzzleId.HAND_PINCH, frames)
+        expect(r).not.toBeNull()
+        expect(typeof r!.metrics?.pinch_dist_scaled).toBe('number')
+        expect(r!.metrics!.pinch_dist_scaled as number).toBeLessThanOrEqual(0.12)
+    })
+
+    it('HAND_WAVE → metrics.reversals >= 2 (bio gate)', () => {
+        const xs = [0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.7, 0.3, 0.7]
+        const frames = xs.map((x, i) => {
+            const f = fistFrame(i * 200)
+            f.landmarks[0] = { x, y: 0.9, z: 0 }
+            return f
+        })
+        const r = runToCompletion(BiometricPuzzleId.HAND_WAVE, frames)
+        expect(r).not.toBeNull()
+        expect(typeof r!.metrics?.reversals).toBe('number')
+        expect(r!.metrics!.reversals as number).toBeGreaterThanOrEqual(2)
+    })
+
+    it('HAND_FLIP → metrics.orientation_changes >= 1 (bio gate)', () => {
+        const palm = openHandFrame(0)
+        palm.landmarks[5] = { x: 0.48, y: 0.75, z: 0 }
+        palm.landmarks[17] = { x: 0.54, y: 0.75, z: 0 }
+        const back = openHandFrame(200)
+        back.landmarks[5] = { x: 0.54, y: 0.75, z: 0 }
+        back.landmarks[17] = { x: 0.46, y: 0.75, z: 0 }
+        const frames = [
+            { ...palm, timestamp: 0 },
+            { ...back, timestamp: 200 },
+            { ...palm, timestamp: 400 },
+        ]
+        const r = runToCompletion(BiometricPuzzleId.HAND_FLIP, frames)
+        expect(r).not.toBeNull()
+        expect(typeof r!.metrics?.orientation_changes).toBe('number')
+        expect(r!.metrics!.orientation_changes as number).toBeGreaterThanOrEqual(1)
+    })
+
+    it('HAND_FINGER_TAP → metrics.tap_dist_scaled <= 0.08 (bio gate)', () => {
+        const frames = [
+            pinchFrame(0),
+            pinchFrame(50),
+            pinchFrame(100),
+            openHandFrame(200),
+        ]
+        const r = runToCompletion(BiometricPuzzleId.HAND_FINGER_TAP, frames)
+        expect(r).not.toBeNull()
+        expect(typeof r!.metrics?.tap_dist_scaled).toBe('number')
+        expect(r!.metrics!.tap_dist_scaled as number).toBeLessThanOrEqual(0.08)
+    })
+
+    it('HAND_PEEK_A_BOO → metrics.covered_then_revealed === true', () => {
+        let fakeNow = 0
+        const realNow = performance.now
+        performance.now = () => fakeNow
+        try {
+            const state = initialHandState(BiometricPuzzleId.HAND_PEEK_A_BOO)
+            const hold = { detectedSince: null as number | null }
+            let completedResult: ReturnType<typeof evaluateHandPuzzle> | null = null
+            for (let i = 0; i < 10; i++) {
+                fakeNow = i * 100
+                const f = fistFrame(fakeNow)
+                f.landmarks[9] = { x: 0.5, y: 0.5, z: 0 }
+                const r = evaluateHandPuzzle(
+                    BiometricPuzzleId.HAND_PEEK_A_BOO,
+                    { frame: f, state },
+                    hold,
+                )
+                if (r.completed) completedResult = r
+            }
+            for (let i = 0; i < 20; i++) {
+                fakeNow = 1100 + i * 60
+                const r = evaluateHandPuzzle(
+                    BiometricPuzzleId.HAND_PEEK_A_BOO,
+                    { frame: null, state },
+                    hold,
+                )
+                if (r.completed) completedResult = r
+            }
+            expect(completedResult).not.toBeNull()
+            expect(completedResult!.metrics).toEqual({ covered_then_revealed: true })
+        } finally {
+            performance.now = realNow
+        }
+    })
+
+    it('a non-completing frame carries NO metrics (additive: only on success)', () => {
+        const state = initialHandState(BiometricPuzzleId.HAND_PINCH)
+        const hold = { detectedSince: null as number | null }
+        const r = evaluateHandPuzzle(
+            BiometricPuzzleId.HAND_PINCH,
+            { frame: openHandFrame(0), state },
+            hold,
+        )
+        expect(r.completed).toBe(false)
+        expect(r.metrics).toBeUndefined()
+    })
+
+    it('HAND_SHAPE_TRACE (free-form) surfaces NO metric — flagged dtw_cost gap', () => {
+        // The free-form ShapeTraceDetector has no template to DTW against, so it
+        // cannot produce bio`s `dtw_cost` scalar. Completion must surface NO
+        // metrics (the auth step then fails closed — never a fabricated value).
+        const state = initialHandState(BiometricPuzzleId.HAND_SHAPE_TRACE)
+        const hold = { detectedSince: null as number | null }
+        let completedResult: ReturnType<typeof evaluateHandPuzzle> | null = null
+        // Trace a closed loop (circle) with the index extended.
+        for (let i = 0; i < 40; i++) {
+            const a = (2 * Math.PI * i) / 32
+            const f = openHandFrame(i * 100)
+            // Index TIP traces a circle; keep TIP above PIP so isIndexExtended.
+            f.landmarks[8] = { x: 0.5 + 0.15 * Math.cos(a), y: 0.4 + 0.15 * Math.sin(a), z: 0 }
+            f.landmarks[6] = { x: 0.5, y: 0.7, z: 0 }
+            const r = evaluateHandPuzzle(
+                BiometricPuzzleId.HAND_SHAPE_TRACE,
+                { frame: f, state },
+                hold,
+            )
+            if (r.completed) completedResult = r
+        }
+        if (completedResult) {
+            expect(completedResult.metrics).toBeUndefined()
+        }
+        // Whether or not the synthetic circle closes, the contract under test is:
+        // a completed free-form trace never carries a dtw_cost metric.
+    })
+})

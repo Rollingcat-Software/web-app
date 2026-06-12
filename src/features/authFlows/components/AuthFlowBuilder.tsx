@@ -33,13 +33,15 @@ import { useTranslation } from 'react-i18next'
 import {
     AuthMethodType,
     type AuthMethod,
+    type AuthFlowStep,
     type OperationType,
-    AuthFlowStep,
+    type PuzzleConfig,
     DEFAULT_AUTH_METHODS,
     OPERATION_TYPE_OPTIONS,
     isOperationType,
     normalizeOperationType,
 } from '@domain/models/AuthMethod'
+import { PuzzleLayerConfig } from './PuzzleLayerConfig'
 
 // Bezier easing
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
@@ -205,6 +207,18 @@ export function AuthFlowBuilder({
         setSteps((prev) => prev.map((s, i) => (i === 0 ? { ...s, usernameless: checked } : s)))
     }, [])
 
+    // Update the puzzleConfig for a PUZZLE layer.
+    const updatePuzzleConfig = useCallback((stepId: string, puzzleConfig: PuzzleConfig) => {
+        setSteps((prev) => prev.map((s) => (s.id === stepId ? { ...s, puzzleConfig } : s)))
+    }, [])
+
+    // Toggle requireActivePuzzleLiveness on a FACE layer.
+    const toggleRequireActivePuzzleLiveness = useCallback((stepId: string, checked: boolean) => {
+        setSteps((prev) =>
+            prev.map((s) => (s.id === stepId ? { ...s, requireActivePuzzleLiveness: checked } : s)),
+        )
+    }, [])
+
     const getMethod = useCallback(
         (methodType: AuthMethodType) => authMethods.find((m) => m.type === methodType),
         [authMethods],
@@ -337,6 +351,8 @@ export function AuthFlowBuilder({
                                                 const isFirst = index === 0
                                                 const hasNone = selected.length === 0
                                                 const isChoice = selected.length >= 2
+                                                const hasPuzzle = selected.includes(AuthMethodType.PUZZLE)
+                                                const hasFace = selected.includes(AuthMethodType.FACE)
 
                                                 return (
                                                     <motion.div
@@ -501,6 +517,50 @@ export function AuthFlowBuilder({
                                                                         label={
                                                                             <Typography variant="body2">
                                                                                 {t('authFlowBuilder.usernamelessFirstStep')}
+                                                                            </Typography>
+                                                                        }
+                                                                    />
+                                                                </Tooltip>
+                                                            )}
+
+                                                            {/* PUZZLE layer config — shown when PUZZLE is among
+                                                                this layer's selected methods. */}
+                                                            {hasPuzzle && (
+                                                                <PuzzleLayerConfig
+                                                                    value={step.puzzleConfig ?? {
+                                                                        allowedChallengeTypes: [],
+                                                                        count: 2,
+                                                                        difficulty: 'medium',
+                                                                        alsoMatchFaceIdentity: true,
+                                                                    }}
+                                                                    onChange={(cfg) => updatePuzzleConfig(step.id, cfg)}
+                                                                />
+                                                            )}
+
+                                                            {/* FACE puzzle-liveness toggle — shown when FACE is
+                                                                among this layer's selected methods. Lets the
+                                                                tenant require an active puzzle liveness sub-step
+                                                                in addition to passive face recognition. */}
+                                                            {hasFace && (
+                                                                <Tooltip title={t('authFlowBuilder.requireActivePuzzleLivenessTooltip')}>
+                                                                    <FormControlLabel
+                                                                        sx={{ mt: 1, display: 'block' }}
+                                                                        control={
+                                                                            <Switch
+                                                                                checked={Boolean(step.requireActivePuzzleLiveness)}
+                                                                                onChange={(e) =>
+                                                                                    toggleRequireActivePuzzleLiveness(
+                                                                                        step.id,
+                                                                                        e.target.checked,
+                                                                                    )
+                                                                                }
+                                                                                color="primary"
+                                                                                size="small"
+                                                                            />
+                                                                        }
+                                                                        label={
+                                                                            <Typography variant="body2">
+                                                                                {t('authFlowBuilder.requireActivePuzzleLiveness')}
                                                                             </Typography>
                                                                         }
                                                                     />

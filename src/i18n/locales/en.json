@@ -950,7 +950,9 @@
     "removeLayer": "Remove layer",
     "requiredHelp": "Required: users must complete this layer to sign in. Turn off to make the layer optional — it's skipped for users not enrolled in any of its methods.",
     "saveDisabledNoLayers": "Add at least one layer with a selected method before saving.",
-    "saveDisabledEmptyLayer": "Every layer must have at least one selected method before saving."
+    "saveDisabledEmptyLayer": "Every layer must have at least one selected method before saving.",
+    "requireActivePuzzleLiveness": "Require active puzzle liveness",
+    "requireActivePuzzleLivenessTooltip": "In addition to passive face recognition, the user must pass a live challenge-response puzzle to complete this step."
   },
   "login": {
     "identifierFirstSubtitle": "Enter your email to continue. We'll guide you through the rest.",
@@ -1764,6 +1766,18 @@
         "extended": "Rate limit active. Please retry in a few minutes."
       }
     },
+    "puzzle": {
+      "title": "Liveness Puzzle",
+      "subtitle": "Complete the challenges to verify your identity",
+      "challengeProgress": "Challenge {{current}} of {{total}}",
+      "retry": "Retry",
+      "noChallenges": "No challenges configured",
+      "completing": "Completing…",
+      "preparing": "Preparing your challenges…",
+      "sessionError": "Could not start the liveness puzzle. Please try again.",
+      "challengeFailed": "The challenge could not be verified. Please try again.",
+      "unsupportedChallenge": "This challenge is not supported on this device. Please try another sign-in method."
+    },
     "errors": {
       "networkError": "Network error. Please check your connection and try again.",
       "faceDetectionFailed": "Face detection failed. Please ensure good lighting and try again.",
@@ -2302,6 +2316,18 @@
         "description": "Show the answer to a small arithmetic prompt (e.g. 2+3) by raising fingers.",
         "hint": "Solve the prompt in your head, then hold up that many fingers — palm facing the camera."
       }
+    },
+    "builder": {
+      "layerLabel": "Puzzle Liveness Layer",
+      "challengeTypesLabel": "Allowed Challenge Types",
+      "countLabel": "Challenges per session",
+      "difficultyLabel": "Difficulty",
+      "difficultyEasy": "Easy",
+      "difficultyMedium": "Medium",
+      "difficultyHard": "Hard",
+      "identityBinding": "Also verify face identity",
+      "identityBindingHint": "The puzzle step will also confirm the user matches their enrolled face embedding.",
+      "lowerAssuranceWarning": "Lower assurance: liveness only — face identity is not verified in this step."
     }
   },
   "face_demo": {

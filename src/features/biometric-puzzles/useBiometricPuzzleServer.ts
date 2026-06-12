@@ -38,6 +38,14 @@ export type PuzzleServerAction =
     | 'turn_right'
     | 'open_mouth'
     | 'raise_eyebrows'
+    | 'close_left_eye'
+    | 'close_right_eye'
+    | 'look_up'
+    | 'look_down'
+    | 'raise_left_brow'
+    | 'raise_right_brow'
+    | 'nod'
+    | 'shake_head'
     | 'finger_count'
     | 'shape_trace'
     | 'wave'
@@ -61,6 +69,8 @@ export interface PuzzleVerifyRequestPayload {
 export interface PuzzleVerifyResult {
     kind: 'success'
     durationSeconds: number
+    /** The server-confirmed challenge action (echoed by the bio re-score). */
+    action: PuzzleServerAction
 }
 export interface PuzzleVerifyError {
     kind: 'error'
@@ -82,6 +92,57 @@ export type PuzzleVerifyOutcome =
     | PuzzleVerifyError
     | PuzzleVerifySoftPass
 
+/**
+ * Server evidence for one passed challenge, forwarded to the identity handler
+ * so the PUZZLE auth step is server-authoritative (the handler re-confirms with
+ * bio rather than trusting a client boolean). `verified` is the bio re-score
+ * verdict — `false` is only ever produced by a soft-pass during rollout (the
+ * proxy isn't deployed), so the handler can distinguish a true server pass from
+ * a degraded one.
+ *
+ * NOTE (server-session gap, 2026-06-12): the current bio proxy
+ * (`/biometric/puzzles/verify-challenge`) is STATELESS — it re-scores one
+ * challenge per call and issues NO server-side session id. So a verdict here is
+ * a per-challenge attestation, not a binding to a server-tracked liveness
+ * session. The identity handler still cannot bind these to one another or to
+ * the auth session without a server-issued session id. A server-issued-session
+ * contract is needed for full anti-replay; see PuzzleStep + the Phase 3 bio
+ * task. Until then this is the strongest evidence the client can forward.
+ */
+export interface PuzzleServerVerdict {
+    /** The server challenge action that was re-scored. */
+    action: PuzzleServerAction
+    /** True only for a real server-200 + verified=true; false for a soft-pass. */
+    verified: boolean
+    /** Server-measured challenge duration, when the bio re-score returned one. */
+    durationSeconds?: number
+    /**
+     * Why `verified` is false despite the step advancing. Currently only
+     * `endpoint_not_deployed` (training-mode soft-pass) — never set in auth mode
+     * because auth mode fails closed on a missing proxy.
+     */
+    softPassReason?: PuzzleVerifySoftPass['reason']
+    /**
+     * Canonical metric payload the web component computed for this challenge,
+     * keyed by bio's `ACTION_METRIC_KEY` (e.g. `{ ear: 0.18 }`). Carried up so
+     * the server-authoritative PUZZLE step (CV-3) can SUBMIT it to the puzzle
+     * session — bio's metric-REQUIRED path rejects an absent key. The training
+     * surface ignores this field, so attaching it is byte-neutral for
+     * `serverMode='training'`. Absent only when the component cannot produce the
+     * canonical scalar for the action (a flagged vocabulary/metric gap).
+     */
+    metrics?: Record<string, number | boolean>
+    /**
+     * Client capture window for the challenge (`performance.now()` ms). Surfaced
+     * so the auth step can forward real `start_timestamp_ms`/`end_timestamp_ms`
+     * to the bio SUBMIT path (which floors duration / orders timestamps).
+     */
+    startTimestampMs?: number
+    endTimestampMs?: number
+    /** Client detection confidence [0..1] for the SUBMIT payload. */
+    confidence?: number
+}
+
 /** identity-core-api proxy path for the bio `/liveness/verify-challenge` route. */
 const VERIFY_CHALLENGE_PATH = '/biometric/puzzles/verify-challenge'
 
@@ -102,6 +163,7 @@ export function useBiometricPuzzleServer() {
         async (
             payload: PuzzleVerifyRequestPayload,
             t: TFunction,
+            mode: 'auth' | 'training' = 'training',
         ): Promise<PuzzleVerifyOutcome> => {
             const body = {
                 action: payload.action,
@@ -122,6 +184,7 @@ export function useBiometricPuzzleServer() {
                     return {
                         kind: 'success',
                         durationSeconds: res.data.duration_seconds ?? 0,
+                        action: payload.action,
                     }
                 }
                 return {
@@ -138,6 +201,14 @@ export function useBiometricPuzzleServer() {
                 const status = (err as { response?: { status?: number } })
                     ?.response?.status
                 if (status === 404) {
+                    // In auth mode the endpoint MUST be deployed — fail closed
+                    // so a missing proxy can't be exploited to bypass liveness.
+                    if (mode === 'auth') {
+                        return {
+                            kind: 'error',
+                            message: t('biometricPuzzle.serverError'),
+                        }
+                    }
                     if (!not_deployed_warned_ref.current) {
                         not_deployed_warned_ref.current = true
                         console.warn(

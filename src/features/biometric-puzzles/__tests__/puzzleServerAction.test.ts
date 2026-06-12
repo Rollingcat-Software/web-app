@@ -14,6 +14,9 @@ import { BiometricPuzzleId } from '../BiometricPuzzleId'
 import {
     faceChallengeToServerAction,
     handPuzzleToServerAction,
+    metricKeyForAction,
+    isRenderablePuzzleId,
+    RENDERABLE_PUZZLE_IDS,
 } from '../puzzleServerAction'
 
 describe('faceChallengeToServerAction', () => {
@@ -29,16 +32,16 @@ describe('faceChallengeToServerAction', () => {
     })
 
     it.each([
-        ChallengeType.CLOSE_LEFT,
-        ChallengeType.CLOSE_RIGHT,
-        ChallengeType.LOOK_UP,
-        ChallengeType.LOOK_DOWN,
-        ChallengeType.RAISE_LEFT_BROW,
-        ChallengeType.RAISE_RIGHT_BROW,
-        ChallengeType.NOD,
-        ChallengeType.SHAKE_HEAD,
-    ])('returns null for unmapped variant %s', (input) => {
-        expect(faceChallengeToServerAction(input)).toBeNull()
+        [ChallengeType.CLOSE_LEFT, 'close_left_eye'],
+        [ChallengeType.CLOSE_RIGHT, 'close_right_eye'],
+        [ChallengeType.LOOK_UP, 'look_up'],
+        [ChallengeType.LOOK_DOWN, 'look_down'],
+        [ChallengeType.RAISE_LEFT_BROW, 'raise_left_brow'],
+        [ChallengeType.RAISE_RIGHT_BROW, 'raise_right_brow'],
+        [ChallengeType.NOD, 'nod'],
+        [ChallengeType.SHAKE_HEAD, 'shake_head'],
+    ])('maps previously-unmapped variant %s → %s', (input, expected) => {
+        expect(faceChallengeToServerAction(input)).toBe(expected)
     })
 })
 
@@ -68,5 +71,55 @@ describe('handPuzzleToServerAction', () => {
         expect(
             handPuzzleToServerAction(BiometricPuzzleId.FACE_BLINK as unknown as BiometricPuzzleId),
         ).toBeNull()
+    })
+})
+
+describe('metricKeyForAction — canonical bio keys for surfaced actions', () => {
+    it.each([
+        // HAND scalars surfaced by SP-B.
+        ['finger_count', 'finger_count'],
+        ['math', 'finger_count'],
+        ['wave', 'reversals'],
+        ['hand_flip', 'orientation_changes'],
+        ['finger_tap', 'tap_dist_scaled'],
+        ['pinch', 'pinch_dist_scaled'],
+        ['shape_trace', 'dtw_cost'],
+        ['peek_a_boo', 'covered_then_revealed'],
+        // FACE motion scalars.
+        ['nod', 'oscillation_count'],
+        ['shake_head', 'oscillation_count'],
+    ])('maps action %s → canonical key %s', (action, key) => {
+        expect(metricKeyForAction(action)).toBe(key)
+    })
+})
+
+describe('renderable puzzle set (builder offering filter)', () => {
+    it('includes every FACE_* id (all 14 face actions are mapped)', () => {
+        const faceIds = Object.values(BiometricPuzzleId).filter((id) =>
+            id.startsWith('FACE_'),
+        )
+        for (const id of faceIds) {
+            expect(isRenderablePuzzleId(id as BiometricPuzzleId)).toBe(true)
+        }
+    })
+
+    it('includes the 8 mapped HAND_* ids but EXCLUDES HAND_TRACE_TEMPLATE', () => {
+        for (const id of [
+            BiometricPuzzleId.HAND_FINGER_COUNT,
+            BiometricPuzzleId.HAND_WAVE,
+            BiometricPuzzleId.HAND_FLIP,
+            BiometricPuzzleId.HAND_FINGER_TAP,
+            BiometricPuzzleId.HAND_PINCH,
+            BiometricPuzzleId.HAND_PEEK_A_BOO,
+            BiometricPuzzleId.HAND_SHAPE_TRACE,
+            BiometricPuzzleId.HAND_MATH,
+        ]) {
+            expect(isRenderablePuzzleId(id)).toBe(true)
+        }
+        expect(isRenderablePuzzleId(BiometricPuzzleId.HAND_TRACE_TEMPLATE)).toBe(false)
+    })
+
+    it('renderable set is exactly 22 (14 face + 8 hand)', () => {
+        expect(RENDERABLE_PUZZLE_IDS.size).toBe(22)
     })
 })
