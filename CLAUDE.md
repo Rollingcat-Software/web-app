@@ -204,6 +204,30 @@ The config-driven login work (in-flight, feature-flagged `app.auth.config-driven
 OFF) will fold these into a single config-rendered login screen — internals land with their PRs.
 See `ROADMAP_AUTH_2026-05-30.md`.
 
+## Advisory client-side PAD score (SP-D, flag-gated `VITE_CLIENT_PAD_ADVISORY`, default OFF)
+
+Defense-in-depth: during the FACE capture (and the puzzle best-frame moment) the browser runs
+the **in-repo passive PAD analyzer** (`lib/biometric-engine/core/PassiveLivenessDetector.ts` — a
+5-component texture/colour/skin-tone/moiré/local-variance scorer, the same passive-analyzer
+family the amispoof tester ships), DISPLAYS the live-confidence to the user (i18n `mfa.face.padScore`
+chip), and forwards it to the server as an **ADVISORY** field `client_pad_score` (0..1) in the
+existing `/auth/mfa/step` `data` payload.
+
+- **Module**: `features/biometrics/pad/` — `clientPadFlag.ts` (build-time env flag, mirrors
+  `clientEmbeddingFlag.ts`) + `computeClientPadScore.ts` (runs the analyzer, returns 0..1 score +
+  per-component breakdown, **null on any failure**, never throws). It does NOT import the heavy
+  `@rollingcat/spoof-detector` npm package — the in-repo `PassiveLivenessDetector` already IS the
+  passive PAD analyzer, so no port was needed.
+- **Integration points**: `FaceCaptureStep.tsx` (computes on capture, displays the chip, threads
+  the score as the 4th `onSubmit` arg) → `MfaStepRenderer.tsx` FACE case (adds `client_pad_score`
+  alongside `{ image }` or `{ embedding }`); `PuzzleStep.tsx` (computes from the best frame, adds
+  it to the verdict payload).
+- **UNTRUSTED-CLIENT CAVEAT — advisory ONLY**: the client NEVER blocks/allows a login on this
+  score. Server side it is **ignored-safe** today (`/auth/mfa/step` `data` is `Map<String,Object>`,
+  no fail-on-unknown), so flag OFF (or analyzer failure) leaves the payload byte-identical and the
+  capture/login fully unaffected. A future minimal server change could log/bound it at
+  `FaceVerifyMfaStepHandler.verify()` (the FACE step's only `data` read) — NOT a gate.
+
 ## Production Deployment (Hostinger)
 
 ```bash

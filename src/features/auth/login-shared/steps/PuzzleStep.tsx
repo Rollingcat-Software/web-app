@@ -61,6 +61,8 @@ import type { PuzzleConfig } from '@domain/models/AuthMethod'
 import type { NormalizedLandmark } from '@/lib/biometric-engine/types'
 import { isClientSideEmbeddingEnabled } from '@features/biometrics/embedding/clientEmbeddingFlag'
 import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedFace'
+import { isClientPadAdvisoryEnabled } from '@features/biometrics/pad/clientPadFlag'
+import { computeClientPadScore } from '@features/biometrics/pad/computeClientPadScore'
 import StepLayout from '../../components/steps/StepLayout'
 
 export interface PuzzleStepProps {
@@ -117,6 +119,13 @@ export default function PuzzleStep({
      * retained — only the computed vector.
      */
     const embeddingRef = useRef<number[] | null>(null)
+    /**
+     * Latest ADVISORY client-side PAD / passive-liveness confidence (0..1) from
+     * the live best frame (SP-D, flag-gated, defense-in-depth). UNTRUSTED-CLIENT
+     * CAVEAT: advisory ONLY — never gates the verdict; forwarded to the
+     * authoritative server as `client_pad_score`. null when off / unavailable.
+     */
+    const padScoreRef = useRef<number | null>(null)
 
     // ── 1. CREATE the server-issued session on mount ──────────────────────
     useEffect(() => {
@@ -160,6 +169,20 @@ export default function PuzzleStep({
     // never stored — only the resulting vector is kept.
     const handleBestFrame = useCallback(
         (image: string, landmarks: NormalizedLandmark[]) => {
+            // ADVISORY PAD score (SP-D, flag-gated, defense-in-depth). Computed
+            // from the best frame independently of binding so the server gets a
+            // passive-liveness signal even on the liveness-only path. Resilient +
+            // advisory ONLY: a failure just leaves padScoreRef null; it NEVER
+            // blocks or changes the verdict.
+            if (isClientPadAdvisoryEnabled()) {
+                computeClientPadScore(image)
+                    .then((pad) => {
+                        if (pad) padScoreRef.current = pad.score
+                    })
+                    .catch(() => {
+                        // Non-critical: no advisory score forwarded.
+                    })
+            }
             if (!bindingEnabled) return
             embedCapturedFace(image, landmarks)
                 .then((vec) => {
@@ -176,6 +199,14 @@ export default function PuzzleStep({
     // ── 3. Submit the auth gate once every challenge is server-validated ───
     const submitVerdict = useCallback(() => {
         if (submittedRef.current || !sessionId) return
+
+        // ADVISORY ONLY (SP-D): include the client PAD score when one was
+        // computed. Optional, ignored-safe sibling field — the client never gates
+        // on it; the server treats it as a defense-in-depth signal, not a verdict.
+        const advisory =
+            padScoreRef.current !== null
+                ? { client_pad_score: padScoreRef.current }
+                : {}
 
         if (bindingEnabled) {
             // Identity-binding REQUIRED: a binding step must carry the live-frame
@@ -195,15 +226,17 @@ export default function PuzzleStep({
             verifyStep(AuthMethodType.PUZZLE, {
                 puzzle_session_id: sessionId,
                 embedding,
+                ...advisory,
             })
             return
         }
 
         submittedRef.current = true
         setPhase('completing')
-        // Liveness-only: the ONLY thing submitted is the opaque session id.
-        // No metrics, no verdicts — bio is the authority (owner-bound, single-use).
-        verifyStep(AuthMethodType.PUZZLE, { puzzle_session_id: sessionId })
+        // Liveness-only: the ONLY thing submitted is the opaque session id (plus
+        // the optional advisory PAD score). No metrics, no verdicts — bio is the
+        // authority (owner-bound, single-use).
+        verifyStep(AuthMethodType.PUZZLE, { puzzle_session_id: sessionId, ...advisory })
     }, [sessionId, verifyStep, bindingEnabled, t])
 
     // ── 2. Per-challenge completion → SUBMIT canonical metric to the session ─
