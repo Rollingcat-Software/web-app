@@ -53,7 +53,6 @@ describe('handPuzzleToServerAction', () => {
         [BiometricPuzzleId.HAND_FINGER_TAP, 'finger_tap'],
         [BiometricPuzzleId.HAND_PINCH, 'pinch'],
         [BiometricPuzzleId.HAND_PEEK_A_BOO, 'peek_a_boo'],
-        [BiometricPuzzleId.HAND_SHAPE_TRACE, 'shape_trace'],
         [BiometricPuzzleId.HAND_MATH, 'math'],
     ])('maps %s → %s', (input, expected) => {
         expect(handPuzzleToServerAction(input)).toBe(expected)
@@ -62,6 +61,15 @@ describe('handPuzzleToServerAction', () => {
     it('returns null for HAND_TRACE_TEMPLATE (client-only variant)', () => {
         expect(
             handPuzzleToServerAction(BiometricPuzzleId.HAND_TRACE_TEMPLATE),
+        ).toBeNull()
+    })
+
+    it('returns null for HAND_SHAPE_TRACE (free-form trace has no dtw_cost — unmapped 2026-06-12)', () => {
+        // Deliberately unmapped: the free-form ShapeTraceDetector gates on
+        // arc-length + closure only and produces no `dtw_cost`, so bio's
+        // metric-REQUIRED auth path is unsatisfiable. It must not round-trip.
+        expect(
+            handPuzzleToServerAction(BiometricPuzzleId.HAND_SHAPE_TRACE),
         ).toBeNull()
     })
 
@@ -103,7 +111,7 @@ describe('renderable puzzle set (builder offering filter)', () => {
         }
     })
 
-    it('includes the 8 mapped HAND_* ids but EXCLUDES HAND_TRACE_TEMPLATE', () => {
+    it('includes the 7 mapped HAND_* ids but EXCLUDES HAND_TRACE_TEMPLATE + HAND_SHAPE_TRACE', () => {
         for (const id of [
             BiometricPuzzleId.HAND_FINGER_COUNT,
             BiometricPuzzleId.HAND_WAVE,
@@ -111,15 +119,16 @@ describe('renderable puzzle set (builder offering filter)', () => {
             BiometricPuzzleId.HAND_FINGER_TAP,
             BiometricPuzzleId.HAND_PINCH,
             BiometricPuzzleId.HAND_PEEK_A_BOO,
-            BiometricPuzzleId.HAND_SHAPE_TRACE,
             BiometricPuzzleId.HAND_MATH,
         ]) {
             expect(isRenderablePuzzleId(id)).toBe(true)
         }
         expect(isRenderablePuzzleId(BiometricPuzzleId.HAND_TRACE_TEMPLATE)).toBe(false)
+        // HAND_SHAPE_TRACE is unsatisfiable (no dtw_cost) → not offered (2026-06-12).
+        expect(isRenderablePuzzleId(BiometricPuzzleId.HAND_SHAPE_TRACE)).toBe(false)
     })
 
-    it('renderable set is exactly 22 (14 face + 8 hand)', () => {
-        expect(RENDERABLE_PUZZLE_IDS.size).toBe(22)
+    it('renderable set is exactly 21 (14 face + 7 hand)', () => {
+        expect(RENDERABLE_PUZZLE_IDS.size).toBe(21)
     })
 })

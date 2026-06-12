@@ -9,11 +9,12 @@
  *     HAND_* prefixed identifiers).
  *
  * The server enum is a flat lower_snake_case set in
- * ``biometric-processor/app/api/schemas/active_liveness.py``. Some local
- * variants (CLOSE_LEFT, CLOSE_RIGHT, LOOK_UP, LOOK_DOWN, RAISE_LEFT_BROW,
- * RAISE_RIGHT_BROW, NOD, SHAKE_HEAD, HAND_TRACE_TEMPLATE) don't have a
- * 1:1 server counterpart — those rows return ``null`` here, which the
- * caller hook treats as "skip server validation".
+ * ``biometric-processor/app/api/schemas/active_liveness.py``. A few local ids
+ * have no usable 1:1 server counterpart — those return ``null`` here, which the
+ * caller hook treats as "skip server validation":
+ *   - HAND_TRACE_TEMPLATE — client-only DTW variant, no server action;
+ *   - HAND_SHAPE_TRACE — free-form trace can't produce bio's `dtw_cost` metric,
+ *     so it's deliberately unmapped (2026-06-12) and never offered.
  */
 import { ChallengeType } from '@/lib/biometric-engine/types'
 import { BiometricPuzzleId } from './BiometricPuzzleId'
@@ -45,8 +46,17 @@ const HAND_PUZZLE_TO_SERVER: Partial<Record<BiometricPuzzleId, PuzzleServerActio
     [BiometricPuzzleId.HAND_FINGER_TAP]: 'finger_tap',
     [BiometricPuzzleId.HAND_PINCH]: 'pinch',
     [BiometricPuzzleId.HAND_PEEK_A_BOO]: 'peek_a_boo',
-    [BiometricPuzzleId.HAND_SHAPE_TRACE]: 'shape_trace',
     [BiometricPuzzleId.HAND_MATH]: 'math',
+    // HAND_SHAPE_TRACE: DELIBERATELY UNMAPPED (2026-06-12). bio's `shape_trace`
+    // canonical metric is `dtw_cost` (≤ 0.25) against the SPECIFIC server-issued
+    // template, but the free-form `ShapeTraceDetector` (HAND_SHAPE_TRACE) gates on
+    // arc-length + closure only — it computes NO `dtw_cost`. With no honest scalar
+    // the metric-REQUIRED auth path fails closed, making the puzzle unsatisfiable.
+    // Leaving it unmapped drops it from `RENDERABLE_PUZZLE_IDS` so the flow builder
+    // never offers it (same treatment as the component-less `light`/`hold_position`).
+    // BACKLOG: build template-DTW shape matching (consume the session's
+    // `template_key` param, DTW the traced path à la `TemplateTraceDetector`, and
+    // surface `dtw_cost`) — then re-map HAND_SHAPE_TRACE here to re-enable it.
     // HAND_TRACE_TEMPLATE: client-only variant of SHAPE_TRACE — skip.
 }
 
@@ -124,10 +134,13 @@ export function serverActionToPuzzleId(
 
 /**
  * The set of ``BiometricPuzzleId``s that a server-issued action can resolve to —
- * i.e. the puzzles the web can actually RENDER as a challenge. This is the image
- * of `serverActionToPuzzleId`: every FACE_* (all 14 mapped) + the 8 mapped HAND_*
+ * i.e. the puzzles the web can actually RENDER **and** satisfy. This is the image
+ * of `serverActionToPuzzleId`: every FACE_* (all 14 mapped) + the 7 mapped HAND_*
  * puzzles. It EXCLUDES:
  *   - `HAND_TRACE_TEMPLATE` (client-only variant — no forward server-action map);
+ *   - `HAND_SHAPE_TRACE` (free-form trace can't produce bio's `dtw_cost` metric —
+ *     deliberately unmapped 2026-06-12 so it's never offered; see the backlog note
+ *     on `HAND_PUZZLE_TO_SERVER`);
  *   - actions with no web component at all (`light`, `hold_position`), which have
  *     no `BiometricPuzzleId` so they never appear here.
  *
@@ -156,6 +169,15 @@ export function isRenderablePuzzleId(id: BiometricPuzzleId): boolean {
 // The web puzzle components compute the underlying scalar locally; PuzzleStep
 // submits it under exactly this key. Kept in lockstep with bio by the table
 // documented in the CV-3 report.
+//
+// SIGN CONVENTION (cross-repo, agreed 2026-06-12 — Phase-1B):
+//   yaw   < 0 = head turned to the USER's LEFT  (turn_left);  > 0 = RIGHT (turn_right)
+//   pitch < 0 = looking UP / chin up            (look_up);    > 0 = looking DOWN (look_down)
+// The web submits the RAW `headPose.pitch` / `headPose.yaw` under these keys
+// (see `canonicalFaceMetric` in FacePuzzle.tsx + the `HeadPoseEstimator` class doc).
+// bio's `challenge_metric_scorer.py` gates `look_up: pitch ≤ -10°`,
+// `look_down: pitch ≥ +10°`, `turn_left: yaw ≤ -15°`, `turn_right: yaw ≥ +15°` —
+// SAME sign on both sides, so the raw scalar is submitted unchanged (no flip).
 
 /**
  * Server action → the single canonical metric key bio expects in

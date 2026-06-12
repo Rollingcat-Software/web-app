@@ -45,15 +45,15 @@ describe('PuzzleLayerConfig', () => {
         alsoMatchFaceIdentity: true,
     }
 
-    it('renders one checkbox per RENDERABLE challenge type (22: 14 face + 8 hand)', () => {
+    it('renders one checkbox per RENDERABLE challenge type (21: 14 face + 7 hand)', () => {
         const renderable = listBiometricPuzzles().filter((p) =>
             isRenderablePuzzleId(p.id),
         )
         render(<PuzzleLayerConfig value={defaultConfig} onChange={vi.fn()} />)
-        // 22 renderable puzzles are offered (HAND_TRACE_TEMPLATE excluded).
-        expect(renderable).toHaveLength(22)
+        // 21 renderable puzzles are offered (HAND_TRACE_TEMPLATE + HAND_SHAPE_TRACE excluded).
+        expect(renderable).toHaveLength(21)
         const checkboxes = screen.getAllByRole('checkbox')
-        // 22 puzzle checkboxes + the identity-binding Switch (role=checkbox).
+        // 21 puzzle checkboxes + the identity-binding Switch (role=checkbox).
         expect(checkboxes).toHaveLength(renderable.length + 1)
     })
 
@@ -71,6 +71,15 @@ describe('PuzzleLayerConfig', () => {
         expect(isRenderablePuzzleId(BiometricPuzzleId.HAND_TRACE_TEMPLATE)).toBe(false)
         render(<PuzzleLayerConfig value={defaultConfig} onChange={vi.fn()} />)
         const dropped = getBiometricPuzzle(BiometricPuzzleId.HAND_TRACE_TEMPLATE).i18nKey
+        expect(screen.queryByText(`${dropped}.title`)).toBeNull()
+    })
+
+    it('does NOT offer HAND_SHAPE_TRACE (free-form trace has no dtw_cost — unmapped 2026-06-12)', () => {
+        // The free-form shape trace can't produce bio's `dtw_cost` metric, so its
+        // metric-REQUIRED auth path is unsatisfiable; the builder must never offer it.
+        expect(isRenderablePuzzleId(BiometricPuzzleId.HAND_SHAPE_TRACE)).toBe(false)
+        render(<PuzzleLayerConfig value={defaultConfig} onChange={vi.fn()} />)
+        const dropped = getBiometricPuzzle(BiometricPuzzleId.HAND_SHAPE_TRACE).i18nKey
         expect(screen.queryByText(`${dropped}.title`)).toBeNull()
     })
 
