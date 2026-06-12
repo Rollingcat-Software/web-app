@@ -38,8 +38,12 @@ const INITIAL_QUALITY: QualityResult = {
 /**
  * Compute quality assessment from video frame + optional face landmarks.
  * Mirrors auth-test's assessQuality() — Laplacian blur, mean brightness, face size.
+ *
+ * Exported (2026-06-12) so the PUZZLE identity-binding best-frame grab in
+ * `FacePuzzle` can quality-gate its single completion frame with the SAME
+ * scorer the face-login capture uses (no second implementation).
  */
-function assessQuality(
+export function assessQuality(
     video: HTMLVideoElement,
     landmarks?: Landmark[],
     bbox?: BoundingBox,

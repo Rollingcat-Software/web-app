@@ -40,10 +40,12 @@ import {
     BiometricPuzzle as BiometricPuzzleEngine,
 } from '@/lib/biometric-engine/core/BiometricPuzzle'
 import { ChallengeType } from '@/lib/biometric-engine/types'
-import type { FaceMetrics, HeadPose } from '@/lib/biometric-engine/types'
+import type { FaceMetrics, HeadPose, NormalizedLandmark } from '@/lib/biometric-engine/types'
 import type { BiometricPuzzleProps } from '../biometricPuzzleRegistry'
 import { useBiometricPuzzleServer } from '../useBiometricPuzzleServer'
 import { faceChallengeToServerAction } from '../puzzleServerAction'
+import { cropFaceToDataURL } from '@features/auth/utils/faceCropper'
+import { assessQuality } from '@features/auth/hooks/useQualityAssessment'
 
 /**
  * Per-gesture direction-reversal counter for NOD (pitch) and SHAKE_HEAD (yaw).
@@ -165,7 +167,27 @@ interface Props extends BiometricPuzzleProps {
  */
 const ATTEMPT_TIMEOUT_MS = 30_000
 
-function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = 'training' }: Props) {
+/**
+ * Frontal-pose tolerance (degrees) for the PUZZLE identity-binding best-frame grab.
+ *
+ * The embedding must be derived from a near-frontal still (yaw≈0, pitch≈0), so a
+ * head-turn/look-up/look-down completion frame is REJECTED for capture (the
+ * embedder is trained on frontal faces; an off-axis crop poisons the identity
+ * match). This gates ONLY the optional `onBestFrame` capture — the gesture's own
+ * pass/fail (liveness) is unchanged.
+ */
+const FRONTAL_POSE_TOLERANCE_DEG = 15
+
+/** True when the head pose is near-frontal enough to feed the identity embedding. */
+function isFrontalPose(headPose: HeadPose | null): boolean {
+    if (!headPose) return false
+    return (
+        Math.abs(headPose.yaw) <= FRONTAL_POSE_TOLERANCE_DEG &&
+        Math.abs(headPose.pitch) <= FRONTAL_POSE_TOLERANCE_DEG
+    )
+}
+
+function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = 'training', onBestFrame }: Props) {
     const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -199,6 +221,16 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
      * only — independent of the engine's range-based pass/fail gate.
      */
     const oscillationRef = useRef<OscillationCounter>(new OscillationCounter())
+    /**
+     * Latest frame's normalized face bbox + 478-pt landmarks, kept so the
+     * completion path can grab ONE best frontal still for the identity-binding
+     * embedding (Phase 4). Only populated/used when an `onBestFrame` callback is
+     * supplied — the training surface never touches it.
+     */
+    const lastBBoxRef = useRef<{ x: number; y: number; width: number; height: number } | null>(null)
+    const lastLandmarksRef = useRef<NormalizedLandmark[] | null>(null)
+    /** Guards a double best-frame grab (one capture per completed session). */
+    const bestFrameGrabbedRef = useRef<boolean>(false)
 
     // Independent puzzle instance pinned to this challenge type. Sharing the
     // engine's metricsCalculator keeps internal state (eyebrow baseline) in
@@ -332,6 +364,9 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
         try {
             setCameraError(null)
             setVideoReady(false)
+            // One identity-binding best-frame per camera session (survives the
+            // effect re-runs the detection loop triggers on each `detected` flip).
+            bestFrameGrabbedRef.current = false
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: 'user',
@@ -424,6 +459,21 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                     // path can derive the canonical bio metric for the gesture.
                     if (face.metrics) lastMetricsRef.current = face.metrics
                     if (face.headPose) lastHeadPoseRef.current = face.headPose
+                    // For identity-binding (Phase 4) only: keep the latest frame's
+                    // normalized bbox + 478-pt mesh so the completion path can grab
+                    // ONE frontal best frame. No-op without an onBestFrame callback.
+                    if (onBestFrame) {
+                        const box = face.detection.boundingBox
+                        if (box && video.videoWidth && video.videoHeight) {
+                            lastBBoxRef.current = {
+                                x: box.x / video.videoWidth,
+                                y: box.y / video.videoHeight,
+                                width: box.width / video.videoWidth,
+                                height: box.height / video.videoHeight,
+                            }
+                        }
+                        lastLandmarksRef.current = face.detection.landmarks478
+                    }
                     // Accumulate nod/shake direction reversals (oscillation_count).
                     // Pitch drives NOD, yaw drives SHAKE_HEAD; harmless no-op
                     // signal for other gestures (their metric ignores it).
@@ -460,6 +510,28 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                         completedRef.current = true
                         setRunning(false)
                         setProgress(100)
+
+                        // ── Phase 4: best frontal frame for identity-binding ──
+                        // Additive + opt-in: only when a caller (PuzzleStep with
+                        // identity-binding ON) supplied `onBestFrame`. Gate on a
+                        // FRONTAL pose (yaw≈0/pitch≈0) + acceptable quality so the
+                        // embedding is computed from a clean still. Failure to
+                        // capture NEVER blocks the gesture — the puzzle still
+                        // resolves; PuzzleStep fails closed on a missing embedding.
+                        if (onBestFrame && !bestFrameGrabbedRef.current) {
+                            const landmarks = lastLandmarksRef.current
+                            const bbox = lastBBoxRef.current
+                            if (isFrontalPose(lastHeadPoseRef.current) && bbox && landmarks) {
+                                const quality = assessQuality(video, landmarks)
+                                if (quality.acceptable) {
+                                    const image = cropFaceToDataURL(video, bbox)
+                                    if (image) {
+                                        bestFrameGrabbedRef.current = true
+                                        onBestFrame(image, landmarks)
+                                    }
+                                }
+                            }
+                        }
 
                         // Bug 4 (2026-05-12) — round-trip the completion through
                         // the server before resolving onSuccess. The mapper now
@@ -554,7 +626,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                 animFrameRef.current = 0
             }
         }
-    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected, verifyChallenge, serverMode])
+    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected, verifyChallenge, serverMode, onBestFrame])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 
