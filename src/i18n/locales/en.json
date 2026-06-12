@@ -1766,6 +1766,14 @@
         "extended": "Rate limit active. Please retry in a few minutes."
       }
     },
+    "puzzle": {
+      "title": "Liveness Puzzle",
+      "subtitle": "Complete the challenges to verify your identity",
+      "challengeProgress": "Challenge {{current}} of {{total}}",
+      "retry": "Retry",
+      "noChallenges": "No challenges configured",
+      "completing": "Completing…"
+    },
     "errors": {
       "networkError": "Network error. Please check your connection and try again.",
       "faceDetectionFailed": "Face detection failed. Please ensure good lighting and try again.",

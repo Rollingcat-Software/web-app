@@ -40,8 +40,10 @@ import NfcStep from '../components/steps/NfcStep'
 import EmailOtpMfaStep from '../components/steps/EmailOtpMfaStep'
 import GestureLivenessStep from '../components/steps/GestureLivenessStep'
 import PasswordStep from '../components/steps/PasswordStep'
+import PuzzleStep from './steps/PuzzleStep'
 import { isClientSideEmbeddingEnabled } from '@features/biometrics/embedding/clientEmbeddingFlag'
 import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedFace'
+import type { PuzzleConfig } from '@domain/models/AuthMethod'
 
 /**
  * Decode a `data:...;base64,...` URL into an ArrayBuffer.
@@ -84,6 +86,8 @@ export interface MfaStepRendererProps {
     /** Read-only identifier shown on a PASSWORD MFA step ("Signing in as <email>"). */
     presetEmail?: string
     /** Translate a step-local error (VAD no-speech) — defaults to i18n `t`. */
+    /** PUZZLE step configuration (present only when method === PUZZLE). */
+    puzzleConfig?: PuzzleConfig
 }
 
 /**
@@ -102,6 +106,7 @@ export default function MfaStepRenderer({
     error,
     onError,
     presetEmail,
+    puzzleConfig,
 }: MfaStepRendererProps) {
     const { t } = useTranslation()
 
@@ -280,6 +285,16 @@ export default function MfaStepRenderer({
             return (
                 <GestureLivenessStep
                     onSubmit={(data) => verifyStep(AuthMethodType.GESTURE_LIVENESS, data)}
+                    loading={loading}
+                    error={error}
+                />
+            )
+
+        case AuthMethodType.PUZZLE:
+            return (
+                <PuzzleStep
+                    puzzleConfig={puzzleConfig}
+                    verifyStep={verifyStep}
                     loading={loading}
                     error={error}
                 />

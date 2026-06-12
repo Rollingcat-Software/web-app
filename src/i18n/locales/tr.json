@@ -1766,6 +1766,14 @@
         "extended": "Hız limiti etkin. Lütfen birkaç dakika sonra tekrar deneyin."
       }
     },
+    "puzzle": {
+      "title": "Canlılık Bulmacası",
+      "subtitle": "Kimliğinizi doğrulamak için zorlukları tamamlayın",
+      "challengeProgress": "{{current}}. zorluk / {{total}}",
+      "retry": "Tekrar Dene",
+      "noChallenges": "Yapılandırılmış zorluk yok",
+      "completing": "Tamamlanıyor…"
+    },
     "errors": {
       "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
       "faceDetectionFailed": "Yüz algılama başarısız. Lütfen iyi ışıklı bir ortamda tekrar deneyin.",
