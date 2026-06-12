@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest'
-import { render, screen, fireEvent, within } from '@testing-library/react'
+import { render, screen, fireEvent } from '@testing-library/react'
 import { AuthFlowBuilder } from '../AuthFlowBuilder'
 import { AuthMethodType, type AuthFlowStep, DEFAULT_AUTH_METHODS } from '@domain/models/AuthMethod'
 import type { AuthMethod } from '@domain/models/AuthMethod'
