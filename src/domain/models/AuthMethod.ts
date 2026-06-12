@@ -25,6 +25,17 @@ export enum AuthMethodType {
      */
     PASSKEY = 'PASSKEY',
     APPROVE_LOGIN = 'APPROVE_LOGIN',
+    /**
+     * PUZZLE: a live challenge-response liveness step composed of 14 face +
+     * 9 hand micro-challenges (BiometricPuzzleId). Tenants configure which
+     * challenge types are allowed, how many to draw, the difficulty, and
+     * whether the same step also verifies face identity.
+     *
+     * Runtime visibility is gated by the backend login-config / auth-methods
+     * response (isActive flag) — PUZZLE only appears in the flow builder when
+     * the backend returns it as an active method for the tenant.
+     */
+    PUZZLE = 'PUZZLE',
 }
 
 /**
@@ -116,6 +127,9 @@ const LOGIN_METHOD_TYPES: ReadonlySet<AuthMethodType> = new Set([
     AuthMethodType.NFC_DOCUMENT,
     AuthMethodType.PASSKEY,
     AuthMethodType.APPROVE_LOGIN,
+    // PUZZLE is a selectable login method (challenge-response liveness step).
+    // GESTURE_LIVENESS remains excluded (FACE anti-spoofing sub-component).
+    AuthMethodType.PUZZLE,
 ])
 
 /**
@@ -130,6 +144,25 @@ export function isLoginMethodType(type: AuthMethodType): boolean {
 
 export function isAuthMethodType(value: string): value is AuthMethodType {
     return Object.values(AuthMethodType).includes(value as AuthMethodType)
+}
+
+/**
+ * Configuration for a PUZZLE authentication layer.
+ * Persisted on {@link AuthFlowStep.puzzleConfig} when methodType is PUZZLE.
+ */
+export interface PuzzleConfig {
+    /** BiometricPuzzleId string values allowed in this flow step. */
+    allowedChallengeTypes: string[]
+    /** Number of challenges to draw per session (≥1). */
+    count: number
+    /** Difficulty bracket for challenge selection. */
+    difficulty: 'easy' | 'medium' | 'hard'
+    /**
+     * When true (default), passing the puzzle also verifies that the subject
+     * matches the enrolled face embedding. When false, the step proves liveness
+     * only — lower assurance, no identity binding.
+     */
+    alsoMatchFaceIdentity: boolean
 }
 
 /**
@@ -158,6 +191,18 @@ export interface AuthFlowStep {
      * {@link AuthMethod.supportsUsernameless} is true.
      */
     usernameless?: boolean
+    /**
+     * PUZZLE layer configuration. Present only when methodType includes PUZZLE.
+     * Specifies which challenge types are allowed, how many to draw, the
+     * difficulty level, and whether face-identity matching is also required.
+     */
+    puzzleConfig?: PuzzleConfig
+    /**
+     * FACE layer option: when true, the FACE verification step also requires the
+     * user to pass an active puzzle liveness check (a PUZZLE sub-step). When
+     * false or absent, the FACE step uses passive liveness only.
+     */
+    requireActivePuzzleLiveness?: boolean
 }
 
 /**
