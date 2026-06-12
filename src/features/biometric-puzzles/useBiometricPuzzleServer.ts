@@ -110,6 +110,7 @@ export function useBiometricPuzzleServer() {
         async (
             payload: PuzzleVerifyRequestPayload,
             t: TFunction,
+            mode: 'auth' | 'training' = 'training',
         ): Promise<PuzzleVerifyOutcome> => {
             const body = {
                 action: payload.action,
@@ -146,6 +147,14 @@ export function useBiometricPuzzleServer() {
                 const status = (err as { response?: { status?: number } })
                     ?.response?.status
                 if (status === 404) {
+                    // In auth mode the endpoint MUST be deployed — fail closed
+                    // so a missing proxy can't be exploited to bypass liveness.
+                    if (mode === 'auth') {
+                        return {
+                            kind: 'error',
+                            message: t('biometricPuzzle.serverError'),
+                        }
+                    }
                     if (!not_deployed_warned_ref.current) {
                         not_deployed_warned_ref.current = true
                         console.warn(
