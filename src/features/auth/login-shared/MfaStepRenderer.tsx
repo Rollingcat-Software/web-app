@@ -43,6 +43,8 @@ import PasswordStep from '../components/steps/PasswordStep'
 import PuzzleStep from './steps/PuzzleStep'
 import { isClientSideEmbeddingEnabled } from '@features/biometrics/embedding/clientEmbeddingFlag'
 import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedFace'
+import { isClientSideVoiceEmbeddingEnabled } from '@features/biometrics/voice-embedding/clientVoiceEmbeddingFlag'
+import { embedCapturedVoice } from '@features/biometrics/voice-embedding/embedCapturedVoice'
 import type { PuzzleConfig } from '@domain/models/AuthMethod'
 
 /**
@@ -257,6 +259,25 @@ export default function MfaStepRenderer({
                             }
                         } catch (vadErr) {
                             console.warn('[MfaStepRenderer] VAD check failed, proceeding:', vadErr)
+                        }
+
+                        // GPU-less VOICE (audit H3): when the client-side-voice-
+                        // embedding flag is ON, compute the 256-d speaker vector
+                        // in-browser and submit ONLY the vector (the raw audio
+                        // never leaves the device). On ANY failure we fall back to
+                        // uploading the audio so a scaffold/model-hosting gap never
+                        // blocks the login (the server with the voice flag OFF
+                        // would reject an embedding anyway; with it ON it accepts
+                        // either). Flag OFF ⇒ byte-identical legacy audio upload.
+                        if (isClientSideVoiceEmbeddingEnabled()) {
+                            const embedding = await embedCapturedVoice(voiceData)
+                            if (embedding) {
+                                verifyStep(AuthMethodType.VOICE, { embedding })
+                                return
+                            }
+                            console.warn(
+                                '[MfaStepRenderer] client voice embedding unavailable; falling back to audio upload',
+                            )
                         }
                         verifyStep(AuthMethodType.VOICE, { voiceData })
                     }}

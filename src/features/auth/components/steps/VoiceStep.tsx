@@ -17,6 +17,7 @@ import {
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { useVoiceRecorder } from '@/lib/biometric-engine/hooks/useVoiceRecorder'
+import { scheduleVoiceModelPrefetch } from '@features/biometrics/voice-embedding/prefetchVoiceModel'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
 
@@ -69,6 +70,12 @@ export default function VoiceStep({ onSubmit, loading, error }: VoiceStepProps) 
     const [recordedReady, setRecordedReady] = useState(false)
     const [displayDuration, setDisplayDuration] = useState(0)
     const autoStopTriggered = useRef(false)
+
+    // GPU-less VOICE (audit H3): warm the speaker-encoder model on mount so the
+    // in-browser embedding is ready by submit time. No-op unless the
+    // VITE_CLIENT_SIDE_VOICE_EMBEDDING flag is ON (mirrors FaceCaptureStep's
+    // scheduleFacenetPrefetch). Cleanup cancels a still-pending idle schedule.
+    useEffect(() => scheduleVoiceModelPrefetch(), [])
 
     // Auto-stop after MAX_RECORDING_SECONDS.
     useEffect(() => {
