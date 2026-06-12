@@ -1,11 +1,13 @@
 /**
- * MethodPickerStep — Fix #3 (2026-06-03): device-implicit methods
- * (APPROVE_LOGIN / PASSKEY) must not present the misleading "Not enrolled →
- * Set up in Settings" dead-end (there is no Settings enrollment for them).
- * They show "On your device" + a device/mobile setup hint instead.
+ * MethodPickerStep — F7 (2026-06-12): the generic picker must NOT offer methods
+ * that have no `MfaStepRenderer` case (PASSKEY / APPROVE_LOGIN). Selecting one
+ * previously routed into the renderer's "Unknown authentication method" dead-end
+ * with a blank icon. They are device-implicit Layer-1 factors with dedicated
+ * first-factor entry points (PasskeyLoginButton / ApproveLoginPanel), so we
+ * FILTER them out of the picker list entirely.
  *
- * They remain NON-selectable as a mid-flow MFA step (no renderer/handler yet),
- * but the copy no longer strands the user.
+ * (Supersedes the earlier Fix #3 behaviour, which only re-worded their copy and
+ * left an unusable card in the list.)
  */
 import { describe, it, expect } from 'vitest'
 import { render, screen } from '@testing-library/react'
@@ -21,21 +23,36 @@ const baseMethod = (over: Record<string, unknown>) => ({
     ...over,
 })
 
-describe('MethodPickerStep — device-implicit copy (Fix #3)', () => {
-    it('shows "On your device" (not "Not enrolled") for APPROVE_LOGIN when not enrolled', () => {
+describe('MethodPickerStep — non-renderable methods filtered (F7)', () => {
+    it('does NOT render an APPROVE_LOGIN card (no renderer case → would be a dead-end)', () => {
         render(
             <MethodPickerStep
-                availableMethods={[baseMethod({ methodType: 'APPROVE_LOGIN' })]}
+                availableMethods={[
+                    baseMethod({ methodType: 'APPROVE_LOGIN' }),
+                    baseMethod({ methodType: 'TOTP', enrolled: true }),
+                ]}
                 onMethodSelected={() => {}}
             />,
         )
-        expect(screen.getByText('On your device')).toBeInTheDocument()
-        expect(screen.queryByText('Not enrolled')).toBeNull()
-        // No misleading "Set up in Settings" dead-end.
-        expect(screen.queryByText('Set up in Settings')).toBeNull()
+        // APPROVE_LOGIN must be filtered out: its label must not appear.
+        expect(screen.queryByText('Approve on another device')).toBeNull()
+        // A renderable method still shows.
+        expect(screen.getByText('Authenticator App')).toBeInTheDocument()
     })
 
-    it('still shows "Not enrolled" + Settings hint for a regular (non-device-implicit) method', () => {
+    it('does NOT render a PASSKEY card in the generic picker', () => {
+        render(
+            <MethodPickerStep
+                availableMethods={[baseMethod({ methodType: 'PASSKEY' })]}
+                onMethodSelected={() => {}}
+            />,
+        )
+        expect(screen.queryByText('Passkey')).toBeNull()
+        // No "unknown method" / device-implicit copy strands the user.
+        expect(screen.queryByText('On your device')).toBeNull()
+    })
+
+    it('still shows "Not enrolled" + Settings hint for a regular (renderable) method', () => {
         render(
             <MethodPickerStep
                 availableMethods={[baseMethod({ methodType: 'TOTP' })]}
