@@ -23,6 +23,7 @@ import { EnrollmentStatus, type EnrollmentJSON } from '@domain/models/Enrollment
 import { FivucsasAuth } from '@/verify-app/sdk/FivucsasAuth'
 import type { AuthSessionResponse } from '@core/repositories/AuthSessionRepository'
 import { config as envConfig } from '@config/env'
+import { loginShellBackgroundSx } from './loginBackground'
 
 const easeOut: [number, number, number, number] = [0.25, 0.46, 0.45, 0.94]
 
@@ -255,8 +256,7 @@ export default function SecondaryAuthFlow({
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    background:
-                        'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
+                    ...loginShellBackgroundSx(),
                 }}
             >
                 <Card
@@ -296,16 +296,8 @@ export default function SecondaryAuthFlow({
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'column',
-                background:
-                    'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                backgroundSize: '400% 400%',
-                animation: 'gradientShift 15s ease infinite',
-                '@keyframes gradientShift': {
-                    '0%': { backgroundPosition: '0% 50%' },
-                    '50%': { backgroundPosition: '100% 50%' },
-                    '100%': { backgroundPosition: '0% 50%' },
-                },
                 p: 2,
+                ...loginShellBackgroundSx(),
             }}
         >
             <motion.div

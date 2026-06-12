@@ -30,6 +30,9 @@ import { motion, Variants } from 'framer-motion'
 import { getService } from '@core/di/container'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import { usePrefersReducedMotion } from '@hooks/usePrefersReducedMotion'
+import { loginShellBackgroundSx } from '@features/auth/components/loginBackground'
+import FloatingShape from '@features/auth/components/FloatingShape'
 
 const resetPasswordSchema = z.object({
     code: z.string().min(6, 'Code must be 6 digits').max(6, 'Code must be 6 digits').regex(/^\d{6}$/, 'Code must be 6 digits'),
@@ -80,41 +83,10 @@ const logoVariants: Variants = {
     },
 }
 
-const FloatingShape = ({ delay, size, left, top }: {
-    delay: number
-    size: number
-    left: string
-    top: string
-}) => (
-    <motion.div
-        initial={{ opacity: 0, scale: 0 }}
-        animate={{
-            opacity: [0.1, 0.3, 0.1],
-            scale: [1, 1.2, 1],
-            y: [0, -20, 0],
-        }}
-        transition={{
-            duration: 6,
-            delay,
-            repeat: Infinity,
-            ease: 'easeInOut',
-        }}
-        style={{
-            position: 'absolute',
-            left,
-            top,
-            width: size,
-            height: size,
-            borderRadius: '50%',
-            background: 'rgba(255, 255, 255, 0.1)',
-            backdropFilter: 'blur(10px)',
-        }}
-    />
-)
-
 export default function ResetPasswordPage() {
     const navigate = useNavigate()
     const { t } = useTranslation()
+    const prefersReducedMotion = usePrefersReducedMotion()
     const [searchParams] = useSearchParams()
     const email = searchParams.get('email') || ''
     const [loading, setLoading] = useState(false)
@@ -210,21 +182,19 @@ export default function ResetPasswordPage() {
                 justifyContent: 'center',
                 position: 'relative',
                 overflow: 'hidden',
-                background: 'linear-gradient(135deg, #667eea 0%, #764ba2 50%, #f64f59 100%)',
-                backgroundSize: '400% 400%',
-                animation: 'gradientShift 15s ease infinite',
-                '@keyframes gradientShift': {
-                    '0%': { backgroundPosition: '0% 50%' },
-                    '50%': { backgroundPosition: '100% 50%' },
-                    '100%': { backgroundPosition: '0% 50%' },
-                },
+                ...loginShellBackgroundSx(),
             }}
         >
-            <FloatingShape delay={0} size={300} left="10%" top="20%" />
-            <FloatingShape delay={1} size={200} left="70%" top="10%" />
-            <FloatingShape delay={2} size={150} left="80%" top="60%" />
-            <FloatingShape delay={0.5} size={100} left="5%" top="70%" />
-            <FloatingShape delay={1.5} size={250} left="50%" top="80%" />
+            {/* Decorative background shapes — skipped for reduced-motion users. */}
+            {!prefersReducedMotion && (
+                <>
+                    <FloatingShape delay={0} size={300} left="10%" top="20%" />
+                    <FloatingShape delay={1} size={200} left="70%" top="10%" />
+                    <FloatingShape delay={2} size={150} left="80%" top="60%" />
+                    <FloatingShape delay={0.5} size={100} left="5%" top="70%" />
+                    <FloatingShape delay={1.5} size={250} left="50%" top="80%" />
+                </>
+            )}
 
             <motion.div
                 initial="hidden"
