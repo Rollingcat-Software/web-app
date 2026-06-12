@@ -9,17 +9,14 @@
 
 import { useState, useCallback, useEffect, useRef } from 'react'
 import {
-    Alert,
     Box,
     Button,
     Card,
     CardContent,
-    InputAdornment,
     Skeleton,
-    TextField,
     Typography,
 } from '@mui/material'
-import { Close, ArrowBack, EmailOutlined } from '@mui/icons-material'
+import { Close, ArrowBack } from '@mui/icons-material'
 import { motion, AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { formatApiError } from '@utils/formatApiError'
@@ -31,9 +28,10 @@ import { AuthMethodType, MfaStepStatus, EASE_OUT } from '@features/auth/constant
 import PasswordStep from '@features/auth/components/steps/PasswordStep'
 import MethodPickerStep from '@features/auth/components/steps/MethodPickerStep'
 import MfaStepRenderer from '@features/auth/login-shared/MfaStepRenderer'
+import IdentifierStep from '@features/auth/login-shared/steps/IdentifierStep'
 import { makeRequestWebAuthnChallenge } from '@features/auth/login-shared/webauthnChallenge'
 import StepProgress from './StepProgress'
-import { hasPasswordLayer1, needsIdentifier, type LoginConfig } from '@domain/models/LoginConfig'
+import { hasPasswordLayer1, needsIdentifier, selectPuzzleConfig, type LoginConfig } from '@domain/models/LoginConfig'
 import { isLikelyValidEmail } from '@domain/validators/emailValidator'
 
 /**
@@ -567,6 +565,11 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             error={error}
             onError={setError}
             presetEmail={identifier || undefined}
+            // Phase-5 identity binding: source the active PUZZLE step's
+            // tenant-authored config from the resolved login-config and thread it
+            // down. Undefined for non-PUZZLE steps / no config — the renderer
+            // ignores it then. This is what lets `alsoMatchFaceIdentity` engage.
+            puzzleConfig={selectPuzzleConfig(loginConfig, selectedMethod)}
         />
     )
 
@@ -775,52 +778,21 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
                             )}
 
                             {phase === FlowPhase.Identifier && (
-                                <Box>
-                                    {error && (
-                                        <Alert severity="error" sx={{ mb: 2, borderRadius: '12px' }}>
-                                            {error}
-                                        </Alert>
-                                    )}
-                                    <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                        {t('login.identifierFirstSubtitle')}
-                                    </Typography>
-                                    <TextField
-                                        fullWidth
-                                        type="email"
-                                        label={t('auth.emailLabel')}
-                                        value={identifier}
-                                        onChange={(e) => setIdentifier(e.target.value)}
-                                        onKeyDown={(e) => {
-                                            if (e.key === 'Enter' && !loading) {
-                                                e.preventDefault()
-                                                void handleIdentifierSubmit()
-                                            }
-                                        }}
-                                        autoFocus
-                                        disabled={loading}
-                                        InputProps={{
-                                            startAdornment: (
-                                                <InputAdornment position="start">
-                                                    <EmailOutlined sx={{ color: 'text.secondary' }} />
-                                                </InputAdornment>
-                                            ),
-                                        }}
-                                        sx={{
-                                            mb: 2,
-                                            '& .MuiOutlinedInput-root': { borderRadius: '12px' },
-                                        }}
-                                    />
-                                    <Button
-                                        fullWidth
-                                        variant="contained"
-                                        size="large"
-                                        onClick={() => void handleIdentifierSubmit()}
-                                        disabled={loading || !identifier.trim()}
-                                        sx={{ py: 1.5, borderRadius: '12px', fontWeight: 600 }}
-                                    >
-                                        {t('auth.continue')}
-                                    </Button>
-                                </Box>
+                                /* Shared identifier-entry block (login-shared) so
+                                   this opening email screen stays identical to the
+                                   dashboard's. Hosted look = theme contained button,
+                                   no spinner/end-icon (its loading is folded into
+                                   `loading`), inline error Alert above the field. */
+                                <IdentifierStep
+                                    value={identifier}
+                                    onChange={setIdentifier}
+                                    onSubmit={() => void handleIdentifierSubmit()}
+                                    // Hosted disables (no spinner) while loading —
+                                    // `disabled` without `loading` preserves the
+                                    // exact prior look (button text stays "Continue").
+                                    disabled={loading}
+                                    error={error}
+                                />
                             )}
 
                             {phase === FlowPhase.MethodPicker && (
