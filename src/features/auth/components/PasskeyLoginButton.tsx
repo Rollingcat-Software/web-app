@@ -19,6 +19,8 @@ import { useTranslation } from 'react-i18next'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { AvailableMfaMethod } from '@domain/interfaces/IAuthRepository'
+import type { Layer1Continuation } from '../login-shared/layer1Continuation'
 import { mapWebAuthnError } from '../webauthn-utils'
 import {
     fetchPasskeyOptions,
@@ -28,8 +30,21 @@ import {
 } from '../passkey-login'
 
 export interface PasskeyLoginButtonProps<T = unknown> {
-    /** Called with the raw server login response after a successful assertion. */
+    /**
+     * Called with the raw server login response after a successful assertion
+     * that COMPLETES the login (final tokens present). When the passkey only
+     * satisfied Layer 1 and the tenant flow needs more steps, `onMfaRequired`
+     * is called instead (when wired).
+     */
     onSuccess: (loginResponse: T) => void
+    /**
+     * Called when the passkey satisfied Layer 1 but the tenant flow needs MORE
+     * steps: the server returned an `mfaSessionToken` (no final accessToken).
+     * The host threads it into the existing MethodPicker / MfaStepRenderer
+     * continuation. When omitted, a multi-step response falls through to
+     * `onSuccess` (prior behaviour).
+     */
+    onMfaRequired?: (continuation: Layer1Continuation) => void
     /** Surfaced when the ceremony or server call fails (already localized). */
     onError?: (message: string) => void
     /** Disable while a parent flow is busy (e.g. password submit in flight). */
@@ -38,8 +53,25 @@ export interface PasskeyLoginButtonProps<T = unknown> {
     sx?: Parameters<typeof Button>[0]['sx']
 }
 
+/**
+ * Shape of the fields a passkey-success response may carry when the tenant flow
+ * needs further steps. The server uses the standard login-success envelope
+ * (`twoFactorRequired` / `mfaSessionToken` / `availableMethods`), which the
+ * generic `T` does not expose — so we read them defensively off the raw object.
+ */
+interface PasskeyMultiStepFields {
+    accessToken?: string | null
+    twoFactorRequired?: boolean
+    mfaSessionToken?: string | null
+    availableMethods?: AvailableMfaMethod[]
+    completedMethods?: string[]
+    currentStep?: number
+    totalSteps?: number
+}
+
 export default function PasskeyLoginButton<T = unknown>({
     onSuccess,
+    onMfaRequired,
     onError,
     disabled,
     sx,
@@ -68,6 +100,28 @@ export default function PasskeyLoginButton<T = unknown>({
                 options.sessionId,
                 assertion,
             )
+            // Multi-step: the passkey satisfied Layer 1 but the tenant flow needs
+            // more steps. The server returns an mfaSessionToken WITHOUT a final
+            // accessToken. Route into the host's MFA continuation instead of
+            // handing a tokenless response to onSuccess (which would dead-end as
+            // "missing access token"). When no handoff handler is wired, fall
+            // through to onSuccess (prior behaviour).
+            const multi = loginResponse as PasskeyMultiStepFields
+            if (
+                onMfaRequired &&
+                !multi.accessToken &&
+                multi.mfaSessionToken &&
+                (multi.twoFactorRequired || multi.availableMethods?.length)
+            ) {
+                onMfaRequired({
+                    mfaSessionToken: multi.mfaSessionToken,
+                    availableMethods: multi.availableMethods,
+                    completedMethods: multi.completedMethods,
+                    currentStep: multi.currentStep,
+                    totalSteps: multi.totalSteps,
+                })
+                return
+            }
             onSuccess(loginResponse)
         } catch (err) {
             // mapWebAuthnError handles both DOMExceptions (cancel/timeout) and
@@ -78,7 +132,7 @@ export default function PasskeyLoginButton<T = unknown>({
         } finally {
             setBusy(false)
         }
-    }, [busy, supported, httpClient, onSuccess, onError, t])
+    }, [busy, supported, httpClient, onSuccess, onMfaRequired, onError, t])
 
     const button = (
         <Button

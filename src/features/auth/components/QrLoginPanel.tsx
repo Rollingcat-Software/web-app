@@ -4,8 +4,11 @@
  * The desktop/web half of scan-to-login: create a QR session, render the QR,
  * and poll until an already-signed-in phone scans + approves it. On APPROVED we
  * either hand tokens to the caller (single Layer-1 / engine-off) or — when the
- * tenant flow needs more steps — surface a "continue here" message (the
- * step-up handoff via mfaSessionToken is a tracked follow-up; we never hang).
+ * tenant flow needs more steps — hand the `mfaSessionToken` (+ the next step's
+ * `availableMethods`, when the server reported them) up via `onMfaRequired` so
+ * the host continues into the existing MethodPicker / MfaStepRenderer flow
+ * (fixes the F1/F3 "approved on phone but web only shows a back button"
+ * dead-end). We never hang.
  *
  * The approver (scan + approve) lives in the mobile/desktop apps; this panel
  * only initiates and polls. Mirrors ApproveLoginPanel.
@@ -27,6 +30,7 @@ import { formatApiError } from '@utils/formatApiError'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { Layer1Continuation } from '../login-shared/layer1Continuation'
 import {
     QR_LOGIN_POLL_INTERVAL_MS,
     pollQrLoginSession,
@@ -46,6 +50,14 @@ export interface QrLoginResult {
 export interface QrLoginPanelProps {
     /** Called with tokens when the sign-in is APPROVED on the phone. */
     onApproved: (result: QrLoginResult) => void
+    /**
+     * Called when the phone APPROVED Layer 1 but the tenant flow needs MORE
+     * steps: the server returned an `mfaSessionToken` (no final tokens). The
+     * host threads it into the existing MethodPicker / MfaStepRenderer
+     * continuation. When omitted, the panel falls back to the prior "continue
+     * here" info message (defensive — all current callers wire this).
+     */
+    onMfaRequired?: (continuation: Layer1Continuation) => void
     /** Dismiss the panel (back to the main login form). */
     onCancel: () => void
 }
@@ -60,7 +72,7 @@ function formatTime(seconds: number): string {
     return `${mins}:${secs.toString().padStart(2, '0')}`
 }
 
-export default function QrLoginPanel({ onApproved, onCancel }: QrLoginPanelProps) {
+export default function QrLoginPanel({ onApproved, onMfaRequired, onCancel }: QrLoginPanelProps) {
     const { t } = useTranslation()
     const httpClient = useService<IHttpClient>(TYPES.HttpClient)
 
@@ -73,6 +85,8 @@ export default function QrLoginPanel({ onApproved, onCancel }: QrLoginPanelProps
 
     const onApprovedRef = useRef(onApproved)
     onApprovedRef.current = onApproved
+    const onMfaRequiredRef = useRef(onMfaRequired)
+    onMfaRequiredRef.current = onMfaRequired
 
     // Create a session (and re-create on restart).
     useEffect(() => {
@@ -136,9 +150,21 @@ export default function QrLoginPanel({ onApproved, onCancel }: QrLoginPanelProps
                         expiresIn: poll.expiresIn,
                         role: poll.role,
                     })
+                } else if (poll.mfaSessionToken && onMfaRequiredRef.current) {
+                    // Approved Layer 1, but the tenant flow needs MORE steps.
+                    // Hand the mfaSessionToken (+ the next step's availableMethods,
+                    // when present) up so the host continues into the existing
+                    // MethodPicker / MfaStepRenderer flow — no dead-end (F1/F3).
+                    // Stop polling: the session is now driven by the host.
+                    onMfaRequiredRef.current({
+                        mfaSessionToken: poll.mfaSessionToken,
+                        availableMethods: poll.availableMethods,
+                        completedMethods: poll.completedMethods,
+                        currentStep: poll.currentStep,
+                        totalSteps: poll.totalSteps,
+                    })
                 } else {
-                    // Approved, but the tenant flow needs more steps. We don't
-                    // (yet) bridge the mfaSessionToken into the step-up flow, so
+                    // Approved but no mfaSessionToken (or no handoff handler wired):
                     // tell the user to continue here rather than hang.
                     setPhase('mfa')
                 }

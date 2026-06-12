@@ -27,6 +27,7 @@ import { formatApiError } from '@utils/formatApiError'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { Layer1Continuation } from '../login-shared/layer1Continuation'
 import {
     APPROVE_LOGIN_POLL_INTERVAL_MS,
     pollApproveLoginSession,
@@ -47,6 +48,13 @@ export interface ApproveLoginPanelProps {
     initialEmail?: string
     /** Called with tokens when the request is APPROVED on the other device. */
     onApproved: (result: ApproveLoginResult) => void
+    /**
+     * Called when the other device APPROVED Layer 1 but the tenant flow needs
+     * MORE steps: the server returned an `mfaSessionToken` (no final tokens).
+     * The host threads it into the existing MethodPicker / MfaStepRenderer
+     * continuation instead of stranding the user (parity with QrLoginPanel).
+     */
+    onMfaRequired?: (continuation: Layer1Continuation) => void
     /** Dismiss the panel (back to the main login form). */
     onCancel: () => void
 }
@@ -64,6 +72,7 @@ function formatTime(seconds: number): string {
 export default function ApproveLoginPanel({
     initialEmail = '',
     onApproved,
+    onMfaRequired,
     onCancel,
 }: ApproveLoginPanelProps) {
     const { t } = useTranslation()
@@ -79,6 +88,8 @@ export default function ApproveLoginPanel({
     // Keep the approved callback stable for the polling effect.
     const onApprovedRef = useRef(onApproved)
     onApprovedRef.current = onApproved
+    const onMfaRequiredRef = useRef(onMfaRequired)
+    onMfaRequiredRef.current = onMfaRequired
 
     const handleStart = useCallback(async () => {
         const trimmed = email.trim()
@@ -141,6 +152,22 @@ export default function ApproveLoginPanel({
                     refreshToken: poll.refreshToken,
                     expiresIn: poll.expiresIn,
                     role: poll.role,
+                })
+            } else if (
+                poll.status === 'APPROVED' &&
+                poll.mfaSessionToken &&
+                onMfaRequiredRef.current
+            ) {
+                // Approved Layer 1, but the tenant flow needs MORE steps. Hand the
+                // mfaSessionToken (+ next step's availableMethods, when present) up
+                // so the host continues into the existing MethodPicker /
+                // MfaStepRenderer flow — no dead-end (parity with QrLoginPanel).
+                onMfaRequiredRef.current({
+                    mfaSessionToken: poll.mfaSessionToken,
+                    availableMethods: poll.availableMethods,
+                    completedMethods: poll.completedMethods,
+                    currentStep: poll.currentStep,
+                    totalSteps: poll.totalSteps,
                 })
             } else if (poll.status === 'DENIED') {
                 setPhase('denied')

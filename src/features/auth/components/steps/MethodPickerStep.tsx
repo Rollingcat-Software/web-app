@@ -20,24 +20,23 @@ const METHOD_I18N_KEYS: Record<string, string> = {
 }
 
 /**
- * Device-implicit methods have NO separate web enrollment step — their
- * "enrollment" happens implicitly on the device (PASSKEY = the browser/OS
- * creates the discoverable credential on first use; APPROVE_LOGIN = the user is
- * already signed into the FIVUCSAS mobile app). The Enrollments page
- * deliberately offers NO "Enroll" button for them, so a backend `enrolled:false`
- * here is NOT something the user can fix in Settings.
+ * Methods this generic picker MUST NOT offer, because there is no
+ * `MfaStepRenderer` case for them — selecting one would route into the
+ * renderer's `default:` "Unknown authentication method" dead-end (the F7 bug:
+ * "Bilinmeyen yöntem: APPROVE_LOGIN" + blank icon).
  *
- * Fix #3 (2026-06-03): for these methods we REPLACE the misleading
- * "Not enrolled → Set up in Settings" dead-end (Settings has no enroll flow for
- * them) with an accurate "Set up on your device" affordance. They remain
- * NON-SELECTABLE as a MID-FLOW MFA step for now, because there is no
- * `MfaStepRenderer` case nor a backend `VerifyMfaStepHandler` for
- * APPROVE_LOGIN/PASSKEY — selecting one would route into the renderer's
- * "unknown method" branch (a worse dead-end). Wiring them as a real in-flow
- * factor needs that backend handler first (see report / Fix #4). Reversible:
- * delete this set + the `deviceImplicit` branches to restore prior behaviour.
+ * PASSKEY and APPROVE_LOGIN are NOT generic mid-flow MFA steps: they are
+ * device-implicit Layer-1 factors with DEDICATED first-factor entry points
+ * (`PasskeyLoginButton`, `ApproveLoginPanel`, surfaced via `Layer1Shortcuts`).
+ * The backend may still list them in `availableMethods` (e.g.
+ * `UsernamelessLoginFlowService.ensureApproveLoginEnrollment` auto-enrolls
+ * APPROVE_LOGIN), so we FILTER them OUT here rather than render an unusable
+ * card. The dedicated shortcuts stay; this only stops the picker from offering
+ * a card that can't be rendered.
+ *
+ * Reversible: delete this set + the filter below to restore prior behaviour.
  */
-const DEVICE_IMPLICIT_METHODS: ReadonlySet<string> = new Set([
+const NON_RENDERABLE_METHODS: ReadonlySet<string> = new Set([
     'APPROVE_LOGIN',
     'PASSKEY',
 ])
@@ -110,11 +109,16 @@ export default function MethodPickerStep({
             </Typography>
 
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                {/* Show ALL of the layer's configured methods — never hide. Each is
-                    in one of three states: selectable (enrolled & not used), "Already
-                    used" (a prior layer), or "Not enrolled". Order: actionable first,
-                    then used, then not-enrolled. */}
+                {/* Show the layer's configured methods that CAN be rendered as a
+                    generic MFA step. Methods without a `MfaStepRenderer` case
+                    (PASSKEY / APPROVE_LOGIN — see NON_RENDERABLE_METHODS) are
+                    filtered OUT so the picker never offers an "unknown method"
+                    dead-end (F7); they have dedicated first-factor entry points.
+                    The rest are each in one of three states: selectable (enrolled &
+                    not used), "Already used" (a prior layer), or "Not enrolled".
+                    Order: actionable first, then used, then not-enrolled. */}
                 {[...availableMethods]
+                .filter((method) => !NON_RENDERABLE_METHODS.has(method.methodType))
                 .sort((a, b) => methodRank(a, usedMethods) - methodRank(b, usedMethods))
                 .map((method) => {
                     const used = usedMethods.includes(method.methodType)
@@ -125,11 +129,7 @@ export default function MethodPickerStep({
                     const labelKey = `enrollmentPage.methods.${method.methodType}.label`
                     const translatedLabel = t(labelKey)
                     const displayName = translatedLabel === labelKey ? method.name : translatedLabel
-                    const deviceImplicit = DEVICE_IMPLICIT_METHODS.has(method.methodType)
                     // Used (in a prior layer) OR not enrolled → not selectable.
-                    // (Device-implicit methods are not yet wired as a mid-flow MFA
-                    // step — see DEVICE_IMPLICIT_METHODS note — so they stay disabled
-                    // here too; Fix #3 only corrects their misleading copy.)
                     const disabled = used || !method.enrolled
 
                     return (
@@ -205,24 +205,17 @@ export default function MethodPickerStep({
 
                                 </Box>
 
-                                {/* Status chip — Ready / Already used / Not enrolled.
-                                    Device-implicit methods (PASSKEY/APPROVE_LOGIN) read
-                                    "On your device" instead of the misleading
-                                    "Not enrolled" when the backend reports
-                                    enrolled:false, since there's no web enrollment for
-                                    them (Fix #3). */}
+                                {/* Status chip — Ready / Already used / Not enrolled. */}
                                 <Chip
                                     label={
                                         used
                                             ? t('mfa.alreadyUsed')
                                             : method.enrolled
                                               ? t('mfa.enrolled')
-                                              : deviceImplicit
-                                                ? t('mfa.onYourDevice')
-                                                : t('mfa.notEnrolled')
+                                              : t('mfa.notEnrolled')
                                     }
                                     size="small"
-                                    color={used ? 'warning' : method.enrolled ? 'success' : deviceImplicit ? 'info' : 'default'}
+                                    color={used ? 'warning' : method.enrolled ? 'success' : 'default'}
                                     variant={!used && method.enrolled ? 'filled' : 'outlined'}
                                     sx={{
                                         position: 'absolute',
@@ -234,21 +227,8 @@ export default function MethodPickerStep({
                                     }}
                                 />
 
-                                {/* Setup hint. For genuinely not-set-up methods → "set
-                                    up in Settings". For device-implicit methods we
-                                    instead tell the user it works from their device /
-                                    mobile app (no Settings enrollment exists), so they
-                                    don't hit the dead-end the user reported (Fix #3). */}
-                                {deviceImplicit && !method.enrolled && !used && (
-                                    <Typography
-                                        variant="caption"
-                                        color="text.secondary"
-                                        sx={{ display: 'block', mt: 1, ml: 7.5 }}
-                                    >
-                                        {t('mfa.deviceImplicitHint')}
-                                    </Typography>
-                                )}
-                                {!deviceImplicit && !method.enrolled && !used && (
+                                {/* Setup hint for a genuinely not-set-up method. */}
+                                {!method.enrolled && !used && (
                                     <Typography
                                         variant="caption"
                                         color="text.secondary"

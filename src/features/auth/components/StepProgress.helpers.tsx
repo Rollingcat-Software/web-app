@@ -13,6 +13,7 @@ import {
     RecordVoiceOver,
     Nfc,
     Key,
+    VpnKey,
 } from '@mui/icons-material'
 import type { TFunction } from 'i18next'
 
@@ -30,6 +31,12 @@ export const METHOD_ICONS: Record<string, React.ReactNode> = {
     voice: <RecordVoiceOver fontSize="small" />,
     nfc_document: <Nfc fontSize="small" />,
     hardware_key: <Key fontSize="small" />,
+    // Device-implicit Layer-1 methods. They are NOT offered in the generic MFA
+    // picker (no MfaStepRenderer case — they have dedicated first-factor entry
+    // points), but they DO appear in StepProgress and any other place a method
+    // icon is looked up, so give them an icon instead of a blank avatar.
+    passkey: <VpnKey fontSize="small" />,
+    approve_login: <PhonelinkLock fontSize="small" />,
 }
 
 /**
