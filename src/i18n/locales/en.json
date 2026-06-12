@@ -950,7 +950,9 @@
     "removeLayer": "Remove layer",
     "requiredHelp": "Required: users must complete this layer to sign in. Turn off to make the layer optional — it's skipped for users not enrolled in any of its methods.",
     "saveDisabledNoLayers": "Add at least one layer with a selected method before saving.",
-    "saveDisabledEmptyLayer": "Every layer must have at least one selected method before saving."
+    "saveDisabledEmptyLayer": "Every layer must have at least one selected method before saving.",
+    "requireActivePuzzleLiveness": "Require active puzzle liveness",
+    "requireActivePuzzleLivenessTooltip": "In addition to passive face recognition, the user must pass a live challenge-response puzzle to complete this step."
   },
   "login": {
     "identifierFirstSubtitle": "Enter your email to continue. We'll guide you through the rest.",
