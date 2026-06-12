@@ -55,6 +55,7 @@ import { hasPasswordLayer1, selectPuzzleConfig, type LoginConfig } from '@domain
 import StepProgress from '../../../verify-app/StepProgress'
 import { usePrefersReducedMotion } from '@hooks/usePrefersReducedMotion'
 import { loginShellBackgroundSx, glassCardBackdropFilter } from './loginBackground'
+import FloatingShape from './FloatingShape'
 
 /**
  * Login form validation schema
@@ -107,40 +108,6 @@ const logoVariants: Variants = {
         },
     },
 }
-
-// Decorative background orb. ONE-SHOT fade/scale-in only (no `repeat: Infinity`)
-// and a soft radial fill instead of an animated `backdrop-filter: blur` — the
-// continuous orb animation + per-frame backdrop re-blur was a main-thread compositing
-// cost (worst with hardware-acceleration off) that contributed to the login jank.
-// After the entrance it is fully static, so it adds zero per-frame work — the orbs
-// stay as brand decoration without the cost. See loginBackground.ts for the matching
-// static-gradient fix.
-const FloatingShape = ({ delay, size, left, top }: {
-    delay: number
-    size: number
-    left: string
-    top: string
-}) => (
-    <motion.div
-        initial={{ opacity: 0, scale: 0.8 }}
-        animate={{ opacity: 0.28, scale: 1 }}
-        transition={{
-            duration: 1.2,
-            delay,
-            ease: 'easeOut',
-        }}
-        style={{
-            position: 'absolute',
-            left,
-            top,
-            width: size,
-            height: size,
-            borderRadius: '50%',
-            background:
-                'radial-gradient(circle, rgba(255,255,255,0.22) 0%, rgba(255,255,255,0.06) 60%, rgba(255,255,255,0) 100%)',
-        }}
-    />
-)
 
 /**
  * Login Page Component
