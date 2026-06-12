@@ -13,12 +13,6 @@
       "sha256": "1a153a22f4509e292a94e67d6f9b85e8deb25b4988682b7e174c65279d8788e3",
       "bytes": 2327524,
       "purpose": "Voice activity detection — skip upload on silent captures. Canonical release from github.com/snakers4/silero-vad."
-    },
-    {
-      "name": "facenet512-1ad91552.fp16.onnx",
-      "sha256": "1ad9155214adb83595b60492b0624bbd44300427c5c3921c876f390c7b44bd66",
-      "bytes": 47072627,
-      "purpose": "Client-side face embedding (Facenet512 FP16, opset 17). Exported from our pinned facenet512_weights.h5. INT8 rejected (onnxruntime-web WASM lacks ConvInteger). I/O: input[1,160,160,3] f32 BGR [0,1] aspect-preserve+pad; output 512-d, L2-normalized client-side."
     }
   ]
 }
