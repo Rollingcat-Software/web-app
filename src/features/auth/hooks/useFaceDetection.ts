@@ -16,6 +16,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react'
 // Type-only import — the runtime module is loaded lazily inside init() below.
 import type { FaceDetector } from '@mediapipe/tasks-vision'
+import type { NormalizedLandmark } from '../../../lib/biometric-engine/types'
 import { useBlazeFace } from '../../../lib/ml/useBlazeFace'
 import { cropFaceToDataURL } from '../utils/faceCropper'
 import { BiometricEngine } from '../../../lib/biometric-engine/core/BiometricEngine'
@@ -73,6 +74,13 @@ export function useFaceDetection(
     // Performance logging refs
     const perfLogCountRef = useRef(0)
     const mediapipeTimingsRef = useRef<number[]>([])
+
+    // Latest 478-pt normalized landmarks for the primary face, captured only when
+    // the FaceLandmarker backend is active (the BlazeFace / MediaPipe-FaceDetector
+    // fallbacks have no dense mesh). Held in a ref so the capture closures read the
+    // current value without re-rendering each frame. Consumed by the client-side
+    // face ALIGNER (`captureLandmarks` → `alignFace`) before the local embedding.
+    const landmarks478Ref = useRef<NormalizedLandmark[] | null>(null)
 
     // ─────────────────────────────────────────────────────────────────────────
     // Priority 1: BiometricEngine FaceLandmarker (478pt)
@@ -206,6 +214,7 @@ export function useFaceDetection(
             const inferenceMs = performance.now() - t0
 
             if (!detections || detections.length === 0) {
+                landmarks478Ref.current = null
                 setState({ ...INITIAL_STATE, hint: 'faceDetection.noFace' })
             } else {
                 const face = detections[0]
@@ -260,6 +269,11 @@ export function useFaceDetection(
                     } catch {
                         avgEAR = null
                     }
+                    // Stash the dense mesh for the client-side aligner (eye-landmark
+                    // similarity transform before the local Facenet512 embedding).
+                    landmarks478Ref.current = face.landmarks478
+                } else {
+                    landmarks478Ref.current = null
                 }
 
                 setState({
@@ -481,5 +495,17 @@ export function useFaceDetection(
         [videoRef, state.boundingBox]
     )
 
-    return { ...state, cropFace, initialized, initFailed, backend }
+    /**
+     * Snapshot of the latest 478-pt MediaPipe mesh for the primary face, or null
+     * when the active backend has no dense landmarks (BlazeFace / FaceDetector) or
+     * no face is currently detected. The client-side aligner consumes these to map
+     * the eyes to canonical positions before computing the local embedding; a null
+     * return means the caller falls back to the unaligned crop (never blocking).
+     */
+    const captureLandmarks = useCallback(
+        (): NormalizedLandmark[] | null => landmarks478Ref.current,
+        []
+    )
+
+    return { ...state, cropFace, captureLandmarks, initialized, initFailed, backend }
 }

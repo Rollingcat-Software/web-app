@@ -195,6 +195,32 @@ export default defineConfig(({ mode }) => ({
                             cacheName: 'api-cache',
                             networkTimeoutSeconds: 10
                         }
+                    },
+                    {
+                        // ONNX model files — CacheFirst, effectively no expiry.
+                        //
+                        // The Facenet model must download once and never be evicted:
+                        // it downloads exactly once and is never evicted by the SW.
+                        // Model filenames embed a content hash (e.g.
+                        // facenet512-1ad91552.fp16.onnx) so a new model version
+                        // produces a new URL and the old entry stays cached without
+                        // stale-content risk.
+                        //
+                        // modelCache.ts is the primary layer (Cache API + IndexedDB +
+                        // SHA256 gate). This SW rule is the second line of defence:
+                        // any fetch() that escapes modelCache.ts (e.g. direct URL
+                        // navigation) is also intercepted and pinned here.
+                        urlPattern: /\/models\/.*\.onnx$/i,
+                        handler: 'CacheFirst',
+                        options: {
+                            cacheName: 'fivucsas-models-sw',
+                            expiration: {
+                                maxEntries: 10,
+                                // 365 days — effectively forever; model URLs are
+                                // content-addressed so a new model means a new URL.
+                                maxAgeSeconds: 365 * 24 * 60 * 60,
+                            },
+                        },
                     }
                 ]
             }

@@ -16,6 +16,8 @@ interface ImportMetaEnv {
     readonly VITE_ENABLE_NOTIFICATIONS: string
     readonly VITE_ENABLE_WEBSOCKET: string
     readonly VITE_LOG_LEVEL: 'debug' | 'info' | 'warn' | 'error'
+    /** 'true' enables the client-side Facenet512 FACE embedding upload path (default OFF). */
+    readonly VITE_CLIENT_SIDE_EMBEDDING: string
 }
 
 interface ImportMeta {
