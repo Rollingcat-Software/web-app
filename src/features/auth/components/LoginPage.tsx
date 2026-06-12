@@ -57,6 +57,7 @@ import StepProgress from '../../../verify-app/StepProgress'
 import { usePrefersReducedMotion } from '@hooks/usePrefersReducedMotion'
 import { loginShellBackgroundSx, glassCardBackdropFilter } from './loginBackground'
 import FloatingShape from './FloatingShape'
+import { scheduleFacenetPrefetch } from '@features/biometrics/embedding/prefetchFacenetModel'
 
 /**
  * Login form validation schema
@@ -188,6 +189,15 @@ export default function LoginPage() {
             .finally(() => { clearTimeout(fallback); reveal() })
         return () => { cancelled = true; clearTimeout(fallback) }
     }, [httpClient])
+
+    // Warm the Facenet512 model cache on login-surface mount (SP-A go-live).
+    // Flag-gated + de-duped inside the helper, so with VITE_CLIENT_SIDE_EMBEDDING
+    // OFF this is a NO-OP (no schedule, no download) and the dashboard login is
+    // byte-identical to before. When ON, the ~47 MB model downloads on idle while
+    // the user types their identifier/password, so by the time a FACE step is
+    // reached the embed is a cache hit (no frozen 47 MB-on-submit download). The
+    // cleanup cancels a still-pending idle schedule on unmount.
+    useEffect(() => scheduleFacenetPrefetch(), [])
 
     // Re-fetch the login-config when the user taps "Retry" on the
     // config-unavailable banner (the initial fetch failed, almost always because

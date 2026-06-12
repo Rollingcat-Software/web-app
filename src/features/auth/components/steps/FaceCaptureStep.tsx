@@ -27,6 +27,7 @@ import { BiometricEngine } from '../../../../lib/biometric-engine/core/Biometric
 import { dataURLToImageData } from '../../utils/faceCropper'
 import { isClientPadAdvisoryEnabled } from '@features/biometrics/pad/clientPadFlag'
 import { computeClientPadScore } from '@features/biometrics/pad/computeClientPadScore'
+import { scheduleFacenetPrefetch } from '@features/biometrics/embedding/prefetchFacenetModel'
 import StepLayout from './StepLayout'
 import { stepItemVariants as itemVariants } from './stepMotion'
 
@@ -51,7 +52,7 @@ interface FaceCaptureStepProps {
         clientEmbedding?: number[],
         faceLandmarks?: NormalizedLandmark[],
         clientPadScore?: number,
-    ) => void
+    ) => void | Promise<void>
     loading: boolean
     error?: string
 }
@@ -67,6 +68,14 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
     const [videoReady, setVideoReady] = useState(false)
     const [capturedImage, setCapturedImage] = useState<string | null>(null)
     const [cameraError, setCameraError] = useState<string | null>(null)
+
+    // True while the parent `onSubmit` is running its on-device preparation
+    // (client-side Facenet512 embed: ~47 MB model download on first use + WASM
+    // init + inference) BEFORE the actual /auth/mfa/step verify call. Distinct
+    // from `loading` (the in-flight verify owned by the surface's flow): on
+    // mobile the embed alone can take seconds, and without this the submit button
+    // looks frozen. Surfaced as a "Preparing secure verification…" button state.
+    const [preparing, setPreparing] = useState(false)
 
     // ADVISORY client-side PAD / passive-liveness confidence (0..1) for the
     // captured frame (SP-D). Computed only when the advisory flag is on and the
@@ -185,6 +194,16 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
+    // Warm the Facenet512 model cache as soon as the FACE step mounts (the user
+    // is now seconds from capturing). Flag-gated + de-duped inside the helper, so
+    // with client-side embedding OFF this is a no-op, and a login surface that
+    // already prefetched shares the same in-flight download. On idle (fallback
+    // setTimeout) so it never competes with camera start / face-detector load.
+    // By submit time the ~47 MB model is cached → the embed is instant instead of
+    // a frozen 47 MB-on-submit download. The cleanup cancels a still-pending
+    // idle schedule if the step unmounts first.
+    useEffect(() => scheduleFacenetPrefetch(), [])
+
     const captureImage = useCallback(() => {
         if (!videoRef.current || !canvasRef.current) return
 
@@ -270,15 +289,26 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
             // Non-critical: embedding extraction failure is silently ignored.
         }
 
-        onSubmit(
-            capturedImage,
-            clientEmbedding,
-            capturedLandmarksRef.current ?? undefined,
-            // ADVISORY ONLY (SP-D): forward the client PAD score if one was
-            // computed. undefined when the flag is off or the analyzer failed —
-            // the submit is identical to the legacy path in that case.
-            padScoreRef.current ?? undefined,
-        )
+        // Show the "Preparing secure verification…" state for the duration of the
+        // parent's onSubmit. When client-side embedding is ON this covers the model
+        // download (first use) + ONNX init + inference that happens BEFORE the
+        // verify call — so the user sees it is working, not frozen, on mobile. When
+        // the flag is OFF, onSubmit returns synchronously (legacy { image } upload)
+        // and `preparing` flips on/off within the same tick (no visible flicker).
+        setPreparing(true)
+        try {
+            await onSubmit(
+                capturedImage,
+                clientEmbedding,
+                capturedLandmarksRef.current ?? undefined,
+                // ADVISORY ONLY (SP-D): forward the client PAD score if one was
+                // computed. undefined when the flag is off or the analyzer failed —
+                // the submit is identical to the legacy path in that case.
+                padScoreRef.current ?? undefined,
+            )
+        } finally {
+            setPreparing(false)
+        }
     }, [capturedImage, onSubmit])
 
     // Determine bounding box overlay color
@@ -676,7 +706,7 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                             variant="outlined"
                             size="large"
                             onClick={retakePhoto}
-                            disabled={loading}
+                            disabled={loading || preparing}
                             startIcon={<Replay />}
                             sx={{
                                 flex: 1,
@@ -691,8 +721,8 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                             variant="contained"
                             size="large"
                             onClick={handleSubmit}
-                            disabled={loading}
-                            endIcon={!loading && <ArrowForward />}
+                            disabled={loading || preparing}
+                            endIcon={!loading && !preparing && <ArrowForward />}
                             sx={{
                                 flex: 1,
                                 py: 1.5,
@@ -706,8 +736,27 @@ export default function FaceCaptureStep({ onSubmit, loading, error }: FaceCaptur
                                 transition: 'all 0.3s ease',
                             }}
                         >
+                            {/* `preparing` = on-device prep (client-side embed: model
+                                download + ONNX init + inference) BEFORE the verify
+                                call; `loading` = the in-flight verify. Both show a
+                                spinner; `preparing` adds a status line so the user
+                                knows the (potentially multi-second, mobile) embed is
+                                working, not frozen. */}
                             {loading ? (
                                 <CircularProgress size={24} sx={{ color: 'white' }} />
+                            ) : preparing ? (
+                                <Box
+                                    sx={{
+                                        display: 'inline-flex',
+                                        alignItems: 'center',
+                                        gap: 1,
+                                    }}
+                                    role="status"
+                                    aria-live="polite"
+                                >
+                                    <CircularProgress size={20} sx={{ color: 'white' }} />
+                                    {t('mfa.face.preparingSecure')}
+                                </Box>
                             ) : (
                                 t('mfa.face.submit')
                             )}

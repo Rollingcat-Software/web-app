@@ -48,6 +48,7 @@ import type { LoginConfig } from '@domain/models/LoginConfig'
 import type { Layer1Continuation } from '@features/auth/login-shared/layer1Continuation'
 import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
 import { config as envConfig } from '@config/env'
+import { scheduleFacenetPrefetch } from '@features/biometrics/embedding/prefetchFacenetModel'
 
 /** Server login response shape shared by password, passkey, and approve-login. */
 interface LoginSuccessResponse {
@@ -286,6 +287,19 @@ export default function HostedLoginApp() {
     // gate — they render ONLY on that screen, not under every MFA step. Starts
     // true (the flow always opens on an identity-entry screen).
     const [onInitialLoginPhase, setOnInitialLoginPhase] = useState(true)
+
+    // Warm the Facenet512 model cache on hosted-login mount (SP-A go-live).
+    // Flag-gated + de-duped inside the helper, so with VITE_CLIENT_SIDE_EMBEDDING
+    // OFF this is a NO-OP and the hosted login is byte-identical to before. When
+    // ON, the ~47 MB model downloads on idle while the user works through the
+    // identifier/password steps, so a later FACE step is a cache hit (no frozen
+    // 47 MB-on-submit download). Skipped when framed (the frame-bust below
+    // navigates the top window away — no FACE step renders here). Cleanup cancels
+    // a still-pending idle schedule on unmount.
+    useEffect(() => {
+        if (isFramed) return
+        return scheduleFacenetPrefetch()
+    }, [isFramed])
 
     // Frame-bust redirect (B9): runs as an effect so hook order stays stable
     // regardless of whether the page happens to be framed. The early render
