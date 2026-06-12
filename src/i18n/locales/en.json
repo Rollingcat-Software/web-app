@@ -2302,6 +2302,18 @@
         "description": "Show the answer to a small arithmetic prompt (e.g. 2+3) by raising fingers.",
         "hint": "Solve the prompt in your head, then hold up that many fingers — palm facing the camera."
       }
+    },
+    "builder": {
+      "layerLabel": "Puzzle Liveness Layer",
+      "challengeTypesLabel": "Allowed Challenge Types",
+      "countLabel": "Challenges per session",
+      "difficultyLabel": "Difficulty",
+      "difficultyEasy": "Easy",
+      "difficultyMedium": "Medium",
+      "difficultyHard": "Hard",
+      "identityBinding": "Also verify face identity",
+      "identityBindingHint": "The puzzle step will also confirm the user matches their enrolled face embedding.",
+      "lowerAssuranceWarning": "Lower assurance: liveness only — face identity is not verified in this step."
     }
   },
   "face_demo": {

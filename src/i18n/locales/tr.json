@@ -2302,6 +2302,18 @@
         "description": "Küçük bir aritmetik sorunun cevabını (örneğin 2+3) parmak kaldırarak gösterin.",
         "hint": "İşlemi zihninizde çözün, ardından sonucu kadar parmağınızı kaldırın — avuç içiniz kameraya dönük olsun."
       }
+    },
+    "builder": {
+      "layerLabel": "Bulmaca Canlılık Katmanı",
+      "challengeTypesLabel": "İzin Verilen Meydan Okuma Türleri",
+      "countLabel": "Oturum başına meydan okuma sayısı",
+      "difficultyLabel": "Zorluk",
+      "difficultyEasy": "Kolay",
+      "difficultyMedium": "Orta",
+      "difficultyHard": "Zor",
+      "identityBinding": "Yüz kimliğini de doğrula",
+      "identityBindingHint": "Bulmaca adımı, kullanıcının kayıtlı yüz gömüsüyle eşleştiğini de onaylayacaktır.",
+      "lowerAssuranceWarning": "Düşük güvence: yalnızca canlılık — bu adımda yüz kimliği doğrulanmaz."
     }
   },
   "face_demo": {
