@@ -1700,7 +1700,8 @@
       "reRecord": "Re-record",
       "submit": "Submit",
       "noVoiceDetected": "No voice detected. Please speak clearly and try again.",
-      "noSpeechDetected": "No speech detected. Please try again and speak clearly."
+      "noSpeechDetected": "No speech detected. Please try again and speak clearly.",
+      "preparingSecure": "Preparing secure verification…"
     },
     "fingerprint": {
       "title": "Device Authentication",

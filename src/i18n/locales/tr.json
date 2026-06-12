@@ -1700,7 +1700,8 @@
       "reRecord": "Tekrar Kaydet",
       "submit": "Gönder",
       "noVoiceDetected": "Ses algılanmadı. Lütfen mikrofona net bir şekilde konuşun ve tekrar deneyin.",
-      "noSpeechDetected": "Konuşma algılanamadı. Lütfen tekrar deneyin ve net konuşun."
+      "noSpeechDetected": "Konuşma algılanamadı. Lütfen tekrar deneyin ve net konuşun.",
+      "preparingSecure": "Güvenli doğrulama hazırlanıyor…"
     },
     "fingerprint": {
       "title": "Cihaz Kimlik Doğrulaması",

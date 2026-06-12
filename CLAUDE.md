@@ -202,6 +202,38 @@ unchanged and is the default + fallback. See `docs/plans/CLIENT_SIDE_ML_PLAN.md`
   data sent is a derived, non-invertible 512-d embedding, over TLS, stored encrypted
   (Fernet) — data minimization, NOT "biometric data never leaves the device".
 
+## Client-side VOICE embedding (GPU-less, audit H3, flag-gated `VITE_CLIENT_SIDE_VOICE_EMBEDDING`, default OFF)
+
+VOICE twin of the face client-embedding path. When ON, the browser computes the
+**256-d Resemblyzer speaker embedding** locally and uploads **only the vector** —
+the raw audio never leaves the device. Flag OFF (default) = byte-identical legacy
+audio upload (`{ voiceData }`).
+
+- **Module:** `src/features/biometrics/voice-embedding/` — `clientVoiceEmbeddingFlag.ts`
+  (mirrors `clientEmbeddingFlag.ts`), `voicePreprocess.ts` (WAV decode → dBFS
+  normalize → mel partials), `speakerEmbedder.ts` (`SpeakerEmbedder` ONNX class,
+  lazy `import('onnxruntime-web')`, WASM EP, reuses `embedding/modelCache.getModel`),
+  `embedCapturedVoice.ts` (orchestrator, returns `number[256] | null`, never throws),
+  `prefetchVoiceModel.ts` (mirrors `prefetchFacenetModel`, wired into `VoiceStep` mount).
+- **Integration:** `MfaStepRenderer.tsx` VOICE case — when the flag is ON, compute the
+  vector and `verifyStep(VOICE, { embedding })`; **on ANY failure FALL BACK to
+  `{ voiceData }`** (unlike FACE which hard-fails — the voice preprocessing is scaffold
+  + the server accepts either when its flag is ON, so a gap must never block login).
+- **Model delivery:** the FP32 `resemblyzer-<sha256>.onnx` (~5.7 MB) must be hosted at
+  `app.fivucsas.com/models/` and fetched at RUNTIME only when ON. Do **NOT** add it to
+  `public/models/manifest.json` (a build-prefetch entry FATALs `fetch-models`/deploy —
+  the exact facenet failure). INT8 rejected (onnxruntime-web WASM lacks quant ops); FP32 ships.
+- **⚠️ SCAFFOLD — NOT parity-validated.** The ONNX export + inference are EXACT
+  (torch↔ONNX cosine 1.0), but the JS preprocessing does NOT reproduce Resemblyzer's
+  WebRTC-VAD silence trim (no bit-exact JS port) and uses a librosa-APPROXIMATE mel.
+  Skipping the VAD shifts the embedding ≈0.11 cosine vs server — risky near the 0.65
+  threshold. **Keep this flag OFF** until the client mel+VAD are validated to parity.
+  Full contract + canary steps: biometric-processor `docs/design/VOICE_CLIENT_EMBEDDING_SPEC.md`.
+- **Ordering caveat:** flip the Identity Core `app.auth.client-side-voice-embedding` flag
+  **before** `VITE_CLIENT_SIDE_VOICE_EMBEDDING` (web-ON + identity-OFF would send an
+  embedding the server-OFF path rejects — though the renderer's fallback to `{ voiceData }`
+  softens this).
+
 ## Puzzle as a first-class auth-flow layer (feature-flagged `app.auth.puzzle-layer`, default OFF)
 
 The Biometric Puzzle is composable in the `AuthFlowBuilder` as its own LAYER (allowed
