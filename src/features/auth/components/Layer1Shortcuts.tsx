@@ -2,14 +2,18 @@
  * Layer1Shortcuts — the cross-device sign-in cluster shown on the initial
  * identity-entry screen, beside the email/password form.
  *
- * Three alternatives to typing a password here:
- *   • Passkey — discoverable WebAuthn, fully usernameless (no email typed).
- *   • Approve on another device — number-matching. The ApproveLoginPanel it
- *     opens collects the email itself, so it lives here as a peer affordance
- *     (an earlier note removed it for being "identifier-first"; since the panel
- *     self-collects the email, it's fine as a Layer-1 alternative).
- *   • Sign in with your phone — cross-device QR scan-to-login. The QrLoginPanel
- *     it opens needs no identifier (the scanning phone resolves the user).
+ * Two GROUPS, deliberately separated (F4):
+ *   1. No-typing sign-in (truly usernameless — no identifier needed):
+ *      • Passkey — discoverable WebAuthn, fully usernameless.
+ *      • Sign in with your phone — cross-device QR scan-to-login; the scanning
+ *        phone resolves the user, so nothing is typed here.
+ *   2. Approve from another device — number-matching APPROVE_LOGIN. This one is
+ *      genuinely NOT usernameless (the server needs an identifier to route the
+ *      push; the backend set supports_usernameless=false in V74), so it is split
+ *      OUT of the no-typing group under its own labelled section and labelled to
+ *      make the "enter your email" step explicit, instead of sitting silently
+ *      among the no-typing shortcuts where the later email prompt felt out of
+ *      place (the F4 report).
  *
  * Approve and QR render only when the caller wires `onApproveClick`/`onQrClick`;
  * the caller gates them to the initial identity-entry phase. When no login-config
@@ -104,6 +108,7 @@ export default function Layer1Shortcuts<T = unknown>({
                 </Divider>
             )}
 
+            {/* Group 1 — no-typing sign-in (truly usernameless). */}
             <Stack spacing={1.5}>
                 {showPasskey && (
                     <PasskeyLoginButton<T>
@@ -113,27 +118,6 @@ export default function Layer1Shortcuts<T = unknown>({
                         disabled={disabled}
                         sx={passkeySx}
                     />
-                )}
-
-                {showApprove && (
-                    <Button
-                        fullWidth
-                        variant="outlined"
-                        size="large"
-                        onClick={onApproveClick}
-                        disabled={disabled}
-                        startIcon={<PhonelinkLock />}
-                        sx={{
-                            py: 1.5,
-                            borderRadius: '12px',
-                            fontSize: '0.95rem',
-                            fontWeight: 600,
-                            textTransform: 'none',
-                            ...passkeySx,
-                        }}
-                    >
-                        {t('approveLogin.button')}
-                    </Button>
                 )}
 
                 {showQr && (
@@ -157,6 +141,39 @@ export default function Layer1Shortcuts<T = unknown>({
                     </Button>
                 )}
             </Stack>
+
+            {/* Group 2 — approve from another device (needs your email). Split out
+                under its own labelled section so the later email prompt is expected,
+                not a surprise among the no-typing shortcuts (F4). */}
+            {showApprove && (
+                <Stack spacing={0.75} sx={{ mt: 1.5 }}>
+                    <Typography
+                        variant="caption"
+                        color="text.secondary"
+                        sx={{ textAlign: 'center' }}
+                    >
+                        {t('approveLogin.sectionLabel')}
+                    </Typography>
+                    <Button
+                        fullWidth
+                        variant="outlined"
+                        size="large"
+                        onClick={onApproveClick}
+                        disabled={disabled}
+                        startIcon={<PhonelinkLock />}
+                        sx={{
+                            py: 1.5,
+                            borderRadius: '12px',
+                            fontSize: '0.95rem',
+                            fontWeight: 600,
+                            textTransform: 'none',
+                            ...passkeySx,
+                        }}
+                    >
+                        {t('approveLogin.buttonWithEmail')}
+                    </Button>
+                </Stack>
+            )}
         </>
     )
 }

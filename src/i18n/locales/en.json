@@ -2515,6 +2515,8 @@
   },
   "approveLogin": {
     "button": "Approve on another device",
+    "buttonWithEmail": "Approve from another device — enter your email",
+    "sectionLabel": "Approve from another device",
     "buttonHint": "Confirm this sign-in from a device where you're already signed in",
     "emailLabel": "Email",
     "emailPlaceholder": "you@example.com",
