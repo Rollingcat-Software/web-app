@@ -1776,7 +1776,8 @@
       "preparing": "Preparing your challenges…",
       "sessionError": "Could not start the liveness puzzle. Please try again.",
       "challengeFailed": "The challenge could not be verified. Please try again.",
-      "unsupportedChallenge": "This challenge is not supported on this device. Please try another sign-in method."
+      "unsupportedChallenge": "This challenge is not supported on this device. Please try another sign-in method.",
+      "identityCaptureFailed": "We could not capture a clear, front-facing frame to confirm your identity. Please face the camera directly and try again."
     },
     "errors": {
       "networkError": "Network error. Please check your connection and try again.",

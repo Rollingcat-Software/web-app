@@ -19,6 +19,7 @@
  */
 import type { ComponentType } from 'react'
 import type { SvgIconComponent } from '@mui/icons-material'
+import type { NormalizedLandmark } from '@/lib/biometric-engine/types'
 import {
     BackHand,
     Calculate,
@@ -68,6 +69,20 @@ export interface BiometricPuzzleProps {
      * rollout soft-pass. Only the PUZZLE auth step passes `'auth'`.
      */
     serverMode?: 'auth' | 'training'
+    /**
+     * OPTIONAL best-frame hook for PUZZLE identity-binding (SP-B Phase 4/5).
+     *
+     * When provided AND the gesture completes on a FRONTAL (yaw≈0, pitch≈0),
+     * quality-gated frame, the FACE puzzle grabs ONE best still + its 478-pt
+     * landmarks and invokes this callback ONCE. The caller (PuzzleStep) feeds the
+     * crop to SP-A's `embedCapturedFace` to derive a 512-d embedding from the SAME
+     * live session frame — identity + liveness from a single capture (spec §3.1).
+     *
+     * Additive + non-regressive: when ABSENT (the `/biometric-puzzles` training
+     * surface), NO capture path runs at all — the surface is byte-identical. Hand
+     * puzzles ignore this prop (no face frame to embed).
+     */
+    onBestFrame?: (image: string, landmarks: NormalizedLandmark[]) => void
 }
 
 export type BiometricPuzzlePlatform = 'web' | 'android' | 'ios' | 'desktop'

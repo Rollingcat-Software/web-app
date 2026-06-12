@@ -29,10 +29,19 @@
  * includes it. The standalone `/biometric-puzzles` training surface is untouched
  * (it uses `serverMode='training'`; this step uses the session proxy directly).
  *
- * alsoMatchFaceIdentity (Phase 5) is intentionally not wired in this phase —
- * liveness-only for now.
+ * Identity-binding (alsoMatchFaceIdentity, SP-B Phase 5) — DOUBLE-gated by the
+ * tenant config `puzzleConfig.alsoMatchFaceIdentity` AND SP-A's build flag
+ * `isClientSideEmbeddingEnabled()` (`app.auth.client-side-embedding`). When BOTH
+ * are on, the step threads an `onBestFrame` into the live FacePuzzle; on the
+ * captured (image, landmarks) it reuses SP-A's `embedCapturedFace` to derive a
+ * 512-float vector from the SAME live-session frame (identity + liveness from one
+ * capture — spec §3.1) and submits `verifyStep(PUZZLE, { puzzle_session_id,
+ * embedding })`. The RAW image never enters the payload — only the vector. If
+ * binding is required but no embedding could be produced, the step FAILS CLOSED
+ * (no submit); the server also fail-closes. Binding OFF / flag OFF = liveness-only
+ * (`{ puzzle_session_id }`), byte-identical to CV-3.
  */
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material'
 import { Replay } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
@@ -48,6 +57,10 @@ import {
     usePuzzleSessionClient,
     type IssuedChallenge,
 } from '@features/biometric-puzzles/usePuzzleSessionClient'
+import type { PuzzleConfig } from '@domain/models/AuthMethod'
+import type { NormalizedLandmark } from '@/lib/biometric-engine/types'
+import { isClientSideEmbeddingEnabled } from '@features/biometrics/embedding/clientEmbeddingFlag'
+import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedFace'
 import StepLayout from '../../components/steps/StepLayout'
 
 export interface PuzzleStepProps {
@@ -56,6 +69,12 @@ export interface PuzzleStepProps {
     verifyStep: (methodType: string, data: Record<string, unknown>) => void
     loading: boolean
     error?: string
+    /**
+     * Tenant-authored PUZZLE layer config. The challenge LIST is server-issued
+     * (CV-3), so only `alsoMatchFaceIdentity` is read here — to decide whether to
+     * bind identity (embedding) to the liveness session. Absent → liveness-only.
+     */
+    puzzleConfig?: PuzzleConfig
 }
 
 /** Lifecycle of the server-issued session as the step drives it. */
@@ -66,9 +85,20 @@ export default function PuzzleStep({
     verifyStep,
     loading,
     error,
+    puzzleConfig,
 }: PuzzleStepProps) {
     const { t } = useTranslation()
     const { createSession, submitChallenge } = usePuzzleSessionClient()
+
+    // ── Identity-binding double-gate ──────────────────────────────────────
+    // Bind identity only when the tenant turned it ON AND SP-A's client-side
+    // embedding build flag is ON. Either off → liveness-only (CV-3 unchanged).
+    const bindingEnabled = useMemo(
+        () =>
+            puzzleConfig?.alsoMatchFaceIdentity === true &&
+            isClientSideEmbeddingEnabled(),
+        [puzzleConfig],
+    )
 
     const [phase, setPhase] = useState<SessionPhase>('creating')
     const [sessionId, setSessionId] = useState<string | null>(null)
@@ -79,6 +109,14 @@ export default function PuzzleStep({
     const createdRef = useRef(false)
     /** Guards a double verdict submit once all challenges complete. */
     const submittedRef = useRef(false)
+    /**
+     * Latest identity embedding (number[512]) derived from the live FacePuzzle's
+     * best frontal frame, when binding is on. Held in a ref so it survives across
+     * challenges (a frontal capture in ANY challenge feeds the final verdict) and
+     * is read synchronously at verdict time. The RAW image is intentionally NOT
+     * retained — only the computed vector.
+     */
+    const embeddingRef = useRef<number[] | null>(null)
 
     // ── 1. CREATE the server-issued session on mount ──────────────────────
     useEffect(() => {
@@ -116,15 +154,57 @@ export default function PuzzleStep({
     const entry = puzzleId ? getBiometricPuzzle(puzzleId) : null
     const ChallengeComponent = entry?.component ?? null
 
+    // ── Phase 5: derive the identity embedding from the live best frame ───
+    // Reuses SP-A's `embedCapturedFace` (align → preprocess → embed → number[512]
+    // | null). Only wired when binding is on. The raw image is consumed here and
+    // never stored — only the resulting vector is kept.
+    const handleBestFrame = useCallback(
+        (image: string, landmarks: NormalizedLandmark[]) => {
+            if (!bindingEnabled) return
+            embedCapturedFace(image, landmarks)
+                .then((vec) => {
+                    if (vec) embeddingRef.current = vec
+                })
+                .catch(() => {
+                    // Resilient: a failed embed leaves embeddingRef null → the
+                    // verdict path fails closed rather than submitting without it.
+                })
+        },
+        [bindingEnabled],
+    )
+
     // ── 3. Submit the auth gate once every challenge is server-validated ───
     const submitVerdict = useCallback(() => {
         if (submittedRef.current || !sessionId) return
+
+        if (bindingEnabled) {
+            // Identity-binding REQUIRED: a binding step must carry the live-frame
+            // embedding. No vector (never frontal / capture or embed failed) →
+            // FAIL CLOSED: do NOT submit a binding step without identity evidence
+            // (the server also fail-closes). Surface an error, no verdict.
+            const embedding = embeddingRef.current
+            if (!embedding) {
+                setPhase('error')
+                setChallengeError(t('mfa.puzzle.identityCaptureFailed'))
+                return
+            }
+            submittedRef.current = true
+            setPhase('completing')
+            // Opaque session id (liveness authority) + the 512-d identity vector.
+            // NEVER the raw image — only the derived embedding leaves the device.
+            verifyStep(AuthMethodType.PUZZLE, {
+                puzzle_session_id: sessionId,
+                embedding,
+            })
+            return
+        }
+
         submittedRef.current = true
         setPhase('completing')
-        // The ONLY thing submitted as the step verdict: the opaque session id.
+        // Liveness-only: the ONLY thing submitted is the opaque session id.
         // No metrics, no verdicts — bio is the authority (owner-bound, single-use).
         verifyStep(AuthMethodType.PUZZLE, { puzzle_session_id: sessionId })
-    }, [sessionId, verifyStep])
+    }, [sessionId, verifyStep, bindingEnabled, t])
 
     // ── 2. Per-challenge completion → SUBMIT canonical metric to the session ─
     const handleSuccess = useCallback(
@@ -267,6 +347,10 @@ export default function PuzzleStep({
                     onError={handleError}
                     onClose={handleClose}
                     serverMode="auth"
+                    // Identity-binding: thread the best-frame hook ONLY when the
+                    // double-gate is on. Off → undefined → no capture (FacePuzzle
+                    // is byte-identical, hand puzzles ignore it).
+                    onBestFrame={bindingEnabled ? handleBestFrame : undefined}
                 />
             )}
 

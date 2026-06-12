@@ -114,6 +114,7 @@ export default function MfaStepRenderer({
     error,
     onError,
     presetEmail,
+    puzzleConfig,
 }: MfaStepRendererProps) {
     const { t } = useTranslation()
 
@@ -300,14 +301,19 @@ export default function MfaStepRenderer({
         case AuthMethodType.PUZZLE:
             // CV-3: PuzzleStep drives the SERVER-ISSUED puzzle session. It needs
             // the in-progress MFA session token to authorize the CREATE/SUBMIT
-            // proxy calls; the challenges come from the server (flow config), not
-            // the client `puzzleConfig` (which is now unused by the step).
+            // proxy calls; the challenge LIST comes from the server (flow config),
+            // not the client `puzzleConfig`. The config IS still threaded through
+            // for ONE thing — `alsoMatchFaceIdentity` (SP-B Phase 5): when the
+            // tenant turned identity-binding ON (and the client-embedding flag is
+            // on), PuzzleStep grabs a frontal best frame from the live session and
+            // submits its 512-d embedding alongside the session id.
             return (
                 <PuzzleStep
                     mfaSessionToken={mfaSessionToken}
                     verifyStep={verifyStep}
                     loading={loading}
                     error={error}
+                    puzzleConfig={puzzleConfig}
                 />
             )
 
