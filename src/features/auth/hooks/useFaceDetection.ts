@@ -55,6 +55,18 @@ const INITIAL_STATE: FaceDetectionState = {
 /** Yaw threshold (degrees) beyond which the user is prompted to look straight. */
 const YAW_STRAIGHT_THRESHOLD = 25
 
+/**
+ * Minimum gap between detection inferences (ms). The detection loops are driven
+ * by requestAnimationFrame (~60fps on most displays), but running synchronous ML
+ * inference on every frame on the MAIN thread caused `[Violation] rAF handler
+ * took <N>ms` warnings + visible jank during the face step (F10). Capping to
+ * ~18fps (55ms) keeps the rAF cadence (so cancellation/cleanup is unchanged) but
+ * SKIPS inference on intervening frames — detection/centering/`captureReady` are
+ * unaffected (a face is detected within ~1 frame either way), the loop just does
+ * less main-thread work. Low-risk alternative to a Web Worker / OffscreenCanvas.
+ */
+const MIN_DETECT_INTERVAL_MS = 55
+
 export function useFaceDetection(
     videoRef: React.RefObject<HTMLVideoElement | null>,
     active: boolean,
@@ -63,6 +75,9 @@ export function useFaceDetection(
     // --- MediaPipe FaceDetector fallback state ---
     const mpDetectorRef = useRef<FaceDetector | null>(null)
     const animFrameRef = useRef<number>(0)
+    // Timestamp of the last inference, used to cap detection to ~18fps (skip
+    // inference on intervening rAF frames) — see MIN_DETECT_INTERVAL_MS (F10).
+    const lastDetectTsRef = useRef<number>(0)
     const [state, setState] = useState<FaceDetectionState>(INITIAL_STATE)
     const [initialized, setInitialized] = useState(false)
     const [initFailed, setInitFailed] = useState(false)
@@ -199,6 +214,15 @@ export function useFaceDetection(
             return
         }
 
+        // Rate-cap: skip inference on frames that arrive sooner than the cap, so
+        // the heavy ML work runs ~18fps instead of every rAF (~60fps) — F10.
+        const nowTs = performance.now()
+        if (nowTs - lastDetectTsRef.current < MIN_DETECT_INTERVAL_MS) {
+            animFrameRef.current = requestAnimationFrame(detectWithFaceLandmarker)
+            return
+        }
+        lastDetectTsRef.current = nowTs
+
         try {
             const engine = BiometricEngine.getInstance()
             const faceDetector = engine.faceDetector
@@ -312,6 +336,14 @@ export function useFaceDetection(
             return
         }
 
+        // Rate-cap: skip inference on frames sooner than the cap (~18fps) — F10.
+        const nowTs = performance.now()
+        if (nowTs - lastDetectTsRef.current < MIN_DETECT_INTERVAL_MS) {
+            animFrameRef.current = requestAnimationFrame(detectWithBlazeFace)
+            return
+        }
+        lastDetectTsRef.current = nowTs
+
         try {
             const result = await blazeFace.detect(video)
             if (!result || !result.detected || result.faces.length === 0) {
@@ -376,6 +408,14 @@ export function useFaceDetection(
             animFrameRef.current = requestAnimationFrame(detectWithMediaPipe)
             return
         }
+
+        // Rate-cap: skip inference on frames sooner than the cap (~18fps) — F10.
+        const nowTs = performance.now()
+        if (nowTs - lastDetectTsRef.current < MIN_DETECT_INTERVAL_MS) {
+            animFrameRef.current = requestAnimationFrame(detectWithMediaPipe)
+            return
+        }
+        lastDetectTsRef.current = nowTs
 
         try {
             const t0 = performance.now()
@@ -453,6 +493,9 @@ export function useFaceDetection(
         if (!active || !initialized) return
 
         perfLogCountRef.current = 0
+        // Run the first frame immediately when the loop (re)starts; the rate-cap
+        // only throttles subsequent frames.
+        lastDetectTsRef.current = 0
 
         if (backend === 'mediapipe-landmarker') {
             animFrameRef.current = requestAnimationFrame(detectWithFaceLandmarker)
