@@ -40,9 +40,53 @@ import {
     BiometricPuzzle as BiometricPuzzleEngine,
 } from '@/lib/biometric-engine/core/BiometricPuzzle'
 import { ChallengeType } from '@/lib/biometric-engine/types'
+import type { FaceMetrics, HeadPose } from '@/lib/biometric-engine/types'
 import type { BiometricPuzzleProps } from '../biometricPuzzleRegistry'
 import { useBiometricPuzzleServer } from '../useBiometricPuzzleServer'
 import { faceChallengeToServerAction } from '../puzzleServerAction'
+
+/**
+ * Compute the CANONICAL bio metric scalar for a face challenge from the engine's
+ * last per-frame `FaceMetrics` + `HeadPose`. The key in the returned record is
+ * exactly bio's `ACTION_METRIC_KEY[action]` (see challenge_metric_scorer.py), so
+ * the server-authoritative PUZZLE step can SUBMIT it on the metric-REQUIRED path.
+ * Returns null when the engine produced no usable scalar for the gesture (the
+ * caller then flags a metric gap and fails closed in auth mode).
+ *
+ * NOTE: nod/shake's canonical key is `oscillation_count`, which the engine does
+ * NOT expose (NodDetector/ShakeHeadDetector gate on pitch/yaw RANGE, not a
+ * reversal count). They return null here — a flagged vocabulary/metric gap.
+ */
+function canonicalFaceMetric(
+    challengeType: ChallengeType,
+    metrics: FaceMetrics | null,
+    headPose: HeadPose | null,
+): Record<string, number> | null {
+    switch (challengeType) {
+        case ChallengeType.BLINK:
+        case ChallengeType.CLOSE_LEFT:
+        case ChallengeType.CLOSE_RIGHT:
+            return metrics ? { ear: metrics.eyes.avgEAR } : null
+        case ChallengeType.SMILE:
+        case ChallengeType.OPEN_MOUTH:
+            return metrics ? { mar: metrics.mouth.mar } : null
+        case ChallengeType.RAISE_BOTH_BROWS:
+            return metrics ? { brow_raise: metrics.eyebrows.bothRatio } : null
+        case ChallengeType.RAISE_LEFT_BROW:
+            return metrics ? { brow_raise: metrics.eyebrows.leftRatio } : null
+        case ChallengeType.RAISE_RIGHT_BROW:
+            return metrics ? { brow_raise: metrics.eyebrows.rightRatio } : null
+        case ChallengeType.TURN_LEFT:
+        case ChallengeType.TURN_RIGHT:
+            return headPose ? { yaw: headPose.yaw } : null
+        case ChallengeType.LOOK_UP:
+        case ChallengeType.LOOK_DOWN:
+            return headPose ? { pitch: headPose.pitch } : null
+        // NOD / SHAKE_HEAD: no `oscillation_count` scalar from the engine — gap.
+        default:
+            return null
+    }
+}
 
 // Lazily import DrawingUtils + FaceLandmarker statics from MediaPipe so the
 // puzzle bundle can render the 468-point mesh + named contours over the
@@ -89,6 +133,13 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
      * arrives (treated as not-yet-live, i.e. fail-closed at completion).
      */
     const lastLiveRef = useRef<boolean | null>(null)
+    /**
+     * Last per-frame face metrics + head pose, captured so the completion path
+     * can derive the CANONICAL bio metric scalar for the gesture (EAR/MAR/brow/
+     * yaw/pitch) and SUBMIT it to the server puzzle session (CV-3).
+     */
+    const lastMetricsRef = useRef<FaceMetrics | null>(null)
+    const lastHeadPoseRef = useRef<HeadPose | null>(null)
 
     // Independent puzzle instance pinned to this challenge type. Sharing the
     // engine's metricsCalculator keeps internal state (eyebrow baseline) in
@@ -309,6 +360,10 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                     if (face.liveness) {
                         lastLiveRef.current = face.liveness.isLive
                     }
+                    // Capture the latest metrics + head pose so the completion
+                    // path can derive the canonical bio metric for the gesture.
+                    if (face.metrics) lastMetricsRef.current = face.metrics
+                    if (face.headPose) lastHeadPoseRef.current = face.headPose
                     const result = puzzle.checkChallenge(
                         face.detection.landmarks478,
                         face.headPose.yaw,
@@ -352,14 +407,24 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                             return
                         }
                         const endTs = performance.now()
+                        // Canonical bio metric for the gesture (EAR/MAR/brow/
+                        // yaw/pitch), derived from the engine's last frame.
+                        const canonicalMetric = canonicalFaceMetric(
+                            challengeType,
+                            lastMetricsRef.current,
+                            lastHeadPoseRef.current,
+                        )
+                        const confidence = result.detected ? 0.9 : 0.5
                         setServerVerifying(true)
                         verifyChallenge(
                             {
                                 action: serverAction,
                                 startTimestampMs: startTsRef.current,
                                 endTimestampMs: endTs,
-                                confidence: result.detected ? 0.9 : 0.5,
-                                metrics: { progress: result.progress },
+                                confidence,
+                                // The training proxy ignores the key; the canonical
+                                // metric is what the auth session SUBMIT needs.
+                                metrics: canonicalMetric ?? { progress: result.progress },
                             },
                             t,
                             serverMode,
@@ -371,12 +436,20 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                                         action: outcome.action,
                                         verified: true,
                                         durationSeconds: outcome.durationSeconds,
+                                        metrics: canonicalMetric ?? undefined,
+                                        startTimestampMs: startTsRef.current,
+                                        endTimestampMs: endTs,
+                                        confidence,
                                     })
                                 } else if (outcome.kind === 'soft_pass') {
                                     onSuccess({
                                         action: serverAction,
                                         verified: false,
                                         softPassReason: outcome.reason,
+                                        metrics: canonicalMetric ?? undefined,
+                                        startTimestampMs: startTsRef.current,
+                                        endTimestampMs: endTs,
+                                        confidence,
                                     })
                                 } else {
                                     onError(outcome.message)

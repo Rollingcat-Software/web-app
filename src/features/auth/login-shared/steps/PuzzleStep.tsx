@@ -1,132 +1,189 @@
 /**
- * PuzzleStep — PUZZLE auth-method MFA step (Phase 3, 2026-06-12)
+ * PuzzleStep — PUZZLE auth-method MFA step (CV-3, 2026-06-12)
  *
- * Drives a sequential challenge session from a tenant-configured PuzzleConfig.
- * Runs challenges one by one using the biometric puzzle registry, each in
- * server `serverMode='auth'` so a 404/non-2xx per-challenge re-score FAILS the
- * challenge (no soft-pass) — the fail-closed contract from 3.2.
+ * SERVER-AUTHORITATIVE, anti-replay puzzle SESSION. This rewrite CONVERGES the
+ * SP-B Phase-3 interim (client-attested `server_verdicts[]`) onto the
+ * server-issued session model (CV-1 bio + CV-2 identity). The interim model is
+ * REMOVED: the step no longer forwards any per-challenge verdicts the server has
+ * to trust — bio is the sole scoring authority and the browser carries only an
+ * opaque `session_id`.
  *
- * Server-authoritative: the step does NOT submit a client "I passed" boolean.
- * It forwards the per-challenge SERVER verdicts returned by the auth-mode
- * re-score (`{ action, verified, durationSeconds }`) so the identity handler
- * re-confirms with bio rather than trusting the client. The submitted payload
- * is `verifyStep(PUZZLE, { puzzle_session_id?, server_verdicts: [...] })`.
+ * Flow:
+ *   1. On mount, CREATE a session via the identity MFA proxy
+ *      (`POST /auth/mfa/puzzle/session`, authorized by the in-progress MFA
+ *      `sessionToken` this step receives). bio randomly selects the challenges
+ *      from the server-side flow config — the web drives EXACTLY those issued
+ *      challenges in order, NOT the client `puzzleConfig`.
+ *   2. For each issued challenge, render the matching web puzzle component
+ *      (action → BiometricPuzzleId via the registry reverse map). When the user
+ *      completes it, SUBMIT the canonical metric to
+ *      `POST /auth/mfa/puzzle/session/{id}/challenge`. The SUBMIT `{verified}`
+ *      drives per-challenge UX — fail-CLOSED: a false/non-2xx surfaces an error
+ *      and does NOT advance (no soft-pass in this server-authoritative model).
+ *   3. On all challenges complete, submit the auth gate:
+ *      `verifyStep(PUZZLE, { puzzle_session_id })`. The handler asks bio for the
+ *      authoritative verdict (owner-bound, single-use). The client sends ONLY
+ *      the session id — no metrics, no verdicts.
  *
- * SERVER-SESSION GAP (flagged): the current bio proxy
- * (`/biometric/puzzles/verify-challenge`) is STATELESS and issues no
- * server-side session id, so `puzzle_session_id` is absent today. Per-challenge
- * verdicts are the strongest evidence available. A server-issued-session
- * contract is needed for full anti-replay binding — the identity handler is
- * being built to expect server evidence and should treat a missing
- * `puzzle_session_id` as the known interim state, not silently trust the
- * verdicts as a bound session. See useBiometricPuzzleServer PuzzleServerVerdict.
+ * Flag-gated + additive: the PUZZLE method only renders when the tenant's flow
+ * includes it. The standalone `/biometric-puzzles` training surface is untouched
+ * (it uses `serverMode='training'`; this step uses the session proxy directly).
  *
  * alsoMatchFaceIdentity (Phase 5) is intentionally not wired in this phase —
  * liveness-only for now.
  */
-import { useCallback, useRef, useState } from 'react'
-import { Alert, Box, Button, Typography } from '@mui/material'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material'
 import { Replay } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
 import { AuthMethodType } from '@features/auth/constants'
-import {
-    getBiometricPuzzle,
-} from '@features/biometric-puzzles/biometricPuzzleRegistry'
+import { getBiometricPuzzle } from '@features/biometric-puzzles/biometricPuzzleRegistry'
 import { BiometricPuzzleId } from '@features/biometric-puzzles/BiometricPuzzleId'
+import {
+    serverActionToPuzzleId,
+    metricKeyForAction,
+} from '@features/biometric-puzzles/puzzleServerAction'
 import type { PuzzleServerVerdict } from '@features/biometric-puzzles/useBiometricPuzzleServer'
-import type { PuzzleConfig } from '@domain/models/AuthMethod'
+import {
+    usePuzzleSessionClient,
+    type IssuedChallenge,
+} from '@features/biometric-puzzles/usePuzzleSessionClient'
 import StepLayout from '../../components/steps/StepLayout'
 
-/** Resolve a string to BiometricPuzzleId when it is a valid member. */
-function toValidPuzzleId(value: string): BiometricPuzzleId | null {
-    return Object.values(BiometricPuzzleId).includes(value as BiometricPuzzleId)
-        ? (value as BiometricPuzzleId)
-        : null
-}
-
 export interface PuzzleStepProps {
-    puzzleConfig: PuzzleConfig | undefined
+    /** In-progress MFA session token — authorizes the puzzle-session proxy. */
+    mfaSessionToken: string
     verifyStep: (methodType: string, data: Record<string, unknown>) => void
     loading: boolean
     error?: string
 }
 
-/**
- * Per-challenge evidence forwarded to the identity handler. Combines the local
- * challenge identity (which BiometricPuzzleId ran) with the SERVER verdict from
- * the auth-mode re-score, so the handler can re-confirm against bio. `verdict`
- * is absent only for the (currently unreachable in auth) unmapped-challenge
- * path — in that case the handler must treat the challenge as unverified.
- */
-interface PuzzleChallengeEvidence {
-    challengeId: BiometricPuzzleId
-    completedAt: number
-    verdict?: PuzzleServerVerdict
-}
+/** Lifecycle of the server-issued session as the step drives it. */
+type SessionPhase = 'creating' | 'running' | 'completing' | 'error'
 
 export default function PuzzleStep({
-    puzzleConfig,
+    mfaSessionToken,
     verifyStep,
     loading,
     error,
 }: PuzzleStepProps) {
     const { t } = useTranslation()
+    const { createSession, submitChallenge } = usePuzzleSessionClient()
 
-    // Resolve the ordered challenge list from config on first render.
-    const challengeIds = useRef<BiometricPuzzleId[]>(
-        (() => {
-            if (!puzzleConfig) return []
-            const valid = puzzleConfig.allowedChallengeTypes
-                .map(toValidPuzzleId)
-                .filter((id): id is BiometricPuzzleId => id !== null && !!getBiometricPuzzle(id))
-            const count = Math.min(puzzleConfig.count, valid.length)
-            return valid.slice(0, count)
-        })(),
-    )
-
+    const [phase, setPhase] = useState<SessionPhase>('creating')
+    const [sessionId, setSessionId] = useState<string | null>(null)
+    const [challenges, setChallenges] = useState<IssuedChallenge[]>([])
     const [currentIndex, setCurrentIndex] = useState(0)
-    const [evidence, setEvidence] = useState<PuzzleChallengeEvidence[]>([])
     const [challengeError, setChallengeError] = useState<string | null>(null)
-    const [completing, setCompleting] = useState(false)
+    /** Guards a double CREATE under React 18 StrictMode double-invoke. */
+    const createdRef = useRef(false)
+    /** Guards a double verdict submit once all challenges complete. */
+    const submittedRef = useRef(false)
 
-    const ids = challengeIds.current
-    const total = ids.length
-    const currentId = ids[currentIndex] ?? null
+    // ── 1. CREATE the server-issued session on mount ──────────────────────
+    useEffect(() => {
+        if (createdRef.current) return
+        createdRef.current = true
+        let cancelled = false
+        ;(async () => {
+            try {
+                const result = await createSession(mfaSessionToken)
+                if (cancelled) return
+                if (!result.challenges.length) {
+                    setPhase('error')
+                    setChallengeError(t('mfa.puzzle.noChallenges'))
+                    return
+                }
+                setSessionId(result.session_id)
+                setChallenges(result.challenges)
+                setPhase('running')
+            } catch {
+                if (cancelled) return
+                setPhase('error')
+                setChallengeError(t('mfa.puzzle.sessionError'))
+            }
+        })()
+        return () => {
+            cancelled = true
+        }
+    }, [createSession, mfaSessionToken, t])
 
+    const total = challenges.length
+    const issued = challenges[currentIndex] ?? null
+    const puzzleId: BiometricPuzzleId | null = issued
+        ? serverActionToPuzzleId(issued.action)
+        : null
+    const entry = puzzleId ? getBiometricPuzzle(puzzleId) : null
+    const ChallengeComponent = entry?.component ?? null
+
+    // ── 3. Submit the auth gate once every challenge is server-validated ───
+    const submitVerdict = useCallback(() => {
+        if (submittedRef.current || !sessionId) return
+        submittedRef.current = true
+        setPhase('completing')
+        // The ONLY thing submitted as the step verdict: the opaque session id.
+        // No metrics, no verdicts — bio is the authority (owner-bound, single-use).
+        verifyStep(AuthMethodType.PUZZLE, { puzzle_session_id: sessionId })
+    }, [sessionId, verifyStep])
+
+    // ── 2. Per-challenge completion → SUBMIT canonical metric to the session ─
     const handleSuccess = useCallback(
         (verdict?: PuzzleServerVerdict) => {
             setChallengeError(null)
-            const item: PuzzleChallengeEvidence = {
-                challengeId: currentId!,
-                completedAt: Date.now(),
-                verdict,
-            }
-            const nextEvidence = [...evidence, item]
-            const nextIndex = currentIndex + 1
+            if (!sessionId || !issued) return
 
-            if (nextIndex >= total) {
-                // All challenges done — submit the SERVER evidence, not a client
-                // boolean. `puzzle_session_id` is omitted while the bio proxy is
-                // stateless (flagged gap); `server_verdicts` carries the bio
-                // re-score attestations so the handler re-confirms server-side.
-                setCompleting(true)
-                setEvidence(nextEvidence)
-                verifyStep(AuthMethodType.PUZZLE, {
-                    server_verdicts: nextEvidence.map((ev) => ({
-                        challengeId: ev.challengeId,
-                        completedAt: ev.completedAt,
-                        action: ev.verdict?.action,
-                        verified: ev.verdict?.verified ?? false,
-                        durationSeconds: ev.verdict?.durationSeconds,
-                        softPassReason: ev.verdict?.softPassReason,
-                    })),
-                })
-            } else {
-                setEvidence(nextEvidence)
-                setCurrentIndex(nextIndex)
+            const action = issued.action
+            const metricKey = metricKeyForAction(action)
+            const metricValue =
+                metricKey != null ? verdict?.metrics?.[metricKey] : undefined
+
+            // The web component could not produce bio's canonical metric for this
+            // action (vocabulary/metric gap) — fail closed rather than submit an
+            // empty payload bio would reject as METRIC_REQUIRED.
+            if (metricKey == null || metricValue == null) {
+                setPhase('error')
+                setChallengeError(t('mfa.puzzle.challengeFailed'))
+                return
             }
+
+            const now = performance.now()
+            submitChallenge(mfaSessionToken, sessionId, {
+                action,
+                metrics: { [metricKey]: metricValue },
+                startTimestampMs: verdict?.startTimestampMs ?? now - 1,
+                endTimestampMs: verdict?.endTimestampMs ?? now,
+                confidence: verdict?.confidence ?? 0.9,
+            })
+                .then((res) => {
+                    // Server-authoritative: only advance on a true per-challenge
+                    // verdict. A false verdict is fail-closed (no soft-pass).
+                    if (!res.verified) {
+                        setPhase('error')
+                        setChallengeError(t('mfa.puzzle.challengeFailed'))
+                        return
+                    }
+                    const nextIndex = currentIndex + 1
+                    if (nextIndex >= total) {
+                        submitVerdict()
+                    } else {
+                        setCurrentIndex(nextIndex)
+                    }
+                })
+                .catch(() => {
+                    setPhase('error')
+                    setChallengeError(t('mfa.puzzle.challengeFailed'))
+                })
         },
-        [currentId, currentIndex, total, evidence, verifyStep],
+        [
+            sessionId,
+            issued,
+            mfaSessionToken,
+            submitChallenge,
+            currentIndex,
+            total,
+            submitVerdict,
+            t,
+        ],
     )
 
     const handleError = useCallback((message: string) => {
@@ -141,24 +198,49 @@ export default function PuzzleStep({
         setChallengeError(null)
     }, [])
 
-    // No challenges configured.
-    if (total === 0) {
+    const aggregatedError = error ?? challengeError
+
+    // ── Render ────────────────────────────────────────────────────────────
+
+    // CREATE in flight.
+    if (phase === 'creating') {
         return (
             <StepLayout
                 title={t('mfa.puzzle.title')}
                 subtitle={t('mfa.puzzle.subtitle')}
             >
-                <Alert severity="warning" sx={{ borderRadius: '12px', mt: 1 }}>
-                    {t('mfa.puzzle.noChallenges')}
-                </Alert>
+                <Box sx={{ textAlign: 'center', py: 3 }}>
+                    <CircularProgress size={28} />
+                    <Typography
+                        variant="body2"
+                        color="text.secondary"
+                        sx={{ mt: 1.5 }}
+                    >
+                        {t('mfa.puzzle.preparing')}
+                    </Typography>
+                </Box>
             </StepLayout>
         )
     }
 
-    const entry = currentId ? getBiometricPuzzle(currentId) : null
-    const ChallengeComponent = entry?.component ?? null
-
-    const aggregatedError = error ?? challengeError
+    // Hard error (session create failed, unrenderable/un-metric'd action, or a
+    // failed per-challenge submit) — fail-closed, offer a retry that re-mounts.
+    if (phase === 'error' || (phase === 'running' && !ChallengeComponent)) {
+        const message =
+            phase === 'running' && !ChallengeComponent
+                ? t('mfa.puzzle.unsupportedChallenge')
+                : (aggregatedError ?? t('mfa.puzzle.sessionError'))
+        return (
+            <StepLayout
+                title={t('mfa.puzzle.title')}
+                subtitle={t('mfa.puzzle.subtitle')}
+            >
+                <Alert severity="error" sx={{ borderRadius: '12px', mt: 1 }}>
+                    {message}
+                </Alert>
+            </StepLayout>
+        )
+    }
 
     return (
         <StepLayout
@@ -176,9 +258,9 @@ export default function PuzzleStep({
                 </Typography>
             </Box>
 
-            {/* Active challenge component — auth mode fails closed on a missing
-                or non-2xx server re-score (no soft-pass). */}
-            {ChallengeComponent && !completing && (
+            {/* Active server-issued challenge. serverMode='auth' keeps the
+                per-challenge UX fail-closed semantics. */}
+            {ChallengeComponent && phase === 'running' && (
                 <ChallengeComponent
                     key={currentIndex}
                     onSuccess={handleSuccess}
@@ -188,8 +270,8 @@ export default function PuzzleStep({
                 />
             )}
 
-            {/* Completing state */}
-            {completing && (
+            {/* Submitting the auth gate. */}
+            {phase === 'completing' && (
                 <Box sx={{ textAlign: 'center', py: 2 }}>
                     <Typography variant="body2" color="text.secondary">
                         {t('mfa.puzzle.completing')}
@@ -197,8 +279,8 @@ export default function PuzzleStep({
                 </Box>
             )}
 
-            {/* Retry on challenge error */}
-            {challengeError && !completing && (
+            {/* Retry on a recoverable challenge error. */}
+            {challengeError && phase === 'running' && (
                 <Box sx={{ mt: 2 }}>
                     <Button
                         variant="outlined"

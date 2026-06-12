@@ -63,3 +63,108 @@ export function handPuzzleToServerAction(
 ): PuzzleServerAction | null {
     return HAND_PUZZLE_TO_SERVER[id] ?? null
 }
+
+// ---------------------------------------------------------------------------
+// Reverse maps (CV-3, 2026-06-12) — server action → web challenge component id
+// ---------------------------------------------------------------------------
+//
+// The server-issued puzzle session (CV-1/CV-2) drives EXACTLY the challenges bio
+// randomly selected; the web must render the matching component for each issued
+// ``action``. These maps are the inverse of the two forward maps above. Every
+// face action resolves to a `BiometricPuzzleId.FACE_*` (the registry id whose
+// component runs the gesture); every hand action to a `BiometricPuzzleId.HAND_*`.
+// Built from the forward maps + `BIOMETRIC_PUZZLE_REGISTRY` so a future edit to
+// the forward map propagates here automatically.
+
+/** server action → the registry BiometricPuzzleId whose component runs it. */
+const ACTION_TO_PUZZLE_ID: Partial<Record<PuzzleServerAction, BiometricPuzzleId>> =
+    (() => {
+        const map: Partial<Record<PuzzleServerAction, BiometricPuzzleId>> = {}
+        // Face: invert FACE_CHALLENGE_TO_SERVER via the registry's challengeType.
+        // The registry holds one FACE_* entry per ChallengeType, so map each
+        // server action back through its ChallengeType to the registry id.
+        const challengeTypeToId: Partial<Record<ChallengeType, BiometricPuzzleId>> = {
+            [ChallengeType.BLINK]: BiometricPuzzleId.FACE_BLINK,
+            [ChallengeType.CLOSE_LEFT]: BiometricPuzzleId.FACE_CLOSE_LEFT,
+            [ChallengeType.CLOSE_RIGHT]: BiometricPuzzleId.FACE_CLOSE_RIGHT,
+            [ChallengeType.SMILE]: BiometricPuzzleId.FACE_SMILE,
+            [ChallengeType.OPEN_MOUTH]: BiometricPuzzleId.FACE_OPEN_MOUTH,
+            [ChallengeType.TURN_LEFT]: BiometricPuzzleId.FACE_TURN_LEFT,
+            [ChallengeType.TURN_RIGHT]: BiometricPuzzleId.FACE_TURN_RIGHT,
+            [ChallengeType.LOOK_UP]: BiometricPuzzleId.FACE_LOOK_UP,
+            [ChallengeType.LOOK_DOWN]: BiometricPuzzleId.FACE_LOOK_DOWN,
+            [ChallengeType.RAISE_BOTH_BROWS]: BiometricPuzzleId.FACE_RAISE_BOTH_BROWS,
+            [ChallengeType.RAISE_LEFT_BROW]: BiometricPuzzleId.FACE_RAISE_LEFT_BROW,
+            [ChallengeType.RAISE_RIGHT_BROW]: BiometricPuzzleId.FACE_RAISE_RIGHT_BROW,
+            [ChallengeType.NOD]: BiometricPuzzleId.FACE_NOD,
+            [ChallengeType.SHAKE_HEAD]: BiometricPuzzleId.FACE_SHAKE_HEAD,
+        }
+        for (const [ct, action] of Object.entries(FACE_CHALLENGE_TO_SERVER)) {
+            const id = challengeTypeToId[ct as ChallengeType]
+            if (action && id) map[action] = id
+        }
+        // Hand: invert HAND_PUZZLE_TO_SERVER directly.
+        for (const [id, action] of Object.entries(HAND_PUZZLE_TO_SERVER)) {
+            if (action) map[action] = id as BiometricPuzzleId
+        }
+        return map
+    })()
+
+/**
+ * Resolve a server-issued ``action`` to the web ``BiometricPuzzleId`` whose
+ * registry component runs that gesture, or null if the web cannot render it.
+ * A null result is a VOCABULARY GAP — the server issued an action the web has
+ * no component for (the PUZZLE step must fail closed rather than skip it).
+ */
+export function serverActionToPuzzleId(
+    action: string,
+): BiometricPuzzleId | null {
+    return ACTION_TO_PUZZLE_ID[action as PuzzleServerAction] ?? null
+}
+
+// ---------------------------------------------------------------------------
+// Canonical metric key per server action (CV-3) — must match bio
+// ``app/application/services/challenge_metric_scorer.py`` ``ACTION_METRIC_KEY``.
+// ---------------------------------------------------------------------------
+//
+// bio's SUBMIT path is metric-REQUIRED: the payload MUST carry the canonical key
+// (non-null) for the action or bio fails the challenge with ``METRIC_REQUIRED``.
+// The web puzzle components compute the underlying scalar locally; PuzzleStep
+// submits it under exactly this key. Kept in lockstep with bio by the table
+// documented in the CV-3 report.
+
+/**
+ * Server action → the single canonical metric key bio expects in
+ * ``metrics`` on the SUBMIT path. Mirrors bio ``ACTION_METRIC_KEY`` 1:1.
+ */
+export const ACTION_METRIC_KEY: Record<PuzzleServerAction, string> = {
+    blink: 'ear',
+    close_left_eye: 'ear',
+    close_right_eye: 'ear',
+    smile: 'mar',
+    open_mouth: 'mar',
+    raise_eyebrows: 'brow_raise',
+    raise_left_brow: 'brow_raise',
+    raise_right_brow: 'brow_raise',
+    turn_left: 'yaw',
+    turn_right: 'yaw',
+    look_up: 'pitch',
+    look_down: 'pitch',
+    nod: 'oscillation_count',
+    shake_head: 'oscillation_count',
+    light: 'brightness_delta',
+    finger_count: 'finger_count',
+    math: 'finger_count',
+    wave: 'reversals',
+    hand_flip: 'orientation_changes',
+    finger_tap: 'tap_dist_scaled',
+    pinch: 'pinch_dist_scaled',
+    hold_position: 'wrist_variance',
+    shape_trace: 'dtw_cost',
+    peek_a_boo: 'covered_then_revealed',
+}
+
+/** Canonical metric key for a server action, or null if the action is unknown. */
+export function metricKeyForAction(action: string): string | null {
+    return ACTION_METRIC_KEY[action as PuzzleServerAction] ?? null
+}

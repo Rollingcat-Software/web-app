@@ -122,6 +122,25 @@ export interface PuzzleServerVerdict {
      * because auth mode fails closed on a missing proxy.
      */
     softPassReason?: PuzzleVerifySoftPass['reason']
+    /**
+     * Canonical metric payload the web component computed for this challenge,
+     * keyed by bio's `ACTION_METRIC_KEY` (e.g. `{ ear: 0.18 }`). Carried up so
+     * the server-authoritative PUZZLE step (CV-3) can SUBMIT it to the puzzle
+     * session — bio's metric-REQUIRED path rejects an absent key. The training
+     * surface ignores this field, so attaching it is byte-neutral for
+     * `serverMode='training'`. Absent only when the component cannot produce the
+     * canonical scalar for the action (a flagged vocabulary/metric gap).
+     */
+    metrics?: Record<string, number | boolean>
+    /**
+     * Client capture window for the challenge (`performance.now()` ms). Surfaced
+     * so the auth step can forward real `start_timestamp_ms`/`end_timestamp_ms`
+     * to the bio SUBMIT path (which floors duration / orders timestamps).
+     */
+    startTimestampMs?: number
+    endTimestampMs?: number
+    /** Client detection confidence [0..1] for the SUBMIT payload. */
+    confidence?: number
 }
 
 /** identity-core-api proxy path for the bio `/liveness/verify-challenge` route. */

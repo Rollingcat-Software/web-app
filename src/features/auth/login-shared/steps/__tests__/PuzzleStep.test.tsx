@@ -1,21 +1,21 @@
 /**
- * PuzzleStep + MfaStepRenderer PUZZLE routing (Task 3.4 + fail-closed/server-
- * evidence hardening, 2026-06-12)
+ * PuzzleStep + MfaStepRenderer PUZZLE routing (CV-3 — server-issued session,
+ * 2026-06-12)
  *
- * 1. MfaStepRenderer routes PUZZLE → PuzzleStep (landmark string visible)
- * 2. PuzzleStep: no puzzleConfig → shows noChallenges key
- * 3. PuzzleStep: valid config → renders the challenge component from registry
- *    AND passes serverMode='auth' to it (fail-closed re-score)
- * 4. PuzzleStep: onSuccess(verdict) on last challenge → calls
- *    verifyStep(PUZZLE, { server_verdicts:[...] }) carrying the SERVER verdict,
- *    NOT a client {challengeId, completedAt}-only trace
- * 5. PuzzleStep: a multi-challenge flow accumulates one verdict per challenge
+ * Covers the converged, server-authoritative model:
+ * 1. MfaStepRenderer routes PUZZLE → PuzzleStep (title key visible)
+ * 2. PuzzleStep CREATEs a session on mount (mocked proxy → session_id + 2
+ *    challenges), then renders the component mapped from the FIRST issued action
+ * 3. Each completion SUBMITs the canonical metric (correct key + action) to the
+ *    session, advancing only on `{verified:true}`
+ * 4. On the LAST challenge it calls verifyStep(PUZZLE, { puzzle_session_id })
+ *    — NOT server_verdicts, NOT puzzle_traces, NOT metrics
+ * 5. A SUBMIT failure (verified:false) is fail-closed — no advance, no verdict
  */
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, act } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { AuthMethodType } from '@features/auth/constants'
-import type { PuzzleConfig } from '@domain/models/AuthMethod'
 import { BiometricPuzzleId } from '@features/biometric-puzzles/BiometricPuzzleId'
 import type { BiometricPuzzleProps } from '@features/biometric-puzzles/biometricPuzzleRegistry'
 import type { PuzzleServerVerdict } from '@features/biometric-puzzles/useBiometricPuzzleServer'
@@ -66,10 +66,9 @@ const MockChallengeComponent = ({ onSuccess, serverMode }: BiometricPuzzleProps)
     return <div data-testid="mock-challenge">mock-challenge</div>
 }
 
+// FACE_BLINK / FACE_SMILE resolve to a renderable component; anything else does not.
 vi.mock('@features/biometric-puzzles/biometricPuzzleRegistry', () => ({
     getBiometricPuzzle: (id: string) => {
-        // Inline valid-id list — vi.mock factory is hoisted, so it cannot
-        // close over module-level consts.
         const validIds = new Set<string>(['FACE_BLINK', 'FACE_SMILE'])
         if (validIds.has(id)) {
             return {
@@ -87,14 +86,15 @@ vi.mock('@features/biometric-puzzles/biometricPuzzleRegistry', () => ({
     },
 }))
 
-// ── useBiometricPuzzleServer mock ─────────────────────────────────────
+// ── usePuzzleSessionClient mock ──────────────────────────────────────
 
-/** Spy captures the mode argument passed from PuzzleStep. */
-const mockVerifyChallenge = vi.fn()
+const mockCreateSession = vi.fn()
+const mockSubmitChallenge = vi.fn()
 
-vi.mock('@features/biometric-puzzles/useBiometricPuzzleServer', () => ({
-    useBiometricPuzzleServer: () => ({
-        verifyChallenge: mockVerifyChallenge,
+vi.mock('@features/biometric-puzzles/usePuzzleSessionClient', () => ({
+    usePuzzleSessionClient: () => ({
+        createSession: mockCreateSession,
+        submitChallenge: mockSubmitChallenge,
     }),
 }))
 
@@ -145,156 +145,253 @@ const baseMfaProps = {
     onError: vi.fn(),
 }
 
-const puzzleConfig: PuzzleConfig = {
-    allowedChallengeTypes: [BiometricPuzzleId.FACE_BLINK],
-    count: 1,
-    difficulty: 'easy',
-    alsoMatchFaceIdentity: false,
+/** A representative challenge-component verdict carrying its canonical metric. */
+function blinkVerdict(): PuzzleServerVerdict {
+    return {
+        action: 'blink',
+        verified: true,
+        metrics: { ear: 0.18 },
+        startTimestampMs: 1000,
+        endTimestampMs: 2000,
+        confidence: 0.9,
+    }
+}
+function smileVerdict(): PuzzleServerVerdict {
+    return {
+        action: 'smile',
+        verified: true,
+        metrics: { mar: 0.55 },
+        startTimestampMs: 3000,
+        endTimestampMs: 4000,
+        confidence: 0.9,
+    }
+}
+
+/** Flush the mount-time CREATE microtasks so the running phase renders. */
+async function flushCreate() {
+    await act(async () => {
+        await Promise.resolve()
+        await Promise.resolve()
+    })
 }
 
 beforeEach(() => {
     vi.clearAllMocks()
     capturedOnSuccess = null
     capturedServerMode = undefined
+    // Default: a single-blink session.
+    mockCreateSession.mockResolvedValue({
+        session_id: 'psess-1',
+        challenges: [{ action: 'blink', params: null }],
+    })
+    mockSubmitChallenge.mockResolvedValue({ verified: true, action: 'blink', reason_code: null })
 })
-
-/** A representative SERVER verdict the auth-mode re-score would return. */
-function serverVerdict(action: PuzzleServerVerdict['action']): PuzzleServerVerdict {
-    return { action, verified: true, durationSeconds: 1.2 }
-}
 
 // ── Tests ─────────────────────────────────────────────────────────────
 
 describe('MfaStepRenderer — PUZZLE routing', () => {
-    it('routes PUZZLE method to PuzzleStep (landmark title key visible)', () => {
+    it('routes PUZZLE method to PuzzleStep (title key visible)', () => {
         render(
             <MfaStepRenderer
                 {...baseMfaProps}
                 method={AuthMethodType.PUZZLE}
                 verifyStep={vi.fn()}
-                puzzleConfig={puzzleConfig}
             />,
         )
-        // PuzzleStep renders the title key (t() returns keys in test).
         expect(screen.getByText('mfa.puzzle.title')).toBeInTheDocument()
     })
 })
 
-describe('PuzzleStep', () => {
-    it('shows noChallenges key when puzzleConfig is undefined', () => {
+describe('PuzzleStep — server-issued session', () => {
+    it('CREATEs a session on mount and renders the mapped component in auth mode', async () => {
         render(
             <PuzzleStep
-                puzzleConfig={undefined}
+                mfaSessionToken="sess-abc"
                 verifyStep={vi.fn()}
                 loading={false}
             />,
         )
-        expect(screen.getByText('mfa.puzzle.noChallenges')).toBeInTheDocument()
-    })
+        await flushCreate()
 
-    it('shows noChallenges key when allowedChallengeTypes is empty', () => {
-        const emptyConfig: PuzzleConfig = {
-            allowedChallengeTypes: [],
-            count: 1,
-            difficulty: 'easy',
-            alsoMatchFaceIdentity: false,
-        }
-        render(
-            <PuzzleStep
-                puzzleConfig={emptyConfig}
-                verifyStep={vi.fn()}
-                loading={false}
-            />,
-        )
-        expect(screen.getByText('mfa.puzzle.noChallenges')).toBeInTheDocument()
-    })
-
-    it('renders the MockChallengeComponent in auth mode (fail-closed re-score)', () => {
-        render(
-            <PuzzleStep
-                puzzleConfig={puzzleConfig}
-                verifyStep={vi.fn()}
-                loading={false}
-            />,
-        )
+        expect(mockCreateSession).toHaveBeenCalledOnce()
+        expect(mockCreateSession).toHaveBeenCalledWith('sess-abc')
         expect(screen.getByTestId('mock-challenge')).toBeInTheDocument()
-        // The challenge runs its server re-score in AUTH mode — a missing/non-2xx
-        // proxy must fail the challenge, never soft-pass.
+        // Per-challenge UX runs in AUTH (fail-closed) mode.
         expect(capturedServerMode).toBe('auth')
     })
 
-    it('submits server_verdicts (not a bare client trace) after onSuccess on the only challenge', async () => {
+    it('shows an error when the session CREATE fails (fail-closed)', async () => {
+        mockCreateSession.mockRejectedValueOnce(new Error('boom'))
+        render(
+            <PuzzleStep
+                mfaSessionToken="sess-abc"
+                verifyStep={vi.fn()}
+                loading={false}
+            />,
+        )
+        await flushCreate()
+        expect(screen.getByText('mfa.puzzle.sessionError')).toBeInTheDocument()
+        expect(screen.queryByTestId('mock-challenge')).not.toBeInTheDocument()
+    })
+
+    it('SUBMITs the canonical metric key + action for the issued challenge', async () => {
+        render(
+            <PuzzleStep
+                mfaSessionToken="sess-abc"
+                verifyStep={vi.fn()}
+                loading={false}
+            />,
+        )
+        await flushCreate()
+
+        await act(async () => {
+            capturedOnSuccess?.(blinkVerdict())
+        })
+
+        expect(mockSubmitChallenge).toHaveBeenCalledOnce()
+        const [token, sessionId, submit] = mockSubmitChallenge.mock.calls[0]
+        expect(token).toBe('sess-abc')
+        expect(sessionId).toBe('psess-1')
+        expect(submit.action).toBe('blink')
+        // Canonical key for blink is `ear` — and ONLY that key is sent.
+        expect(submit.metrics).toEqual({ ear: 0.18 })
+        expect(submit.startTimestampMs).toBe(1000)
+        expect(submit.endTimestampMs).toBe(2000)
+        expect(submit.confidence).toBe(0.9)
+    })
+
+    it('on completion calls verifyStep(PUZZLE, { puzzle_session_id }) only', async () => {
         const verifyStep = vi.fn()
         render(
             <PuzzleStep
-                puzzleConfig={puzzleConfig}
+                mfaSessionToken="sess-abc"
                 verifyStep={verifyStep}
                 loading={false}
             />,
         )
+        await flushCreate()
 
-        // The challenge resolves with the SERVER's re-score verdict.
         await act(async () => {
-            capturedOnSuccess?.(serverVerdict('blink'))
+            capturedOnSuccess?.(blinkVerdict())
         })
 
         expect(verifyStep).toHaveBeenCalledOnce()
         const [method, payload] = verifyStep.mock.calls[0]
         expect(method).toBe(AuthMethodType.PUZZLE)
-
-        // Carries SERVER evidence …
-        expect(payload).toHaveProperty('server_verdicts')
-        expect(payload.server_verdicts).toEqual([
-            expect.objectContaining({
-                challengeId: BiometricPuzzleId.FACE_BLINK,
-                completedAt: expect.any(Number),
-                action: 'blink',
-                verified: true,
-                durationSeconds: 1.2,
-            }),
-        ])
-        // … and does NOT fall back to the old client-trusting trace shape.
+        // The ONLY field submitted as the step verdict.
+        expect(payload).toEqual({ puzzle_session_id: 'psess-1' })
+        // The interim client-attested model is GONE.
+        expect(payload).not.toHaveProperty('server_verdicts')
         expect(payload).not.toHaveProperty('puzzle_traces')
-        // No server-issued session id is available yet (stateless proxy gap).
-        expect(payload.puzzle_session_id).toBeUndefined()
+        expect(payload).not.toHaveProperty('metrics')
     })
 
-    it('accumulates one server verdict per challenge across a multi-challenge flow', async () => {
-        const verifyStep = vi.fn()
-        const twoStepConfig: PuzzleConfig = {
-            allowedChallengeTypes: [
-                BiometricPuzzleId.FACE_BLINK,
-                BiometricPuzzleId.FACE_SMILE,
+    it('drives BOTH issued challenges in order, one SUBMIT each, then one verdict', async () => {
+        mockCreateSession.mockResolvedValueOnce({
+            session_id: 'psess-2',
+            challenges: [
+                { action: 'blink', params: null },
+                { action: 'smile', params: null },
             ],
-            count: 2,
-            difficulty: 'easy',
-            alsoMatchFaceIdentity: false,
-        }
+        })
+        mockSubmitChallenge
+            .mockResolvedValueOnce({ verified: true, action: 'blink', reason_code: null })
+            .mockResolvedValueOnce({ verified: true, action: 'smile', reason_code: null })
+
+        const verifyStep = vi.fn()
         render(
             <PuzzleStep
-                puzzleConfig={twoStepConfig}
+                mfaSessionToken="sess-abc"
                 verifyStep={verifyStep}
                 loading={false}
             />,
         )
+        await flushCreate()
 
-        // First challenge passes → advances, no submit yet.
+        // First challenge (blink) → SUBMIT, advance, no verdict yet.
         await act(async () => {
-            capturedOnSuccess?.(serverVerdict('blink'))
+            capturedOnSuccess?.(blinkVerdict())
         })
         expect(verifyStep).not.toHaveBeenCalled()
+        expect(mockSubmitChallenge).toHaveBeenCalledTimes(1)
+        expect(mockSubmitChallenge.mock.calls[0][2].metrics).toEqual({ ear: 0.18 })
 
-        // Second (final) challenge passes → submit both verdicts.
+        // Second (final) challenge (smile) → SUBMIT, then verdict.
         await act(async () => {
-            capturedOnSuccess?.(serverVerdict('smile'))
+            capturedOnSuccess?.(smileVerdict())
         })
+        expect(mockSubmitChallenge).toHaveBeenCalledTimes(2)
+        expect(mockSubmitChallenge.mock.calls[1][2].action).toBe('smile')
+        expect(mockSubmitChallenge.mock.calls[1][2].metrics).toEqual({ mar: 0.55 })
 
         expect(verifyStep).toHaveBeenCalledOnce()
-        const payload = verifyStep.mock.calls[0][1]
-        expect(payload.server_verdicts).toHaveLength(2)
-        expect(payload.server_verdicts.map((v: { action: string }) => v.action)).toEqual([
-            'blink',
-            'smile',
-        ])
+        expect(verifyStep.mock.calls[0][1]).toEqual({ puzzle_session_id: 'psess-2' })
+    })
+
+    it('fails closed when the per-challenge SUBMIT returns verified:false', async () => {
+        mockSubmitChallenge.mockResolvedValueOnce({
+            verified: false,
+            action: 'blink',
+            reason_code: 'EYE_NOT_CLOSED',
+        })
+        const verifyStep = vi.fn()
+        render(
+            <PuzzleStep
+                mfaSessionToken="sess-abc"
+                verifyStep={verifyStep}
+                loading={false}
+            />,
+        )
+        await flushCreate()
+
+        await act(async () => {
+            capturedOnSuccess?.(blinkVerdict())
+        })
+
+        // No advance, no soft-pass, no verdict.
+        expect(verifyStep).not.toHaveBeenCalled()
+        expect(screen.getByText('mfa.puzzle.challengeFailed')).toBeInTheDocument()
+    })
+
+    it('fails closed when the component cannot produce the canonical metric', async () => {
+        const verifyStep = vi.fn()
+        render(
+            <PuzzleStep
+                mfaSessionToken="sess-abc"
+                verifyStep={verifyStep}
+                loading={false}
+            />,
+        )
+        await flushCreate()
+
+        // Verdict with NO metrics (the metric/vocabulary gap case).
+        await act(async () => {
+            capturedOnSuccess?.({ action: 'blink', verified: true })
+        })
+
+        // It must NOT submit an empty metric bio would reject — it fails closed.
+        expect(mockSubmitChallenge).not.toHaveBeenCalled()
+        expect(verifyStep).not.toHaveBeenCalled()
+        expect(screen.getByText('mfa.puzzle.challengeFailed')).toBeInTheDocument()
+    })
+
+    it('shows an unsupported-challenge error when an issued action has no component', async () => {
+        mockCreateSession.mockResolvedValueOnce({
+            session_id: 'psess-3',
+            // `light` maps to no renderable web component in this mocked registry.
+            challenges: [{ action: 'light', params: null }],
+        })
+        render(
+            <PuzzleStep
+                mfaSessionToken="sess-abc"
+                verifyStep={vi.fn()}
+                loading={false}
+            />,
+        )
+        await flushCreate()
+        expect(screen.getByText('mfa.puzzle.unsupportedChallenge')).toBeInTheDocument()
     })
 })
+
+// Reference an enum value so the import is load-bearing for the reverse-map intent.
+void BiometricPuzzleId.FACE_BLINK

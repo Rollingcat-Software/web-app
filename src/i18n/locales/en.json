@@ -1772,7 +1772,11 @@
       "challengeProgress": "Challenge {{current}} of {{total}}",
       "retry": "Retry",
       "noChallenges": "No challenges configured",
-      "completing": "Completing…"
+      "completing": "Completing…",
+      "preparing": "Preparing your challenges…",
+      "sessionError": "Could not start the liveness puzzle. Please try again.",
+      "challengeFailed": "The challenge could not be verified. Please try again.",
+      "unsupportedChallenge": "This challenge is not supported on this device. Please try another sign-in method."
     },
     "errors": {
       "networkError": "Network error. Please check your connection and try again.",
