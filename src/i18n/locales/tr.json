@@ -1776,7 +1776,8 @@
       "preparing": "Zorluklarınız hazırlanıyor…",
       "sessionError": "Canlılık bulmacası başlatılamadı. Lütfen tekrar deneyin.",
       "challengeFailed": "Zorluk doğrulanamadı. Lütfen tekrar deneyin.",
-      "unsupportedChallenge": "Bu zorluk bu cihazda desteklenmiyor. Lütfen başka bir giriş yöntemi deneyin."
+      "unsupportedChallenge": "Bu zorluk bu cihazda desteklenmiyor. Lütfen başka bir giriş yöntemi deneyin.",
+      "identityCaptureFailed": "Kimliğinizi doğrulamak için net ve cepheden bir kare yakalayamadık. Lütfen doğrudan kameraya bakın ve tekrar deneyin."
     },
     "errors": {
       "networkError": "Ağ hatası. Lütfen bağlantınızı kontrol edin ve tekrar deneyin.",
