@@ -20,6 +20,16 @@ function log(msg) { console.log(`[fetch-models] ${msg}`); }
 function warn(msg) { console.warn(`${color.yellow}[fetch-models] WARN:${color.reset} ${msg}`); }
 function fail(msg) { console.error(`${color.red}[fetch-models] FATAL:${color.reset} ${msg}`); process.exit(1); }
 
+// Resilience knobs (overridable via env for testing / slow links).
+// Defaults are deliberately generous: a 12 MB model on a slow CI runner needs
+// far more than the ~10s the bare `fetch` default allowed (which hard-failed
+// the whole prod deploy on a single transient — 2026-06-12).
+const MAX_ATTEMPTS = Number(process.env.FETCH_MODELS_RETRIES) || 3;
+const FETCH_TIMEOUT_MS = Number(process.env.FETCH_MODELS_TIMEOUT_MS) || 120_000;
+const RETRY_BASE_DELAY_MS = Number(process.env.FETCH_MODELS_RETRY_DELAY_MS) || 2_000;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 async function sha256OfFile(path) {
   const hash = createHash('sha256');
   const buf = readFileSync(path);
@@ -27,14 +37,53 @@ async function sha256OfFile(path) {
   return hash.digest('hex');
 }
 
-async function downloadTo(url, dest) {
-  const res = await fetch(url);
-  if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`);
-  await mkdir(dirname(dest), { recursive: true });
+// Single download attempt with an explicit per-attempt timeout. The timeout
+// covers BOTH the connect/headers phase and the body stream — an AbortController
+// aborts the fetch (and thus the streaming pipeline) if the whole transfer
+// hasn't completed within FETCH_TIMEOUT_MS, so a stalled mid-stream socket can't
+// hang forever.
+async function downloadAttempt(url, dest) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS);
   const tmp = `${dest}.download`;
-  await pipeline(res.body, createWriteStream(tmp));
-  const { rename } = await import('node:fs/promises');
-  await rename(tmp, dest);
+  try {
+    const res = await fetch(url, { signal: controller.signal });
+    if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText} for ${url}`);
+    await mkdir(dirname(dest), { recursive: true });
+    await pipeline(res.body, createWriteStream(tmp));
+    const { rename } = await import('node:fs/promises');
+    await rename(tmp, dest);
+  } catch (e) {
+    // Clean up any partial temp file so the next attempt / a later run starts fresh.
+    try { await unlink(tmp); } catch { /* tmp may not exist */ }
+    if (e.name === 'AbortError') {
+      throw new Error(`timed out after ${FETCH_TIMEOUT_MS}ms`);
+    }
+    throw e;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+// Download with retries + exponential backoff. Only throws (fatal to the
+// caller) once ALL attempts are exhausted — a slow or transient model download
+// can no longer break the prod deploy on the first hiccup.
+async function downloadTo(url, dest) {
+  let lastErr;
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    try {
+      await downloadAttempt(url, dest);
+      return;
+    } catch (e) {
+      lastErr = e;
+      if (attempt < MAX_ATTEMPTS) {
+        const delay = RETRY_BASE_DELAY_MS * 2 ** (attempt - 1);
+        warn(`attempt ${attempt}/${MAX_ATTEMPTS} failed for ${url}: ${e.message}. Retrying in ${delay}ms...`);
+        await sleep(delay);
+      }
+    }
+  }
+  throw new Error(`${lastErr.message} (after ${MAX_ATTEMPTS} attempts)`);
 }
 
 async function main() {

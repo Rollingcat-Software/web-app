@@ -25,10 +25,24 @@ test.describe('Smoke — readonly', { tag: ['@readonly', '@smoke'] }, () => {
         await expect(branding.or(heading)).toBeVisible({ timeout: 15000 })
     })
 
-    test('login page renders form', async ({ page }) => {
+    test('login page renders identifier-first form', async ({ page }) => {
+        // The dashboard login is IDENTIFIER-FIRST (config-driven, login-config
+        // engineActive=true): the opening screen collects the email and the
+        // password field is revealed only after a valid identifier + Continue.
+        // (Before the config-driven work it was a combined email+password form;
+        // this assertion was updated 2026-06-12 to the shipped flow — verified
+        // live on app.fivucsas.com: initial render had NO password field, a
+        // "Continue" button, and the password+"Sign in" appeared after Continue.)
+        //
+        // When the login-config fetch fails (e.g. a network that blocks the API)
+        // the page degrades to the legacy combined email+password form — so we
+        // assert the email box + EITHER a "Continue" (identifier-first) or a
+        // "Sign in" (legacy fallback) button, both of which are valid healthy
+        // states. We do NOT submit anything (read-only smoke).
         await page.goto(`${BASE_URL}/login`)
         await expect(page.locator('input[name="email"]')).toBeVisible({ timeout: 15000 })
-        await expect(page.locator('input[name="password"]')).toBeVisible()
-        await expect(page.getByRole('button', { name: /sign in/i })).toBeVisible()
+        const continueBtn = page.getByRole('button', { name: /continue/i })
+        const signInBtn = page.getByRole('button', { name: /sign in/i })
+        await expect(continueBtn.or(signInBtn).first()).toBeVisible()
     })
 })

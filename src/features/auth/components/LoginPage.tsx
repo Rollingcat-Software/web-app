@@ -39,6 +39,8 @@ import { useAuth } from '../hooks/useAuth'
 // face login removed 2026-04-29 — see /opt/projects/fivucsas/MULTI_EMAIL_TENANT_DESIGN_2026-04-28.md follow-up; needs public /auth/face-login endpoint
 import TwoFactorDispatcher from './TwoFactorDispatcher'
 import MethodPickerStep from './steps/MethodPickerStep'
+import IdentifierStep from '../login-shared/steps/IdentifierStep'
+import ConfigUnavailableBanner from '../login-shared/ConfigUnavailableBanner'
 import Layer1Shortcuts from './Layer1Shortcuts'
 import ApproveLoginPanel, { type ApproveLoginResult } from './ApproveLoginPanel'
 import QrLoginPanel, { type QrLoginResult } from './QrLoginPanel'
@@ -49,7 +51,7 @@ import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import { config as envConfig } from '@config/env'
 import { fetchLoginConfig } from '../login-config'
-import { hasPasswordLayer1, type LoginConfig } from '@domain/models/LoginConfig'
+import { hasPasswordLayer1, selectPuzzleConfig, type LoginConfig } from '@domain/models/LoginConfig'
 import StepProgress from '../../../verify-app/StepProgress'
 
 /**
@@ -188,17 +190,20 @@ export default function LoginPage() {
     const [showQrLogin, setShowQrLogin] = useState(false)
 
     // Fetch the platform Layer-1 login config, and only reveal the form (drop the
-    // skeleton) once that fetch has SETTLED. Previously the page flipped to ready
-    // on a fixed 300ms timer, so when the config took longer the form rendered in
-    // its default password shape and then visibly swapped to identifier-first —
-    // the "password ghost/skeleton" flash. Gating pageReady on the fetch removes
-    // it; a safety fallback prevents a hung fetch from pinning the skeleton.
-    // On failure `loginConfig` stays null and the legacy email+password form is
-    // shown (no clientId — the dashboard is the platform tenant).
+    // skeleton) once that fetch has SETTLED — the SAME skeleton-until-config-settles
+    // pattern verify.fivucsas's hosted flow uses (`showLayer1Skeleton`), so the
+    // dashboard can never paint the password-first default and then visibly swap to
+    // identifier-first when the config resolves (the "password ghost/skeleton"
+    // flash). `fetchLoginConfig` carries its own 10s timeout and NEVER rejects, so
+    // `.finally(reveal)` reliably fires within that bound; the safety fallback is
+    // therefore aligned to 10s (not 2s) so a slow-but-not-hung fetch keeps the
+    // skeleton up until the real config lands instead of revealing early and
+    // swapping. On failure `loginConfig` stays null and the legacy email+password
+    // form is shown (no clientId — the dashboard is the platform tenant).
     useEffect(() => {
         let cancelled = false
         const reveal = () => { if (!cancelled) setPageReady(true) }
-        const fallback = setTimeout(reveal, 2000)
+        const fallback = setTimeout(reveal, 10000)
         void fetchLoginConfig(httpClient)
             .then((cfg) => { if (!cancelled) { setLoginConfig(cfg); setConfigLoadFailed(cfg === null) } })
             .finally(() => { clearTimeout(fallback); reveal() })
@@ -764,6 +769,11 @@ export default function LoginPage() {
                 stepCurrent={loginCurrentStep}
                 stepTotal={loginTotalSteps}
                 email={getValues('email')}
+                // Phase-5 identity binding: source the active PUZZLE step's
+                // tenant-authored config from the resolved login-config so it is
+                // threaded to PuzzleStep (parity with verify.fivucsas). Undefined
+                // for non-PUZZLE steps / platform config without a PUZZLE layer.
+                puzzleConfig={selectPuzzleConfig(loginConfig, twoFactorMethod)}
             />
         )
     }
@@ -972,23 +982,12 @@ export default function LoginPage() {
                                 animate={{ opacity: 1, scale: 1 }}
                                 transition={{ duration: 0.3 }}
                             >
-                                <Alert
-                                    severity="warning"
-                                    role="status"
-                                    sx={{ mb: 3, borderRadius: '12px' }}
-                                    action={
-                                        <Button
-                                            color="inherit"
-                                            size="small"
-                                            onClick={() => void handleRetryLoginConfig()}
-                                            disabled={configRetrying}
-                                        >
-                                            {configRetrying ? t('login.configRetrying') : t('login.configRetry')}
-                                        </Button>
-                                    }
-                                >
-                                    {t('login.configUnavailable')}
-                                </Alert>
+                                {/* Shared banner (login-shared) — identical markup +
+                                    i18n on both surfaces (hosted gained it too). */}
+                                <ConfigUnavailableBanner
+                                    onRetry={() => void handleRetryLoginConfig()}
+                                    retrying={configRetrying}
+                                />
                             </motion.div>
                         )}
 
@@ -1032,40 +1031,24 @@ export default function LoginPage() {
                             beginIdentifierLogin. */}
                         {!showPasswordForm && (
                             <motion.div variants={itemVariants}>
-                                <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                                    {t('login.identifierFirstSubtitle')}
-                                </Typography>
-                                <TextField
-                                    fullWidth
-                                    type="email"
-                                    label={t('auth.emailLabel')}
+                                {/* Shared identifier-entry block (login-shared) so
+                                    this opening email screen stays identical to
+                                    verify.fivucsas's. Dashboard look = gradient pill
+                                    + ArrowForward end icon + spinner on submit; icon
+                                    in the forced-dark-text palette. `loading` drives
+                                    the spinner (identifierSubmitting) while `disabled`
+                                    carries the broader formBusy — preserving the exact
+                                    prior split. */}
+                                <IdentifierStep
                                     value={identifier}
-                                    onChange={(e) => setIdentifier(e.target.value)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' && !formBusy) {
-                                            e.preventDefault()
-                                            void handleIdentifierSubmit()
-                                        }
-                                    }}
-                                    autoFocus
+                                    onChange={setIdentifier}
+                                    onSubmit={() => void handleIdentifierSubmit()}
+                                    loading={identifierSubmitting}
                                     disabled={formBusy}
-                                    InputProps={{
-                                        startAdornment: (
-                                            <InputAdornment position="start">
-                                                <EmailOutlined sx={{ color: 'rgba(0,0,0,0.54)' }} />
-                                            </InputAdornment>
-                                        ),
-                                    }}
-                                    sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
-                                />
-                                <Button
-                                    fullWidth
-                                    variant="contained"
-                                    size="large"
-                                    onClick={() => void handleIdentifierSubmit()}
-                                    disabled={formBusy || !identifier.trim()}
-                                    endIcon={!formBusy && <ArrowForward />}
-                                    sx={{
+                                    iconColor="rgba(0,0,0,0.54)"
+                                    fieldSx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
+                                    endIcon={<ArrowForward />}
+                                    buttonSx={{
                                         mt: 3,
                                         mb: 2,
                                         py: 1.5,
@@ -1073,13 +1056,7 @@ export default function LoginPage() {
                                         fontWeight: 600,
                                         background: 'linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%)',
                                     }}
-                                >
-                                    {identifierSubmitting ? (
-                                        <CircularProgress size={24} sx={{ color: 'white' }} />
-                                    ) : (
-                                        t('auth.continue')
-                                    )}
-                                </Button>
+                                />
                             </motion.div>
                         )}
 

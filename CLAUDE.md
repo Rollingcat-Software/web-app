@@ -62,6 +62,20 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
   `makeRequestWebAuthnChallenge` helper. Each surface keeps its own SHELL
   (dashboard full-screen glass card vs hosted in-card OIDC flow) + flow state;
   only the per-step BODY is shared. See `LOGIN_PARITY_2026-06-01.md`.
+  **2026-06-12 parity additions:** `steps/IdentifierStep.tsx` (the shared opening
+  email-box + Continue identity-entry, used by BOTH surfaces — props inject the
+  surface-specific chrome: gradient pill + ArrowForward + spinner on the dashboard
+  vs theme button on hosted; `loading`=spinner, `disabled`=broader-busy-no-spinner)
+  and `ConfigUnavailableBanner.tsx` (the shared config-failure `role="status"`
+  banner + Retry, now on BOTH surfaces). **puzzleConfig threading:** the active
+  PUZZLE step's tenant config is sourced from the login-config via
+  `selectPuzzleConfig(loginConfig, method)` (`domain/models/LoginConfig.ts`, which
+  now parses per-step `puzzleConfig` / `stepConfig.puzzleConfig`) and threaded
+  through `MfaStepRenderer` → `PuzzleStep` on BOTH dispatchers — so SP-B Phase-5
+  `alsoMatchFaceIdentity` binding actually engages when the client-embedding flag
+  is on. The opening identifier endpoint still DIVERGES (dashboard `/auth/login/
+  begin` opens a session; hosted lone-password `/auth/login/preflight` does not) —
+  intentionally left for the owner (session/lockout-semantics decision).
 - `src/core/repositories/` - API repository implementations
 - `src/domain/models/` - Domain models
 - `src/core/di/` - InversifyJS DI container and TYPES
@@ -129,9 +143,12 @@ task #16 / PR #163) — never hardcode the password-first form.
   ABOVE the still-rendered legacy fallback. This stops a config-fetch failure
   from looking like a stale/old login page (it read that way on filtered
   networks that block `api.fivucsas.com`). The fallback form is unchanged — the
-  banner is purely additive messaging. **Hosted parity TODO**: the same banner
-  is NOT yet on `verify-app/HostedLoginApp.tsx` (its config-failure fallback is
-  still silent) — deferred to avoid touching the live OIDC path.
+  banner is purely additive messaging. **Hosted parity DONE (2026-06-12)**: the
+  banner is now the SHARED `login-shared/ConfigUnavailableBanner.tsx`, rendered on
+  BOTH `LoginPage` (dashboard) and `verify-app/HostedLoginApp.tsx` (hosted) when
+  the login-config fetch settles null-because-FAILED (distinct from null-because-
+  engine-OFF, which returns a usable password-first config). Hosted gained its own
+  `configLoadFailed`/`configRetrying` + `handleRetryLoginConfig`.
 
 Contract is provisional (api task #16): the client normalizer absorbs
 field/casing deltas and never hard-fails.
