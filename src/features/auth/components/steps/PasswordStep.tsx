@@ -124,6 +124,7 @@ export default function PasswordStep({ onSubmit, loading, error, presetEmail }: 
                                     helperText={errors.email?.message}
                                     margin="normal"
                                     autoFocus
+                                    autoComplete="username"
                                     disabled={loading}
                                     InputProps={{
                                         startAdornment: (
@@ -160,6 +161,7 @@ export default function PasswordStep({ onSubmit, loading, error, presetEmail }: 
                                 helperText={errors.password?.message}
                                 margin="normal"
                                 autoFocus={identifierFirst}
+                                autoComplete="current-password"
                                 disabled={loading}
                                 InputProps={{
                                     startAdornment: (
