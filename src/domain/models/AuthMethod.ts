@@ -444,24 +444,43 @@ export function mapAuthMethodResponseToModel(response: AuthMethodApiResponse): A
         return null
     }
 
+    // Some valid login methods are deliberately NOT in the static
+    // DEFAULT_AUTH_METHODS_BASE catalog because they are BACKEND-GATED — they
+    // must only surface when the backend actually returns them (e.g. PUZZLE,
+    // which is feature-flagged per tenant). For those we have no static fallback
+    // entry, so build the model straight from the response with neutral defaults
+    // rather than dropping it. (Dropping it was the PASSKEY/APPROVE_LOGIN bug
+    // class: a backend-returned method silently vanished before reaching the UI.)
     const fallback = DEFAULT_METHOD_BY_TYPE.get(response.type)
-    if (!fallback) {
-        return null
-    }
+    const DEFAULT_PLATFORMS: Platform[] = ['web', 'mobile', 'desktop']
 
     return {
         id: response.type,
         type: response.type,
-        name: response.name?.trim() || fallback.name,
-        description: response.description?.trim() || fallback.description,
-        icon: fallback.icon,
-        platforms: normalizePlatforms(response.platforms, fallback.platforms),
-        isActive: typeof response.isActive === 'boolean' ? response.isActive : fallback.isActive,
-        category: normalizeCategory(response.category, fallback.category),
+        name: response.name?.trim() || fallback?.name || humanizeAuthMethodType(response.type),
+        description: response.description?.trim() || fallback?.description || '',
+        icon: fallback?.icon ?? 'Lock',
+        platforms: normalizePlatforms(response.platforms, fallback?.platforms ?? DEFAULT_PLATFORMS),
+        isActive: typeof response.isActive === 'boolean' ? response.isActive : (fallback?.isActive ?? true),
+        category: normalizeCategory(response.category, fallback?.category ?? 'STANDARD'),
         supportsUsernameless: typeof response.supportsUsernameless === 'boolean'
             ? response.supportsUsernameless
             : isUsernamelessCapable(response.type),
     }
+}
+
+/**
+ * Humanized label for a method type when no static catalog entry exists
+ * (a backend-gated method like PUZZLE). Turns `PUZZLE` → `Puzzle`,
+ * `APPROVE_LOGIN` → `Approve Login`. Mirrors the builder's humanizeMethodType
+ * so a backend-only method never renders a blank name.
+ */
+function humanizeAuthMethodType(type: AuthMethodType): string {
+    return String(type)
+        .toLowerCase()
+        .split('_')
+        .map((word) => (word ? word.charAt(0).toUpperCase() + word.slice(1) : word))
+        .join(' ')
 }
 
 /**
