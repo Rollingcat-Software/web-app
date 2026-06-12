@@ -30,11 +30,15 @@ interface PuzzleLayerConfigProps {
 
 /**
  * Only RENDERABLE challenge types are offered in the builder — those a
- * server-issued action can map back to a web component (`serverActionToPuzzleId`).
- * This drops `HAND_TRACE_TEMPLATE` (client-only, no server action) and never
- * offers the component-less `light` / `hold_position` actions, so an admin can't
- * configure a flow that issues a challenge the web cannot render. (The PUZZLE
- * step also fails closed at runtime; this prevents the misconfig up front.)
+ * server-issued action can map back to a web component (`serverActionToPuzzleId`)
+ * AND can actually satisfy. This drops:
+ *   - `HAND_TRACE_TEMPLATE` (client-only, no server action);
+ *   - `HAND_SHAPE_TRACE` (free-form trace produces no `dtw_cost`, so its
+ *     metric-REQUIRED auth path is unsatisfiable — unmapped 2026-06-12);
+ *   - the component-less `light` / `hold_position` actions.
+ * so an admin can't configure a flow that issues a challenge the web cannot
+ * render or satisfy. (The PUZZLE step also fails closed at runtime; this
+ * prevents the misconfig up front.)
  */
 const ALL_PUZZLES = listBiometricPuzzles().filter((p) => isRenderablePuzzleId(p.id))
 const FACE_PUZZLES = listBiometricPuzzlesByModality('face').filter((p) =>
