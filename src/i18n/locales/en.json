@@ -1751,7 +1751,7 @@
       "readError": "Failed to read NFC document. Try holding it closer.",
       "scanFailed": "NFC scan failed. Please try again.",
       "scanTimeout": "No NFC tag detected within 30 seconds. Tap your document to the back of your phone and try again.",
-      "notSupported": "NFC is only supported in Chrome on Android. Please use Chrome on your Android device.",
+      "notSupported": "Scanning an NFC card in the browser works only in Chrome on Android. On other devices, enrol or manage your NFC card in the FIVUCSAS mobile app, or choose another sign-in method.",
       "hint": "Hold your enrolled NFC card flat against the back of your phone. Keep it steady for a few seconds.",
       "framedTitle": "NFC can't run here",
       "framedBody": "For security, Web NFC only runs in a top-level browser tab. Open the login in a new tab to continue.",

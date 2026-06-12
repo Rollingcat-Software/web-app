@@ -1751,7 +1751,7 @@
       "readError": "NFC belge okunamadı. Daha yakın tutmayı deneyin.",
       "scanFailed": "NFC tarama başarısız. Tekrar deneyin.",
       "scanTimeout": "30 saniye içinde NFC etiketi algılanmadı. Belgenizi telefonunuzun arkasına dokundurup tekrar deneyin.",
-      "notSupported": "NFC yalnızca Android Chrome'da desteklenir. Lütfen Android cihazınızda Chrome kullanın.",
+      "notSupported": "Tarayıcıda NFC kart tarama yalnızca Android'deki Chrome'da çalışır. Diğer cihazlarda NFC kartınızı FIVUCSAS mobil uygulamasında kaydedip yönetebilir veya başka bir giriş yöntemi seçebilirsiniz.",
       "hint": "Kayıtlı NFC kartınızı telefonunuzun arkasına düz bir şekilde tutun. Birkaç saniye sabit tutun.",
       "framedTitle": "NFC burada çalışmıyor",
       "framedBody": "Web NFC, güvenlik nedeniyle yalnızca üst düzey tarayıcı sekmesinde çalışır. Devam etmek için girişi yeni bir sekmede açın.",
