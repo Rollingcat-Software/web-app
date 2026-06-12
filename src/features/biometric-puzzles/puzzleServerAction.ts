@@ -27,8 +27,14 @@ const FACE_CHALLENGE_TO_SERVER: Partial<Record<ChallengeType, PuzzleServerAction
     [ChallengeType.TURN_RIGHT]: 'turn_right',
     [ChallengeType.OPEN_MOUTH]: 'open_mouth',
     [ChallengeType.RAISE_BOTH_BROWS]: 'raise_eyebrows',
-    // CLOSE_LEFT, CLOSE_RIGHT, LOOK_UP, LOOK_DOWN, RAISE_LEFT_BROW,
-    // RAISE_RIGHT_BROW, NOD, SHAKE_HEAD: no 1:1 server enum — skip.
+    [ChallengeType.CLOSE_LEFT]: 'close_left_eye',
+    [ChallengeType.CLOSE_RIGHT]: 'close_right_eye',
+    [ChallengeType.LOOK_UP]: 'look_up',
+    [ChallengeType.LOOK_DOWN]: 'look_down',
+    [ChallengeType.RAISE_LEFT_BROW]: 'raise_left_brow',
+    [ChallengeType.RAISE_RIGHT_BROW]: 'raise_right_brow',
+    [ChallengeType.NOD]: 'nod',
+    [ChallengeType.SHAKE_HEAD]: 'shake_head',
 }
 
 /** Hand BiometricPuzzleId → server ChallengeType action string. */

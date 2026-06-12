@@ -29,16 +29,16 @@ describe('faceChallengeToServerAction', () => {
     })
 
     it.each([
-        ChallengeType.CLOSE_LEFT,
-        ChallengeType.CLOSE_RIGHT,
-        ChallengeType.LOOK_UP,
-        ChallengeType.LOOK_DOWN,
-        ChallengeType.RAISE_LEFT_BROW,
-        ChallengeType.RAISE_RIGHT_BROW,
-        ChallengeType.NOD,
-        ChallengeType.SHAKE_HEAD,
-    ])('returns null for unmapped variant %s', (input) => {
-        expect(faceChallengeToServerAction(input)).toBeNull()
+        [ChallengeType.CLOSE_LEFT, 'close_left_eye'],
+        [ChallengeType.CLOSE_RIGHT, 'close_right_eye'],
+        [ChallengeType.LOOK_UP, 'look_up'],
+        [ChallengeType.LOOK_DOWN, 'look_down'],
+        [ChallengeType.RAISE_LEFT_BROW, 'raise_left_brow'],
+        [ChallengeType.RAISE_RIGHT_BROW, 'raise_right_brow'],
+        [ChallengeType.NOD, 'nod'],
+        [ChallengeType.SHAKE_HEAD, 'shake_head'],
+    ])('maps previously-unmapped variant %s → %s', (input, expected) => {
+        expect(faceChallengeToServerAction(input)).toBe(expected)
     })
 })
 
