@@ -175,6 +175,66 @@ export class BiometricService {
     }
 
     /**
+     * Enroll a face by submitting ONLY its 512-d Facenet512 embedding (privacy-
+     * preserving counterpart of {@link enrollFace}).
+     *
+     * The raw face image NEVER leaves the device: the browser computes the
+     * authoritative Facenet512 vector locally (via `embedCapturedFace`) and posts
+     * just the vector, exactly mirroring how the FACE *verify* path submits
+     * `{ embedding }` instead of an image. This closes audit item H2 — FACE
+     * enrollment previously always uploaded raw images even when client-side
+     * embedding was enabled for verify.
+     *
+     * Wire contract (FROZEN, mirrors api `EnrollEmbeddingRequest`):
+     *   POST /api/v1/biometric/enroll-embedding/{userId}
+     *   Content-Type: application/json
+     *   body: { embedding: number[512], tenant_id?: string }
+     * `tenant_id` (snake_case) is added ONLY when `tenantId` is a non-blank
+     * string (defense-in-depth — the backend already derives tenant from the
+     * authenticated principal, but explicit forwarding disambiguates admins
+     * linked to multiple tenants).
+     *
+     * The api gate is FAIL-CLOSED: it returns 403 when the tenant's
+     * `app.auth.client-side-embedding` flag is off (so the caller must flip the
+     * identity flag before the web flag), and 400 on a wrong-length vector. There
+     * is intentionally no `optimize`/template-fusion field on this route — a
+     * re-enroll replaces the stored template.
+     *
+     * @param userId    The user whose face template is being (re)enrolled.
+     * @param embedding The L2-normalized 512-float Facenet512 vector.
+     * @param tenantId  Optional tenant scope (forwarded as `tenant_id`).
+     */
+    async enrollFaceEmbedding(
+        userId: string,
+        embedding: number[],
+        tenantId?: string,
+    ): Promise<EnrollmentResult> {
+        try {
+            const body: { embedding: number[]; tenant_id?: string } = { embedding }
+            // Mirror appendTenantAndEmbeddings' blank check — only forward a real tenant.
+            if (tenantId && tenantId.trim().length > 0) {
+                body.tenant_id = tenantId
+            }
+
+            const response = await this.client.post(
+                `/biometric/enroll-embedding/${encodeURIComponent(userId)}`,
+                body,
+                { headers: { 'Content-Type': 'application/json' } },
+            )
+
+            // Proxy returns BiometricVerificationResponse: {verified, confidence, message}.
+            return {
+                success: response.data.verified !== false,
+                userId,
+                confidence: typeof response.data.confidence === 'number' ? response.data.confidence : 1.0,
+                message: response.data.message ?? 'Face enrolled successfully',
+            }
+        } catch (error) {
+            throw this.mapEnrollmentError(error)
+        }
+    }
+
+    /**
      * Enroll using multiple images with quality-weighted fusion.
      */
     private async enrollFaceMulti(

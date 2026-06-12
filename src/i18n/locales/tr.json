@@ -1490,6 +1490,7 @@
     "faceEnrolled": "Yüz Tanıma başarıyla kaydedildi",
     "faceReEnrolled": "Yüz Tanıma yeniden kaydedildi — tanıma iyileştirildi",
     "faceEnrollFailed": "Yüz kaydı başarısız. Lütfen tekrar deneyin.",
+    "faceClientPrepFailed": "Yüz kaydı cihazda hazırlanamadı. Lütfen bağlantınızı kontrol edip tekrar deneyin.",
     "voiceEnrolled": "Ses Tanıma başarıyla kaydedildi",
     "voiceReEnrolled": "Ses Tanıma yeniden kaydedildi — tanıma iyileştirildi",
     "voiceEnrollRecordFailed": "Sesiniz alındı ancak kayıt kaydı saklanamadı: {{reason}}",

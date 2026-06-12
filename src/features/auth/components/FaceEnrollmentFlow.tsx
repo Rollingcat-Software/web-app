@@ -16,11 +16,12 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { useFaceDetection } from '../hooks/useFaceDetection'
 import { useFaceChallenge, ChallengeStage } from '../hooks/useFaceChallenge'
 import FaceOvalGuide from './FaceOvalGuide'
+import type { NormalizedLandmark } from '../../../lib/biometric-engine/types'
 
 interface FaceEnrollmentFlowProps {
     open: boolean
     onClose: () => void
-    onComplete: (images: string[], clientEmbeddings?: (number[] | null)[]) => void
+    onComplete: (images: string[], clientEmbeddings?: (number[] | null)[], captureLandmarks?: (NormalizedLandmark[] | null)[]) => void
 }
 
 const STAGE_ICONS: Record<ChallengeStage, string> = {
@@ -113,7 +114,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
         const loop = () => {
             try {
                 const d = detectionRef.current
-                updateChallenge(d, d.cropFace, canvasRef)
+                updateChallenge(d, d.cropFace, canvasRef, d.captureLandmarks)
             } catch {
                 // Silently ignore individual frame errors to keep the loop running
             }
@@ -151,7 +152,7 @@ export default function FaceEnrollmentFlow({ open, onClose, onComplete }: FaceEn
         setSubmitting(true)
         // Don't close here — the parent (EnrollmentPage) will close the dialog
         // after the biometric API call completes (success or failure)
-        onComplete(challengeState.captures, challengeState.clientEmbeddings)
+        onComplete(challengeState.captures, challengeState.clientEmbeddings, challengeState.captureLandmarks)
     }
 
     const handleRetry = () => {

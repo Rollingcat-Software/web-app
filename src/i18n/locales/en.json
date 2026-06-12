@@ -1490,6 +1490,7 @@
     "faceEnrolled": "Face Recognition enrolled successfully",
     "faceReEnrolled": "Face Recognition re-enrolled — recognition improved",
     "faceEnrollFailed": "Face enrollment failed. Please try again.",
+    "faceClientPrepFailed": "Couldn't prepare on-device face enrollment. Please check your connection and try again.",
     "voiceEnrolled": "Voice Recognition enrolled successfully",
     "voiceReEnrolled": "Voice Recognition re-enrolled — recognition improved",
     "voiceEnrollRecordFailed": "Your voice was captured, but saving the enrollment record failed: {{reason}}",
