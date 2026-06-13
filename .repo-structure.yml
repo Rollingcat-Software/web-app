@@ -1,0 +1,68 @@
+# Repo structure-lock policy — Rollingcat-Software/web-app
+#
+# An ArchUnit-style FREEZE of this repo's ROOT layout, mirroring the FIVUCSAS
+# umbrella pilot (Rollingcat-Software/FIVUCSAS#209). The allowlists below were
+# frozen from the current origin/main root; the gate (tools/check_repo_structure.py
+# in the org .github repo, run via the reusable workflow
+# .github/workflows/repo-structure.yml) FAILS CI when:
+#   * a root entry not listed here appears, OR
+#   * any root entry matches a forbidden pattern, OR
+#   * a required file is missing.
+#
+# Dated tracking docs (audits / reviews / sessions / TODOs) belong in GitHub
+# issues, NOT the repo root — that is what forbidden_root_patterns encodes.
+# To intentionally add a NEW root entry, add it here in the SAME PR (the
+# explicit, reviewed "unfreeze"). Parsed by a stdlib-only YAML subset, so keep
+# to simple `- "string"` block lists.
+
+allowed_root_files:
+  - ".env.example"
+  - ".eslintrc.cjs"
+  - ".gitignore"
+  - ".npmrc"
+  - ".pre-commit-config.yaml"
+  - ".prettierrc"
+  - ".repo-structure.yml"
+  - "CHANGELOG.md"
+  - "CLAUDE.md"
+  - "LICENSE"
+  - "README.md"
+  - "SECURITY.md"
+  - "index.html"
+  - "package-lock.json"
+  - "package.json"
+  - "playwright.config.ts"
+  - "tsconfig.json"
+  - "tsconfig.node.json"
+  - "tsconfig.package.auth-elements.json"
+  - "tsconfig.package.auth-js.json"
+  - "vite.adapter.config.ts"
+  - "vite.config.elements.ts"
+  - "vite.config.ts"
+  - "vite.package.auth-elements.config.ts"
+  - "vite.package.auth-js.config.ts"
+  - "vite.sdk.config.ts"
+  - "vite.verify.config.ts"
+
+allowed_root_dirs:
+  - ".github"
+  - "docs"
+  - "e2e"
+  - "packages"
+  - "public"
+  - "scripts"
+  - "src"
+
+# Dated / tracking-doc names that must NEVER reappear at the root.
+# These are Python `re` patterns, matched with re.search against each root entry
+# name. Tracking content goes in GitHub issues instead. Use SINGLE quotes so
+# backslashes stay literal (write \d and \. — not \\d) for the regex engine.
+forbidden_root_patterns:
+  - '.*_(AUDIT|REVIEW|FINDINGS|REGISTER|TRIAGE|SWEEP|STATUS|SESSION|RECONCILIATION)_.*\.md$'
+  - '.*_\d{4}-\d{2}-\d{2}.*\.md$'
+  - '^(TODO|ROADMAP|BACKLOG|OPERATOR_TODO|PERSONAL_TODO).*\.md$'
+
+required_files:
+  - "README.md"
+  - "LICENSE"
+  - ".gitignore"
