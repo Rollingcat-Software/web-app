@@ -1,6 +1,6 @@
 # Authentication System Design Document
 
-> **Historical design reference (last updated March 2026) — current status lives in ROADMAP.md.**
+> **Historical design reference (last updated March 2026) — current status lives in CHANGELOG.md and the open GitHub issues.**
 > This document reflects pre-implementation intent; many phases listed below have since shipped. Do not use phase checkboxes here as the source of truth.
 
 ## Overview
@@ -330,12 +330,14 @@ Endpoints needed:
 
 A cross-module audit identified gaps between this web-app's auth UI and the backend services:
 
-- **4 missing enrollment UIs**: Hardware Key, Fingerprint, Voice, NFC Document (see `AE-1` through `AE-3` in TODO.md)
+- **4 missing enrollment UIs**: Hardware Key, Fingerprint, Voice, NFC Document
 - **2 disconnected components**: TotpEnrollment and QrCodeStep not connected to backend endpoints
 - **3 broken auth methods at runtime**: Fingerprint, Voice, NFC (biometric-processor stubs)
-- **5 model/enum mismatches** with identity-core-api (IC1-IC5 in TODO.md)
+- **5 model/enum mismatches** with identity-core-api
 
-See [TODO.md](../docs/archive/TODO.md) for full list and [ROADMAP.md](../ROADMAP.md) for implementation plan.
+> Note: the gaps listed above are the pre-implementation (March 2026) snapshot; the
+> enrollment UIs and model alignments have since shipped. See CHANGELOG.md for the
+> as-built history and the open GitHub issues for any remaining items.
 
 ---
 
