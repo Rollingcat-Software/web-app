@@ -61,7 +61,7 @@ Set `VITE_ENABLE_MOCK_API=true` in `.env.local` for offline development with moc
   surfaces at once. `webauthnChallenge.ts` is the shared
   `makeRequestWebAuthnChallenge` helper. Each surface keeps its own SHELL
   (dashboard full-screen glass card vs hosted in-card OIDC flow) + flow state;
-  only the per-step BODY is shared. See `LOGIN_PARITY_2026-06-01.md`.
+  only the per-step BODY is shared.
   **2026-06-12 parity additions:** `steps/IdentifierStep.tsx` (the shared opening
   email-box + Continue identity-entry, used by BOTH surfaces — props inject the
   surface-specific chrome: gradient pill + ArrowForward + spinner on the dashboard
