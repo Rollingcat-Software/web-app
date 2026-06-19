@@ -44,6 +44,7 @@ import {
     type AuthFlowStep,
 } from '@domain/models/AuthMethod'
 import type { AuthFlowRepository, AuthFlowResponse, CreateAuthFlowCommand, AuthFlowDefaultImpact } from '@core/repositories/AuthFlowRepository'
+import { serializeStepConfig, parseStepConfig } from '../stepConfig'
 import type { ILogger } from '@domain/interfaces/ILogger'
 import { formatApiError } from '@utils/formatApiError'
 import { useTranslation } from 'react-i18next'
@@ -148,20 +149,27 @@ export default function AuthFlowsPage() {
                 description: data.description,
                 operationType: data.operationType,
                 isDefault: data.isDefault,
-                steps: data.steps.map((s) => ({
-                    authMethodType: s.methodType.toUpperCase(),
-                    stepOrder: s.order,
-                    isRequired: s.isRequired,
-                    timeoutSeconds: s.timeout,
-                    maxAttempts: s.maxAttempts,
-                    allowsDelegation: false,
-                    // CHOICE + usernameless (E): persist only when set so legacy
-                    // single-method strict steps keep the same payload shape.
-                    ...(s.alternativeMethodTypes && s.alternativeMethodTypes.length > 0
-                        ? { alternativeMethodTypes: s.alternativeMethodTypes.map((m) => m.toUpperCase()) }
-                        : {}),
-                    ...(s.usernameless ? { usernameless: true } : {}),
-                })),
+                steps: data.steps.map((s) => {
+                    // Serialize per-step config (PUZZLE puzzleConfig / FACE active-puzzle-
+                    // liveness) into FlowStepSpec.config. Without this the builder's puzzle
+                    // selection/count/difficulty and the FACE toggle were dropped on save.
+                    const config = serializeStepConfig(s)
+                    return {
+                        authMethodType: s.methodType.toUpperCase(),
+                        stepOrder: s.order,
+                        isRequired: s.isRequired,
+                        timeoutSeconds: s.timeout,
+                        maxAttempts: s.maxAttempts,
+                        allowsDelegation: false,
+                        ...(config ? { config } : {}),
+                        // CHOICE + usernameless (E): persist only when set so legacy
+                        // single-method strict steps keep the same payload shape.
+                        ...(s.alternativeMethodTypes && s.alternativeMethodTypes.length > 0
+                            ? { alternativeMethodTypes: s.alternativeMethodTypes.map((m) => m.toUpperCase()) }
+                            : {}),
+                        ...(s.usernameless ? { usernameless: true } : {}),
+                    }
+                }),
             }
 
             if (editingFlow) {
@@ -313,18 +321,25 @@ export default function AuthFlowsPage() {
     // Convert AuthFlowResponse steps to AuthFlowStep[] for the builder
     const getBuilderInitialSteps = (): AuthFlowStep[] => {
         if (!editingFlow?.steps) return []
-        return editingFlow.steps.map((s, i) => ({
-            id: `step-${i}-${Date.now()}`,
-            order: s.stepOrder,
-            methodId: s.authMethodType,
-            methodType: s.authMethodType as unknown as AuthFlowStep['methodType'],
-            isRequired: s.isRequired,
-            timeout: s.timeoutSeconds ?? 120,
-            maxAttempts: s.maxAttempts ?? 3,
-            // Hydrate CHOICE alternatives + usernameless flag (E) when present.
-            alternativeMethodTypes: (s.alternativeMethodTypes ?? []) as unknown as AuthFlowStep['alternativeMethodTypes'],
-            usernameless: s.usernameless ?? false,
-        }))
+        return editingFlow.steps.map((s, i) => {
+            // Hydrate PUZZLE puzzleConfig / FACE active-puzzle-liveness back from the
+            // persisted config blob so editing a flow does not drop them on re-save.
+            const { puzzleConfig, requireActivePuzzleLiveness } = parseStepConfig(s.config)
+            return {
+                id: `step-${i}-${Date.now()}`,
+                order: s.stepOrder,
+                methodId: s.authMethodType,
+                methodType: s.authMethodType as unknown as AuthFlowStep['methodType'],
+                isRequired: s.isRequired,
+                timeout: s.timeoutSeconds ?? 120,
+                maxAttempts: s.maxAttempts ?? 3,
+                // Hydrate CHOICE alternatives + usernameless flag (E) when present.
+                alternativeMethodTypes: (s.alternativeMethodTypes ?? []) as unknown as AuthFlowStep['alternativeMethodTypes'],
+                usernameless: s.usernameless ?? false,
+                ...(puzzleConfig ? { puzzleConfig } : {}),
+                ...(requireActivePuzzleLiveness ? { requireActivePuzzleLiveness: true } : {}),
+            }
+        })
     }
 
     return (
