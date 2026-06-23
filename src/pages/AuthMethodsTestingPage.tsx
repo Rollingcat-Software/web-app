@@ -65,7 +65,7 @@ export default function AuthMethodsTestingPage() {
                 {t('authMethodsTesting.pageSubtitle')}
             </Typography>
 
-            {/* TODO: difficulty + platform filters (post-MVP). */}
+            {/* TODO(#241): difficulty + platform filters (post-MVP). */}
 
             <Grid container spacing={2}>
                 {methods.map((method) => (
