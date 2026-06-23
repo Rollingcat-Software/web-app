@@ -41,7 +41,7 @@ export class LoggerService implements ILogger {
         this.isProduction = config.environment === 'production'
         this.apiBaseUrl = config.apiBaseUrl
         // Vite envs are statically replaced at build time. The endpoint
-        // `/client-logs` does not yet exist on the backend (TODO Team A);
+        // `/client-logs` does not yet exist on the backend (TODO(#240) Team A);
         // until it ships, default the flag to false so we ship a safe no-op
         // and don't 404-spam the API. Operator can flip
         // `VITE_CLIENT_LOG_SINK_ENABLED=true` once the endpoint lands.
