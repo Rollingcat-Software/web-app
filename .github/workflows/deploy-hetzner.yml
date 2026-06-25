@@ -1,0 +1,52 @@
+name: Deploy to Hetzner
+
+# Replaces deploy-hostinger.yml (Hostinger plan cancelled 2026-06).
+# app.fivucsas.com now runs as an nginx container on the Hetzner box behind
+# Traefik (auto Let's Encrypt TLS). The Vite build runs on the box (reads the
+# gitignored .env.production already present there).
+#
+# Required secrets: VPS_HOST=116.203.222.213, VPS_USER=deploy, VPS_SSH_KEY.
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - 'src/**'
+      - 'public/**'
+      - 'index.html'
+      - 'package.json'
+      - 'package-lock.json'
+      - 'vite.config.*'
+      - 'Dockerfile'
+      - 'nginx.conf'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/deploy-hetzner.yml'
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-fivucsas-app
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    name: Deploy app.fivucsas.com
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1
+        timeout-minutes: 12
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          command_timeout: 10m
+          script: |
+            set -e
+            cd /opt/projects/fivucsas/web-app
+            git pull origin main
+            npm ci
+            npm run build
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml ps
+            curl -skf -o /dev/null --resolve app.fivucsas.com:443:127.0.0.1 \
+              https://app.fivucsas.com/ && echo "app.fivucsas.com healthy"

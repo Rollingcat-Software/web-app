@@ -1,0 +1,32 @@
+# app.fivucsas.com — FIVUCSAS web app (Vite SPA/PWA) on the Hetzner box behind
+# Traefik (automatic Let's Encrypt TLS). Replaces Hostinger hosting (plan
+# cancelled 2026-06). Point app.fivucsas.com's A record to 116.203.222.213 at
+# turkticaret; the secure-headers permissions-policy already allows camera on
+# self, so the client-side biometrics keep working.
+services:
+  fivucsas-app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fivucsas-app
+    container_name: fivucsas-app
+    restart: unless-stopped
+    networks:
+      - proxy
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.fivucsas-app.rule=Host(`app.fivucsas.com`)"
+      - "traefik.http.routers.fivucsas-app.entrypoints=websecure"
+      - "traefik.http.routers.fivucsas-app.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.fivucsas-app.middlewares=secure-headers@file,rate-limit@file"
+      - "traefik.http.services.fivucsas-app.loadbalancer.server.port=80"
+    deploy:
+      resources:
+        limits:
+          memory: 96M
+          pids: 128
+
+networks:
+  proxy:
+    name: proxy
+    external: true

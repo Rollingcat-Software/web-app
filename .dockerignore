@@ -1,0 +1,14 @@
+.git
+.github
+node_modules
+src
+public
+e2e
+tests
+.env
+.env.*
+*.md
+package*.json
+tsconfig*.json
+vite.config.*
+playwright.config.*
