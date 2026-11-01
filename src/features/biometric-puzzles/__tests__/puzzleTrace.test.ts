@@ -10,6 +10,7 @@ import {
     FACE_TRACE_INDICES,
     PuzzleTraceRecorder,
     TRACE_MAX_FRAMES,
+    TRACE_MIN_FRAME_INTERVAL_MS,
     TRACE_MIN_INTERVAL_MS,
     TRACE_WINDOW_MS,
     encodeBindingFrame,
@@ -67,12 +68,35 @@ describe('PuzzleTraceRecorder', () => {
         expect(r.length).toBe(2)
     })
 
-    it('force-records the completing frame inside the min interval', () => {
+    it('force-records the completing frame inside the down-sampling interval', () => {
         const r = new PuzzleTraceRecorder('face')
         r.setFrameSize(640, 480)
         r.push(1000, mesh(1))
-        expect(r.push(1010, mesh(2), true)).toBe(true)
-        expect(r.lastTimestamp).toBe(1010)
+        expect(r.push(1020, mesh(2), true)).toBe(true) // >= 15 ms → appended
+        expect(r.lastTimestamp).toBe(1020)
+        expect(r.length).toBe(2)
+    })
+
+    it('a forced frame < TRACE_MIN_FRAME_INTERVAL_MS after the previous one REPLACES it', () => {
+        const r = new PuzzleTraceRecorder('face')
+        r.setFrameSize(640, 480)
+        r.push(1000, mesh(1))
+        r.push(1040, mesh(2))
+        expect(r.push(1050, mesh(3), true)).toBe(true) // +10 ms → replace
+        expect(r.length).toBe(2)
+        expect(r.lastTimestamp).toBe(1050)
+        const ts = r.toPayload()!.frames.map((f) => f.t)
+        expect(ts).toEqual([1000, 1050])
+    })
+
+    it('a forced repeat of the frame before the replaced one anchors on that frame', () => {
+        const r = new PuzzleTraceRecorder('face')
+        r.setFrameSize(640, 480)
+        r.push(1000, mesh(1))
+        r.push(1040, mesh(2))
+        expect(r.push(1048, mesh(1), true)).toBe(false)
+        expect(r.lastTimestamp).toBe(1000)
+        expect(r.length).toBe(1)
     })
 
     it('keeps only the last TRACE_WINDOW_MS until frozen, then keeps the tail', () => {
@@ -125,5 +149,46 @@ describe('PuzzleTraceRecorder', () => {
         console.info(`v2 trace bytes (2 s @25 fps): face=${faceBytes} hand=${handBytes}`)
         expect(faceBytes).toBeLessThan(30_000)
         expect(handBytes).toBeLessThan(20_000)
+    })
+})
+
+/**
+ * B3 cross-repo contract. SHARED CONSTANT: biometric-processor
+ * `puzzle_trace_verifier.MIN_FRAME_INTERVAL_MS` = 15 ms (frames closer than this
+ * → FRAME_INTERVAL_IMPLAUSIBLE). The bio mirror is
+ * `test_puzzle_session_v2.py::test_b3_*` (WEB_TRACE_MIN_FRAME_INTERVAL_MS).
+ */
+const BIO_MIN_FRAME_INTERVAL_MS = 15
+
+/** Bio's interval rule, replicated: every consecutive gap ≥ the floor. */
+function satisfiesBioIntervalRule(ts: number[]): boolean {
+    for (let i = 1; i < ts.length; i++) if (ts[i] - ts[i - 1] < BIO_MIN_FRAME_INTERVAL_MS) return false
+    return true
+}
+
+describe('puzzleTrace — bio frame-interval contract (B3)', () => {
+    it('web constant equals the bio constant', () => {
+        expect(TRACE_MIN_FRAME_INTERVAL_MS).toBe(BIO_MIN_FRAME_INTERVAL_MS)
+    })
+
+    it('a web trace with a forced completing frame at +8 ms satisfies bio\'s interval rule', () => {
+        const r = new PuzzleTraceRecorder('face')
+        r.setFrameSize(640, 480)
+        let t = 1000
+        for (let k = 0; k < 30; k++, t += 33) r.push(t, mesh(k)) // ~30 fps camera
+        const last = r.lastTimestamp!
+        expect(r.push(last + 8, mesh(99), true)).toBe(true)
+        const ts = r.toPayload()!.frames.map((f) => f.t)
+        expect(ts[ts.length - 1]).toBe(last + 8)
+        expect(satisfiesBioIntervalRule(ts)).toBe(true)
+    })
+
+    it('holds for hand traces too, including repeated forced pushes', () => {
+        const r = new PuzzleTraceRecorder('hand')
+        r.setFrameSize(640, 480)
+        let t = 0
+        for (let k = 0; k < 10; k++, t += 40) r.push(t, hand(k))
+        for (let k = 0; k < 5; k++) r.push(r.lastTimestamp! + 4, hand(100 + k), true)
+        expect(satisfiesBioIntervalRule(r.toPayload()!.frames.map((f) => f.t))).toBe(true)
     })
 })

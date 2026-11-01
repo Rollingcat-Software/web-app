@@ -193,9 +193,17 @@ function isFrontalPose(headPose: HeadPose | null): boolean {
  * the neutral pose after the excursion (bio enforces "rest → excursion →
  * return"). After completion the trace keeps recording until the pose is back
  * within this fraction of the server threshold (yaw 15°, pitch 10°) of the
- * attempt's starting pose, or until RETURN_TAIL_MAX_MS elapses.
+ * attempt's starting pose. The completion is NEVER submitted before the head
+ * has returned: a trace without the return is rejected by bio and would burn
+ * one of the session's 3 attempts. After RETURN_TAIL_MAX_MS the prompt becomes
+ * more insistent; after RETURN_TAIL_GIVEUP_MS (or the attempt timeout) the
+ * attempt fails LOCALLY (no server call, no attempt burned). The give-up bound
+ * keeps the trace within bio's limits: ≤ 4 s pre-completion window + ≤ 3.5 s
+ * tail stays under the 10 s span ceiling and, at ≤ 25 fps, under the 190-frame
+ * cap (so the rest phase is not trimmed off the front).
  */
 const RETURN_TAIL_MAX_MS = 2_000
+const RETURN_TAIL_GIVEUP_MS = 3_500
 const RETURN_TAIL_SETTLE_MS = 160
 const RETURN_YAW_TOLERANCE_DEG = 6
 const RETURN_PITCH_TOLERANCE_DEG = 4
@@ -276,7 +284,8 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
         returnedAt: number | null
         finish: () => void
     } | null>(null)
-    const [returnHint, setReturnHint] = useState(false)
+    /** i18n key of the return-to-centre prompt while a v2 return tail runs. */
+    const [returnHint, setReturnHint] = useState<string | null>(null)
 
     // Independent puzzle instance pinned to this challenge type. Sharing the
     // engine's metricsCalculator keeps internal state (eyebrow baseline) in
@@ -416,7 +425,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
             traceRef.current.reset()
             poseHistoryRef.current = []
             tailRef.current = null
-            setReturnHint(false)
+            setReturnHint(null)
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: 'user',
@@ -492,7 +501,13 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
 
             // Hard timeout safeguard.
             if (performance.now() - startTsRef.current > ATTEMPT_TIMEOUT_MS) {
-                if (!completedRef.current) {
+                if (tailRef.current) {
+                    // v2: gesture done but the head never returned — fail
+                    // locally WITHOUT submitting (no server attempt burned).
+                    tailRef.current = null
+                    setReturnHint(null)
+                    onError(t('biometricPuzzle.returnTimeout'))
+                } else if (!completedRef.current) {
                     completedRef.current = true
                     setRunning(false)
                     onError(t('biometricPuzzle.timeoutMessage'))
@@ -524,11 +539,24 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                         }
                     }
                     const settled = tail.returnedAt !== null && frameTs - tail.returnedAt >= RETURN_TAIL_SETTLE_MS
-                    if (settled || frameTs - tail.start > RETURN_TAIL_MAX_MS) {
+                    if (settled) {
                         tailRef.current = null
-                        setReturnHint(false)
+                        setReturnHint(null)
                         tail.finish()
                         return
+                    }
+                    // Not returned yet: never submit. Keep prompting; give up
+                    // locally (no server call) once the trace would exceed bio's
+                    // limits.
+                    const inTail = frameTs - tail.start
+                    if (inTail > RETURN_TAIL_GIVEUP_MS) {
+                        tailRef.current = null
+                        setReturnHint(null)
+                        onError(t('biometricPuzzle.returnTimeout'))
+                        return
+                    }
+                    if (inTail > RETURN_TAIL_MAX_MS) {
+                        setReturnHint('biometricPuzzle.returnToCenterRequired')
                     }
                     if (face?.detection.landmarks478?.length) {
                         drawFaceLandmarks(face.detection.landmarks478, true)
@@ -727,7 +755,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                                 returnedAt: null,
                                 finish,
                             }
-                            setReturnHint(true)
+                            setReturnHint('biometricPuzzle.returnToCenter')
                             animFrameRef.current = requestAnimationFrame(loop)
                             return
                         }
@@ -906,7 +934,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                         variant="outlined"
                         sx={{ width: '100%', borderRadius: '12px', fontWeight: 500 }}
                     >
-                        {t('biometricPuzzle.returnToCenter')}
+                        {t(returnHint)}
                     </Alert>
                 )}
 

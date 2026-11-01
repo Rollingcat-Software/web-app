@@ -127,7 +127,8 @@ export default function PuzzleStep({
     /** Contract v2 advertised by the server on CREATE (trace-based SUBMIT). */
     const [traceV2, setTraceV2] = useState(false)
     const faceIndicesRef = useRef<readonly number[]>(FACE_TRACE_INDICES)
-    /** v2 split-capture binding frame for the embedding's source frame. */
+    /** v2 binding frame (server binding-frame consistency check; client-declared,
+     *  NOT proof the embedding came from the live capture). */
     const bindingFrameRef = useRef<PuzzleBindingFrame | null>(null)
     /** Guards a double CREATE under React 18 StrictMode double-invoke. */
     const createdRef = useRef(false)

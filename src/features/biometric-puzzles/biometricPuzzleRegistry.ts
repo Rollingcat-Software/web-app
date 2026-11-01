@@ -88,7 +88,8 @@ export interface BiometricPuzzleProps {
      * record a compact landmark trace of the attempt and return it on the
      * verdict (`PuzzleServerVerdict.trace`) so the server can RE-SCORE the
      * gesture itself. When set, `onBestFrame` also receives the trace
-     * timestamp of the captured frame (split-capture binding). Off (default) =
+     * timestamp of the captured frame (for the server's binding-frame
+     * consistency check). Off (default) =
      * byte-identical v1 behaviour.
      */
     collectTrace?: boolean

@@ -259,11 +259,21 @@ rolling window, identical-frame dedupe; ≈0.5 KB/face frame, ≈0.3 KB/hand fra
 challenge ≈24 KB face / ≈16 KB hand) and returns it as `PuzzleServerVerdict.trace`;
 the SUBMIT forwards it and bio recomputes metric + temporal shape + duration +
 plausibility. `FacePuzzle` keeps recording a short **return tail** after turn/look
-(bio requires rest → excursion → return; hint `biometricPuzzle.returnToCenter`).
+(bio requires rest → excursion → return; hint `biometricPuzzle.returnToCenter`). The
+completion is NEVER submitted before the head returns: after 2 s the hint becomes
+`returnToCenterRequired`, after 3.5 s (or the 30 s attempt timeout) the attempt fails
+LOCALLY with `returnTimeout` — no server call, so no bio attempt is burned. A forced
+"completing frame" landing < 15 ms after the previous frame REPLACES it
+(`TRACE_MIN_FRAME_INTERVAL_MS`, shared with bio `MIN_FRAME_INTERVAL_MS`; pinned by tests
+on both sides) so bio never sees `FRAME_INTERVAL_IMPLAUSIBLE`.
 `HandGesturePuzzle` now uses the server-issued finger-count/math `target`
 (`applyServerTarget`). v2 + no trace ⇒ fail closed. With identity-binding the verdict
 also carries `binding_frame` (trace-subset landmarks + trace timestamp of the
-embedding's source frame; `onBestFrame` gets the timestamp as a 3rd arg). No VITE flag:
+embedding's source frame; `onBestFrame` gets the timestamp as a 3rd arg) for the server's
+**binding-frame consistency check**. Honest scope: the server only checks this
+client-declared frame against the client's own trace; it does NOT tie the matched
+embedding to the live capture, and a modified client can pass it. Real binding needs
+server-observed image data or attested capture. No VITE flag:
 the server advertisement drives it, so v1 payloads stay byte-identical. Server docs:
 biometric-processor CLAUDE.md "Contract v2".
 

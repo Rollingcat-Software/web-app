@@ -37,6 +37,15 @@ const COORD_SCALE = 1e4
 const COORD_ABS_MAX = 20_000
 /** Minimum interval between recorded frames (≤ 25 fps keeps blinks sampled). */
 export const TRACE_MIN_INTERVAL_MS = 40
+/**
+ * SHARED CONSTANT with biometric-processor `puzzle_trace_verifier.MIN_FRAME_INTERVAL_MS`
+ * (15 ms): bio rejects any trace with two consecutive frames closer than this
+ * (`FRAME_INTERVAL_IMPLAUSIBLE`). A forced completing frame that would land
+ * inside it REPLACES the previous frame instead of being appended. Pinned on
+ * both sides by tests (web `puzzleTrace.test.ts`, bio `test_puzzle_session_v2.py`
+ * `test_b3_*`); change both together.
+ */
+export const TRACE_MIN_FRAME_INTERVAL_MS = 15
 /** Keep at most this much history before the completing frame. */
 export const TRACE_WINDOW_MS = 4_000
 /** Hard frame cap (bio rejects > 200). */
@@ -61,7 +70,12 @@ export interface PuzzleTracePayload {
     frames: PuzzleTraceFrame[]
 }
 
-/** Split-capture binding frame: the frame the identity embedding came from. */
+/**
+ * Binding frame for the server's binding-frame consistency check: the
+ * client-DECLARED frame the identity embedding came from. The server only checks
+ * it against this client's own trace; it does not prove the embedding came from
+ * the live capture (a modified client can pass it).
+ */
 export interface PuzzleBindingFrame {
     t: number
     f: number[]
@@ -144,29 +158,36 @@ export class PuzzleTraceRecorder {
     }
 
     /**
-     * Record one processed frame. `force` records it even inside the min
-     * interval (used for the completing frame so the binding frame and the
-     * gesture's decisive frame are always present).
+     * Record one processed frame. `force` records it even inside the
+     * down-sampling interval (used for the completing frame so the binding frame
+     * and the gesture's decisive frame are always present). A forced frame that
+     * would land less than `TRACE_MIN_FRAME_INTERVAL_MS` (bio's plausibility
+     * floor) after the previous frame REPLACES that frame instead of being
+     * appended, so the trace never contains an interval bio rejects; replacing
+     * only ever widens the gap to the frame before it.
      */
     push(t: number, landmarks: readonly TracePoint[] | null, force = false): boolean {
         const ts = Math.round(t)
         if (ts <= this.lastT) return false
         if (!force && ts - this.lastT < TRACE_MIN_INTERVAL_MS) return false
+        const replace =
+            force && this.frames.length > 0 && ts - this.lastT < TRACE_MIN_FRAME_INTERVAL_MS
+        // The frame the new one will follow in the trace.
+        const prev = this.frames[this.frames.length - (replace ? 2 : 1)]
         let frame: PuzzleTraceFrame
         if (this.modality === 'face') {
             if (!landmarks) return false
             const f = encodePoints(landmarks, this.faceIndices)
             if (!f) return false
-            const prev = this.frames[this.frames.length - 1]
-            if (prev && sameInts(prev.f, f)) return false
+            if (prev && sameInts(prev.f, f)) return this.dropRepeat(replace, ts)
             frame = { t: ts, f }
         } else {
             const h = landmarks && landmarks.length >= 21 ? encodePoints(landmarks.slice(0, 21)) : null
-            const prev = this.frames[this.frames.length - 1]
-            if (prev && h && sameInts(prev.h ?? null, h)) return false
+            if (prev && h && sameInts(prev.h ?? null, h)) return this.dropRepeat(replace, ts)
             frame = { t: ts, h }
         }
-        this.frames.push(frame)
+        if (replace) this.frames[this.frames.length - 1] = frame
+        else this.frames.push(frame)
         this.lastT = ts
         if (this.frozenStart === null) {
             // Rolling window: drop history older than TRACE_WINDOW_MS.
@@ -176,6 +197,19 @@ export class PuzzleTraceRecorder {
         }
         while (this.frames.length > TRACE_MAX_FRAMES) this.frames.shift()
         return true
+    }
+
+    /**
+     * A frame bit-identical to the one it would follow is dropped. When it was
+     * meant to REPLACE the last frame, the last frame is discarded too, so the
+     * identical earlier frame becomes the anchor (`lastTimestamp`).
+     */
+    private dropRepeat(replace: boolean, ts: number): boolean {
+        if (replace) {
+            this.frames.pop()
+            this.lastT = ts
+        }
+        return false
     }
 
     /** Stop trimming the window (the gesture completed; a return tail follows). */
@@ -194,7 +228,8 @@ export class PuzzleTraceRecorder {
     }
 }
 
-/** Build the split-capture binding frame from the embedding's source landmarks. */
+/** Build the binding frame (for the server's binding-frame consistency check)
+ *  from the embedding's source landmarks. */
 export function encodeBindingFrame(
     landmarks: readonly TracePoint[],
     t: number,
