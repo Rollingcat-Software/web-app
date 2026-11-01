@@ -2171,6 +2171,7 @@
     "errorHint": "Tip: hold the gesture steady, keep good lighting on your face or hand, and move slowly.",
     "timeoutMessage": "Time's up — the gesture was not detected. Please try again.",
     "livenessFailed": "Live face not detected. Please use a real face, not a photo or screen, and try again.",
+    "returnToCenter": "Now look straight at the camera again.",
     "engineLoading": "Loading detector…",
     "startCamera": "Start Camera",
     "waitingForGesture": "Waiting for the requested gesture…",

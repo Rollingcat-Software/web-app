@@ -2171,6 +2171,7 @@
     "errorHint": "İpucu: hareketi sabit tutun, yüzünüzün veya elinizin üzerinde iyi ışık olsun ve yavaş hareket edin.",
     "timeoutMessage": "Süre doldu — hareket algılanamadı. Lütfen tekrar deneyin.",
     "livenessFailed": "Canlı yüz algılanamadı. Lütfen fotoğraf veya ekran değil gerçek bir yüz kullanın ve tekrar deneyin.",
+    "returnToCenter": "Şimdi tekrar doğrudan kameraya bakın.",
     "engineLoading": "Dedektör yükleniyor…",
     "startCamera": "Kamerayı Başlat",
     "waitingForGesture": "İstenen hareket bekleniyor…",

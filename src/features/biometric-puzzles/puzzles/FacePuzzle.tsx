@@ -46,6 +46,7 @@ import { useBiometricPuzzleServer } from '../useBiometricPuzzleServer'
 import { faceChallengeToServerAction } from '../puzzleServerAction'
 import { cropFaceToDataURL } from '@features/auth/utils/faceCropper'
 import { assessQuality } from '@features/auth/hooks/useQualityAssessment'
+import { PuzzleTraceRecorder } from '../puzzleTrace'
 
 /**
  * Per-gesture direction-reversal counter for NOD (pitch) and SHAKE_HEAD (yaw).
@@ -187,7 +188,37 @@ function isFrontalPose(headPose: HeadPose | null): boolean {
     )
 }
 
-function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = 'training', onBestFrame }: Props) {
+/**
+ * Contract v2 return tail: head turn / look challenges must come back toward
+ * the neutral pose after the excursion (bio enforces "rest → excursion →
+ * return"). After completion the trace keeps recording until the pose is back
+ * within this fraction of the server threshold (yaw 15°, pitch 10°) of the
+ * attempt's starting pose, or until RETURN_TAIL_MAX_MS elapses.
+ */
+const RETURN_TAIL_MAX_MS = 2_000
+const RETURN_TAIL_SETTLE_MS = 160
+const RETURN_YAW_TOLERANCE_DEG = 6
+const RETURN_PITCH_TOLERANCE_DEG = 4
+
+function needsReturnTail(challengeType: ChallengeType): 'yaw' | 'pitch' | null {
+    switch (challengeType) {
+        case ChallengeType.TURN_LEFT:
+        case ChallengeType.TURN_RIGHT:
+            return 'yaw'
+        case ChallengeType.LOOK_UP:
+        case ChallengeType.LOOK_DOWN:
+            return 'pitch'
+        default:
+            return null
+    }
+}
+
+function median(values: number[]): number {
+    const s = [...values].sort((a, b) => a - b)
+    return s.length ? s[Math.floor(s.length / 2)] : 0
+}
+
+function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = 'training', onBestFrame, collectTrace = false }: Props) {
     const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -231,6 +262,21 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
     const lastLandmarksRef = useRef<NormalizedLandmark[] | null>(null)
     /** Guards a double best-frame grab (one capture per completed session). */
     const bestFrameGrabbedRef = useRef<boolean>(false)
+    /**
+     * Contract v2 (`collectTrace`): rolling landmark trace for this attempt,
+     * the head-pose history used to detect the post-gesture "return", and the
+     * pending completion while the return tail is being recorded.
+     */
+    const traceRef = useRef<PuzzleTraceRecorder>(new PuzzleTraceRecorder('face'))
+    const poseHistoryRef = useRef<{ t: number; yaw: number; pitch: number }[]>([])
+    const tailRef = useRef<{
+        axis: 'yaw' | 'pitch'
+        start: number
+        base: number
+        returnedAt: number | null
+        finish: () => void
+    } | null>(null)
+    const [returnHint, setReturnHint] = useState(false)
 
     // Independent puzzle instance pinned to this challenge type. Sharing the
     // engine's metricsCalculator keeps internal state (eyebrow baseline) in
@@ -367,6 +413,10 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
             // One identity-binding best-frame per camera session (survives the
             // effect re-runs the detection loop triggers on each `detected` flip).
             bestFrameGrabbedRef.current = false
+            traceRef.current.reset()
+            poseHistoryRef.current = []
+            tailRef.current = null
+            setReturnHint(false)
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
                     facingMode: 'user',
@@ -420,14 +470,18 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
         const puzzle = puzzleEngineRef.current
         if (!puzzle) return
 
-        // Start a fresh single-challenge session.
-        puzzle.start([challengeType], 1)
-        oscillationRef.current.reset()
-        startTsRef.current = performance.now()
-        completedRef.current = false
-        setRunning(true)
-        setProgress(0)
-        setDetected(false)
+        // Start a fresh single-challenge session — unless a contract-v2 return
+        // tail is in progress (an effect re-run must not reset the gesture
+        // that already completed; the loop below finishes the tail first).
+        if (!tailRef.current) {
+            puzzle.start([challengeType], 1)
+            oscillationRef.current.reset()
+            startTsRef.current = performance.now()
+            completedRef.current = false
+            setRunning(true)
+            setProgress(0)
+            setDetected(false)
+        }
 
         const loop = () => {
             const video = videoRef.current
@@ -449,6 +503,39 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
             try {
                 const frame = engine.frameProcessor.processFrame(video)
                 const face = frame.faces[0]
+                const frameTs = performance.now()
+                // Contract v2: record this frame into the landmark trace.
+                if (collectTrace && face?.detection.landmarks478?.length && face.headPose) {
+                    traceRef.current.setFrameSize(video.videoWidth, video.videoHeight)
+                    traceRef.current.push(frameTs, face.detection.landmarks478)
+                    const hist = poseHistoryRef.current
+                    hist.push({ t: frameTs, yaw: face.headPose.yaw, pitch: face.headPose.pitch })
+                    while (hist.length && frameTs - hist[0].t > 6_000) hist.shift()
+                }
+                // Contract v2 return tail: keep recording until the head is back
+                // near its starting pose, then run the deferred completion.
+                const tail = tailRef.current
+                if (tail) {
+                    if (face?.headPose) {
+                        const now = face.headPose[tail.axis]
+                        const tol = tail.axis === 'yaw' ? RETURN_YAW_TOLERANCE_DEG : RETURN_PITCH_TOLERANCE_DEG
+                        if (tail.returnedAt === null && Math.abs(now - tail.base) <= tol) {
+                            tail.returnedAt = frameTs
+                        }
+                    }
+                    const settled = tail.returnedAt !== null && frameTs - tail.returnedAt >= RETURN_TAIL_SETTLE_MS
+                    if (settled || frameTs - tail.start > RETURN_TAIL_MAX_MS) {
+                        tailRef.current = null
+                        setReturnHint(false)
+                        tail.finish()
+                        return
+                    }
+                    if (face?.detection.landmarks478?.length) {
+                        drawFaceLandmarks(face.detection.landmarks478, true)
+                    }
+                    animFrameRef.current = requestAnimationFrame(loop)
+                    return
+                }
                 if (face?.detection.landmarks478?.length && face.headPose) {
                     drawFaceLandmarks(face.detection.landmarks478, detected)
                     // Track the rolling passive-liveness verdict for this frame.
@@ -510,6 +597,10 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                         completedRef.current = true
                         setRunning(false)
                         setProgress(100)
+                        // Contract v2: the decisive frame is always in the trace.
+                        if (collectTrace) {
+                            traceRef.current.push(frameTs, face.detection.landmarks478, true)
+                        }
 
                         // ── Phase 4: best frontal frame for identity-binding ──
                         // Additive + opt-in: only when a caller (PuzzleStep with
@@ -527,7 +618,15 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                                     const image = cropFaceToDataURL(video, bbox)
                                     if (image) {
                                         bestFrameGrabbedRef.current = true
-                                        onBestFrame(image, landmarks)
+                                        // The binding frame timestamp is the trace
+                                        // frame these landmarks were recorded as.
+                                        onBestFrame(
+                                            image,
+                                            landmarks,
+                                            collectTrace
+                                                ? (traceRef.current.lastTimestamp ?? Math.round(frameTs))
+                                                : undefined,
+                                        )
                                     }
                                 }
                             }
@@ -548,7 +647,9 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                             onSuccess()
                             return
                         }
+                        const finish = () => {
                         const endTs = performance.now()
+                        const trace = collectTrace ? traceRef.current.toPayload() : null
                         // Canonical bio metric for the gesture (EAR/MAR/brow/
                         // yaw/pitch), derived from the engine's last frame.
                         const canonicalMetric = canonicalFaceMetric(
@@ -583,6 +684,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                                         startTimestampMs: startTsRef.current,
                                         endTimestampMs: endTs,
                                         confidence,
+                                        trace: trace ?? undefined,
                                     })
                                 } else if (outcome.kind === 'soft_pass') {
                                     onSuccess({
@@ -607,6 +709,29 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                                     }),
                                 )
                             })
+                        }
+                        // Contract v2: head turn / look must be followed by a return
+                        // toward the starting pose — record a short tail first.
+                        const axis = collectTrace ? needsReturnTail(challengeType) : null
+                        if (axis) {
+                            traceRef.current.freezeWindow()
+                            const startT = traceRef.current.firstTimestamp ?? 0
+                            const early = poseHistoryRef.current
+                                .filter((p) => p.t >= startT)
+                                .slice(0, 3)
+                                .map((p) => p[axis])
+                            tailRef.current = {
+                                axis,
+                                start: frameTs,
+                                base: median(early),
+                                returnedAt: null,
+                                finish,
+                            }
+                            setReturnHint(true)
+                            animFrameRef.current = requestAnimationFrame(loop)
+                            return
+                        }
+                        finish()
                         return
                     }
                 } else {
@@ -626,7 +751,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                 animFrameRef.current = 0
             }
         }
-    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected, verifyChallenge, serverMode, onBestFrame])
+    }, [engine, isReady, cameraActive, videoReady, challengeType, onSuccess, onError, t, drawFaceLandmarks, clearOverlay, detected, verifyChallenge, serverMode, onBestFrame, collectTrace])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 
@@ -773,6 +898,16 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                             </Box>
                         </Box>
                     </Box>
+                )}
+
+                {returnHint && (
+                    <Alert
+                        severity="info"
+                        variant="outlined"
+                        sx={{ width: '100%', borderRadius: '12px', fontWeight: 500 }}
+                    >
+                        {t('biometricPuzzle.returnToCenter')}
+                    </Alert>
                 )}
 
                 {serverVerifying && (
