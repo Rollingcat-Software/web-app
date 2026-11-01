@@ -2,6 +2,23 @@
 
 ## [Unreleased]
 
+### 2026-11-01 — PUZZLE contract v2: record + submit landmark traces
+
+- When bio advertises `trace_contract: 'v2'` on puzzle-session CREATE
+  (`PUZZLE_TRACE_V2_ENABLED`, default OFF), `PuzzleStep` has each challenge record a
+  compact landmark trace (`puzzleTrace.ts` `PuzzleTraceRecorder`) and SUBMITs it, so the
+  server re-scores the gesture instead of trusting a client scalar. Fails closed when v2
+  is advertised but no trace was produced.
+- `FacePuzzle`: trace recording + a post-gesture return tail for turn/look (new i18n key
+  `biometricPuzzle.returnToCenter`, en + tr); `onBestFrame` passes the frame's trace
+  timestamp so the verdict can carry a split-capture `binding_frame`.
+- `HandGesturePuzzle`: records hand frames (null = no hand) and uses the server-issued
+  finger-count / math target (it previously used a client-random target while bio scored
+  against its own).
+- v1 sessions (no advertisement) keep byte-identical payloads. Tests:
+  `puzzleTrace.test.ts`, `HandGesturePuzzle.serverTarget.test.ts`,
+  `PuzzleStep.traceV2.test.tsx` (18 new).
+
 ### 2026-06-03 — Login resilience: SW cache headers + explicit "config unavailable" banner
 
 Two low-risk fixes for a confusing failure mode: when the dashboard couldn't reach

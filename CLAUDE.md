@@ -249,6 +249,24 @@ session, computes the Facenet512 vector, and submits `{ puzzle_session_id, embed
 (raw image not sent) so liveness AND identity come from one capture. Contract:
 `docs/superpowers/plans/2026-06-12-puzzle-session-convergence.md`.
 
+**Contract v2 — landmark traces (server flag `PUZZLE_TRACE_V2_ENABLED`, default OFF,
+2026-11-01).** v1 SUBMITs one client-computed scalar per challenge (forgeable). When the
+CREATE response advertises `trace_contract: 'v2'`, `PuzzleStep` passes
+`collectTrace` + the server `challengeParams` to the challenge component, which records
+a compact trace with `PuzzleTraceRecorder` (`src/features/biometric-puzzles/puzzleTrace.ts`:
+32 face landmarks or 21 hand landmarks per frame, ints in 1e-4 units, ≤25 fps, 4 s
+rolling window, identical-frame dedupe; ≈0.5 KB/face frame, ≈0.3 KB/hand frame, a 2 s
+challenge ≈24 KB face / ≈16 KB hand) and returns it as `PuzzleServerVerdict.trace`;
+the SUBMIT forwards it and bio recomputes metric + temporal shape + duration +
+plausibility. `FacePuzzle` keeps recording a short **return tail** after turn/look
+(bio requires rest → excursion → return; hint `biometricPuzzle.returnToCenter`).
+`HandGesturePuzzle` now uses the server-issued finger-count/math `target`
+(`applyServerTarget`). v2 + no trace ⇒ fail closed. With identity-binding the verdict
+also carries `binding_frame` (trace-subset landmarks + trace timestamp of the
+embedding's source frame; `onBestFrame` gets the timestamp as a 3rd arg). No VITE flag:
+the server advertisement drives it, so v1 payloads stay byte-identical. Server docs:
+biometric-processor CLAUDE.md "Contract v2".
+
 ## Key Patterns
 
 - **i18n**: ALL strings use `t()` with keys in en.json + tr.json. NEVER hardcode English.
