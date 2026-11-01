@@ -277,6 +277,36 @@ server-observed image data or attested capture. No VITE flag:
 the server advertisement drives it, so v1 payloads stay byte-identical. Server docs:
 biometric-processor CLAUDE.md "Contract v2".
 
+**Real-face calibration (2026-11-01; client "completed" ⇒ server accepts).** Measured on
+MediaPipe landmarks from real face clips (fivucsas-papers
+`paper-B-puzzle-pad/bench/calibration-2026-11-01/out/after_fixes.txt`):
+- **Head-pose sign fixed** (`HeadPoseEstimator`): convention is yaw < 0 = the USER's own
+  left, pitch < 0 = looking up (bio's Kabsch convention). The matrix path had BOTH axes
+  inverted and the landmark fallback had yaw inverted — confirmed in headless Chromium
+  with a fake camera + tasks-vision 0.10.32; tests pin it with matrices captured there.
+  The raw frame is NOT mirrored (only the CSS preview is), so MediaPipe `LEFT_EYE` 362..
+  is the user's own left eye; the eye "mirror swap" and the cross-paired brow sets were
+  removed (`FaceMetricsCalculator`, `constants.ts`).
+- **Baseline-relative gates** (`BiometricPuzzle`): the engine keeps the same rolling 4 s,
+  40 ms-sampled attempt window as the trace recorder; pose/MAR use the median of its
+  first 3 samples and expressions the first 5 (= bio's in-trace baselines). Turns/looks
+  are relative to that baseline (looks also need a near-frontal yaw), open mouth needs
+  MAR > 0.50 from a closed baseline (was 0.12), smile needs a corner-raise increase ≥ 0.03,
+  brows +15% both / +20% single, nod/shake need ≥ 2 direction reversals of ≥ 8°
+  (`core/challenges/oscillation.ts`), a blink needs an open frame first, and nothing
+  completes in the first 1 s of an attempt. `FacePuzzle` restarts the attempt after a
+  600 ms face gap and uses 5° / 3.5° return tolerances (timing rules in
+  `biometric-puzzles/faceTraceContract.ts`).
+- **Hand tap/pinch** now require bio's values: a tap must start from an open hand and
+  come within 0.08 hand-scales, a pinch must follow an open hand and hold ≤ 0.12.
+- **Contract test** `biometric-puzzles/__tests__/puzzleContract.test.ts` runs the real
+  engine + recorder over committed real-landmark segments (derived landmarks only) and
+  compares the traces to a golden file that biometric-processor's
+  `test_puzzle_contract.py` must accept; it also pins the shared thresholds. After an
+  intentional change: `UPDATE_PUZZLE_CONTRACT=1 npx vitest run <that file>`, then copy
+  `fixtures/puzzle_contract_golden_traces.json.gz` into biometric-processor
+  `tests/fixtures/puzzle_contract/`.
+
 ## Key Patterns
 
 - **i18n**: ALL strings use `t()` with keys in en.json + tr.json. NEVER hardcode English.

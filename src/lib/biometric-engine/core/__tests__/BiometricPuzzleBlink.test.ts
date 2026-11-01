@@ -17,8 +17,20 @@ import type { IFaceMetricsCalculator } from '../../interfaces'
 import {
   BLINK_CONSECUTIVE_FRAMES,
   BLINK_WARMUP_FRAMES,
+  MIN_ATTEMPT_MS,
   YAW_THRESHOLD,
 } from '../constants'
+
+/** Frame period of the fake clock (≈30 fps). */
+const FRAME_MS = 33
+/** Open-eye frames that cover the warm-up AND the MIN_ATTEMPT_MS floor. */
+const WARM = Math.max(BLINK_WARMUP_FRAMES + 1, Math.ceil(MIN_ATTEMPT_MS / FRAME_MS) + 1)
+
+/** Deterministic clock: every checkChallenge() is one frame later. */
+function fakeClock() {
+  let t = 10_000
+  return () => (t += FRAME_MS)
+}
 
 const OPEN = 0.30
 const SHUT = 0.10
@@ -64,12 +76,12 @@ function frame(puzzle: BiometricPuzzle, calc: StubMetricsCalculator, ear: number
 describe('BiometricPuzzle — BLINK transient semantics', () => {
   it('completes on the re-open edge with NO sustained hold', () => {
     const calc = new StubMetricsCalculator()
-    const puzzle = new BiometricPuzzle(calc, 1)
+    const puzzle = new BiometricPuzzle(calc, 1, fakeClock())
     puzzle.registerAllDefaults()
     puzzle.start([ChallengeType.BLINK], 1)
 
     // Warm-up with open-eye frames.
-    for (let i = 0; i < BLINK_WARMUP_FRAMES + 1; i++) frame(puzzle, calc, OPEN)
+    for (let i = 0; i < WARM; i++) frame(puzzle, calc, OPEN)
 
     // Close the eyes for the required consecutive frames — must NOT complete
     // (no re-open yet), but should report in-progress (closing) feedback.
@@ -91,11 +103,11 @@ describe('BiometricPuzzle — BLINK transient semantics', () => {
 
   it('does NOT complete while the eyes stay shut forever', () => {
     const calc = new StubMetricsCalculator()
-    const puzzle = new BiometricPuzzle(calc, 1)
+    const puzzle = new BiometricPuzzle(calc, 1, fakeClock())
     puzzle.registerAllDefaults()
     puzzle.start([ChallengeType.BLINK], 1)
 
-    for (let i = 0; i < BLINK_WARMUP_FRAMES + 1; i++) frame(puzzle, calc, OPEN)
+    for (let i = 0; i < WARM; i++) frame(puzzle, calc, OPEN)
 
     // 500 frames of eyes-shut: the old global 0.6s-hold model would have
     // completed; the transition model must never complete without a re-open.
@@ -109,11 +121,11 @@ describe('BiometricPuzzle — BLINK transient semantics', () => {
 
   it('a fresh start() resets the detector so a prior half-blink does not leak', () => {
     const calc = new StubMetricsCalculator()
-    const puzzle = new BiometricPuzzle(calc, 1)
+    const puzzle = new BiometricPuzzle(calc, 1, fakeClock())
     puzzle.registerAllDefaults()
 
     puzzle.start([ChallengeType.BLINK], 1)
-    for (let i = 0; i < BLINK_WARMUP_FRAMES + 1; i++) frame(puzzle, calc, OPEN)
+    for (let i = 0; i < WARM; i++) frame(puzzle, calc, OPEN)
     for (let i = 0; i < BLINK_CONSECUTIVE_FRAMES; i++) frame(puzzle, calc, SHUT) // mid-blink
 
     // Restart mid-blink.
@@ -128,15 +140,18 @@ describe('BiometricPuzzle — BLINK transient semantics', () => {
 describe('BiometricPuzzle — sustained challenge regression guard', () => {
   it('TURN_LEFT still requires a continuous hold (not an instant edge)', () => {
     const calc = new StubMetricsCalculator()
-    const puzzle = new BiometricPuzzle(calc, 1)
+    const puzzle = new BiometricPuzzle(calc, 1, fakeClock())
     puzzle.registerAllDefaults()
     puzzle.start([ChallengeType.TURN_LEFT], 1)
 
-    // A single in-threshold frame must report progress but NOT complete
-    // immediately (sustained challenges keep HOLD_DURATION).
+    // Straight-ahead frames establish the attempt baseline (and pass the
+    // MIN_ATTEMPT_MS floor). A few turned frames then register the gesture
+    // (EWMA-smoothed) but must NOT complete before HOLD_DURATION.
     calc.nextEAR = OPEN
+    for (let i = 0; i < WARM; i++) puzzle.checkChallenge(LM, 0, 0)
     const yawLeft = -(YAW_THRESHOLD + 10)
-    const r = puzzle.checkChallenge(LM, yawLeft, 0)
+    let r = puzzle.checkChallenge(LM, yawLeft, 0)
+    for (let i = 0; i < 3; i++) r = puzzle.checkChallenge(LM, yawLeft, 0)
     expect(r.detected).toBe(true)
     expect(r.completed).toBeFalsy()
     expect(r.progress).toBeLessThan(100)

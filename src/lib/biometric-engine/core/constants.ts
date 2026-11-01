@@ -49,6 +49,10 @@ export const BLINK_EAR_CLOSED = 0.18;
  * @see blink_analyzer.py:103
  */
 export const BLINK_EAR_REOPEN = 0.23;
+// SHARED CONSTANT with biometric-processor: bio's "eye open" level is
+// _EYE_CLOSE_EAR_MAX (0.21) + EYE_REOPEN_MARGIN (0.02) = 0.23, so the frame that
+// completes a blink here is an open frame for the server too (2026-11-01; the
+// old 0.03 margin rejected genuine blinks completing at EAR 0.230-0.239).
 
 /**
  * The eye must stay below BLINK_EAR_CLOSED for at least this many consecutive
@@ -90,44 +94,149 @@ export const SMILE_CORNER_THRESHOLD = 0.05;
  */
 export const SMILE_WIDTH_THRESHOLD = 0.50;
 
-/** Mouth aspect ratio threshold (OPEN_MOUTH). @see demo_local_fast.py line 499 */
-export const MOUTH_OPEN_THRESHOLD = 0.12;
-
-/** Head yaw threshold in degrees (TURN_LEFT, TURN_RIGHT). @see demo_local_fast.py line 500 */
-export const YAW_THRESHOLD = 20;
-
-/** Head pitch threshold in degrees (LOOK_UP, LOOK_DOWN). @see demo_local_fast.py line 501 */
-export const PITCH_THRESHOLD = 12;
-
-/** Both eyebrows raise ratio vs baseline (RAISE_BOTH_BROWS). @see demo_local_fast.py line 502 */
-export const EYEBROW_RAISE_THRESHOLD = 1.20;
+/**
+ * Mouth aspect ratio threshold (OPEN_MOUTH).
+ *
+ * RECALIBRATED 2026-11-01 (real-face calibration, paper-B bench): the demo's
+ * 0.12 is reached by ordinary speech, while biometric-processor's trace
+ * verifier requires MAR ≥ 0.50 (`_OPEN_MOUTH_MAR_MIN`). With 0.12 the client
+ * "completed" 52 of 54 real mouth-opening events and the server accepted 3.
+ * The client now requires the server's own value, so the hold bar reflects the
+ * real requirement ("open WIDE") and a completed gesture is one the server
+ * accepts. SHARED CONSTANT with bio; pinned by the cross-repo contract test.
+ * @see demo_local_fast.py line 499 (original value 0.12)
+ */
+export const MOUTH_OPEN_THRESHOLD = 0.50;
 
 /**
- * Single eyebrow raise ratio vs baseline (RAISE_LEFT/RIGHT_BROW).
+ * SMILE: minimum increase of the corner-raise feature over the attempt
+ * baseline (median of the first EXPRESSION_BASELINE_FRAMES samples). Same value
+ * as bio `_SMILE_CORNER_RAISE_MIN`: 85% of real smiles reach it while a
+ * non-smiling window does 17% of the time (calibration smile.txt; the absolute
+ * SMILE_CORNER / SMILE_WIDTH gates are required on the same frames).
+ */
+export const SMILE_CORNER_INCREASE_THRESHOLD = 0.03;
+
+/**
+ * Head yaw threshold in degrees (TURN_LEFT, TURN_RIGHT), applied to the yaw
+ * RELATIVE to the attempt baseline (2026-11-01; was absolute). bio requires
+ * ≥ 15° relative to its in-trace baseline; the 5° margin absorbs the difference
+ * between this matrix-based estimate and bio's landmark (Kabsch) estimate.
+ * @see demo_local_fast.py line 500
+ */
+export const YAW_THRESHOLD = 20;
+
+/**
+ * Head pitch threshold in degrees (LOOK_UP, LOOK_DOWN), relative to the attempt
+ * baseline like YAW_THRESHOLD (bio: ≥ 10°). @see demo_local_fast.py line 501
+ */
+export const PITCH_THRESHOLD = 12;
+
+/**
+ * Pitch gestures (LOOK_UP / LOOK_DOWN / NOD) only count while the head is
+ * near-frontal in yaw: |yaw| ≤ PITCH_GESTURE_MAX_ABS_YAW and within
+ * PITCH_GESTURE_MAX_REL_YAW of the attempt baseline. In near-profile poses
+ * the Euler pitch from the transformation matrix and bio's landmark pitch
+ * disagree in sign (calibration 2026-11-01: every residual client/server pose
+ * disagreement happened with |yaw| > 25° or a concurrent large turn).
+ */
+export const PITCH_GESTURE_MAX_ABS_YAW = 25;
+export const PITCH_GESTURE_MAX_REL_YAW = 15;
+
+/**
+ * Both eyebrows raise ratio vs the ATTEMPT baseline (RAISE_BOTH_BROWS).
  *
- * RECALIBRATED 2026-06-01: 1.25 (demo_local_fast.py:503) was painfully strict.
- * Single-brow raises are now LIBRARY-ONLY (dropped from every liveness flow —
- * see livenessPool.ts), so this only governs the showcase puzzle. Loosened to
- * 1.22 (still clearly above the 1.20 both-brow gate so it can't trivially
- * trigger from a relaxed face) to make the experimental card less frustrating.
+ * RECALIBRATED 2026-11-01: the ratio is now taken against the attempt baseline
+ * (median of the first EXPRESSION_BASELINE_FRAMES samples, the same frames bio
+ * uses) instead of the very first frame the shared calculator ever saw, and the
+ * threshold equals bio's `_BROW_RAISE_V2_BOTH_MIN` (+15%). Still faces and static
+ * photos reach ≈ +11% (p95) through landmark noise, every accepted genuine raise
+ * measured ≥ +23%. @see demo_local_fast.py line 502 (original value 1.20)
+ */
+export const EYEBROW_RAISE_THRESHOLD = 1.15;
+
+/**
+ * Single eyebrow raise ratio vs the attempt baseline (RAISE_LEFT/RIGHT_BROW).
+ *
+ * RECALIBRATED 2026-11-01: equals bio `_BROW_RAISE_V2_SINGLE_MIN` (+20%). One
+ * brow alone is noisier than the average of two: a static photo reached +19-20%
+ * (p95), which passed the old server gate (+8%). Single-brow raises stay
+ * LIBRARY-ONLY (excluded from every liveness flow — see livenessPool.ts).
  * @see demo_local_fast.py line 503 (original value 1.25)
  */
-export const SINGLE_BROW_THRESHOLD = 1.22;
+export const SINGLE_BROW_THRESHOLD = 1.20;
 
-/** Min pitch range over motion history for NOD detection (degrees). @see demo_local_fast.py line 890 */
+/**
+ * Min pitch range over motion history for NOD (degrees).
+ * @deprecated 2026-11-01: NOD / SHAKE_HEAD now gate on OSCILLATION_MIN_REVERSALS
+ * direction reversals (bio's rule) — a single excursion has the range but not
+ * the oscillation. Kept for API compatibility only.
+ * @see demo_local_fast.py line 890
+ */
 export const NOD_PITCH_RANGE = 25;
 
-/** Min yaw range over motion history for SHAKE_HEAD detection (degrees). @see demo_local_fast.py line 898 */
+/**
+ * Min yaw range over motion history for SHAKE_HEAD (degrees).
+ * @deprecated 2026-11-01, see NOD_PITCH_RANGE. @see demo_local_fast.py line 898
+ */
 export const SHAKE_YAW_RANGE = 35;
+
+/**
+ * NOD / SHAKE_HEAD: a direction reversal counts only after a swing of at least
+ * this many degrees from the last extreme (rejects ±2-3° per-frame jitter).
+ * SHARED CONSTANT with bio `OSCILLATION_MIN_SWING_DEG`.
+ */
+export const OSCILLATION_MIN_SWING_DEG = 8;
+
+/** NOD / SHAKE_HEAD need at least this many reversals (bio `_OSCILLATION_MIN`). */
+export const OSCILLATION_MIN_REVERSALS = 2;
 
 /** Continuous detection time to pass a challenge (seconds). @see demo_local_fast.py line 515 */
 export const HOLD_DURATION = 0.6;
 
-/** Ring buffer size for nod/shake motion history (frames). @see demo_local_fast.py line 519 */
+/**
+ * Ring buffer size for nod/shake motion history (frames).
+ * @deprecated 2026-11-01: the history is now the time-windowed attempt history
+ * (ATTEMPT_WINDOW_MS, sampled every ATTEMPT_SAMPLE_INTERVAL_MS).
+ * @see demo_local_fast.py line 519
+ */
 export const MOTION_HISTORY_SIZE = 30;
 
-/** Min frames in motion history before checking nod/shake. @see demo_local_fast.py lines 885, 896 */
+/**
+ * Min frames in motion history before checking nod/shake.
+ * @deprecated 2026-11-01, see MOTION_HISTORY_SIZE. @see demo_local_fast.py lines 885, 896
+ */
 export const MOTION_MIN_FRAMES = 20;
+
+// =============================================================================
+// ATTEMPT BASELINE (2026-11-01 calibration fixes)
+// =============================================================================
+//
+// The gates are evaluated against the SAME frames biometric-processor's trace
+// verifier uses: bio takes its neutral baseline from the first frames of the
+// submitted trace, and the trace is a rolling window of the last 4 s sampled at
+// ≥ 40 ms (puzzleTrace.ts TRACE_WINDOW_MS / TRACE_MIN_INTERVAL_MS). The engine
+// keeps the same rolling, equally-sampled attempt history and takes its
+// baseline from the oldest samples in it, so "the client completed" implies
+// "the server accepts the trace" (design rule; cross-repo contract test).
+
+/** Attempt history window (ms). SHARED with puzzleTrace TRACE_WINDOW_MS. */
+export const ATTEMPT_WINDOW_MS = 4000;
+
+/** Attempt history sampling interval (ms). SHARED with puzzleTrace TRACE_MIN_INTERVAL_MS. */
+export const ATTEMPT_SAMPLE_INTERVAL_MS = 40;
+
+/** Pose / MAR baseline = median of the first N samples (bio `BASELINE_FRAMES`). */
+export const POSE_BASELINE_FRAMES = 3;
+
+/** Brow / smile baseline = median of the first N samples (bio `EXPRESSION_BASELINE_FRAMES`). */
+export const EXPRESSION_BASELINE_FRAMES = 5;
+
+/**
+ * No challenge completes in the first MIN_ATTEMPT_MS of an attempt: bio rejects
+ * traces shorter than 6 frames or than the per-action minimum span (≤ 800 ms).
+ */
+export const MIN_ATTEMPT_MS = 1000;
 
 // =============================================================================
 // HEAD-POSE SMOOTHING + HYSTERESIS (real-degree puzzle calibration)
@@ -347,7 +456,12 @@ export const DEFAULT_FACE_ROI_PADDING = 0.3;
 // =============================================================================
 
 /**
- * MediaPipe LEFT eye landmark indices (anatomical left = user's right in mirrored view).
+ * MediaPipe LEFT eye landmark indices = the USER's own (anatomical) left eye.
+ * In the raw (unmirrored) camera frame it is on the IMAGE RIGHT; in the
+ * CSS-mirrored selfie preview it shows on the left, like in a mirror. Verified
+ * on real footage 2026-11-01 (a subject closing their own right eye drives the
+ * RIGHT_EYE / 33.. EAR to ~0). The old "user's right in mirrored view" note was
+ * wrong and made CLOSE_LEFT fire on the user's right eye.
  * Order: [outer, upper-outer, upper-inner, inner, lower-inner, lower-outer]
  * Used for EAR: (|p2-p6| + |p3-p5|) / (2 * |p1-p4|)
  * @see demo_local_fast.py line 462
@@ -355,7 +469,8 @@ export const DEFAULT_FACE_ROI_PADDING = 0.3;
 export const LEFT_EYE = [362, 385, 387, 263, 373, 380] as const;
 
 /**
- * MediaPipe RIGHT eye landmark indices (anatomical right = user's left in mirrored view).
+ * MediaPipe RIGHT eye landmark indices = the USER's own right eye (image left in
+ * the raw camera frame).
  * Order: [outer, upper-outer, upper-inner, inner, lower-inner, lower-outer]
  * @see demo_local_fast.py line 463
  */
@@ -374,16 +489,18 @@ export const MOUTH_LEFT = 61;
 export const MOUTH_RIGHT = 291;
 
 /**
- * MediaPipe LEFT eyebrow landmark indices.
- * @see demo_local_fast.py line 468
+ * The USER's own left eyebrow (above LEFT_EYE 362..; MediaPipe
+ * FACEMESH_LEFT_EYEBROW). Corrected 2026-11-01: the demo port had the two brow
+ * sets swapped, so every brow distance paired an eye with the OPPOSITE brow.
+ * @see demo_local_fast.py line 468 (swapped there)
  */
-export const LEFT_EYEBROW = [70, 63, 105, 66, 107] as const;
+export const LEFT_EYEBROW = [300, 293, 334, 296, 336] as const;
 
 /**
- * MediaPipe RIGHT eyebrow landmark indices.
- * @see demo_local_fast.py line 469
+ * The USER's own right eyebrow (above RIGHT_EYE 33..; MediaPipe
+ * FACEMESH_RIGHT_EYEBROW). @see demo_local_fast.py line 469 (swapped there)
  */
-export const RIGHT_EYEBROW = [300, 293, 334, 296, 336] as const;
+export const RIGHT_EYEBROW = [70, 63, 105, 66, 107] as const;
 
 /** MediaPipe LEFT eye iris center. @see demo_local_fast.py line 470 */
 export const LEFT_IRIS = 468;

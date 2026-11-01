@@ -242,14 +242,17 @@ export function useFaceChallenge() {
 
             case 'turn_left': {
                 if (!detection.detected || !detection.boundingBox) return false
-                // Face bounding box shifted right in mirrored video = head turned left
+                // boundingBox is in RAW (unmirrored) video coordinates: a face on
+                // the IMAGE RIGHT is on the user's own LEFT (the preview is only
+                // CSS-mirrored). Same physical convention as HeadPoseEstimator
+                // (verified 2026-11-01); this stage does not use the estimator.
                 const centerX = detection.boundingBox.x + detection.boundingBox.width / 2
                 return centerX > (0.5 + HEAD_TURN_THRESHOLD)
             }
 
             case 'turn_right': {
                 if (!detection.detected || !detection.boundingBox) return false
-                // Face bounding box shifted left in mirrored video = head turned right
+                // Raw coordinates: face on the IMAGE LEFT = user's own RIGHT.
                 const centerX = detection.boundingBox.x + detection.boundingBox.width / 2
                 return centerX < (0.5 - HEAD_TURN_THRESHOLD)
             }

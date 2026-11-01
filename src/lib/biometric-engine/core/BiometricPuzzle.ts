@@ -24,10 +24,17 @@ import { ChallengeType } from '../types';
 import type { IBiometricPuzzle, IChallengeDetector, IFaceMetricsCalculator } from '../interfaces';
 import {
   HOLD_DURATION,
-  MOTION_HISTORY_SIZE,
   HEAD_POSE_EWMA_ALPHA,
   BLINK_EAR_CLOSED,
   EAR_THRESHOLD,
+  ATTEMPT_WINDOW_MS,
+  ATTEMPT_SAMPLE_INTERVAL_MS,
+  POSE_BASELINE_FRAMES,
+  EXPRESSION_BASELINE_FRAMES,
+  MIN_ATTEMPT_MS,
+  MOUTH_OPEN_THRESHOLD,
+  PITCH_GESTURE_MAX_ABS_YAW,
+  PITCH_GESTURE_MAX_REL_YAW,
 } from './constants';
 import { LIVENESS_POOL } from './livenessPool';
 
@@ -86,6 +93,32 @@ const CHALLENGE_DEFINITIONS: Record<ChallengeType, ChallengeDefinition> = {
  * excluded gesture on demand — only the RANDOM flow is curated.
  */
 const SIMPLE_CHALLENGE_POOL: readonly ChallengeType[] = LIVENESS_POOL;
+
+/**
+ * One equally-sampled entry of the attempt history (see ATTEMPT_* constants).
+ * Raw pose (for the baseline), smoothed pose (for the gates / nod / shake) and
+ * the raw expression features whose baseline the gates are relative to.
+ */
+interface AttemptSample {
+  t: number;
+  yaw: number;
+  pitch: number;
+  smoothedYaw: number;
+  smoothedPitch: number;
+  mar: number;
+  smileCorner: number;
+  browLeft: number;
+  browRight: number;
+  browAvg: number;
+}
+
+/** Unit baseline: makes calculateEyebrowRaise return the raw brow→eye distances. */
+const RAW_BROW_BASELINE = { left: 1, right: 1, avg: 1 } as const;
+
+function medianOf(values: number[]): number {
+  const s = [...values].sort((a, b) => a - b);
+  return s.length ? s[Math.floor(s.length / 2)] : 0;
+}
 
 /**
  * Shuffle an array using Fisher-Yates and return a slice of the requested size.
@@ -153,11 +186,19 @@ export class BiometricPuzzle implements IBiometricPuzzle {
   /** Consecutive lost frames required to release a previously-detected gesture. */
   private readonly releaseHysteresisFrames = 2;
 
-  // ===== Motion History (for nod/shake) =====
-  /** Ring buffer of recent yaw/pitch values. @see demo_local_fast.py line 519 */
+  // ===== Attempt history (baseline + nod/shake motion) =====
+  /**
+   * Rolling, equally-sampled history of the current attempt: the last
+   * ATTEMPT_WINDOW_MS sampled every ATTEMPT_SAMPLE_INTERVAL_MS — the same
+   * window/sampling as the contract-v2 trace recorder, so the baseline below is
+   * taken from (nearly) the same frames biometric-processor takes its baseline
+   * from. Gates are evaluated RELATIVE to it (2026-11-01 calibration fix).
+   */
+  private attempt: AttemptSample[] = [];
+  /** Clock time (ms) of the first frame of the current attempt. */
+  private attemptStartMs: number | null = null;
+  /** Smoothed pose history for nod/shake (derived from `attempt`). */
   private motionHistory: MotionEntry[] = [];
-  /** Max entries in the motion history buffer. */
-  private readonly motionHistorySize: number = MOTION_HISTORY_SIZE;
 
   // ===== Results =====
   /** Per-step results. @see demo_local_fast.py line 523 */
@@ -174,9 +215,17 @@ export class BiometricPuzzle implements IBiometricPuzzle {
    * @param numChallenges Default number of challenges per puzzle (default: 3).
    * @see demo_local_fast.py line 505
    */
-  constructor(metricsCalculator: IFaceMetricsCalculator, numChallenges = 3) {
+  /** Millisecond clock (injectable for tests). */
+  private readonly clock: () => number;
+
+  constructor(
+    metricsCalculator: IFaceMetricsCalculator,
+    numChallenges = 3,
+    clock: () => number = () => performance.now(),
+  ) {
     this.metricsCalculator = metricsCalculator;
     this.numChallenges = numChallenges;
+    this.clock = clock;
   }
 
   // ===========================================================================
@@ -245,7 +294,7 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     this.puzzlePassed = false;
     this.holdStart = 0;
     this.actionDetected = false;
-    this.motionHistory = [];
+    this.resetAttempt();
     this.results = [];
     this.smoothedYaw = null;
     this.smoothedPitch = null;
@@ -254,6 +303,13 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     // Reset any stateful (transient) detectors so a half-finished blink/wink
     // from a previous session can't leak across into this attempt.
     this.resetCurrentDetector();
+  }
+
+  /** Clear the attempt history / baseline (new challenge or new attempt). */
+  private resetAttempt(): void {
+    this.attempt = [];
+    this.attemptStartMs = null;
+    this.motionHistory = [];
   }
 
   /**
@@ -358,7 +414,7 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     const isTransient = detector.isTransient === true;
 
     // Calculate face metrics from landmarks
-    const metrics = this.metricsCalculator.calculateAll(landmarks);
+    const rawMetrics = this.metricsCalculator.calculateAll(landmarks);
 
     // EWMA temporal smoothing of the head-pose angles (Layer 3, ported from
     // the Python hand pipeline). The real-degree Euler pose still wobbles
@@ -372,16 +428,51 @@ export class BiometricPuzzle implements IBiometricPuzzle {
         ? pitch
         : HEAD_POSE_EWMA_ALPHA * pitch + (1 - HEAD_POSE_EWMA_ALPHA) * this.smoothedPitch;
 
-    const headPose: HeadPose = { yaw: this.smoothedYaw, pitch: this.smoothedPitch };
-
-    // Update motion history ring buffer (with smoothed values so nod/shake
-    // range checks aren't inflated by single-frame spikes).
-    // @see demo_local_fast.py line 722
-    const now = performance.now() / 1000; // Convert to seconds
-    this.motionHistory.push({ yaw: this.smoothedYaw, pitch: this.smoothedPitch, time: now });
-    if (this.motionHistory.length > this.motionHistorySize) {
-      this.motionHistory.shift();
+    // ── Attempt history + baseline (2026-11-01) ─────────────────────────────
+    const nowMs = this.clock();
+    const now = nowMs / 1000;
+    if (this.attemptStartMs === null) this.attemptStartMs = nowMs;
+    const last = this.attempt[this.attempt.length - 1];
+    if (!last || nowMs - last.t >= ATTEMPT_SAMPLE_INTERVAL_MS) {
+      const brow = this.metricsCalculator.calculateEyebrowRaise(landmarks, RAW_BROW_BASELINE);
+      this.attempt.push({
+        t: nowMs,
+        yaw,
+        pitch,
+        smoothedYaw: this.smoothedYaw,
+        smoothedPitch: this.smoothedPitch,
+        mar: rawMetrics.mouth.mar,
+        smileCorner: rawMetrics.mouth.smileCornerRaise,
+        browLeft: brow.leftRatio,
+        browRight: brow.rightRatio,
+        browAvg: brow.bothRatio,
+      });
     }
+    while (this.attempt.length > 1 && nowMs - this.attempt[0].t > ATTEMPT_WINDOW_MS) {
+      this.attempt.shift();
+    }
+    const poseReady = this.attempt.length >= POSE_BASELINE_FRAMES;
+    const exprReady = this.attempt.length >= EXPRESSION_BASELINE_FRAMES;
+    const base = (key: keyof AttemptSample, frames: number): number =>
+      medianOf(this.attempt.slice(0, frames).map((e) => e[key]));
+    const baseYaw = base('yaw', POSE_BASELINE_FRAMES);
+    const basePitch = base('pitch', POSE_BASELINE_FRAMES);
+
+    // Gates see the pose RELATIVE to the attempt baseline (bio does the same
+    // with its in-trace baseline) and the expression ratios against it.
+    const headPose: HeadPose = {
+      yaw: this.smoothedYaw - (poseReady ? baseYaw : this.smoothedYaw),
+      pitch: this.smoothedPitch - (poseReady ? basePitch : this.smoothedPitch),
+    };
+    const metrics = this.relativeMetrics(landmarks, rawMetrics, exprReady, base);
+
+    // nod/shake: smoothed pose over the same rolling window.
+    // @see demo_local_fast.py line 722
+    this.motionHistory = this.attempt.map((e) => ({
+      yaw: e.smoothedYaw,
+      pitch: e.smoothedPitch,
+      time: e.t / 1000,
+    }));
 
     // Pass motion history to motion-aware detectors
     // @see demo_local_fast.py lines 855-861
@@ -391,9 +482,13 @@ export class BiometricPuzzle implements IBiometricPuzzle {
       detector.setMotionHistory(this.motionHistory);
     }
 
-    // Check detection on the smoothed pose.
-    const rawDetected = detector.detect(metrics, headPose);
+    // Check detection on the smoothed, baseline-relative pose.
+    const gateOpen = this.gateAllows(detector.type, poseReady, exprReady, baseYaw, base);
+    const rawDetected = gateOpen && detector.detect(metrics, headPose);
     const message = detector.getMessage(metrics, headPose);
+    // bio rejects traces shorter than its per-action minimum span / frame
+    // count: no completion in the first MIN_ATTEMPT_MS of an attempt.
+    const attemptOldEnough = nowMs - this.attemptStartMs >= MIN_ATTEMPT_MS;
 
     // ── Transient (edge) challenges: BLINK, CLOSE_LEFT, CLOSE_RIGHT ──────────
     // These are momentary actions. The detector is a stateful close→re-open
@@ -402,7 +497,7 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     // COMPLETES it (the previous global 0.6s-hold model cancelled progress the
     // instant the eye re-opened, which is the exact bug we're fixing).
     if (isTransient) {
-      if (rawDetected) {
+      if (rawDetected && attemptOldEnough) {
         this.advanceChallenge();
         return { detected: true, progress: 100, message: 'Completed!', completed: true };
       }
@@ -444,7 +539,7 @@ export class BiometricPuzzle implements IBiometricPuzzle {
       const holdTime = now - this.holdStart;
       const progress = Math.min(100, (holdTime / this.holdDuration) * 100);
 
-      if (holdTime >= this.holdDuration) {
+      if (holdTime >= this.holdDuration && attemptOldEnough) {
         // Challenge completed!
         this.advanceChallenge();
         return { detected: true, progress: 100, message: 'Completed!', completed: true };
@@ -496,6 +591,81 @@ export class BiometricPuzzle implements IBiometricPuzzle {
   // ===========================================================================
 
   /**
+   * Expression metrics relative to the attempt baseline: brow ratios use the
+   * median of the first EXPRESSION_BASELINE_FRAMES raw brow→eye distances
+   * (1.0 until enough samples exist) and the smile carries the corner-raise
+   * increase over its baseline.
+   */
+  private relativeMetrics(
+    landmarks: NormalizedLandmark[],
+    raw: FaceMetrics,
+    exprReady: boolean,
+    base: (key: keyof AttemptSample, frames: number) => number,
+  ): FaceMetrics {
+    if (!exprReady) {
+      return {
+        ...raw,
+        mouth: { ...raw.mouth, smileCornerIncrease: 0 },
+        eyebrows: { bothRatio: 1, leftRatio: 1, rightRatio: 1 },
+      };
+    }
+    const now = this.metricsCalculator.calculateEyebrowRaise(landmarks, RAW_BROW_BASELINE);
+    const ratio = (cur: number, b: number) => (b > 0 ? cur / b : 1);
+    return {
+      ...raw,
+      mouth: {
+        ...raw.mouth,
+        smileCornerIncrease:
+          raw.mouth.smileCornerRaise - base('smileCorner', EXPRESSION_BASELINE_FRAMES),
+      },
+      eyebrows: {
+        bothRatio: ratio(now.bothRatio, base('browAvg', EXPRESSION_BASELINE_FRAMES)),
+        leftRatio: ratio(now.leftRatio, base('browLeft', EXPRESSION_BASELINE_FRAMES)),
+        rightRatio: ratio(now.rightRatio, base('browRight', EXPRESSION_BASELINE_FRAMES)),
+      },
+    };
+  }
+
+  /**
+   * Preconditions a frame must meet before the detector's own threshold is
+   * consulted (all mirror biometric-processor's trace verifier):
+   *   - pose / expression gates need their baseline samples;
+   *   - OPEN_MOUTH needs a closed-mouth baseline (bio: NO_REST_TO_GESTURE);
+   *   - LOOK_UP / LOOK_DOWN / NOD only count near-frontal in yaw, where the
+   *     matrix pitch and bio's landmark pitch agree.
+   */
+  private gateAllows(
+    type: ChallengeType,
+    poseReady: boolean,
+    exprReady: boolean,
+    baseYaw: number,
+    base: (key: keyof AttemptSample, frames: number) => number,
+  ): boolean {
+    const frontal = (yaw: number) =>
+      Math.abs(yaw) <= PITCH_GESTURE_MAX_ABS_YAW &&
+      Math.abs(yaw - baseYaw) <= PITCH_GESTURE_MAX_REL_YAW;
+    switch (type) {
+      case ChallengeType.TURN_LEFT:
+      case ChallengeType.TURN_RIGHT:
+        return poseReady;
+      case ChallengeType.LOOK_UP:
+      case ChallengeType.LOOK_DOWN:
+        return poseReady && frontal(this.smoothedYaw ?? 0);
+      case ChallengeType.NOD:
+        return poseReady && this.attempt.every((e) => frontal(e.smoothedYaw));
+      case ChallengeType.OPEN_MOUTH:
+        return poseReady && base('mar', POSE_BASELINE_FRAMES) < MOUTH_OPEN_THRESHOLD;
+      case ChallengeType.SMILE:
+      case ChallengeType.RAISE_BOTH_BROWS:
+      case ChallengeType.RAISE_LEFT_BROW:
+      case ChallengeType.RAISE_RIGHT_BROW:
+        return exprReady;
+      default:
+        return true;
+    }
+  }
+
+  /**
    * Advance to the next challenge or complete the puzzle.
    * @see demo_local_fast.py lines 901-920 (_advance_challenge)
    */
@@ -509,7 +679,7 @@ export class BiometricPuzzle implements IBiometricPuzzle {
     this.currentIdx += 1;
     this.actionDetected = false;
     this.holdStart = 0;
-    this.motionHistory = [];
+    this.resetAttempt();
     // Reset the pose smoother + hysteresis so the next challenge starts clean.
     this.smoothedYaw = null;
     this.smoothedPitch = null;

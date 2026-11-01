@@ -12,13 +12,25 @@
  * which yields yaw + pitch only (no roll). This keeps detection working even
  * when the metric matrix is missing.
  *
- * Sign convention (consistent with the challenge detectors and constants):
- *   yaw   < 0  → head turned to the USER's left  (TURN_LEFT)
- *   yaw   > 0  → head turned to the USER's right  (TURN_RIGHT)
- *   pitch < 0  → looking up / chin up             (LOOK_UP)
- *   pitch > 0  → looking down / chin down         (LOOK_DOWN)
- *   roll  < 0  → head tilted toward user's left shoulder
- *   roll  > 0  → head tilted toward user's right shoulder
+ * Sign convention (consistent with the challenge detectors, constants and
+ * biometric-processor's trace verifier — the cross-repo convention):
+ *   yaw   < 0  → head turned to the USER's own left  (TURN_LEFT)
+ *   yaw   > 0  → head turned to the USER's own right (TURN_RIGHT)
+ *   pitch < 0  → looking up / chin up                (LOOK_UP)
+ *   pitch > 0  → looking down / chin down            (LOOK_DOWN)
+ *   roll       → not used by any gate; its sign is NOT verified.
+ *
+ * "The user's own left" is physical: the camera frame MediaPipe sees is NOT
+ * mirrored (only the selfie preview is, via CSS `scaleX(-1)`), so a user who
+ * turns to their own left points their nose toward the IMAGE RIGHT of the raw
+ * frame. SIGN FIX 2026-11-01: both paths used to return yaw (and the matrix
+ * path also pitch) with the opposite sign. Verified in headless Chromium
+ * (tasks-vision 0.10.32, fake camera fed with real footage): a subject turning
+ * to their own right (nose toward image left) read yaw −39…−46° and a subject
+ * tilting the chin up read pitch +20…+26°; with the fix they read +39…+46° and
+ * −20…−26°, matching biometric-processor (r ≈ −0.9 vs +0.9 against image
+ * geometry on 46 clips before the fix). Pinned by HeadPoseEstimator.test.ts
+ * with matrices/landmarks captured from that browser run.
  *
  * @see BIOMETRIC_ENGINE_ARCHITECTURE.md Section 5i
  */
@@ -104,18 +116,21 @@ export class HeadPoseEstimator implements IHeadPoseEstimator {
       rollRad = 0;
     }
 
-    // MediaPipe's camera space has +Y up and the face looking down -Z. The raw
-    // pitch from the matrix is therefore inverted relative to our convention
-    // (we want pitch<0 = chin up). Yaw sign already matches user-left = negative
-    // because the face mesh is in the camera (un-mirrored) frame.
-    const yaw = yawRad * RAD_TO_DEG;
-    let pitch = -pitchRad * RAD_TO_DEG;
+    // Raw Tait–Bryan angles. Measured in a real browser (see class doc), the
+    // raw yaw is positive when the user turns to their own LEFT and the
+    // wrapped −pitchRad is positive when the chin goes UP — both opposite to
+    // our convention — so both are negated after the wrap below.
+    const rawYaw = yawRad * RAD_TO_DEG;
+    let rawPitch = -pitchRad * RAD_TO_DEG;
     let roll = rollRad * RAD_TO_DEG;
 
     // Pitch comes out near ±180 when the face looks at the camera (the X axis
     // points away). Wrap into [-90, 90] so "level" reads ~0.
-    if (pitch > 90) pitch -= 180;
-    else if (pitch < -90) pitch += 180;
+    if (rawPitch > 90) rawPitch -= 180;
+    else if (rawPitch < -90) rawPitch += 180;
+
+    const yaw = -rawYaw;
+    const pitch = -rawPitch;
 
     // Roll likewise wraps to keep upright ≈ 0.
     if (roll > 90) roll -= 180;
@@ -174,12 +189,17 @@ export class HeadPoseEstimator implements IHeadPoseEstimator {
       const mouthLeft = landmarks[POSE_MOUTH_LEFT];
       const mouthRight = landmarks[POSE_MOUTH_RIGHT];
 
-      // YAW: horizontal offset of nose from eye center, normalized by eye distance
+      // YAW: horizontal offset of nose from eye center, normalized by eye
+      // distance. The raw frame is unmirrored, so a nose shifted toward the
+      // IMAGE RIGHT means the user turned to their own LEFT → yaw < 0 (sign
+      // fixed 2026-11-01; it used to be +).
       const eyeCx = (leftEye.x + rightEye.x) / 2;
       const eyeDist = Math.abs(rightEye.x - leftEye.x);
-      const yaw = eyeDist > 0 ? ((nose.x - eyeCx) / eyeDist) * 60 : 0;
+      const yaw = eyeDist > 0 ? -((nose.x - eyeCx) / eyeDist) * 60 : 0;
 
-      // PITCH: vertical offset of nose from face midpoint, normalized by face height
+      // PITCH: vertical offset of nose from face midpoint, normalized by face
+      // height. Nose moving DOWN (larger y) = looking down → pitch > 0
+      // (verified correct in the browser run, unchanged).
       const eyeCy = (leftEye.y + rightEye.y) / 2;
       const mouthCy = (mouthLeft.y + mouthRight.y) / 2;
       const faceH = mouthCy - eyeCy;

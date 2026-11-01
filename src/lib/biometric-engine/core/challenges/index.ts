@@ -9,6 +9,7 @@
  */
 
 export { BlinkTransitionTracker } from './blinkTransition';
+export { countReversals, OscillationCounter } from './oscillation';
 export { BlinkDetector } from './BlinkDetector';
 export { CloseLeftDetector } from './CloseLeftDetector';
 export { CloseRightDetector } from './CloseRightDetector';

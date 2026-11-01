@@ -878,8 +878,9 @@ export default function FaceDemoPage() {
 function poseLabel(t: (k: string) => string, yaw: number, pitch: number): string {
     if (yaw < -15) return t('face_demo.head_pose.turning_left')
     if (yaw > 15) return t('face_demo.head_pose.turning_right')
-    if (pitch < -10) return t('face_demo.head_pose.looking_down')
-    if (pitch > 10) return t('face_demo.head_pose.looking_up')
+    // Cross-repo convention (HeadPoseEstimator): pitch < 0 = looking UP.
+    if (pitch < -10) return t('face_demo.head_pose.looking_up')
+    if (pitch > 10) return t('face_demo.head_pose.looking_down')
     return t('face_demo.head_pose.frontal')
 }
 

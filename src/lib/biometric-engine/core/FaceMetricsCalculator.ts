@@ -244,8 +244,8 @@ export class FaceMetricsCalculator implements IFaceMetricsCalculator {
    *   First call with no baseline stores current distances as baseline and returns (1.0, 1.0, 1.0).
    *   Subsequent calls return ratio of current distance to baseline.
    *
-   * LEFT_EYEBROW = [70, 63, 105, 66, 107]
-   * RIGHT_EYEBROW = [300, 293, 334, 296, 336]
+   * LEFT_EYEBROW = [300, 293, 334, 296, 336]  (user's left, above LEFT_EYE)
+   * RIGHT_EYEBROW = [70, 63, 105, 66, 107]    (user's right, above RIGHT_EYE)
    * LEFT_EYE = [362, 385, 387, 263, 373, 380]
    * RIGHT_EYE = [33, 160, 158, 133, 153, 144]
    *
@@ -292,10 +292,11 @@ export class FaceMetricsCalculator implements IFaceMetricsCalculator {
   /**
    * Calculate all face metrics in one pass.
    *
-   * Computes EAR (both eyes), MAR, smile, and eyebrow raise,
-   * then applies the mirror swap for user perspective:
-   *   userLeftEAR = rightEAR (MediaPipe RIGHT = User's LEFT)
-   *   userRightEAR = leftEAR (MediaPipe LEFT = User's RIGHT)
+   * Computes EAR (both eyes), MAR, smile, and eyebrow raise. MediaPipe
+   * LEFT/RIGHT already name the USER's own sides (anatomical), so:
+   *   userLeftEAR = leftEAR, userRightEAR = rightEAR
+   * (2026-11-01: the former "mirror swap" was wrong — verified on real footage,
+   * it made CLOSE_LEFT fire on the user's RIGHT eye.)
    *
    * Used by both FrameProcessor (for TrackedFace) and BiometricPuzzle (for challenge detection).
    *
@@ -312,15 +313,14 @@ export class FaceMetricsCalculator implements IFaceMetricsCalculator {
     const rightEAR = this.calculateEAR(landmarks, [...RIGHT_EYE]);
     const avgEAR = (leftEAR + rightEAR) / 2;
 
-    // Mirror swap for user perspective:
-    // MediaPipe LEFT_EYE = anatomical left = user's RIGHT in mirrored camera
-    // MediaPipe RIGHT_EYE = anatomical right = user's LEFT in mirrored camera
+    // MediaPipe LEFT_EYE (362..) is the user's own left eye (image right in the
+    // raw frame, left in the mirrored preview); no swap.
     const eyes: EyeMetrics = {
       leftEAR,
       rightEAR,
       avgEAR,
-      userLeftEAR: rightEAR,   // MediaPipe RIGHT = User's LEFT
-      userRightEAR: leftEAR,   // MediaPipe LEFT = User's RIGHT
+      userLeftEAR: leftEAR,
+      userRightEAR: rightEAR,
     };
 
     // Calculate mouth metrics

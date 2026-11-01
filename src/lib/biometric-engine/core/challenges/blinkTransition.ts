@@ -27,6 +27,13 @@ export class BlinkTransitionTracker {
   private frameCount = 0;
   private closedFrames = 0;
   private framesSinceBlink = Number.POSITIVE_INFINITY;
+  /**
+   * An OPEN frame (≥ reopenThreshold) has been seen. A close phase only counts
+   * after one: biometric-processor requires an open frame BEFORE the closure
+   * (NO_OPEN_TO_CLOSED_TRANSITION), so a session that starts with the eyes
+   * already shut must not complete on the first re-open (2026-11-01).
+   */
+  private seenOpen = false;
 
   constructor(
     private readonly closedThreshold: number = BLINK_EAR_CLOSED,
@@ -40,6 +47,7 @@ export class BlinkTransitionTracker {
     this.frameCount = 0;
     this.closedFrames = 0;
     this.framesSinceBlink = Number.POSITIVE_INFINITY;
+    this.seenOpen = false;
   }
 
   /** True while the eye is currently below the closed threshold (close phase). */
@@ -61,7 +69,7 @@ export class BlinkTransitionTracker {
 
     if (ear < this.closedThreshold) {
       // Close phase — only accumulate while the gate condition holds.
-      this.closedFrames = gateOpen ? this.closedFrames + 1 : 0;
+      this.closedFrames = gateOpen && this.seenOpen ? this.closedFrames + 1 : 0;
       return false;
     }
 
@@ -72,6 +80,7 @@ export class BlinkTransitionTracker {
       this.framesSinceBlink >= this.minOpenBetween;
 
     this.closedFrames = 0;
+    if (ear >= this.reopenThreshold) this.seenOpen = true;
 
     if (reopened) {
       this.framesSinceBlink = 0;

@@ -198,6 +198,8 @@ describe('TapTransitionTracker', () => {
 
     it('fires once on the touch→release EDGE, not while merely touching', () => {
         const t = new TapTransitionTracker()
+        // Hand seen open first (a tap must start from an open hand).
+        expect(t.update(0.9)).toBe(false)
         // Touch for 3 frames — must NOT fire (no release yet).
         expect(t.update(0.05)).toBe(false)
         expect(t.update(0.05)).toBe(false)
@@ -237,7 +239,9 @@ describe('TapDetector', () => {
     /** A held pinch (≥2 touching frames) followed by an open frame = one tap. */
     function tapOnce(detector: TapDetector, startTs: number): boolean {
         let detected = false
-        // 3 touching frames…
+        // Open hand first (a tap must start from an open hand)…
+        if (detector.push(openHandFrame(startTs - 50))) detected = true
+        // …3 touching frames…
         for (let i = 0; i < 3; i++) {
             if (detector.push(pinchFrame(startTs + i * 50))) detected = true
         }
@@ -409,11 +413,13 @@ describe('evaluateHandPuzzle (HAND_PINCH)', () => {
         const state = initialHandState(BiometricPuzzleId.HAND_PINCH)
         const hold = { detectedSince: null }
         let completed = false
-        // 10 pinch frames spaced 100ms apart → 900ms hold > 700ms threshold.
-        for (let i = 0; i < 10; i++) {
+        // Open hand first, then 10 pinch frames spaced 100ms apart → 900ms
+        // hold > 700ms threshold.
+        for (let i = 0; i < 11; i++) {
+            const frame = i === 0 ? openHandFrame(0) : pinchFrame(i * 100)
             const r = evaluateHandPuzzle(
                 BiometricPuzzleId.HAND_PINCH,
-                { frame: pinchFrame(i * 100), state },
+                { frame, state },
                 hold,
             )
             if (r.completed) completed = true
@@ -773,10 +779,11 @@ describe('TapDetector.tapDistScaled (bio `tap_dist_scaled`)', () => {
     it('reports the closest the fingertips came (<= 0.08 for a real tap)', () => {
         const tap = new TapDetector()
         let detected = false
-        for (let i = 0; i < 3; i++) {
+        if (tap.push(openHandFrame(0))) detected = true
+        for (let i = 1; i <= 3; i++) {
             if (tap.push(pinchFrame(i * 50))) detected = true
         }
-        if (tap.push(openHandFrame(200))) detected = true
+        if (tap.push(openHandFrame(250))) detected = true
         expect(detected).toBe(true)
         // pinchFrame puts thumb-tip on index-tip → scaled distance ~0.
         expect(tap.tapDistScaled).toBeLessThanOrEqual(0.08)
@@ -799,7 +806,10 @@ describe('evaluateHandPuzzle — surfaces canonical metrics on completion', () =
     })
 
     it('HAND_PINCH → metrics.pinch_dist_scaled is a small distance (<= 0.12 bio gate)', () => {
-        const frames = Array.from({ length: 10 }, (_, i) => pinchFrame(i * 100))
+        const frames = [
+            openHandFrame(0),
+            ...Array.from({ length: 10 }, (_, i) => pinchFrame((i + 1) * 100)),
+        ]
         const r = runToCompletion(BiometricPuzzleId.HAND_PINCH, frames)
         expect(r).not.toBeNull()
         expect(typeof r!.metrics?.pinch_dist_scaled).toBe('number')
@@ -839,10 +849,11 @@ describe('evaluateHandPuzzle — surfaces canonical metrics on completion', () =
 
     it('HAND_FINGER_TAP → metrics.tap_dist_scaled <= 0.08 (bio gate)', () => {
         const frames = [
-            pinchFrame(0),
+            openHandFrame(0),
             pinchFrame(50),
             pinchFrame(100),
-            openHandFrame(200),
+            pinchFrame(150),
+            openHandFrame(250),
         ]
         const r = runToCompletion(BiometricPuzzleId.HAND_FINGER_TAP, frames)
         expect(r).not.toBeNull()
@@ -923,5 +934,41 @@ describe('evaluateHandPuzzle — surfaces canonical metrics on completion', () =
         }
         // Whether or not the synthetic circle closes, the contract under test is:
         // a completed free-form trace never carries a dtw_cost metric.
+    })
+})
+
+describe('hand tap/pinch thresholds match the bio gates (client completed => server accepts)', () => {
+    it('a tap must start from an open hand (no release-only edge from a pinched start)', () => {
+        const t = new TapTransitionTracker()
+        expect(t.update(0.05)).toBe(false)
+        expect(t.update(0.05)).toBe(false)
+        expect(t.update(0.9)).toBe(false)
+    })
+
+    it('a near-touch whose closest approach is > 0.08 is NOT a tap', () => {
+        const t = new TapTransitionTracker()
+        t.update(0.9)
+        // TAP_TOUCH_THRESHOLD may let 0.1 count as "touching", but the bio gate
+        // is tap_dist_scaled <= 0.08, so the client must not complete.
+        let fired = false
+        for (const d of [0.1, 0.1, 0.1, 0.9]) if (t.update(d)) fired = true
+        expect(fired).toBe(false)
+    })
+
+    it('fingertips 0.2 apart are not a pinch (bio gate pinch_dist_scaled <= 0.12)', () => {
+        const state = initialHandState(BiometricPuzzleId.HAND_PINCH)
+        const hold = { detectedSince: null }
+        let completed = false
+        for (let i = 0; i < 12; i++) {
+            const f = i === 0 ? openHandFrame(0) : pinchFrame(i * 100)
+            if (i > 0) {
+                // Separate thumb tip from index tip by ~0.2 hand-scale.
+                const idx = f.landmarks[8]
+                f.landmarks[4] = { x: idx.x + 0.2 * Math.hypot(f.landmarks[0].x - f.landmarks[9].x, f.landmarks[0].y - f.landmarks[9].y), y: idx.y, z: 0 }
+            }
+            const r = evaluateHandPuzzle(BiometricPuzzleId.HAND_PINCH, { frame: f, state }, hold)
+            if (r.completed) completed = true
+        }
+        expect(completed).toBe(false)
     })
 })

@@ -34,6 +34,8 @@ import { useHandLandmarker } from './useHandLandmarker'
 import {
     evaluateHandPuzzle,
     initialHandState,
+    tapDistance,
+    TAP_TOUCH_THRESHOLD,
     type HandFrame,
     type HandPuzzleState,
 } from './handChallenges'
@@ -299,6 +301,16 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
             if (collectTrace) {
                 traceRef.current.setFrameSize(video.videoWidth, video.videoHeight)
                 traceRef.current.push(ts, handFrame ? handFrame.landmarks : null)
+                // Every touching frame of a TAP goes into the trace, even inside
+                // the 40 ms down-sampling interval: the closest approach the
+                // client counted (≤ 0.08, bio's gate) must be one bio sees.
+                if (
+                    puzzleId === BiometricPuzzleId.HAND_FINGER_TAP &&
+                    handFrame &&
+                    tapDistance(handFrame) < TAP_TOUCH_THRESHOLD
+                ) {
+                    traceRef.current.push(ts, handFrame.landmarks, true)
+                }
             }
 
             const evalResult = evaluateHandPuzzle(

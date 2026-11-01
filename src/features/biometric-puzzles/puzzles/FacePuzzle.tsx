@@ -47,51 +47,26 @@ import { faceChallengeToServerAction } from '../puzzleServerAction'
 import { cropFaceToDataURL } from '@features/auth/utils/faceCropper'
 import { assessQuality } from '@features/auth/hooks/useQualityAssessment'
 import { PuzzleTraceRecorder } from '../puzzleTrace'
+import {
+    FACE_GAP_RESET_MS,
+    RETURN_PITCH_TOLERANCE_DEG,
+    RETURN_TAIL_GIVEUP_MS,
+    RETURN_TAIL_MAX_MS,
+    RETURN_TAIL_SETTLE_MS,
+    RETURN_YAW_TOLERANCE_DEG,
+    isTransientChallenge,
+    median,
+    needsReturnTail,
+} from '../faceTraceContract'
+import { OscillationCounter } from '@/lib/biometric-engine/core/challenges/oscillation'
 
 /**
- * Per-gesture direction-reversal counter for NOD (pitch) and SHAKE_HEAD (yaw).
- *
- * bio's canonical metric for nod/shake is `oscillation_count` (≥ 2 to pass) —
- * the number of direction reversals in the head-pose signal. The engine's
- * Nod/ShakeHeadDetector gate on the pitch/yaw RANGE, not a reversal count, so
- * this is computed SEPARATELY here purely to SURFACE the scalar. It is read-only
- * evidence: it never feeds the engine's pass/fail gate (which is unchanged).
- *
- * Counts a reversal when the signed first-difference flips sign, gated by a
- * minimum per-swing amplitude so per-frame jitter (±2-3°) isn't miscounted.
+ * Per-gesture direction-reversal counter for NOD (pitch) and SHAKE_HEAD (yaw),
+ * surfaced as bio's v1 `oscillation_count` metric. Since 2026-11-01 the engine
+ * gate (Nod/ShakeHeadDetector) uses the SAME reversal rule (≥ 2 reversals at an
+ * 8° swing, bio `_count_reversals`) instead of a pose range; the class lives in
+ * the engine (`challenges/oscillation.ts`) and is re-exported here.
  */
-const OSCILLATION_MIN_SWING_DEG = 8
-
-class OscillationCounter {
-    private count = 0
-    private lastExtreme: number | null = null
-    private dir: 1 | -1 | 0 = 0
-
-    /** Feed one angle sample (pitch for nod, yaw for shake). */
-    push(angle: number): void {
-        if (this.lastExtreme === null) {
-            this.lastExtreme = angle
-            return
-        }
-        const delta = angle - this.lastExtreme
-        if (Math.abs(delta) < OSCILLATION_MIN_SWING_DEG) return
-        const newDir: 1 | -1 = delta > 0 ? 1 : -1
-        if (this.dir !== 0 && newDir !== this.dir) this.count += 1
-        this.dir = newDir
-        this.lastExtreme = angle
-    }
-
-    get reversals(): number {
-        return this.count
-    }
-
-    reset(): void {
-        this.count = 0
-        this.lastExtreme = null
-        this.dir = 0
-    }
-}
-
 /**
  * Compute the CANONICAL bio metric scalar for a face challenge from the engine's
  * last per-frame `FaceMetrics` + `HeadPose`. The key in the returned record is
@@ -102,7 +77,7 @@ class OscillationCounter {
  *
  * nod/shake's canonical key is `oscillation_count` — supplied via
  * `oscillationCount`, the reversal tally accumulated across the gesture by the
- * component's `OscillationCounter` (the engine itself exposes only a range gate).
+ * component's `OscillationCounter` (same reversal rule as the engine gate).
  */
 function canonicalFaceMetric(
     challengeType: ChallengeType,
@@ -188,43 +163,6 @@ function isFrontalPose(headPose: HeadPose | null): boolean {
     )
 }
 
-/**
- * Contract v2 return tail: head turn / look challenges must come back toward
- * the neutral pose after the excursion (bio enforces "rest → excursion →
- * return"). After completion the trace keeps recording until the pose is back
- * within this fraction of the server threshold (yaw 15°, pitch 10°) of the
- * attempt's starting pose. The completion is NEVER submitted before the head
- * has returned: a trace without the return is rejected by bio and would burn
- * one of the session's 3 attempts. After RETURN_TAIL_MAX_MS the prompt becomes
- * more insistent; after RETURN_TAIL_GIVEUP_MS (or the attempt timeout) the
- * attempt fails LOCALLY (no server call, no attempt burned). The give-up bound
- * keeps the trace within bio's limits: ≤ 4 s pre-completion window + ≤ 3.5 s
- * tail stays under the 10 s span ceiling and, at ≤ 25 fps, under the 190-frame
- * cap (so the rest phase is not trimmed off the front).
- */
-const RETURN_TAIL_MAX_MS = 2_000
-const RETURN_TAIL_GIVEUP_MS = 3_500
-const RETURN_TAIL_SETTLE_MS = 160
-const RETURN_YAW_TOLERANCE_DEG = 6
-const RETURN_PITCH_TOLERANCE_DEG = 4
-
-function needsReturnTail(challengeType: ChallengeType): 'yaw' | 'pitch' | null {
-    switch (challengeType) {
-        case ChallengeType.TURN_LEFT:
-        case ChallengeType.TURN_RIGHT:
-            return 'yaw'
-        case ChallengeType.LOOK_UP:
-        case ChallengeType.LOOK_DOWN:
-            return 'pitch'
-        default:
-            return null
-    }
-}
-
-function median(values: number[]): number {
-    const s = [...values].sort((a, b) => a - b)
-    return s.length ? s[Math.floor(s.length / 2)] : 0
-}
 
 function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = 'training', onBestFrame, collectTrace = false }: Props) {
     const { t } = useTranslation()
@@ -284,6 +222,16 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
         returnedAt: number | null
         finish: () => void
     } | null>(null)
+    /**
+     * The challenge the engine session was started for in this camera session.
+     * The detection effect re-runs whenever `detected` flips (it is a dep); it
+     * must NOT restart the engine then — a restart re-takes the attempt
+     * baseline from the frame where the gesture is already in progress, which
+     * would cancel every baseline-relative gate (2026-11-01).
+     */
+    const startedForRef = useRef<ChallengeType | null>(null)
+    /** Timestamp of the last frame with a tracked face (v2 gap reset). */
+    const lastFaceTsRef = useRef<number | null>(null)
     /** i18n key of the return-to-centre prompt while a v2 return tail runs. */
     const [returnHint, setReturnHint] = useState<string | null>(null)
 
@@ -425,6 +373,8 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
             traceRef.current.reset()
             poseHistoryRef.current = []
             tailRef.current = null
+            lastFaceTsRef.current = null
+            startedForRef.current = null
             setReturnHint(null)
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: {
@@ -482,8 +432,12 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
         // Start a fresh single-challenge session — unless a contract-v2 return
         // tail is in progress (an effect re-run must not reset the gesture
         // that already completed; the loop below finishes the tail first).
-        if (!tailRef.current) {
+        if (!tailRef.current && startedForRef.current !== challengeType) {
+            startedForRef.current = challengeType
             puzzle.start([challengeType], 1)
+            // v2: engine attempt baseline and trace start together.
+            traceRef.current.reset()
+            poseHistoryRef.current = []
             oscillationRef.current.reset()
             startTsRef.current = performance.now()
             completedRef.current = false
@@ -519,6 +473,30 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                 const frame = engine.frameProcessor.processFrame(video)
                 const face = frame.faces[0]
                 const frameTs = performance.now()
+                const hasFace = Boolean(face?.detection.landmarks478?.length && face.headPose)
+                // Contract v2: the face was lost for longer than bio's frame-gap
+                // limit — the trace would be rejected, so restart the attempt
+                // (during a return tail: fail locally, no server attempt burned).
+                if (collectTrace && hasFace) {
+                    const lastFace = lastFaceTsRef.current
+                    lastFaceTsRef.current = frameTs
+                    if (lastFace !== null && frameTs - lastFace > FACE_GAP_RESET_MS) {
+                        traceRef.current.reset()
+                        poseHistoryRef.current = []
+                        if (tailRef.current) {
+                            tailRef.current = null
+                            setReturnHint(null)
+                            onError(t('biometricPuzzle.returnTimeout'))
+                            return
+                        }
+                        if (!completedRef.current) {
+                            puzzle.start([challengeType], 1)
+                            oscillationRef.current.reset()
+                            setProgress(0)
+                            setDetected(false)
+                        }
+                    }
+                }
                 // Contract v2: record this frame into the landmark trace.
                 if (collectTrace && face?.detection.landmarks478?.length && face.headPose) {
                     traceRef.current.setFrameSize(video.videoWidth, video.videoHeight)
@@ -606,6 +584,18 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                     )
                     setDetected(result.detected)
                     setProgress(result.progress)
+                    // Contract v2: every close-phase frame of a blink / wink goes
+                    // into the trace even inside the 40 ms down-sampling interval,
+                    // so the closed frames the client counted are the ones bio
+                    // sees (bio needs ≥ 2 consecutive closed frames for a wink).
+                    if (
+                        collectTrace &&
+                        result.detected &&
+                        !result.completed &&
+                        isTransientChallenge(challengeType)
+                    ) {
+                        traceRef.current.push(frameTs, face.detection.landmarks478, true)
+                    }
                     if (result.completed && !completedRef.current) {
                         // Liveness gate: the active gesture itself already demonstrates
                         // liveness, so only HARD-reject when passive liveness POSITIVELY
@@ -615,6 +605,11 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                         // which is the "blink completes then immediately resets" bug.
                         if (lastLiveRef.current === false) {
                             puzzle.start([challengeType], 1)
+                            // v2: the engine's attempt baseline restarts here, so
+                            // the trace must restart too (bio takes its baseline
+                            // from the first trace frames).
+                            traceRef.current.reset()
+                            poseHistoryRef.current = []
                             startTsRef.current = performance.now()
                             setProgress(0)
                             setDetected(false)
