@@ -16,6 +16,7 @@
 # to simple `- "string"` block lists.
 
 allowed_root_files:
+  - ".dockerignore"
   - ".env.example"
   - ".eslintrc.cjs"
   - ".gitignore"
@@ -25,10 +26,13 @@ allowed_root_files:
   - ".repo-structure.yml"
   - "CHANGELOG.md"
   - "CLAUDE.md"
+  - "Dockerfile"
   - "LICENSE"
   - "README.md"
   - "SECURITY.md"
+  - "docker-compose.prod.yml"
   - "index.html"
+  - "nginx.conf"
   - "package-lock.json"
   - "package.json"
   - "playwright.config.ts"

@@ -10,6 +10,11 @@ on:
       - 'tsconfig*.json'
       - 'vite.config.*'
       - '.github/workflows/ci.yml'
+      - 'index.html'
+      - 'Dockerfile'
+      - 'nginx.conf'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/deploy-hetzner.yml'
   pull_request:
     branches: [main, master]
     paths:
@@ -19,6 +24,11 @@ on:
       - 'tsconfig*.json'
       - 'vite.config.*'
       - '.github/workflows/ci.yml'
+      - 'index.html'
+      - 'Dockerfile'
+      - 'nginx.conf'
+      - 'docker-compose.prod.yml'
+      - '.github/workflows/deploy-hetzner.yml'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}

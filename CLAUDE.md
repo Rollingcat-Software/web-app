@@ -413,6 +413,16 @@ rsync -avz --delete -e "ssh -p 65002" dist/ u349700627@46.202.158.52:~/domains/a
 - SPA routing: `public/.htaccess` with RewriteEngine
 - `connect-src` must include `https://api.fivucsas.com`
 
+**Auto-deploy is gated on CI (2026-11-02).** `.github/workflows/deploy-hetzner.yml` runs via
+`workflow_run` only after the `CI` workflow succeeds for a push to `main`, and deploys
+exactly that commit (`git merge --ff-only <head_sha>` on the box); a red build never deploys.
+Its `changes` job re-applies the old deploy path filter (files changed since the last
+successful deploy). Keep `ci.yml` push `paths:` a superset of the deploy paths, or a
+deploy-relevant change never runs CI and never deploys. `workflow_dispatch` = manual
+operator deploy of the tip of `main` (no CI gate).
+(The live path is the Hetzner nginx container built by that workflow, not the Hostinger
+rsync above.)
+
 ## PWA service worker — network-first app shell (2026-06-01)
 
 The app-shell (the HTML document / navigation requests) is served **NETWORK-FIRST**,
