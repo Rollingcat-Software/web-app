@@ -249,6 +249,64 @@ session, computes the Facenet512 vector, and submits `{ puzzle_session_id, embed
 (raw image not sent) so liveness AND identity come from one capture. Contract:
 `docs/superpowers/plans/2026-06-12-puzzle-session-convergence.md`.
 
+**Contract v2 — landmark traces (server flag `PUZZLE_TRACE_V2_ENABLED`, default OFF,
+2026-11-01).** v1 SUBMITs one client-computed scalar per challenge (forgeable). When the
+CREATE response advertises `trace_contract: 'v2'`, `PuzzleStep` passes
+`collectTrace` + the server `challengeParams` to the challenge component, which records
+a compact trace with `PuzzleTraceRecorder` (`src/features/biometric-puzzles/puzzleTrace.ts`:
+32 face landmarks or 21 hand landmarks per frame, ints in 1e-4 units, ≤25 fps, 4 s
+rolling window, identical-frame dedupe; ≈0.5 KB/face frame, ≈0.3 KB/hand frame, a 2 s
+challenge ≈24 KB face / ≈16 KB hand) and returns it as `PuzzleServerVerdict.trace`;
+the SUBMIT forwards it and bio recomputes metric + temporal shape + duration +
+plausibility. `FacePuzzle` keeps recording a short **return tail** after turn/look
+(bio requires rest → excursion → return; hint `biometricPuzzle.returnToCenter`). The
+completion is NEVER submitted before the head returns: after 2 s the hint becomes
+`returnToCenterRequired`, after 3.5 s (or the 30 s attempt timeout) the attempt fails
+LOCALLY with `returnTimeout` — no server call, so no bio attempt is burned. A forced
+"completing frame" landing < 15 ms after the previous frame REPLACES it
+(`TRACE_MIN_FRAME_INTERVAL_MS`, shared with bio `MIN_FRAME_INTERVAL_MS`; pinned by tests
+on both sides) so bio never sees `FRAME_INTERVAL_IMPLAUSIBLE`.
+`HandGesturePuzzle` now uses the server-issued finger-count/math `target`
+(`applyServerTarget`). v2 + no trace ⇒ fail closed. With identity-binding the verdict
+also carries `binding_frame` (trace-subset landmarks + trace timestamp of the
+embedding's source frame; `onBestFrame` gets the timestamp as a 3rd arg) for the server's
+**binding-frame consistency check**. Honest scope: the server only checks this
+client-declared frame against the client's own trace; it does NOT tie the matched
+embedding to the live capture, and a modified client can pass it. Real binding needs
+server-observed image data or attested capture. No VITE flag:
+the server advertisement drives it, so v1 payloads stay byte-identical. Server docs:
+biometric-processor CLAUDE.md "Contract v2".
+
+**Real-face calibration (2026-11-01; client "completed" ⇒ server accepts).** Measured on
+MediaPipe landmarks from real face clips (fivucsas-papers
+`paper-B-puzzle-pad/bench/calibration-2026-11-01/out/after_fixes.txt`):
+- **Head-pose sign fixed** (`HeadPoseEstimator`): convention is yaw < 0 = the USER's own
+  left, pitch < 0 = looking up (bio's Kabsch convention). The matrix path had BOTH axes
+  inverted and the landmark fallback had yaw inverted — confirmed in headless Chromium
+  with a fake camera + tasks-vision 0.10.32; tests pin it with matrices captured there.
+  The raw frame is NOT mirrored (only the CSS preview is), so MediaPipe `LEFT_EYE` 362..
+  is the user's own left eye; the eye "mirror swap" and the cross-paired brow sets were
+  removed (`FaceMetricsCalculator`, `constants.ts`).
+- **Baseline-relative gates** (`BiometricPuzzle`): the engine keeps the same rolling 4 s,
+  40 ms-sampled attempt window as the trace recorder; pose/MAR use the median of its
+  first 3 samples and expressions the first 5 (= bio's in-trace baselines). Turns/looks
+  are relative to that baseline (looks also need a near-frontal yaw), open mouth needs
+  MAR > 0.50 from a closed baseline (was 0.12), smile needs a corner-raise increase ≥ 0.03,
+  brows +15% both / +20% single, nod/shake need ≥ 2 direction reversals of ≥ 8°
+  (`core/challenges/oscillation.ts`), a blink needs an open frame first, and nothing
+  completes in the first 1 s of an attempt. `FacePuzzle` restarts the attempt after a
+  600 ms face gap and uses 5° / 3.5° return tolerances (timing rules in
+  `biometric-puzzles/faceTraceContract.ts`).
+- **Hand tap/pinch** now require bio's values: a tap must start from an open hand and
+  come within 0.08 hand-scales, a pinch must follow an open hand and hold ≤ 0.12.
+- **Contract test** `biometric-puzzles/__tests__/puzzleContract.test.ts` runs the real
+  engine + recorder over committed real-landmark segments (derived landmarks only) and
+  compares the traces to a golden file that biometric-processor's
+  `test_puzzle_contract.py` must accept; it also pins the shared thresholds. After an
+  intentional change: `UPDATE_PUZZLE_CONTRACT=1 npx vitest run <that file>`, then copy
+  `fixtures/puzzle_contract_golden_traces.json.gz` into biometric-processor
+  `tests/fixtures/puzzle_contract/`.
+
 ## Key Patterns
 
 - **i18n**: ALL strings use `t()` with keys in en.json + tr.json. NEVER hardcode English.

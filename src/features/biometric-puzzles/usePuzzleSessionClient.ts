@@ -18,7 +18,9 @@
  *
  *   SUBMIT  POST /auth/mfa/puzzle/session/{session_id}/challenge
  *           req  { sessionToken, action, metrics:{…}, start_timestamp_ms,
- *                  end_timestamp_ms, confidence }
+ *                  end_timestamp_ms, confidence, trace? }
+ *           (`trace` = contract v2 landmark trace, see `puzzleTrace.ts`;
+ *            required when CREATE returned `trace_contract: 'v2'`.)
  *           resp { verified, action, reason_code|null }
  *
  * The VERDICT (auth gate) is NOT here — that is the step verdict the surface
@@ -31,6 +33,7 @@ import { useCallback, useMemo } from 'react'
 import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
+import type { PuzzleTracePayload } from './puzzleTrace'
 
 /** One server-issued challenge: an action plus optional server params. */
 export interface IssuedChallenge {
@@ -44,6 +47,15 @@ export interface IssuedChallenge {
 export interface PuzzleSessionCreateResult {
     session_id: string
     challenges: IssuedChallenge[]
+    /**
+     * `'v2'` when bio runs PUZZLE contract v2 (`PUZZLE_TRACE_V2_ENABLED`): every
+     * SUBMIT must then carry a landmark `trace` (a scalar-only submit is
+     * rejected with TRACE_REQUIRED) and challenges are submitted in issued
+     * order. Absent/null = legacy v1 scalar contract.
+     */
+    trace_contract?: string | null
+    /** v2: the 478-mesh indices a face trace frame carries (wire order). */
+    trace_face_indices?: number[] | null
 }
 
 /** SUBMIT response — bio's per-challenge verdict (UX feedback, not the gate). */
@@ -60,6 +72,8 @@ export interface PuzzleChallengeSubmit {
     startTimestampMs: number
     endTimestampMs: number
     confidence: number
+    /** Contract v2 landmark trace (sent only when present). */
+    trace?: PuzzleTracePayload
 }
 
 const CREATE_PATH = '/auth/mfa/puzzle/session'
@@ -119,6 +133,7 @@ export function usePuzzleSessionClient(): PuzzleSessionClient {
                     start_timestamp_ms: submit.startTimestampMs,
                     end_timestamp_ms: submit.endTimestampMs,
                     confidence: submit.confidence,
+                    ...(submit.trace ? { trace: submit.trace } : {}),
                 },
             )
             const data = res.data

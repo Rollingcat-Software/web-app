@@ -142,3 +142,70 @@ describe('HeadPoseEstimator — matrix → Euler', () => {
     expect(pose).toEqual({ yaw: 0, pitch: 0, roll: 0 })
   })
 })
+
+/**
+ * SIGN from REAL geometry (not magnitudes only). The matrices + landmarks below
+ * were captured 2026-11-01 in headless Chromium (MediaPipe tasks-vision 0.10.32,
+ * FaceLandmarker VIDEO mode with outputFacialTransformationMatrixes, a fake
+ * camera fed with a real Mixkit clip — the same pipeline as FaceDetector.ts).
+ * What the person physically did was checked on the video frames and agrees
+ * with biometric-processor's landmark (Kabsch) pose. The raw camera frame is
+ * NOT mirrored, so a user turning to their own right points the nose toward the
+ * image LEFT. Before the 2026-11-01 fix both cases below read with the wrong
+ * sign (yaw −38.8°, pitch +26.0°).
+ */
+const REAL = {
+  // user turned to their OWN RIGHT (nose toward the IMAGE LEFT of the raw frame); browser read yawM=-38.8 pitchM=17.8 BEFORE the fix
+  turned_to_users_right: {
+    matrix: [0.77899, 0.0163761, 0.626822, 0, 0.171964, 0.955751, -0.238679, 0, -0.602995, 0.29372, 0.741705, 0, 1.92477, 17.4746, -67.9545, 1],
+    landmarks: { 1: { x: 0.43483, y: 0.26514 }, 33: { x: 0.43589, y: 0.24799 }, 61: { x: 0.43247, y: 0.32161 }, 263: { x: 0.58395, y: 0.22987 }, 291: { x: 0.51904, y: 0.31573 } } as Record<number, { x: number; y: number }>,
+    frame: { width: 720, height: 1280 },
+  },
+  // user tilted the chin UP (nose moved up toward the eye line); browser read yawM=17.8 pitchM=26.0 BEFORE the fix
+  looking_up: {
+    matrix: [0.95182, 0.0196318, -0.30603, 0, -0.152744, 0.895698, -0.417607, 0, 0.265912, 0.444231, 0.855541, 0, -2.91966, 16.9588, -61.3099, 1],
+    landmarks: { 1: { x: 0.48637, y: 0.22174 }, 33: { x: 0.33860, y: 0.20779 }, 61: { x: 0.40520, y: 0.29097 }, 263: { x: 0.53781, y: 0.21197 }, 291: { x: 0.52735, y: 0.29196 } } as Record<number, { x: number; y: number }>,
+    frame: { width: 720, height: 1280 },
+  },
+}
+
+function pixels(lms: Record<number, { x: number; y: number }>, frame: { width: number; height: number }): PixelLandmark[] {
+  const out: PixelLandmark[] = Array.from({ length: 478 }, () => ({ x: 0, y: 0 }))
+  for (const [k, v] of Object.entries(lms)) out[Number(k)] = { x: v.x * frame.width, y: v.y * frame.height }
+  return out
+}
+
+describe('HeadPoseEstimator — sign from real browser geometry', () => {
+  const est = new HeadPoseEstimator()
+
+  it("matrix path: turning to the user's own RIGHT gives yaw > 0 (TURN_RIGHT)", () => {
+    const pose = est.estimateFromMatrix(REAL.turned_to_users_right.matrix)
+    expect(pose.yaw).toBeGreaterThan(25)
+  })
+
+  it('matrix path: chin up gives pitch < 0 (LOOK_UP)', () => {
+    const pose = est.estimateFromMatrix(REAL.looking_up.matrix)
+    expect(pose.pitch).toBeLessThan(-15)
+  })
+
+  it('landmark fallback agrees with the matrix path on the yaw and pitch sign', () => {
+    const right = REAL.turned_to_users_right
+    const up = REAL.looking_up
+    const poseR = est.estimate(pixels(right.landmarks, right.frame), right.frame)
+    const poseU = est.estimate(pixels(up.landmarks, up.frame), up.frame)
+    expect(poseR.yaw).toBeGreaterThan(15)
+    expect(poseU.pitch).toBeLessThan(-10)
+    expect(Math.sign(poseR.yaw)).toBe(Math.sign(est.estimateFromMatrix(right.matrix).yaw))
+    expect(Math.sign(poseU.pitch)).toBe(Math.sign(est.estimateFromMatrix(up.matrix).pitch))
+  })
+
+  it('nose toward the IMAGE RIGHT of the raw frame = user turned to their own LEFT (yaw < 0)', () => {
+    const lms: PixelLandmark[] = Array.from({ length: 478 }, () => ({ x: 320, y: 240 }))
+    lms[1] = { x: 360, y: 255 }
+    lms[33] = { x: 280, y: 230 }
+    lms[263] = { x: 360, y: 230 }
+    lms[61] = { x: 290, y: 300 }
+    lms[291] = { x: 350, y: 300 }
+    expect(est.estimate(lms, { width: 640, height: 480 }).yaw).toBeLessThan(-10)
+  })
+})

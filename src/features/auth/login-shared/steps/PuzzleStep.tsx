@@ -40,6 +40,17 @@
  * binding is required but no embedding could be produced, the step FAILS CLOSED
  * (no submit); the server also fail-closes. Binding OFF / flag OFF = liveness-only
  * (`{ puzzle_session_id }`), byte-identical to CV-3.
+ *
+ * Contract v2 (server-advertised `trace_contract: 'v2'` on CREATE, bio flag
+ * `PUZZLE_TRACE_V2_ENABLED`): each challenge component records a compact
+ * landmark TRACE (`collectTrace`) and the SUBMIT carries it — bio recomputes
+ * the metric, temporal shape, duration and plausibility server-side, so the
+ * client-computed scalar is no longer trusted. Server-issued params (finger
+ * count target) are passed to the component. With identity-binding on, the
+ * verdict also carries `binding_frame` = the trace-subset landmarks +
+ * timestamp of the frame the embedding was computed from; bio checks it lies
+ * inside a verified challenge window of the same session with consistent
+ * geometry. A v2 session whose component produced no trace fails closed.
  */
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Alert, Box, Button, CircularProgress, Typography } from '@mui/material'
@@ -63,6 +74,12 @@ import { isClientSideEmbeddingEnabled } from '@features/biometrics/embedding/cli
 import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedFace'
 import { isClientPadAdvisoryEnabled } from '@features/biometrics/pad/clientPadFlag'
 import { computeClientPadScore } from '@features/biometrics/pad/computeClientPadScore'
+import {
+    encodeBindingFrame,
+    FACE_TRACE_INDICES,
+    TRACE_CONTRACT_V2,
+    type PuzzleBindingFrame,
+} from '@features/biometric-puzzles/puzzleTrace'
 import StepLayout from '../../components/steps/StepLayout'
 
 export interface PuzzleStepProps {
@@ -107,6 +124,12 @@ export default function PuzzleStep({
     const [challenges, setChallenges] = useState<IssuedChallenge[]>([])
     const [currentIndex, setCurrentIndex] = useState(0)
     const [challengeError, setChallengeError] = useState<string | null>(null)
+    /** Contract v2 advertised by the server on CREATE (trace-based SUBMIT). */
+    const [traceV2, setTraceV2] = useState(false)
+    const faceIndicesRef = useRef<readonly number[]>(FACE_TRACE_INDICES)
+    /** v2 binding frame (server binding-frame consistency check; client-declared,
+     *  NOT proof the embedding came from the live capture). */
+    const bindingFrameRef = useRef<PuzzleBindingFrame | null>(null)
     /** Guards a double CREATE under React 18 StrictMode double-invoke. */
     const createdRef = useRef(false)
     /** Guards a double verdict submit once all challenges complete. */
@@ -141,6 +164,11 @@ export default function PuzzleStep({
                     setChallengeError(t('mfa.puzzle.noChallenges'))
                     return
                 }
+                const v2 = result.trace_contract === TRACE_CONTRACT_V2
+                if (v2 && Array.isArray(result.trace_face_indices) && result.trace_face_indices.length) {
+                    faceIndicesRef.current = result.trace_face_indices
+                }
+                setTraceV2(v2)
                 setSessionId(result.session_id)
                 setChallenges(result.challenges)
                 setPhase('running')
@@ -168,7 +196,7 @@ export default function PuzzleStep({
     // | null). Only wired when binding is on. The raw image is consumed here and
     // never stored — only the resulting vector is kept.
     const handleBestFrame = useCallback(
-        (image: string, landmarks: NormalizedLandmark[]) => {
+        (image: string, landmarks: NormalizedLandmark[], capturedAtMs?: number) => {
             // ADVISORY PAD score (SP-D, flag-gated, defense-in-depth). Computed
             // from the best frame independently of binding so the server gets a
             // passive-liveness signal even on the liveness-only path. Resilient +
@@ -184,16 +212,24 @@ export default function PuzzleStep({
                     })
             }
             if (!bindingEnabled) return
+            const binding =
+                traceV2 && capturedAtMs !== undefined
+                    ? encodeBindingFrame(landmarks, capturedAtMs, faceIndicesRef.current)
+                    : null
             embedCapturedFace(image, landmarks)
                 .then((vec) => {
-                    if (vec) embeddingRef.current = vec
+                    if (vec) {
+                        embeddingRef.current = vec
+                        // Keep the binding frame paired with the vector it describes.
+                        bindingFrameRef.current = binding
+                    }
                 })
                 .catch(() => {
                     // Resilient: a failed embed leaves embeddingRef null → the
                     // verdict path fails closed rather than submitting without it.
                 })
         },
-        [bindingEnabled],
+        [bindingEnabled, traceV2],
     )
 
     // ── 3. Submit the auth gate once every challenge is server-validated ───
@@ -226,6 +262,11 @@ export default function PuzzleStep({
             verifyStep(AuthMethodType.PUZZLE, {
                 puzzle_session_id: sessionId,
                 embedding,
+                // v2: where the embedding came from (bio checks it against the
+                // session's verified trace windows). Absent on v1.
+                ...(traceV2 && bindingFrameRef.current
+                    ? { binding_frame: bindingFrameRef.current }
+                    : {}),
                 ...advisory,
             })
             return
@@ -237,7 +278,7 @@ export default function PuzzleStep({
         // the optional advisory PAD score). No metrics, no verdicts — bio is the
         // authority (owner-bound, single-use).
         verifyStep(AuthMethodType.PUZZLE, { puzzle_session_id: sessionId, ...advisory })
-    }, [sessionId, verifyStep, bindingEnabled, t])
+    }, [sessionId, verifyStep, bindingEnabled, traceV2, t])
 
     // ── 2. Per-challenge completion → SUBMIT canonical metric to the session ─
     const handleSuccess = useCallback(
@@ -259,6 +300,14 @@ export default function PuzzleStep({
                 return
             }
 
+            // Contract v2: the landmark trace is REQUIRED (bio re-scores it);
+            // without one the server would reject TRACE_REQUIRED — fail closed.
+            if (traceV2 && !verdict?.trace) {
+                setPhase('error')
+                setChallengeError(t('mfa.puzzle.challengeFailed'))
+                return
+            }
+
             const now = performance.now()
             submitChallenge(mfaSessionToken, sessionId, {
                 action,
@@ -266,6 +315,7 @@ export default function PuzzleStep({
                 startTimestampMs: verdict?.startTimestampMs ?? now - 1,
                 endTimestampMs: verdict?.endTimestampMs ?? now,
                 confidence: verdict?.confidence ?? 0.9,
+                ...(traceV2 && verdict?.trace ? { trace: verdict.trace } : {}),
             })
                 .then((res) => {
                     // Server-authoritative: only advance on a true per-challenge
@@ -295,6 +345,7 @@ export default function PuzzleStep({
             currentIndex,
             total,
             submitVerdict,
+            traceV2,
             t,
         ],
     )
@@ -380,6 +431,10 @@ export default function PuzzleStep({
                     onError={handleError}
                     onClose={handleClose}
                     serverMode="auth"
+                    // Contract v2: record + submit the landmark trace, and use
+                    // the server-issued params (e.g. finger-count target).
+                    collectTrace={traceV2}
+                    challengeParams={issued?.params ?? null}
                     // Identity-binding: thread the best-frame hook ONLY when the
                     // double-gate is on. Off → undefined → no capture (FacePuzzle
                     // is byte-identical, hand puzzles ignore it).

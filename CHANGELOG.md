@@ -2,6 +2,37 @@
 
 ## [Unreleased]
 
+### 2026-11-01 — PUZZLE contract v2: security-review fixes
+
+- **B3:** a forced "completing frame" that lands < 15 ms after the previous trace frame now
+  REPLACES that frame instead of being appended (bio rejects intervals < 15 ms as
+  `FRAME_INTERVAL_IMPLAUSIBLE`). `TRACE_MIN_FRAME_INTERVAL_MS` = bio `MIN_FRAME_INTERVAL_MS`,
+  pinned by a cross-repo-style test on each side (forced frame at +8 ms).
+- **S7:** the turn/look return tail no longer submits on timeout when the head never
+  returned. It keeps prompting (`biometricPuzzle.returnToCenterRequired` after 2 s) and fails
+  LOCALLY after 3.5 s or the 30 s attempt timeout (`biometricPuzzle.returnTimeout`), so no
+  bio attempt is burned. New i18n keys in en + tr.
+- **B1 wording:** "split-capture binding" → "binding-frame consistency check"; it only checks
+  the client-declared frame against the client's own trace and a modified client can pass it.
+  Wire field `binding_frame` unchanged.
+
+### 2026-11-01 — PUZZLE contract v2: record + submit landmark traces
+
+- When bio advertises `trace_contract: 'v2'` on puzzle-session CREATE
+  (`PUZZLE_TRACE_V2_ENABLED`, default OFF), `PuzzleStep` has each challenge record a
+  compact landmark trace (`puzzleTrace.ts` `PuzzleTraceRecorder`) and SUBMITs it, so the
+  server re-scores the gesture instead of trusting a client scalar. Fails closed when v2
+  is advertised but no trace was produced.
+- `FacePuzzle`: trace recording + a post-gesture return tail for turn/look (new i18n key
+  `biometricPuzzle.returnToCenter`, en + tr); `onBestFrame` passes the frame's trace
+  timestamp so the verdict can carry a `binding_frame` (binding-frame consistency check).
+- `HandGesturePuzzle`: records hand frames (null = no hand) and uses the server-issued
+  finger-count / math target (it previously used a client-random target while bio scored
+  against its own).
+- v1 sessions (no advertisement) keep byte-identical payloads. Tests:
+  `puzzleTrace.test.ts`, `HandGesturePuzzle.serverTarget.test.ts`,
+  `PuzzleStep.traceV2.test.tsx` (18 new).
+
 ### 2026-06-03 — Login resilience: SW cache headers + explicit "config unavailable" banner
 
 Two low-risk fixes for a confusing failure mode: when the dashboard couldn't reach

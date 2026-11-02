@@ -28,6 +28,7 @@ import { useService } from '@app/providers'
 import { TYPES } from '@core/di/types'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { formatApiError } from '@utils/formatApiError'
+import type { PuzzleTracePayload } from './puzzleTrace'
 
 /** Server-side challenge actions accepted by the biometric-processor enum. */
 export type PuzzleServerAction =
@@ -141,6 +142,11 @@ export interface PuzzleServerVerdict {
     endTimestampMs?: number
     /** Client detection confidence [0..1] for the SUBMIT payload. */
     confidence?: number
+    /**
+     * Contract v2 landmark trace of the attempt (only when the puzzle ran with
+     * `collectTrace`). The PUZZLE step forwards it on SUBMIT; bio re-scores it.
+     */
+    trace?: PuzzleTracePayload
 }
 
 /** identity-core-api proxy path for the bio `/liveness/verify-challenge` route. */

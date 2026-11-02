@@ -1,65 +1,45 @@
 /**
- * NodDetector — Detects nodding motion via pitch oscillation (NOD challenge).
+ * NodDetector — NOD: head pitch oscillation.
  *
- * Detection: pitch range > 25 degrees over motion history (min 20 frames).
- * This is a motion-aware detector that requires setMotionHistory() to be called
- * each frame before detect().
+ * Detection (2026-11-01): at least OSCILLATION_MIN_REVERSALS (2) direction
+ * reversals of the smoothed pitch, each after a swing of ≥ 8°, within the
+ * engine's rolling attempt window — the same rule biometric-processor applies
+ * to the submitted trace. The former range gate (> 25° over ~1 s)
+ * passed a single excursion, which the server rejects (INSUFFICIENT_OSCILLATION).
+ * Motion-aware: BiometricPuzzle calls setMotionHistory() before detect().
  *
- * @see demo_local_fast.py lines 855-857, 883-890
+ * @see demo_local_fast.py lines 855-857, 883-898
  */
 
 import type { FaceMetrics, HeadPose, MotionEntry } from '../../types';
 import { ChallengeType } from '../../types';
 import type { IChallengeDetector } from '../../interfaces';
-import { NOD_PITCH_RANGE, MOTION_MIN_FRAMES } from '../constants';
+import { OSCILLATION_MIN_REVERSALS } from '../constants';
+import { countReversals } from './oscillation';
 
-/**
- * Motion-aware challenge detector that requires a motion history buffer.
- * BiometricPuzzle calls setMotionHistory() before detect() each frame.
- */
 export class NodDetector implements IChallengeDetector {
   readonly type = ChallengeType.NOD;
 
   private motionHistory: ReadonlyArray<MotionEntry> = [];
 
-  /**
-   * Set the current motion history buffer.
-   * Called by BiometricPuzzle before detect() each frame.
-   * @see demo_local_fast.py line 519 (_motion_history)
-   */
+  /** Set the smoothed pose history (BiometricPuzzle, every frame). */
   setMotionHistory(history: ReadonlyArray<MotionEntry>): void {
     this.motionHistory = history;
   }
 
-  /**
-   * Check for nodding motion (pitch oscillation).
-   * @see demo_local_fast.py lines 883-890 (_check_nod)
-   */
-  detect(_metrics: FaceMetrics, _headPose: HeadPose): boolean {
-    if (this.motionHistory.length < MOTION_MIN_FRAMES) {
-      return false;
-    }
-
-    const pitches = this.motionHistory.map((entry) => entry.pitch);
-    const pitchRange = Math.max(...pitches) - Math.min(...pitches);
-    return pitchRange > NOD_PITCH_RANGE;
+  /** Direction reversals of the pitch in the current history. */
+  reversals(): number {
+    return countReversals(this.motionHistory.map((entry) => entry.pitch));
   }
 
-  /** @see demo_local_fast.py line 857 */
-  getMessage(_metrics: FaceMetrics, _headPose: HeadPose): string {
-    const detected = this.motionHistory.length >= MOTION_MIN_FRAMES && this.detectFromHistory();
+  detect(_metrics: FaceMetrics, _headPose: HeadPose): boolean {
+    return this.reversals() >= OSCILLATION_MIN_REVERSALS;
+  }
 
-    if (detected) {
+  getMessage(_metrics: FaceMetrics, _headPose: HeadPose): string {
+    if (this.reversals() >= OSCILLATION_MIN_REVERSALS) {
       return 'Nod your head up and down - Done!';
     }
-
     return 'Nod your head up and down';
-  }
-
-  /** Internal helper to check detection without re-calling detect(). */
-  private detectFromHistory(): boolean {
-    const pitches = this.motionHistory.map((entry) => entry.pitch);
-    const pitchRange = Math.max(...pitches) - Math.min(...pitches);
-    return pitchRange > NOD_PITCH_RANGE;
   }
 }

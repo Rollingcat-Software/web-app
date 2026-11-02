@@ -34,10 +34,13 @@ import { useHandLandmarker } from './useHandLandmarker'
 import {
     evaluateHandPuzzle,
     initialHandState,
+    tapDistance,
+    TAP_TOUCH_THRESHOLD,
     type HandFrame,
     type HandPuzzleState,
 } from './handChallenges'
 import { useBiometricPuzzleServer } from '../useBiometricPuzzleServer'
+import { PuzzleTraceRecorder } from '../puzzleTrace'
 import { handPuzzleToServerAction } from '../puzzleServerAction'
 
 // Lazily import DrawingUtils + HandLandmarker statics so we can render the
@@ -61,7 +64,31 @@ const ATTEMPT_TIMEOUT_MS = 45_000
 const HAND_GRADIENT = 'linear-gradient(135deg, #ec4899 0%, #f97316 100%)'
 const HAND_GLOW = '0 8px 24px rgba(236, 72, 153, 0.25)'
 
-function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode = 'training' }: Props) {
+/**
+ * Apply a SERVER-issued target (puzzle session `params.target`) to the
+ * finger-count / math state so the user is asked for exactly what bio scores.
+ * Exported for unit tests.
+ */
+// eslint-disable-next-line react-refresh/only-export-components
+export function applyServerTarget(
+    puzzleId: BiometricPuzzleId,
+    state: HandPuzzleState,
+    params: Record<string, unknown> | null | undefined,
+): HandPuzzleState {
+    const raw = params?.target
+    const target = typeof raw === 'number' ? Math.round(raw) : NaN
+    if (!Number.isFinite(target) || target < 1 || target > 5) return state
+    if (puzzleId === BiometricPuzzleId.HAND_FINGER_COUNT) {
+        state.targetFingerCount = target
+    } else if (puzzleId === BiometricPuzzleId.HAND_MATH) {
+        const a = target === 1 ? 1 : 1 + Math.floor(Math.random() * (target - 1))
+        state.targetFingerCount = target
+        state.mathPrompt = `${a} + ${target - a}`
+    }
+    return state
+}
+
+function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode = 'training', collectTrace = false, challengeParams }: Props) {
     const { t } = useTranslation()
     const videoRef = useRef<HTMLVideoElement | null>(null)
     const canvasRef = useRef<HTMLCanvasElement | null>(null)
@@ -75,6 +102,8 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
     const completedRef = useRef<boolean>(false)
     const stateRef = useRef<HandPuzzleState>({})
     const holdRef = useRef<{ detectedSince: number | null }>({ detectedSince: null })
+    /** Contract v2 (`collectTrace`): rolling hand-landmark trace of the attempt. */
+    const traceRef = useRef<PuzzleTraceRecorder>(new PuzzleTraceRecorder('hand'))
 
     const [cameraActive, setCameraActive] = useState(false)
     const [videoReady, setVideoReady] = useState(false)
@@ -210,8 +239,9 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
         if (!cameraActive || !videoReady) return
 
         // Reset puzzle state for a fresh attempt.
-        stateRef.current = initialHandState(puzzleId)
+        stateRef.current = applyServerTarget(puzzleId, initialHandState(puzzleId), challengeParams)
         holdRef.current = { detectedSince: null }
+        traceRef.current.reset()
         startTsRef.current = performance.now()
         completedRef.current = false
         setRunning(true)
@@ -266,6 +296,23 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
                     }
                     : null
 
+            // Contract v2: record the frame (a null hand is recorded too — the
+            // peek-a-boo reveal is the hand's absence).
+            if (collectTrace) {
+                traceRef.current.setFrameSize(video.videoWidth, video.videoHeight)
+                traceRef.current.push(ts, handFrame ? handFrame.landmarks : null)
+                // Every touching frame of a TAP goes into the trace, even inside
+                // the 40 ms down-sampling interval: the closest approach the
+                // client counted (≤ 0.08, bio's gate) must be one bio sees.
+                if (
+                    puzzleId === BiometricPuzzleId.HAND_FINGER_TAP &&
+                    handFrame &&
+                    tapDistance(handFrame) < TAP_TOUCH_THRESHOLD
+                ) {
+                    traceRef.current.push(ts, handFrame.landmarks, true)
+                }
+            }
+
             const evalResult = evaluateHandPuzzle(
                 puzzleId,
                 { frame: handFrame, state: stateRef.current },
@@ -285,6 +332,10 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
                 completedRef.current = true
                 setRunning(false)
                 setProgress(100)
+                if (collectTrace) {
+                    traceRef.current.push(ts, handFrame ? handFrame.landmarks : null, true)
+                }
+                const trace = collectTrace ? traceRef.current.toPayload() : null
 
                 // Bug 4 (2026-05-12) — round-trip the completion through the
                 // server before resolving onSuccess. The mapper returns null
@@ -341,6 +392,7 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
                                 startTimestampMs: startTsRef.current,
                                 endTimestampMs: endTs,
                                 confidence: 0.9,
+                                trace: trace ?? undefined,
                             })
                         } else if (outcome.kind === 'soft_pass') {
                             onSuccess({
@@ -378,7 +430,7 @@ function HandGesturePuzzle({ onSuccess, onError, puzzleId, i18nKey, serverMode =
                 animFrameRef.current = 0
             }
         }
-    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t, drawHandLandmarks, clearOverlay, verifyChallenge, serverMode])
+    }, [handLandmarker, cameraActive, videoReady, puzzleId, onSuccess, onError, t, drawHandLandmarks, clearOverlay, verifyChallenge, serverMode, collectTrace, challengeParams])
 
     const hint = t(`${i18nKey}.hint`, { defaultValue: '' })
 

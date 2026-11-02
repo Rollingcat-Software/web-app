@@ -319,12 +319,33 @@ export function isIndexExtended(frame: HandFrame): boolean {
     return lms[8].y < lms[6].y
 }
 
+/**
+ * Tip distance (thumb↔index, over the wrist→middle-MCP hand scale) below which
+ * the PINCH challenge counts as pinched. 2026-11-01: equals biometric-processor's
+ * `_PINCH_MAX_DIST_SCALED` (0.12). The previous 0.35 let the client complete a
+ * pinch whose closest approach the server then rejected (PINCH_NOT_DETECTED);
+ * no hand data was calibrated, so the client simply requires the server's
+ * value and a completed pinch is one the server accepts.
+ */
+export const PINCH_MAX_DIST_SCALED = 0.12
+
+/** bio's pinch "rest" level: the trace must start with the fingers apart. */
+export const PINCH_OPEN_DIST_SCALED = 0.35
+
+/**
+ * Closest thumb↔index approach a TAP must reach (bio `_FINGER_TAP_MAX_DIST_SCALED`,
+ * 0.08). The touch/release hysteresis below still decides WHEN a tap happened;
+ * this decides whether it was a real touch (2026-11-01, same reasoning as
+ * PINCH_MAX_DIST_SCALED).
+ */
+export const TAP_MAX_DIST_SCALED = 0.08
+
 /** Returns true while thumb-tip and index-tip are pinched together. */
-export function isPinching(frame: HandFrame): boolean {
+export function isPinching(frame: HandFrame, maxDist = PINCH_MAX_DIST_SCALED): boolean {
     const lms = frame.landmarks
     if (lms.length < 21) return false
     const d = dist(lms[4], lms[8])
-    return d < handScale(lms) * 0.35
+    return d < handScale(lms) * maxDist
 }
 
 /**
@@ -373,18 +394,22 @@ export class TapTransitionTracker {
      */
     private minTouchDistance = Infinity
     private _lastTapMinDistance = Infinity
+    /** A released (open) frame was seen before the touch (bio requires it). */
+    private seenOpen = false
 
     constructor(
         private readonly touchThreshold: number = TAP_TOUCH_THRESHOLD,
         private readonly releaseThreshold: number = TAP_RELEASE_THRESHOLD,
         private readonly consecutiveFrames: number = TAP_CONSECUTIVE_FRAMES,
         private readonly maxTouchFrames: number = TAP_MAX_TOUCH_FRAMES,
+        private readonly maxTapDistance: number = TAP_MAX_DIST_SCALED,
     ) {}
 
     reset(): void {
         this.touchingFrames = 0
         this.minTouchDistance = Infinity
         this._lastTapMinDistance = Infinity
+        this.seenOpen = false
     }
 
     /** Minimum scaled distance of the last completed tap (bio `tap_dist_scaled`). */
@@ -413,12 +438,17 @@ export class TapTransitionTracker {
         }
 
         if (distance >= this.releaseThreshold) {
+            // bio (trace v2) accepts a tap only if the hand was open before the
+            // touch AND the closest approach reached TAP_MAX_DIST_SCALED.
             const released =
+                this.seenOpen &&
                 this.touchingFrames >= this.consecutiveFrames &&
-                this.touchingFrames <= this.maxTouchFrames
+                this.touchingFrames <= this.maxTouchFrames &&
+                this.minTouchDistance <= this.maxTapDistance
             if (released) this._lastTapMinDistance = this.minTouchDistance
             this.touchingFrames = 0
             this.minTouchDistance = Infinity
+            this.seenOpen = true
             return released
         }
 
@@ -1070,6 +1100,8 @@ export interface HandPuzzleState {
     targetFingerCount?: number
     /** For MATH: the human-readable prompt ("2 + 3"). */
     mathPrompt?: string
+    /** PINCH: the fingers were seen apart in this attempt (rest before gesture). */
+    pinchSeenOpen?: boolean
 }
 
 export interface HandPuzzleEvalInput {
@@ -1222,9 +1254,12 @@ export function evaluateHandPuzzle(
         case BiometricPuzzleId.HAND_PINCH: {
             if (!frame) return holdResult(false)
             // Canonical metric: `pinch_dist_scaled` = thumb-tip↔index-tip distance
-            // normalised by hand scale (exactly bio's definition).
+            // normalised by hand scale (exactly bio's definition). The pinch
+            // only counts after the fingers were seen apart (bio rejects a trace
+            // that starts pinched: NO_REST_TO_GESTURE_TRANSITION).
             const f = frame
-            return holdResult(isPinching(f), () => ({
+            if (thumbIndexDistance(f) >= PINCH_OPEN_DIST_SCALED) state.pinchSeenOpen = true
+            return holdResult(state.pinchSeenOpen === true && isPinching(f), () => ({
                 pinch_dist_scaled: thumbIndexDistance(f),
             }))
         }

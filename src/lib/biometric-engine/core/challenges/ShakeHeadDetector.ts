@@ -1,65 +1,45 @@
 /**
- * ShakeHeadDetector — Detects head shaking motion via yaw oscillation (SHAKE_HEAD challenge).
+ * ShakeHeadDetector — SHAKE_HEAD: head yaw oscillation.
  *
- * Detection: yaw range > 35 degrees over motion history (min 20 frames).
- * This is a motion-aware detector that requires setMotionHistory() to be called
- * each frame before detect().
+ * Detection (2026-11-01): at least OSCILLATION_MIN_REVERSALS (2) direction
+ * reversals of the smoothed yaw, each after a swing of ≥ 8°, within the
+ * engine's rolling attempt window — the same rule biometric-processor applies
+ * to the submitted trace. The former range gate (> 35° over ~1 s)
+ * passed a single excursion, which the server rejects (INSUFFICIENT_OSCILLATION).
+ * Motion-aware: BiometricPuzzle calls setMotionHistory() before detect().
  *
- * @see demo_local_fast.py lines 859-861, 892-899
+ * @see demo_local_fast.py lines 855-857, 883-898
  */
 
 import type { FaceMetrics, HeadPose, MotionEntry } from '../../types';
 import { ChallengeType } from '../../types';
 import type { IChallengeDetector } from '../../interfaces';
-import { SHAKE_YAW_RANGE, MOTION_MIN_FRAMES } from '../constants';
+import { OSCILLATION_MIN_REVERSALS } from '../constants';
+import { countReversals } from './oscillation';
 
-/**
- * Motion-aware challenge detector that requires a motion history buffer.
- * BiometricPuzzle calls setMotionHistory() before detect() each frame.
- */
 export class ShakeHeadDetector implements IChallengeDetector {
   readonly type = ChallengeType.SHAKE_HEAD;
 
   private motionHistory: ReadonlyArray<MotionEntry> = [];
 
-  /**
-   * Set the current motion history buffer.
-   * Called by BiometricPuzzle before detect() each frame.
-   * @see demo_local_fast.py line 519 (_motion_history)
-   */
+  /** Set the smoothed pose history (BiometricPuzzle, every frame). */
   setMotionHistory(history: ReadonlyArray<MotionEntry>): void {
     this.motionHistory = history;
   }
 
-  /**
-   * Check for head shake motion (yaw oscillation).
-   * @see demo_local_fast.py lines 892-899 (_check_shake)
-   */
-  detect(_metrics: FaceMetrics, _headPose: HeadPose): boolean {
-    if (this.motionHistory.length < MOTION_MIN_FRAMES) {
-      return false;
-    }
-
-    const yaws = this.motionHistory.map((entry) => entry.yaw);
-    const yawRange = Math.max(...yaws) - Math.min(...yaws);
-    return yawRange > SHAKE_YAW_RANGE;
+  /** Direction reversals of the yaw in the current history. */
+  reversals(): number {
+    return countReversals(this.motionHistory.map((entry) => entry.yaw));
   }
 
-  /** @see demo_local_fast.py line 861 */
-  getMessage(_metrics: FaceMetrics, _headPose: HeadPose): string {
-    const detected = this.motionHistory.length >= MOTION_MIN_FRAMES && this.detectFromHistory();
+  detect(_metrics: FaceMetrics, _headPose: HeadPose): boolean {
+    return this.reversals() >= OSCILLATION_MIN_REVERSALS;
+  }
 
-    if (detected) {
+  getMessage(_metrics: FaceMetrics, _headPose: HeadPose): string {
+    if (this.reversals() >= OSCILLATION_MIN_REVERSALS) {
       return 'Shake your head left and right - Done!';
     }
-
     return 'Shake your head left and right';
-  }
-
-  /** Internal helper to check detection without re-calling detect(). */
-  private detectFromHistory(): boolean {
-    const yaws = this.motionHistory.map((entry) => entry.yaw);
-    const yawRange = Math.max(...yaws) - Math.min(...yaws);
-    return yawRange > SHAKE_YAW_RANGE;
   }
 }

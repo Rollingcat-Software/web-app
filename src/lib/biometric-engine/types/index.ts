@@ -274,15 +274,15 @@ export interface HeadPose {
  * @see demo_local_fast.py lines 462-471 (calculate_ear)
  */
 export interface EyeMetrics {
-  /** Left eye aspect ratio (MediaPipe LEFT = user's right) */
+  /** Left eye aspect ratio (MediaPipe LEFT_EYE = the user's own left eye) */
   leftEAR: number;
-  /** Right eye aspect ratio (MediaPipe RIGHT = user's left) */
+  /** Right eye aspect ratio (MediaPipe RIGHT_EYE = the user's own right eye) */
   rightEAR: number;
   /** Average of both eyes */
   avgEAR: number;
-  /** User's left eye (= MediaPipe RIGHT_EYE) */
+  /** User's left eye (= MediaPipe LEFT_EYE; no mirror swap, see constants.ts) */
   userLeftEAR: number;
-  /** User's right eye (= MediaPipe LEFT_EYE) */
+  /** User's right eye (= MediaPipe RIGHT_EYE) */
   userRightEAR: number;
 }
 
@@ -297,6 +297,11 @@ export interface MouthMetrics {
   smileCornerRaise: number;
   /** Mouth width / face height */
   smileWidthRatio: number;
+  /**
+   * Increase of `smileCornerRaise` over the puzzle attempt baseline. Set by
+   * BiometricPuzzle only (undefined elsewhere); SMILE requires it.
+   */
+  smileCornerIncrease?: number;
 }
 
 /**
@@ -483,8 +488,11 @@ export const ENROLLMENT_POSES: EnrollmentPose[] = [
   { name: 'STRAIGHT', targetYaw: 0, targetPitch: 0, tolerance: 12 },
   { name: 'LEFT', targetYaw: -25, targetPitch: 0, tolerance: 15 },
   { name: 'RIGHT', targetYaw: 25, targetPitch: 0, tolerance: 15 },
-  { name: 'UP', targetYaw: 0, targetPitch: 18, tolerance: 15 },
-  { name: 'DOWN', targetYaw: 0, targetPitch: -18, tolerance: 15 },
+  // HeadPoseEstimator convention: pitch < 0 = looking UP (the UP/DOWN targets
+  // were inverted until the 2026-11-01 sign fix; LEFT/RIGHT already followed
+  // yaw < 0 = the user's own left).
+  { name: 'UP', targetYaw: 0, targetPitch: -18, tolerance: 15 },
+  { name: 'DOWN', targetYaw: 0, targetPitch: 18, tolerance: 15 },
 ];
 
 /**
