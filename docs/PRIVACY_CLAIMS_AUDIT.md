@@ -1,0 +1,27 @@
+# Privacy claims audit (2026-11-02)
+
+Scope: user-facing privacy, terms, KVKK and security statements in
+`src/i18n/locales/{en,tr}.json` (`privacy.*`, `terms.s8Body`). EN and TR were
+changed identically; no i18n keys were renamed or added. Paths below are relative
+to the sibling repos (`biometric-processor`, `identity-core-api`, `FIVUCSAS`).
+
+| # | Claim | Old text (EN) | Evidence | New text (EN, summary) |
+|---|---|---|---|---|
+| 1 | Encryption at rest | "AES-256 encryption" (s2Body, s8Body) | `biometric-processor/app/infrastructure/security/embedding_cipher.py:27,39` (Fernet = AES-128-CBC + HMAC-SHA256); `pgvector_embedding_repository.py:31-36` (search column `embedding` is plaintext, `embedding_ciphertext` is Fernet) | Encrypted copy kept (Fernet: AES-128-CBC + HMAC-SHA256); the search vector is not encrypted at column level; DB internal-only and access-controlled |
+| 2 | TLS version | "TLS 1.3" (s2Body, s8Body) | `FIVUCSAS/infra/traefik/config/traefik.yml:39-40`, `dynamic.yml` (Let's Encrypt `tls:` blocks, no `minVersion`/TLS options pinned) | "TLS" |
+| 3 | Row-level security | "PostgreSQL row-level security defined as defense-in-depth" (s8Body) | RLS policies exist (`identity-core-api/.../V25__add_row_level_security.sql:9-41`) but `identity-core-api/docker-compose.prod.yml:27` connects as `postgres` (superuser bypasses RLS) and FORCE RLS is not enabled (identity-core-api#231) | Tenant isolation enforced in the application layer (Hibernate tenant filter) and covered by automated CI tests; RLS not mentioned |
+| 4 | fail2ban / security audits | "rate limiting and fail2ban", "regular security audits" (s8Body) | Traefik `rate-limit@file` middleware (`traefik.yml`); fail2ban only in the unused `scripts/deploy-ubuntu-coolify.sh:127`; no audit/pentest record found | "rate limiting and account lockout"; audits and fail2ban removed. Added: biometric service not public + API key (bio CLAUDE.md "Security") |
+| 5 | VERBİS | "We maintain a data processing inventory (VERBiS registration)" (s4Body) | No legal entity / VERBİS registration evidence in any repo | Removed (not replaced) |
+| 6 | Deletion on account deletion / consent withdrawal | "all biometric templates and personal data are permanently and irreversibly erased within 30 days" (s3Body); "all biometric enrollment data will be permanently deleted within 30 days" (terms.s8Body) | `identity-core-api/.../ManageUserService.java:372-411` (`deleteUser` soft-deletes only, no biometric-processor call); `SoftDeletePurgeJob.java:29-45,67` (flag default false, cascades only identity DB tables, never calls bio); `docker-compose.prod.yml:67` `${APP_PURGE_SOFT_DELETE_ENABLED:-false}`. Per-method deletion DOES call bio: `ManageEnrollmentService.java:373-383` (`deleteFace`/`deleteVoice`) | Per-method deletion via Settings also requests bio template deletion; account deletion does NOT currently erase templates automatically; full erasure on request via the contact address. **Code fix needed** (another workstream); restore the automatic-deletion wording once fixed |
+| 7 | Audit log retention | "minimum of 2 years as required by Turkish regulations" (s3Body) | `identity-core-api/.../V57__audit_logs_pg_partman.sql:32-33,268` (24 months; fail-soft if pg_partman absent) | "configured to be retained for 24 months"; no legal attribution |
+| 8 | Raw image / "never reversible" | "cannot be reverse-engineered into original biometric samples" (s2Body) | Client-side face embedding is the prod default (`APP_AUTH_CLIENT_SIDE_EMBEDDING=true`, identity-core-api CLAUDE.md; `FaceEnrollmentDialog.tsx:59-62`, `MfaStepRenderer.tsx:197`); voice audio, document scans, legacy paths still upload media (bio CLAUDE.md) | Face login/enrollment send only a 512-d vector, image not transmitted; voice, document scans and some fallback paths still upload media. Irreversibility claim dropped |
+| 9 | Hosting / cross-border transfer | (not stated) | Hetzner CX43 (`FIVUCSAS/CLAUDE.md` "Server"; `Thesis/FIVUCSAS_Thesis.md:547`); Germany per `landing-website/public/poster/files/fivucsas-poster-brief.md:272` (note: line 56 of the same file says "Türkiye'de", contradictory; operator should confirm DC location) | Servers hosted by Hetzner Online in Germany; data transferred abroad (KVKK art. 9) stated as fact only |
+| 10 | Third-party sharing | "Biometric data is never shared with ... third parties" (s7Body) | Hetzner hosts all server data; SMS OTP via Twilio Verify (FIVUCSAS/CLAUDE.md "Auth Methods", `SMS_PROVIDER=twilio-verify`); SMTP provider (identity-core-api CLAUDE.md) | Not sold / not used for ads or profiling; processors named (Hetzner, Twilio, email provider) |
+| 11 | Fingerprint "templates" | "fingerprint templates (WebAuthn public key credentials)" (s1Biometric) | Fingerprint is WebAuthn-only (`ManageEnrollmentService.java:384-389`, identity CLAUDE.md P1.4) | Only a WebAuthn public key credential is stored; the fingerprint stays on the device |
+| 12 | Data Protection Officer | "contact our Data Protection Officer" (s9Title/s9Body) | No DPO appointment evidence | Section renamed "Contact"; same address and 30-day KVKK response kept |
+| 13 | Last updated | "April 2026" | — | "November 2026" |
+
+Kept unchanged (verified or non-technical): JWT refresh-token rotation (identity V50 `family_id`),
+KVKK art. 6 special-category / explicit consent, rights list (s6), GDPR section (s5), data export
+(`UserDataExportController.java:49`). Code comments saying "the raw image never leaves the device"
+are not user-facing and were left as is.
