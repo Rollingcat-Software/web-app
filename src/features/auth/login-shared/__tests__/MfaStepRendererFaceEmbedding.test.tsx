@@ -152,3 +152,104 @@ describe('MfaStepRenderer — FACE submit: client embedding vs legacy image', ()
         expect(verifyStep).not.toHaveBeenCalled()
     })
 })
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Gap Ü2: identity in ENFORCE answers an unpaired embedding with the
+// NON-terminal FACE_IMAGE_REQUIRED status. The renderer re-sends the SAME
+// captured frame as { image } exactly once, and never loops.
+// ─────────────────────────────────────────────────────────────────────────────
+
+describe('MfaStepRenderer — FACE: FACE_IMAGE_REQUIRED image re-send (gap Ü2)', () => {
+    type StepResult = { status: string } | undefined
+
+    function renderWith(results: StepResult[]) {
+        const verifyStep = vi.fn()
+        results.forEach((r) => verifyStep.mockResolvedValueOnce(r))
+        const onError = vi.fn()
+        render(
+            <MfaStepRenderer
+                method={AuthMethodType.FACE}
+                mfaSessionToken="sess-123"
+                verifyStep={verifyStep}
+                requestWebAuthnChallenge={vi.fn().mockResolvedValue(null)}
+                httpClient={{
+                    get: vi.fn(),
+                    post: vi.fn().mockResolvedValue({ data: {} }),
+                    put: vi.fn(),
+                    patch: vi.fn(),
+                    delete: vi.fn(),
+                } as unknown as Parameters<typeof MfaStepRenderer>[0]['httpClient']}
+                onAuthenticated={vi.fn()}
+                onBack={vi.fn()}
+                loading={false}
+                onError={onError}
+            />,
+        )
+        return { verifyStep, onError }
+    }
+
+    beforeEach(() => {
+        flagState.enabled = true
+        embedCapturedFaceMock.mockClear()
+        embedCapturedFaceMock.mockResolvedValue(fakeEmbedding)
+    })
+
+    it('re-sends exactly once with the same captured frame, then stops on success', async () => {
+        const { verifyStep, onError } = renderWith([
+            { status: 'FACE_IMAGE_REQUIRED' },
+            { status: 'AUTHENTICATED' },
+        ])
+
+        await userEvent.click(screen.getByRole('button', { name: 'face-submit' }))
+
+        await waitFor(() => expect(verifyStep).toHaveBeenCalledTimes(2))
+        expect(verifyStep.mock.calls[0][1]).toHaveProperty('embedding')
+        expect(verifyStep.mock.calls[0][1]).not.toHaveProperty('image')
+        expect(verifyStep.mock.calls[1]).toEqual([AuthMethodType.FACE, { image: CAPTURED_IMAGE }])
+        // The embedder ran once: the re-send reuses the frame, it does not re-capture.
+        expect(embedCapturedFaceMock).toHaveBeenCalledTimes(1)
+        expect(onError).not.toHaveBeenCalled()
+    })
+
+    it('a second FACE_IMAGE_REQUIRED shows an error and does NOT send a third time (no loop)', async () => {
+        const { verifyStep, onError } = renderWith([
+            { status: 'FACE_IMAGE_REQUIRED' },
+            { status: 'FACE_IMAGE_REQUIRED' },
+        ])
+
+        await userEvent.click(screen.getByRole('button', { name: 'face-submit' }))
+
+        await waitFor(() => expect(onError).toHaveBeenCalledTimes(1))
+        expect(verifyStep).toHaveBeenCalledTimes(2)
+        expect(onError).toHaveBeenCalledWith(expect.any(String))
+    })
+
+    it('a FAILED image re-send shows the liveness-specific message', async () => {
+        const { verifyStep, onError } = renderWith([
+            { status: 'FACE_IMAGE_REQUIRED' },
+            { status: 'FAILED' },
+        ])
+
+        await userEvent.click(screen.getByRole('button', { name: 'face-submit' }))
+
+        await waitFor(() => expect(onError).toHaveBeenCalledTimes(1))
+        expect(verifyStep).toHaveBeenCalledTimes(2)
+        expect(onError).toHaveBeenCalledWith("We couldn't confirm a live face. Make sure your face is well lit and try again.")
+    })
+
+    it.each([
+        ['AUTHENTICATED', { status: 'AUTHENTICATED' }],
+        ['FAILED', { status: 'FAILED' }],
+        ['transport error (undefined)', undefined],
+    ])('first response %s → no re-send (AUDIT/OFF servers never send the status)', async (_label, first) => {
+        const { verifyStep, onError } = renderWith([first as StepResult])
+
+        await userEvent.click(screen.getByRole('button', { name: 'face-submit' }))
+
+        await waitFor(() => expect(verifyStep).toHaveBeenCalledTimes(1))
+        // Give any (wrong) follow-up a chance to fire before asserting it did not.
+        await new Promise((r) => setTimeout(r, 0))
+        expect(verifyStep).toHaveBeenCalledTimes(1)
+        expect(onError).not.toHaveBeenCalled()
+    })
+})

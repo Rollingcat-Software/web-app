@@ -1684,7 +1684,9 @@
       "modelLoadFailed": "Face detection couldn't initialize. Check your connection or try a different verification method.",
       "padScore": "Liveness {{score}}%",
       "preparingSecure": "Preparing secure verification…",
-      "clientPrepFailed": "Couldn't prepare on-device face verification. Please check your connection and try again."
+      "clientPrepFailed": "Couldn't prepare on-device face verification. Please check your connection and try again.",
+      "livenessFailed": "We couldn't confirm a live face. Make sure your face is well lit and try again.",
+      "retryingWithImage": "Checking liveness with your captured photo…"
     },
     "voice": {
       "title": "Voice Verification",

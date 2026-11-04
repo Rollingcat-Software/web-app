@@ -194,6 +194,15 @@ unchanged and is the default + fallback. See `docs/plans/CLIENT_SIDE_ML_PLAN.md`
 - **Upload:** when the flag is ON the FACE MFA step (`MfaStepRenderer.tsx` /
   `FaceCaptureStep.tsx`) submits `{embedding[512]}` instead of an image; the server
   routes it to bio `/verify-embedding` (verify) / `/enroll-embedding` (enroll).
+- **Liveness (gap Ü2):** an embedding has no frame, so bio cannot run PAD on it. Identity
+  in `app.auth.face-embedding-liveness.mode=ENFORCE` answers an embedding that no earlier
+  PUZZLE backs with the NON-terminal `{status:'FACE_IMAGE_REQUIRED'}`. `MfaStepRenderer`
+  keeps the captured frame and re-sends it as `{image}` ONCE (a second status → error, no
+  loop; a FAILED re-send → `mfa.face.livenessFailed`). `TwoFactorDispatcher` and
+  `verify-app/LoginMfaFlow` treat the status as "retry pending", not a failure, and hand
+  the response back (their `verifyStep` now resolves with it). Enrollment: a 409
+  `FACE_IMAGE_REQUIRED` from `enroll-embedding` falls back to the image enroll
+  (`FaceEnrollmentDialog`). In AUDIT/OFF the server never sends the status.
 - **Ordering caveat:** flip the Identity Core `app.auth.client-side-embedding` flag
   **before** `VITE_CLIENT_SIDE_EMBEDDING` — web-ON + identity-OFF breaks FACE login
   (no image sent → legacy server path fails). Best fix = drive the web flag from

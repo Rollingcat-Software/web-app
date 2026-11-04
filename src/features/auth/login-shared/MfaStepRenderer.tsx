@@ -22,9 +22,10 @@
  * body, exactly as both call sites did before.
  */
 
+import { useState } from 'react'
 import { Alert } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import { AuthMethodType, AUTH_API } from '../constants'
+import { AuthMethodType, AUTH_API, MfaStepStatus } from '../constants'
 import type { ChallengeResponse } from '../webauthn-utils'
 import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import type { MfaStepResponse } from '@domain/interfaces/IAuthRepository'
@@ -71,8 +72,15 @@ export interface MfaStepRendererProps {
     method: string
     /** Active MFA session token (passed to EMAIL_OTP + the WebAuthn challenge). */
     mfaSessionToken: string
-    /** POST /auth/mfa/step — verify the current factor. */
-    verifyStep: (methodType: string, data: Record<string, unknown>) => void
+    /**
+     * POST /auth/mfa/step — verify the current factor. Surfaces resolve with the
+     * step response (or undefined on a transport error) so the FACE case can
+     * react to the non-terminal FACE_IMAGE_REQUIRED status.
+     */
+    verifyStep: (
+        methodType: string,
+        data: Record<string, unknown>,
+    ) => void | Promise<MfaStepResponse | undefined | void>
     /** Request a WebAuthn challenge for FINGERPRINT / HARDWARE_KEY. */
     requestWebAuthnChallenge: (method: AuthMethodType) => Promise<ChallengeResponse | null>
     /** HTTP client for the SMS-send + QR-generate side calls. */
@@ -119,6 +127,9 @@ export default function MfaStepRenderer({
     puzzleConfig,
 }: MfaStepRendererProps) {
     const { t } = useTranslation()
+    // Gap Ü2: true while the captured face frame is being re-sent as an image
+    // after the server answered FACE_IMAGE_REQUIRED (shows an info line).
+    const [retryingFaceWithImage, setRetryingFaceWithImage] = useState(false)
 
     // EMAIL_OTP (and the empty/unknown default) own their own session flow.
     if (!method || method === AuthMethodType.EMAIL_OTP) {
@@ -175,6 +186,12 @@ export default function MfaStepRenderer({
 
         case AuthMethodType.FACE:
             return (
+                <>
+                {retryingFaceWithImage && (
+                    <Alert severity="info" sx={{ mb: 2 }}>
+                        {t('mfa.face.retryingWithImage')}
+                    </Alert>
+                )}
                 <FaceCaptureStep
                     onSubmit={async (image, _clientEmbedding, faceLandmarks, clientPadScore) => {
                         // ADVISORY client-side PAD score (SP-D, defense-in-depth).
@@ -209,10 +226,35 @@ export default function MfaStepRenderer({
                         // a clear, RETRYABLE error instead and let the user try again
                         // (the model cache self-heals on the next attempt + the
                         // prefetch re-warms it). NEVER send `{ image }` while ON.
+                        //
+                        // LIVENESS (gap Ü2): an embedding carries no frame, so a
+                        // server in ENFORCE mode answers the non-terminal
+                        // FACE_IMAGE_REQUIRED when no earlier liveness factor
+                        // (PUZZLE) backs it. The captured frame is still in this
+                        // closure, so re-send it as { image } ONCE (bio then runs
+                        // passive PAD). A second FACE_IMAGE_REQUIRED shows an
+                        // error instead, so the client can never loop; a failed
+                        // image re-send shows the liveness-specific message. In
+                        // AUDIT/OFF the server never sends the status and this
+                        // path is byte-identical to before.
                         if (isClientSideEmbeddingEnabled()) {
                             const embedding = await embedCapturedFace(image, faceLandmarks)
                             if (embedding) {
-                                verifyStep(AuthMethodType.FACE, { embedding, ...advisory })
+                                const first = await verifyStep(AuthMethodType.FACE, { embedding, ...advisory })
+                                if (first && first.status === MfaStepStatus.FACE_IMAGE_REQUIRED) {
+                                    setRetryingFaceWithImage(true)
+                                    let second: MfaStepResponse | undefined | void
+                                    try {
+                                        second = await verifyStep(AuthMethodType.FACE, { image, ...advisory })
+                                    } finally {
+                                        setRetryingFaceWithImage(false)
+                                    }
+                                    if (second && second.status === MfaStepStatus.FACE_IMAGE_REQUIRED) {
+                                        onError(t('mfa.verificationFailed'))
+                                    } else if (second && second.status === MfaStepStatus.FAILED) {
+                                        onError(t('mfa.face.livenessFailed'))
+                                    }
+                                }
                                 return
                             }
                             // On-device prep failed — show a retryable message; the
@@ -226,6 +268,7 @@ export default function MfaStepRenderer({
                     loading={loading}
                     error={error}
                 />
+                </>
             )
 
         case AuthMethodType.VOICE:

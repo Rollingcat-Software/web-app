@@ -510,15 +510,20 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
 
     // ─── MFA Step Verification ──────────────────────────────────
 
-    const verifyStep = useCallback(async (method: string, data: Record<string, unknown>) => {
+    const verifyStep = useCallback(async (
+        method: string,
+        data: Record<string, unknown>,
+    ): Promise<MfaStepResponse | undefined> => {
         setLoading(true)
         setError(undefined)
 
         try {
             const res = await authRepository.verifyMfaStep(mfaSessionToken, method, data)
             handleMfaResult(res)
+            return res
         } catch (err) {
             setError(formatApiError(err, t))
+            return undefined
         } finally {
             setLoading(false)
         }
@@ -578,6 +583,9 @@ export default function LoginMfaFlow({ clientId, onComplete, onCancel, onStepCha
             } else {
                 setPhase(FlowPhase.MethodPicker)
             }
+        } else if (res.status === MfaStepStatus.FACE_IMAGE_REQUIRED) {
+            // Gap Ü2: non-terminal "retry pending" — the shared MfaStepRenderer
+            // re-sends the captured frame as an image. Not a verification failure.
         } else {
             setError(t('widget.verificationFailed'))
         }

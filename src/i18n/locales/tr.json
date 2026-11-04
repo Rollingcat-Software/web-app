@@ -1684,7 +1684,9 @@
       "modelLoadFailed": "Yüz algılama başlatılamadı. Bağlantınızı kontrol edin veya farklı bir doğrulama yöntemi deneyin.",
       "padScore": "Canlılık %{{score}}",
       "preparingSecure": "Güvenli doğrulama hazırlanıyor…",
-      "clientPrepFailed": "Cihaz üzerinde yüz doğrulaması hazırlanamadı. Lütfen bağlantınızı kontrol edip tekrar deneyin."
+      "clientPrepFailed": "Cihaz üzerinde yüz doğrulaması hazırlanamadı. Lütfen bağlantınızı kontrol edip tekrar deneyin.",
+      "livenessFailed": "Canlı bir yüz doğrulanamadı. Yüzünüzün iyi aydınlandığından emin olup tekrar deneyin.",
+      "retryingWithImage": "Çekilen fotoğrafla canlılık kontrol ediliyor…"
     },
     "voice": {
       "title": "Ses Doğrulama",

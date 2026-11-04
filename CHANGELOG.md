@@ -2,6 +2,27 @@
 
 ## [Unreleased]
 
+### 2026-11-04 — Handle FACE_IMAGE_REQUIRED from the face-embedding liveness rule (gap Ü2)
+
+- identity-core-api's new `app.auth.face-embedding-liveness.mode` (default AUDIT) can, in
+  ENFORCE, answer an embedding FACE step with the non-terminal
+  `{status: 'FACE_IMAGE_REQUIRED', requiredInput: 'image'}` and an embedding enroll with
+  409 `{code: 'FACE_IMAGE_REQUIRED'}`. This change does nothing until the server sends them.
+- `MfaStepRenderer` (FACE): keeps the captured frame and re-sends it as `{image}` exactly
+  once on that status (info line `mfa.face.retryingWithImage`); a second
+  `FACE_IMAGE_REQUIRED` shows `mfa.verificationFailed` (no loop); a FAILED re-send shows
+  `mfa.face.livenessFailed`. The surfaces' `verifyStep` now resolves with the response.
+- `TwoFactorDispatcher` and `verify-app/LoginMfaFlow`: the status is "retry pending", not
+  `mfa.verificationFailed` / `widget.verificationFailed`.
+- `FaceEnrollmentDialog`: a 409 `FACE_IMAGE_REQUIRED` from `enroll-embedding` falls back to
+  the image enroll; `BiometricService` no longer re-tags that 409 as `FACE_ALREADY_ENROLLED`.
+- New `MfaStepStatus.FACE_IMAGE_REQUIRED`; `MfaStepResponse.status` gains the value and
+  `requiredInput`. New i18n keys `mfa.face.livenessFailed`, `mfa.face.retryingWithImage`
+  (en + tr).
+- Tests: re-send / no-loop / liveness message in `MfaStepRendererFaceEmbedding.test.tsx`,
+  non-terminal status in new `TwoFactorDispatcher.faceImageRequired.test.tsx` and
+  `LoginMfaFlow.faceImageRequired.test.tsx`, 409 fallback in `FaceEnrollmentDialog.test.tsx`.
+
 ### 2026-11-01 — PUZZLE contract v2: security-review fixes
 
 - **B3:** a forced "completing frame" that lands < 15 ms after the previous trace frame now

@@ -36,8 +36,10 @@ export interface AvailableMfaMethod {
  */
 /** Response from MFA step verification */
 export interface MfaStepResponse {
-    status: 'STEP_COMPLETED' | 'AUTHENTICATED' | 'FAILED' | 'ERROR' | 'CHALLENGE'
+    status: 'STEP_COMPLETED' | 'AUTHENTICATED' | 'FAILED' | 'ERROR' | 'CHALLENGE' | 'FACE_IMAGE_REQUIRED'
     message?: string
+    /** Present when status = FACE_IMAGE_REQUIRED: the input the server needs ("image"). */
+    requiredInput?: string
     // Present when status = STEP_COMPLETED
     mfaSessionToken?: string
     currentStep?: number
