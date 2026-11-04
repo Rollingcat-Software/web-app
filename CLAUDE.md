@@ -196,7 +196,11 @@ unchanged and is the default + fallback. See `docs/plans/CLIENT_SIDE_ML_PLAN.md`
   routes it to bio `/verify-embedding` (verify) / `/enroll-embedding` (enroll).
 - **Liveness (gap Ü2):** an embedding has no frame, so bio cannot run PAD on it. Identity
   in `app.auth.face-embedding-liveness.mode=ENFORCE` answers an embedding that no earlier
-  PUZZLE backs with the NON-terminal `{status:'FACE_IMAGE_REQUIRED'}`. `MfaStepRenderer`
+  PUZZLE backs with the NON-terminal `{status:'FACE_IMAGE_REQUIRED'}`. A PUZZLE backs it only
+  when its identity binding matched EXACTLY the same vector (identity pins its digest); the
+  FACE step computes a fresh embedding, so PUZZLE-then-FACE also gets the status and takes
+  the image re-send. Keeping the frame on the device there would need the FACE step to reuse
+  the PUZZLE's embedding (not done). `MfaStepRenderer`
   keeps the captured frame and re-sends it as `{image}` ONCE (a second status → error, no
   loop; a FAILED re-send → `mfa.face.livenessFailed`). `TwoFactorDispatcher` and
   `verify-app/LoginMfaFlow` treat the status as "retry pending", not a failure, and hand

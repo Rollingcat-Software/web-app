@@ -230,7 +230,10 @@ export default function MfaStepRenderer({
                         // LIVENESS (gap Ü2): an embedding carries no frame, so a
                         // server in ENFORCE mode answers the non-terminal
                         // FACE_IMAGE_REQUIRED when no earlier liveness factor
-                        // (PUZZLE) backs it. The captured frame is still in this
+                        // backs it: a PUZZLE counts only if its identity binding
+                        // matched EXACTLY this embedding, and this step computes a
+                        // fresh one, so after a PUZZLE it is answered the same
+                        // way. The captured frame is still in this
                         // closure, so re-send it as { image } ONCE (bio then runs
                         // passive PAD). A second FACE_IMAGE_REQUIRED shows an
                         // error instead, so the client can never loop; a failed

@@ -19,7 +19,8 @@ export enum MfaStepStatus {
     /**
      * Gap Ü2 (identity `app.auth.face-embedding-liveness.mode=ENFORCE`): the
      * server refused an on-device face embedding that no earlier liveness factor
-     * backs and asks for the captured image instead. NON-terminal: no strike, no
+     * backs (no PUZZLE, or one whose identity binding did not match exactly this
+     * embedding) and asks for the captured image instead. NON-terminal: no strike, no
      * step advance. MfaStepRenderer re-sends the same frame once.
      */
     FACE_IMAGE_REQUIRED = 'FACE_IMAGE_REQUIRED',

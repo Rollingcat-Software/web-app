@@ -8,6 +8,9 @@
   ENFORCE, answer an embedding FACE step with the non-terminal
   `{status: 'FACE_IMAGE_REQUIRED', requiredInput: 'image'}` and an embedding enroll with
   409 `{code: 'FACE_IMAGE_REQUIRED'}`. This change does nothing until the server sends them.
+  The server counts an earlier PUZZLE only when its identity binding matched exactly the
+  embedding the FACE step sends; this client computes a fresh one, so in ENFORCE a
+  PUZZLE-then-FACE login also takes the image re-send below.
 - `MfaStepRenderer` (FACE): keeps the captured frame and re-sends it as `{image}` exactly
   once on that status (info line `mfa.face.retryingWithImage`); a second
   `FACE_IMAGE_REQUIRED` shows `mfa.verificationFailed` (no loop); a FAILED re-send shows
