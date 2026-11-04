@@ -414,27 +414,35 @@ investigation's recommendation, measured AUC 0.945), DISPLAYS the live-confidenc
   capture/login fully unaffected. A future minimal server change could log/bound it at
   `FaceVerifyMfaStepHandler.verify()` (the FACE step's only `data` read) — NOT a gate.
 
-## Production Deployment (Hostinger)
+## Production Deployment (mordecai, nginx container behind Traefik)
+
+`app.fivucsas.com` is the `fivucsas-app` nginx container (`Dockerfile`, `nginx.conf`,
+`docker-compose.prod.yml`) on mordecai behind Traefik. The image packages a `dist/` built on
+the host, which reads the checkout's gitignored `.env.production`. What the deployer runs,
+and what a manual deploy does (as uid 1001, for example from helper containers):
 
 ```bash
-npm run build
-rsync -avz --delete -e "ssh -p 65002" dist/ u349700627@46.202.158.52:~/domains/app.fivucsas.com/public_html/
+cd /opt/projects/fivucsas/web-app
+npm ci && npm run build                      # node:22 helper container
+docker compose -f docker-compose.prod.yml build --no-cache
+docker compose -f docker-compose.prod.yml up -d
+curl -sk -o /dev/null -w '%{http_code}' --resolve app.fivucsas.com:443:127.0.0.1 https://app.fivucsas.com/
 ```
 
 - URL: https://app.fivucsas.com
 - API: `VITE_API_BASE_URL=https://api.fivucsas.com/api/v1` (in `.env.production`)
-- SPA routing: `public/.htaccess` with RewriteEngine
+- SPA routing: `nginx.conf` `try_files ... /index.html` (`public/.htaccess` is a Hostinger leftover)
 - `connect-src` must include `https://api.fivucsas.com`
 
-**Auto-deploy is gated on CI (2026-11-02).** `.github/workflows/deploy-hetzner.yml` runs via
-`workflow_run` only after the `CI` workflow succeeds for a push to `main`, and deploys
-exactly that commit (`git merge --ff-only <head_sha>` on the box); a red build never deploys.
-Its `changes` job re-applies the old deploy path filter (files changed since the last
-successful deploy). Keep `ci.yml` push `paths:` a superset of the deploy paths, or a
-deploy-relevant change never runs CI and never deploys. `workflow_dispatch` = manual
-operator deploy of the tip of `main` (no CI gate).
-(The live path is the Hetzner nginx container built by that workflow, not the Hostinger
-rsync above.)
+**Production deploys are pulled by the mordecai deployer (2026-11-04).** The GitHub
+`Deploy to Hetzner` workflow (`deploy-hetzner.yml`) was removed: it SSHed to the
+decommissioned Hetzner box or waited for a self-hosted runner, which a public repository
+must not have. The `fivucsas-deployer` container on mordecai (FIVUCSAS `infra/deployer/`)
+fast-forwards `/opt/projects/fivucsas/web-app` to the newest `main` commit whose
+`CI` push run succeeded, rebuilds, health-checks and rolls back on failure; no
+GitHub secret or runner is involved. A commit whose files are all outside the `ci.yml`
+push `paths:` runs no CI and ships with the next green commit. Pause with
+`docker exec fivucsas-deployer touch /state/PAUSED.web-app`; see that README for the rest.
 
 ## PWA service worker — network-first app shell (2026-06-01)
 

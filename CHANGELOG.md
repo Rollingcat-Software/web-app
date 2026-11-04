@@ -27,6 +27,14 @@
   non-terminal status in new `TwoFactorDispatcher.faceImageRequired.test.tsx` and
   `LoginMfaFlow.faceImageRequired.test.tsx`, 409 fallback in `FaceEnrollmentDialog.test.tsx`.
 
+### 2026-11-04 - Deploys pulled by the mordecai deployer; Hetzner deploy workflow removed
+
+- Removed `.github/workflows/deploy-hetzner.yml`. It deployed over SSH to the
+  decommissioned Hetzner box or waited for a self-hosted runner that a public repository
+  must not have. Production on mordecai is now deployed by the FIVUCSAS pull deployer
+  (`infra/deployer/`), which ships the newest `main` commit with a green `CI` push
+  run and rolls back on a failed health check. CI is unchanged.
+
 ### 2026-11-01 — PUZZLE contract v2: security-review fixes
 
 - **B3:** a forced "completing frame" that lands < 15 ms after the previous trace frame now
