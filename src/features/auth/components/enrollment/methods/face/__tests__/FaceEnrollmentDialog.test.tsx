@@ -176,3 +176,44 @@ describe('FaceEnrollmentDialog — enroll submit: client embedding vs legacy ima
         expect(onEnrolled).not.toHaveBeenCalled()
     })
 })
+
+// Gap Ü2: identity in ENFORCE refuses a self-service embedding enroll with
+// 409 FACE_IMAGE_REQUIRED; the dialog then enrolls with the captured image.
+describe('FaceEnrollmentDialog — 409 FACE_IMAGE_REQUIRED fallback (gap Ü2)', () => {
+    beforeEach(() => {
+        flagState.enabled = true
+        embedCapturedFaceMock.mockClear()
+        embedCapturedFaceMock.mockResolvedValue(fakeEmbedding)
+        enrollFace.mockClear()
+        enrollFaceEmbedding.mockReset()
+        httpPut.mockClear()
+    })
+
+    it('409 FACE_IMAGE_REQUIRED from enroll-embedding → falls back to enrollFace with the images', async () => {
+        enrollFaceEmbedding.mockRejectedValueOnce({
+            response: { status: 409, data: { code: 'FACE_IMAGE_REQUIRED', error_code: 'FACE_IMAGE_REQUIRED' } },
+        })
+        const { onEnrolled, showSnackbar } = renderDialog()
+
+        await userEvent.click(screen.getByRole('button', { name: 'enroll-complete' }))
+
+        await waitFor(() => expect(enrollFace).toHaveBeenCalledTimes(1))
+        expect(enrollFaceEmbedding).toHaveBeenCalledTimes(1)
+        expect(enrollFace).toHaveBeenCalledWith(USER_ID, [CAPTURED_IMAGE], TENANT_ID, [null], false)
+        await waitFor(() => expect(onEnrolled).toHaveBeenCalledTimes(1))
+        expect(showSnackbar).toHaveBeenCalledWith(expect.any(String), 'success')
+    })
+
+    it('any other enroll-embedding error (e.g. 409 already enrolled) → no image fallback, error snackbar', async () => {
+        enrollFaceEmbedding.mockRejectedValueOnce({
+            response: { status: 409, data: { error_code: 'FACE_ALREADY_ENROLLED' } },
+        })
+        const { onEnrolled, showSnackbar } = renderDialog()
+
+        await userEvent.click(screen.getByRole('button', { name: 'enroll-complete' }))
+
+        await waitFor(() => expect(showSnackbar).toHaveBeenCalledWith(expect.any(String), 'error'))
+        expect(enrollFace).not.toHaveBeenCalled()
+        expect(onEnrolled).not.toHaveBeenCalled()
+    })
+})

@@ -89,7 +89,10 @@ export default function TwoFactorDispatcher({
         [authRepository, mfaSessionToken],
     )
 
-    const verifyStep = useCallback(async (methodType: string, data: Record<string, unknown>) => {
+    const verifyStep = useCallback(async (
+        methodType: string,
+        data: Record<string, unknown>,
+    ): Promise<MfaStepResponse | undefined> => {
         setLoading(true)
         setError(undefined)
         try {
@@ -99,11 +102,15 @@ export default function TwoFactorDispatcher({
                 onAuthenticated(res)
             } else if (res.status === MfaStepStatus.STEP_COMPLETED) {
                 onAuthenticated(res)
+            } else if (res.status === MfaStepStatus.FACE_IMAGE_REQUIRED) {
+                // Gap Ü2: non-terminal "retry pending" — MfaStepRenderer re-sends
+                // the captured frame as an image. Not a verification failure.
             } else {
                 // Backend sends English messages like "Verification failed for FACE"
                 // Always show translated message instead
                 setError(t('mfa.verificationFailed'))
             }
+            return res
         } catch (err) {
             // Check for rate limit (429)
             const axiosErr = err as { response?: { status?: number } }
@@ -112,6 +119,7 @@ export default function TwoFactorDispatcher({
             } else {
                 setError(t('mfa.verificationFailed'))
             }
+            return undefined
         } finally {
             setLoading(false)
         }

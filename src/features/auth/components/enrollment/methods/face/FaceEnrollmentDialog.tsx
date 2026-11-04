@@ -19,6 +19,16 @@ import { embedCapturedFace } from '@features/biometrics/embedding/embedCapturedF
 import type { NormalizedLandmark } from '@/lib/biometric-engine/types'
 import type { ShowSnackbar } from '../../types'
 
+/** True for identity's 409 FACE_IMAGE_REQUIRED (gap Ü2, ENFORCE mode). */
+function isFaceImageRequired(err: unknown): boolean {
+    const resp = (err as { response?: { status?: number; data?: Record<string, unknown> } })?.response
+    if (!resp || resp.status !== 409) return false
+    const data = resp.data ?? {}
+    return data.code === 'FACE_IMAGE_REQUIRED'
+        || data.errorCode === 'FACE_IMAGE_REQUIRED'
+        || data.error_code === 'FACE_IMAGE_REQUIRED'
+}
+
 interface Props {
     open: boolean
     userId: string
@@ -76,7 +86,16 @@ export default function FaceEnrollmentDialog({
                         showSnackbar(t('enrollmentPage.faceClientPrepFailed'), 'error')
                         return
                     }
-                    await biometric.enrollFaceEmbedding(userId, embedding, tenantId)
+                    try {
+                        await biometric.enrollFaceEmbedding(userId, embedding, tenantId)
+                    } catch (embedErr) {
+                        // Gap Ü2: identity in ENFORCE refuses a self-service embedding
+                        // enroll (409 FACE_IMAGE_REQUIRED) because bio cannot run
+                        // enroll liveness on a vector. Fall back to the image enroll,
+                        // where it can. Any other error propagates unchanged.
+                        if (!isFaceImageRequired(embedErr)) throw embedErr
+                        await biometric.enrollFace(userId, images, tenantId, clientEmbeddings, optimize)
+                    }
                 } else {
                     // Flag OFF: legacy image upload, byte-identical to before.
                     // Send all captured images — enrollFace will use /enroll/multi

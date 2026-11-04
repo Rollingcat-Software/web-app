@@ -291,7 +291,19 @@ export class BiometricService {
     private mapEnrollmentError(error: unknown): Error {
         if (axios.isAxiosError(error) && error.response) {
             const status = error.response.status
-            const data = (error.response.data ?? {}) as { error_code?: string }
+            const data = (error.response.data ?? {}) as {
+                error_code?: string
+                code?: string
+                errorCode?: string
+            }
+            // Gap Ü2: a 409 FACE_IMAGE_REQUIRED from enroll-embedding is NOT an
+            // "already enrolled" conflict — keep its code so the caller can fall
+            // back to the image enroll.
+            if (status === 409 && (data.code === 'FACE_IMAGE_REQUIRED' || data.errorCode === 'FACE_IMAGE_REQUIRED')) {
+                data.error_code = 'FACE_IMAGE_REQUIRED'
+                error.response.data = data
+                return error
+            }
             if (status === 409 && !data.error_code) {
                 // Tag the response so formatApiError maps it to
                 // `errors.faceAlreadyEnrolled` instead of the generic conflict.
