@@ -1891,6 +1891,7 @@
     },
     "sessionLost": "Your sign-in session has expired. Please start over from the original site.",
     "returnToApp": "Return to the application",
+    "appHandoffHint": "If {{client}} did not open, tap the button below.",
     "loadError": {
       "title": "We couldn't load this sign-in page",
       "body": "The connection to our servers timed out or failed. Please check your internet connection and try again.",
