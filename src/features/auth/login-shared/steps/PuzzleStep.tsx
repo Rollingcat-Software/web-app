@@ -196,7 +196,12 @@ export default function PuzzleStep({
     // | null). Only wired when binding is on. The raw image is consumed here and
     // never stored — only the resulting vector is kept.
     const handleBestFrame = useCallback(
-        (image: string, landmarks: NormalizedLandmark[], capturedAtMs?: number) => {
+        (
+            image: string,
+            landmarks: NormalizedLandmark[],
+            capturedAtMs?: number,
+            cropLandmarks?: NormalizedLandmark[],
+        ) => {
             // ADVISORY PAD score (SP-D, flag-gated, defense-in-depth). Computed
             // from the best frame independently of binding so the server gets a
             // passive-liveness signal even on the liveness-only path. Resilient +
@@ -216,7 +221,9 @@ export default function PuzzleStep({
                 traceV2 && capturedAtMs !== undefined
                     ? encodeBindingFrame(landmarks, capturedAtMs, faceIndicesRef.current)
                     : null
-            embedCapturedFace(image, landmarks)
+            // Align with the crop-frame mesh; without it the crop is embedded unaligned
+            // (the camera-frame mesh would align the wrong region of the face).
+            embedCapturedFace(image, cropLandmarks)
                 .then((vec) => {
                     if (vec) {
                         embeddingRef.current = vec

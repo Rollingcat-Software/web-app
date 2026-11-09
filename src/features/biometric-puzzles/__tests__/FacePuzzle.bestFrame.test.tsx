@@ -38,9 +38,10 @@ vi.mock('framer-motion', () => ({
 }))
 
 // ── A frontal completion frame with a full 478-pt mesh ───────────────────
-const LANDMARKS_478: NormalizedLandmark[] = Array.from({ length: 478 }, () => ({
-    x: 0.5,
-    y: 0.5,
+// Distinct points, so a missing or unmirrored crop mapping changes the result.
+const LANDMARKS_478: NormalizedLandmark[] = Array.from({ length: 478 }, (_, i) => ({
+    x: 0.3 + (0.4 * i) / 477,
+    y: 0.3 + (0.4 * ((i * 7) % 478)) / 477,
     z: 0,
 }))
 
@@ -132,6 +133,7 @@ vi.mock('../../auth/utils/faceCropper', () => ({
 }))
 
 import FacePuzzle from '../puzzles/FacePuzzle'
+import { mapLandmarksToFaceCrop } from '../../auth/utils/faceCropGeometry'
 
 // ── rAF + camera shims so the detection loop runs in jsdom ───────────────
 let rafCb: FrameRequestCallback | null = null
@@ -199,7 +201,12 @@ async function startAndTick(container: HTMLElement, button: HTMLElement) {
 }
 
 function renderPuzzle(props: {
-    onBestFrame?: (image: string, landmarks: NormalizedLandmark[]) => void
+    onBestFrame?: (
+        image: string,
+        landmarks: NormalizedLandmark[],
+        frameTimestamp?: number,
+        cropLandmarks?: NormalizedLandmark[],
+    ) => void
     onSuccess?: () => void
     onError?: (m: string) => void
 }) {
@@ -231,6 +238,21 @@ describe('FacePuzzle — best-frontal-frame capture (Phase 4)', () => {
         expect(image).toMatch(/^data:image\//)
         expect(Array.isArray(landmarks)).toBe(true)
         expect(landmarks).toHaveLength(478)
+    })
+
+    it('onBestFrame_WhenFrameCaptured_ShouldPassMeshMappedIntoMirroredCropFrame', async () => {
+        const onBestFrame = vi.fn()
+        const { button, container } = renderPuzzle({ onBestFrame })
+        await startAndTick(container, button)
+
+        expect(onBestFrame).toHaveBeenCalledOnce()
+        const cropLandmarks = onBestFrame.mock.calls[0][3] as NormalizedLandmark[] | undefined
+        // The engine box (160,120) 320x320 px in the 640x480 frame, normalized.
+        const bbox = { x: 160 / 640, y: 120 / 480, width: 320 / 640, height: 320 / 480 }
+        expect(cropLandmarks).toBeDefined()
+        expect(cropLandmarks).toEqual(mapLandmarksToFaceCrop(LANDMARKS_478, 640, 480, bbox))
+        // The crop is mirrored: the leftmost frame point is rightmost in the crop.
+        expect(cropLandmarks![0].x).toBeGreaterThan(cropLandmarks![477].x)
     })
 
     it('does NOT fire when no onBestFrame prop is given (training surface byte-identical)', async () => {

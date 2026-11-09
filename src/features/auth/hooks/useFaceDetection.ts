@@ -19,6 +19,7 @@ import type { FaceDetector } from '@mediapipe/tasks-vision'
 import type { NormalizedLandmark } from '../../../lib/biometric-engine/types'
 import { useBlazeFace } from '../../../lib/ml/useBlazeFace'
 import { cropFaceToDataURL } from '../utils/faceCropper'
+import { FACE_CROP_OUTPUT_SIZE, FACE_CROP_PADDING, mapLandmarksToFaceCrop } from '../utils/faceCropGeometry'
 import { BiometricEngine } from '../../../lib/biometric-engine/core/BiometricEngine'
 import { MEDIAPIPE_WASM_URL } from '../../../config/cdn'
 
@@ -533,21 +534,31 @@ export function useFaceDetection(
             const video = videoRef.current
             if (!video || !state.boundingBox) return null
 
-            return cropFaceToDataURL(video, state.boundingBox, 320, 0.2)
+            return cropFaceToDataURL(video, state.boundingBox, FACE_CROP_OUTPUT_SIZE, FACE_CROP_PADDING)
         },
         [videoRef, state.boundingBox]
     )
 
     /**
-     * Snapshot of the latest 478-pt MediaPipe mesh for the primary face, or null
-     * when the active backend has no dense landmarks (BlazeFace / FaceDetector) or
-     * no face is currently detected. The client-side aligner consumes these to map
-     * the eyes to canonical positions before computing the local embedding; a null
-     * return means the caller falls back to the unaligned crop (never blocking).
+     * Snapshot of the latest 478-pt MediaPipe mesh for the primary face, mapped
+     * into the frame of the crop `cropFace` returns (same box, padding and mirror),
+     * or null when the active backend has no dense landmarks (BlazeFace /
+     * FaceDetector) or no face is currently detected. The client-side aligner reads
+     * these points as positions in the cropped image; a null return means the
+     * caller falls back to the unaligned crop (never blocking).
      */
     const captureLandmarks = useCallback(
-        (): NormalizedLandmark[] | null => landmarks478Ref.current,
-        []
+        (): NormalizedLandmark[] | null => {
+            const video = videoRef.current
+            return mapLandmarksToFaceCrop(
+                landmarks478Ref.current,
+                video?.videoWidth ?? 0,
+                video?.videoHeight ?? 0,
+                state.boundingBox,
+                FACE_CROP_PADDING,
+            )
+        },
+        [videoRef, state.boundingBox]
     )
 
     return { ...state, cropFace, captureLandmarks, initialized, initFailed, backend }

@@ -81,8 +81,17 @@ export interface BiometricPuzzleProps {
      * Additive + non-regressive: when ABSENT (the `/biometric-puzzles` training
      * surface), NO capture path runs at all — the surface is byte-identical. Hand
      * puzzles ignore this prop (no face frame to embed).
+     *
+     * `landmarks` are normalized to the camera frame (the trace and binding frame
+     * use them); `cropLandmarks` are the same mesh mapped into the crop
+     * (`mapLandmarksToFaceCrop`), which is what the embedder's aligner needs.
      */
-    onBestFrame?: (image: string, landmarks: NormalizedLandmark[], capturedAtMs?: number) => void
+    onBestFrame?: (
+        image: string,
+        landmarks: NormalizedLandmark[],
+        capturedAtMs?: number,
+        cropLandmarks?: NormalizedLandmark[],
+    ) => void
     /**
      * PUZZLE session contract v2 (server advertised `trace_contract: 'v2'`):
      * record a compact landmark trace of the attempt and return it on the

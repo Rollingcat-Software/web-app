@@ -45,6 +45,7 @@ import type { BiometricPuzzleProps } from '../biometricPuzzleRegistry'
 import { useBiometricPuzzleServer } from '../useBiometricPuzzleServer'
 import { faceChallengeToServerAction } from '../puzzleServerAction'
 import { cropFaceToDataURL } from '@features/auth/utils/faceCropper'
+import { mapLandmarksToFaceCrop } from '@features/auth/utils/faceCropGeometry'
 import { assessQuality } from '@features/auth/hooks/useQualityAssessment'
 import { PuzzleTraceRecorder } from '../puzzleTrace'
 import {
@@ -639,6 +640,13 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                                 const quality = assessQuality(video, landmarks)
                                 if (quality.acceptable) {
                                     const image = cropFaceToDataURL(video, bbox)
+                                    // The same mesh in the crop's frame, for the aligner.
+                                    const cropLandmarks = mapLandmarksToFaceCrop(
+                                        landmarks,
+                                        video.videoWidth,
+                                        video.videoHeight,
+                                        bbox,
+                                    )
                                     if (image) {
                                         bestFrameGrabbedRef.current = true
                                         // The binding frame timestamp is the trace
@@ -649,6 +657,7 @@ function FacePuzzle({ onSuccess, onError, challengeType, i18nKey, serverMode = '
                                             collectTrace
                                                 ? (traceRef.current.lastTimestamp ?? Math.round(frameTs))
                                                 : undefined,
+                                            cropLandmarks ?? undefined,
                                         )
                                     }
                                 }

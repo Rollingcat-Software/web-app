@@ -180,12 +180,25 @@ old D1/D2 lock) when the flag is ON; with the flag OFF the legacy image path is
 unchanged and is the default + fallback. See `docs/plans/CLIENT_SIDE_ML_PLAN.md` v3.0
 (in the `docs` submodule) for the full strategy.
 
-- **Embedding module:** `src/features/biometrics/embedding/embedCapturedFace.ts` —
-  in-browser eye **aligner** (similarity transform to canonical eye coords) →
-  DeepFace-parity preprocessing (aligned crop → aspect-preserving resize → centre
-  black-pad 160×160 → `(1,160,160,3)` float32, **BGR**, **[0,1]**, `normalization=base`,
-  NOT prewhiten) → Facenet512 via onnxruntime-web → L2-normalize. **Do NOT add a
-  BGR→RGB swap** (it collapses cosine self-consistency).
+- **Embedding module:** `src/features/biometrics/embedding/embedCapturedFace.ts`:
+  five-point **aligner** (`alignFace`, eye centres + nose tip + mouth corners, least-squares
+  similarity to `FACE_ALIGNMENT_TEMPLATE`, `FACE_ALIGNMENT_VERSION = 2`) then
+  DeepFace-parity preprocessing (aligned crop, aspect-preserving resize, centre
+  black-pad 160x160, `(1,160,160,3)` float32, **BGR**, **[0,1]**, `normalization=base`,
+  NOT prewhiten), Facenet512 via onnxruntime-web, L2-normalize. Keep BGR: it is what the
+  server's DeepFace templates use (image fallbacks mix the two paths). RGB is the model's
+  native order and scored better on LFW (fivucsas-papers bench), but switching needs the
+  server to switch too.
+- **Landmarks must be in the crop's frame (2026-11-09).** The mesh from FaceLandmarker is
+  normalized to the unmirrored camera frame; the embedder aligns the mirrored 320 px crop.
+  `features/auth/utils/faceCropGeometry.ts` is the ONE definition of the crop square
+  (`computeFaceCropRect`, used by `cropFaceToDataURL`) and of the landmark mapping
+  (`mapLandmarksToFaceCrop`, used by `useFaceDetection.captureLandmarks` and the FACE
+  puzzle's `cropLandmarks`). Never pass the camera-frame mesh to `embedCapturedFace`
+  (v1 did: LFW EER 9.03% instead of about 3.5%). The enroll-embedding API takes no
+  metadata, so the alignment version is not stored; a client template enrolled by a v1
+  build must be re-enrolled (the existing Re-enroll action replaces it). Production had
+  the web flag OFF and no client-enrolled templates when v2 landed.
 - **Model delivery:** the FP16 `facenet512-<sha256>.onnx` (~47 MB) is fetched from
   `app.fivucsas.com/models/` via the same `fetch-models` / `manifest.json` SHA256
   pattern as YOLO/Silero, then cached download-once (Service Worker CacheFirst +
