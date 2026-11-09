@@ -105,10 +105,20 @@ async function generatePkce(): Promise<{ verifier: string; challenge: string }> 
 const RFC3986_SCHEME_RE = /^[a-z][a-z0-9+.-]*$/;
 
 /**
- * Validate that a redirect URI uses an allowed scheme. Throws a clear Error
- * on rejection. Exported for tests.
+ * How a redirect URI hands control back to the relying party:
+ *   - `web`: an https:// page
+ *   - `loopback`: an RFC 8252 section 7.3 http:// loopback listener
+ *   - `native`: an RFC 8252 section 7.1 private-use scheme (e.g. `fivucsas://callback`),
+ *     whose URL origin is the opaque string "null" and which a browser may refuse
+ *     to open from a scripted navigation
  */
-export function assertSafeRedirectScheme(uri: string): void {
+export type RedirectSchemeKind = 'web' | 'loopback' | 'native';
+
+/**
+ * Classify a redirect URI by scheme. The single scheme policy for the SDK and
+ * the hosted login page. Throws a clear Error when the scheme is not allowed.
+ */
+export function classifyRedirectScheme(uri: string): RedirectSchemeKind {
     if (!uri || typeof uri !== 'string') {
         throw new Error('FivucsasAuth: redirect URI is empty or not a string');
     }
@@ -130,14 +140,14 @@ export function assertSafeRedirectScheme(uri: string): void {
     }
 
     if (scheme === 'https') {
-        return;
+        return 'web';
     }
 
     if (scheme === 'http') {
         // Only RFC 8252 loopback is allowed for http://
         const host = parsed.hostname;
         if (host === '127.0.0.1' || host === '[::1]' || host === '::1' || host === 'localhost') {
-            return;
+            return 'loopback';
         }
         throw new Error(
             `FivucsasAuth: redirect URI scheme not allowed: http:// is only permitted for RFC 8252 loopback (127.0.0.1, [::1], localhost), got host "${host}"`
@@ -148,6 +158,15 @@ export function assertSafeRedirectScheme(uri: string): void {
     if (!RFC3986_SCHEME_RE.test(scheme)) {
         throw new Error(`FivucsasAuth: redirect URI scheme is not RFC 3986-compliant: ${scheme}:`);
     }
+    return 'native';
+}
+
+/**
+ * Validate that a redirect URI uses an allowed scheme. Throws a clear Error
+ * on rejection. Exported for tests.
+ */
+export function assertSafeRedirectScheme(uri: string): void {
+    classifyRedirectScheme(uri);
 }
 
 // ─── ID token nonce validation (OIDC §3.1.3.7) ────────────────────

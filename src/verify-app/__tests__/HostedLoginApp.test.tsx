@@ -378,11 +378,19 @@ describe('HostedLoginApp — B8 surface behavior', () => {
             '?client_id=fivucsas-mobile&redirect_uri=fivucsas%3A%2F%2Fcallback&state=s-3'
         )
         mockHttpGet.mockResolvedValue({
-            data: { client_id: 'fivucsas-mobile', client_name: 'FIVUCSAS Mobile' },
+            data: {
+                client_id: 'fivucsas-mobile',
+                client_name: 'FIVUCSAS Mobile',
+                redirect_uri_allowed: true,
+            },
         })
 
         render(<HostedLoginApp />)
         await waitFor(() => expect(stubRegistry.onCancel).toBeDefined())
+        expect(mockHttpGet).toHaveBeenCalledWith(
+            '/oauth2/clients/fivucsas-mobile/public',
+            expect.objectContaining({ params: { redirect_uri: 'fivucsas://callback' } })
+        )
         act(() => {
             stubRegistry.onCancel!()
         })
@@ -390,6 +398,76 @@ describe('HostedLoginApp — B8 surface behavior', () => {
         const assign = window.location.assign as unknown as ReturnType<typeof vi.fn>
         expect(assign).toHaveBeenCalledWith('fivucsas://callback?error=access_denied&state=s-3')
     })
+
+    it.each([
+        ['the flag is false', { redirect_uri_allowed: false }],
+        ['the server does not report the flag', {}],
+    ])(
+        'handleCancel_WhenRedirectUriNotConfirmedByServer_ShouldNotNavigateToIt (%s)',
+        async (_label, flag) => {
+            // RFC 6749 section 4.1.2.1: never send the user-agent to a redirect_uri
+            // the authorization server has not verified. A crafted link could
+            // otherwise make Cancel launch an arbitrary app intent.
+            setLocation(
+                '?client_id=fivucsas-mobile&redirect_uri=intent%3A%2F%2Fevil%23Intent%3Bend&state=s-4'
+            )
+            mockHttpGet.mockResolvedValue({
+                data: { client_id: 'fivucsas-mobile', client_name: 'FIVUCSAS Mobile', ...flag },
+            })
+            const back = vi.spyOn(window.history, 'back').mockImplementation(() => {})
+            const close = vi.spyOn(window, 'close').mockImplementation(() => {})
+
+            render(<HostedLoginApp />)
+            await waitFor(() => expect(stubRegistry.onCancel).toBeDefined())
+            act(() => {
+                stubRegistry.onCancel!()
+            })
+
+            const assign = window.location.assign as unknown as ReturnType<typeof vi.fn>
+            expect(assign).not.toHaveBeenCalled()
+            expect(back.mock.calls.length + close.mock.calls.length).toBe(1)
+            back.mockRestore()
+            close.mockRestore()
+        }
+    )
+
+    it.each([
+        [true, 1],
+        [false, 0],
+    ])(
+        'handleLoginComplete_WhenStructuredOAuthErrorAndRedirectAllowedIs%s_ShouldRedirectWithError %i times',
+        async (allowed, expectedRedirects) => {
+            vi.useFakeTimers({ shouldAdvanceTime: true })
+            try {
+                setLocation('?client_id=c1&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb&state=s-5')
+                mockHttpGet.mockResolvedValue({
+                    data: { client_id: 'c1', client_name: 'Acme', redirect_uri_allowed: allowed },
+                })
+                mockHttpPost.mockRejectedValue({
+                    response: { status: 400, data: { error: 'mfa_session_expired' } },
+                })
+
+                render(<HostedLoginApp />)
+                await waitFor(() => expect(stubRegistry.onComplete).toBeDefined())
+                await act(async () => {
+                    stubRegistry.onComplete!({ accessToken: 'at', userId: 'u1', mfaSessionToken: 'mfa' })
+                })
+                await act(async () => {
+                    vi.advanceTimersByTime(5000)
+                })
+
+                const replace = window.location.replace as unknown as ReturnType<typeof vi.fn>
+                expect(replace).toHaveBeenCalledTimes(expectedRedirects)
+                if (expectedRedirects > 0) {
+                    const target = new URL(replace.mock.calls[0][0] as string)
+                    expect(target.searchParams.get('error')).toBe('mfa_session_expired')
+                    expect(target.searchParams.get('state')).toBe('s-5')
+                }
+            } finally {
+                vi.useRealTimers()
+            }
+        }
+    )
 
     it('state echo preserved: caller-provided state appears in final redirect', async () => {
         setLocation(

@@ -46,8 +46,8 @@ import type { IHttpClient } from '@domain/interfaces/IHttpClient'
 import { fetchLoginConfig } from '@features/auth/login-config'
 import type { LoginConfig } from '@domain/models/LoginConfig'
 import type { Layer1Continuation } from '@features/auth/login-shared/layer1Continuation'
-import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
-import { isNativeAppRedirect } from './nativeAppRedirect'
+import { assertSafeRedirectScheme, classifyRedirectScheme } from './sdk/FivucsasAuth'
+import type { RedirectSchemeKind } from './sdk/FivucsasAuth'
 import { config as envConfig } from '@config/env'
 import { scheduleFacenetPrefetch } from '@features/biometrics/embedding/prefetchFacenetModel'
 
@@ -123,6 +123,39 @@ interface ClientPublicMeta {
     client_id: string
     client_name: string
     tenant_name?: string | null
+    /** Whether `redirect_uri` is registered for the client; present only when it was sent. */
+    redirect_uri_allowed?: boolean
+}
+
+function redirectKind(uri: string): RedirectSchemeKind | null {
+    try {
+        return classifyRedirectScheme(uri)
+    } catch {
+        return null
+    }
+}
+
+/**
+ * The query's `redirect_uri` when the authorization server confirmed it is
+ * registered for the client, otherwise null. RFC 6749 section 4.1.2.1 forbids
+ * sending the user-agent to an unverified redirect URI, so every navigation
+ * made before a code is minted (Cancel, a structured OAuth error) goes through
+ * this check.
+ */
+function confirmedRedirectUri(
+    redirectUri: string,
+    meta: ClientPublicMeta | null,
+): string | null {
+    if (!redirectUri || meta?.redirect_uri_allowed !== true) return null
+    return redirectKind(redirectUri) ? redirectUri : null
+}
+
+function withQuery(uri: string, query: Record<string, string | null | undefined>): string {
+    const target = new URL(uri)
+    for (const [key, value] of Object.entries(query)) {
+        if (value) target.searchParams.set(key, value)
+    }
+    return target.toString()
 }
 
 interface AuthorizeCompleteResponse {
@@ -392,6 +425,7 @@ export default function HostedLoginApp() {
                 `/oauth2/clients/${encodeURIComponent(config.clientId)}/public`,
                 {
                     timeout: 10000,
+                    params: { redirect_uri: config.redirectUri },
                     // signal isn't in RequestConfig, but axios passes through
                     // unknown keys unchanged. Cast narrowly to keep typecheck happy.
                     ...({ signal: controller.signal } as { signal: AbortSignal }),
@@ -541,11 +575,8 @@ export default function HostedLoginApp() {
                     return
                 }
 
-                const target = new URL(redirectUri)
-                target.searchParams.set('code', code)
-                if (config.state) target.searchParams.set('state', config.state)
-                const targetUrl = target.toString()
-                if (isNativeAppRedirect(targetUrl)) setAppReturnUrl(targetUrl)
+                const targetUrl = withQuery(redirectUri, { code, state: config.state })
+                if (redirectKind(targetUrl) === 'native') setAppReturnUrl(targetUrl)
                 window.location.replace(targetUrl)
             } catch (err) {
                 setRedirecting(false)
@@ -556,45 +587,36 @@ export default function HostedLoginApp() {
                 const mapped = mapBackendOAuthError(err, t, tenantLabel)
                 setFinalError(mapped.message)
 
-                // RFC 6749 §4.1.2.1 — when the authorization server cannot
+                // RFC 6749 section 4.1.2.1: when the authorization server cannot
                 // complete the request, it redirects the user-agent back to
                 // `redirect_uri` with `error`, `error_description`, and the
                 // original `state`. This only fires when:
                 //   1. The backend returned a structured OAuth2 error
                 //      (network/validation errors keep the user on the hosted
                 //      page so they can see the friendly inline message), AND
-                //   2. We have a registered+allowlisted `redirect_uri` (the
-                //      backend already validated it via the meta-fetch and
-                //      the scheme allowlist), AND
+                //   2. The backend confirmed `redirect_uri` is registered for the
+                //      client (`redirect_uri_allowed` on the meta-fetch) and its
+                //      scheme passes the allowlist, AND
                 //   3. `state` is present (no point redirecting if the
                 //      relying party can't correlate the response).
+                const errorRedirect = confirmedRedirectUri(config.redirectUri, clientMeta)
                 if (
                     mapped.isStructuredOAuth2Error &&
                     mapped.oauthErrorCode &&
-                    config.redirectUri &&
+                    errorRedirect &&
                     config.state
                 ) {
-                    let safeRedirect: URL | null = null
-                    try {
-                        assertSafeRedirectScheme(config.redirectUri)
-                        safeRedirect = new URL(config.redirectUri)
-                    } catch {
-                        safeRedirect = null
-                    }
-                    if (safeRedirect) {
-                        safeRedirect.searchParams.set('error', mapped.oauthErrorCode)
-                        safeRedirect.searchParams.set(
-                            'error_description',
-                            mapped.message,
-                        )
-                        safeRedirect.searchParams.set('state', config.state)
-                        // Display the localized error briefly so the user
-                        // understands what happened before the relying party
-                        // re-renders its own error UI.
-                        window.setTimeout(() => {
-                            window.location.replace(safeRedirect!.toString())
-                        }, 4000)
-                    }
+                    const errorTarget = withQuery(errorRedirect, {
+                        error: mapped.oauthErrorCode,
+                        error_description: mapped.message,
+                        state: config.state,
+                    })
+                    // Display the localized error briefly so the user
+                    // understands what happened before the relying party
+                    // re-renders its own error UI.
+                    window.setTimeout(() => {
+                        window.location.replace(errorTarget)
+                    }, 4000)
                 }
             }
         },
@@ -713,32 +735,20 @@ export default function HostedLoginApp() {
     )
 
     const handleCancel = useCallback(() => {
-        // A native app (custom scheme) has no web origin: hand it an RFC 6749
-        // section 4.1.2.1 `access_denied` so it ends its sign-in cleanly.
-        if (config.redirectUri && isNativeAppRedirect(config.redirectUri)) {
-            try {
-                assertSafeRedirectScheme(config.redirectUri)
-                const target = new URL(config.redirectUri)
-                target.searchParams.set('error', 'access_denied')
-                if (config.state) target.searchParams.set('state', config.state)
-                window.location.assign(target.toString())
-                return
-            } catch {
-                // fall through
-            }
-        }
-        // Best-effort: return user to the origin of the redirect URI.
-        if (config.redirectUri) {
-            try {
-                const origin = new URL(config.redirectUri).origin
-                window.location.assign(origin)
-                return
-            } catch {
-                // fall through
-            }
+        const confirmed = confirmedRedirectUri(config.redirectUri, clientMeta)
+        if (confirmed) {
+            // A native app (custom scheme) has no web origin: hand it an RFC 6749
+            // section 4.1.2.1 `access_denied` so it ends its sign-in cleanly.
+            // A web client is returned to its origin.
+            window.location.assign(
+                redirectKind(confirmed) === 'native'
+                    ? withQuery(confirmed, { error: 'access_denied', state: config.state })
+                    : new URL(confirmed).origin
+            )
+            return
         }
         window.history.length > 1 ? window.history.back() : window.close()
-    }, [config.redirectUri, config.state])
+    }, [clientMeta, config.redirectUri, config.state])
 
     // ─── Render ─────────────────────────────────────────────────
 

@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest'
 import {
     FivucsasAuth,
     assertSafeRedirectScheme,
+    classifyRedirectScheme,
     assertNonceMatches,
     decodeJwtPayload,
 } from '../FivucsasAuth'
@@ -30,6 +31,24 @@ function fakeJwt(payload: Record<string, unknown>): string {
     const sig = base64url('not-a-real-signature')
     return `${header}.${body}.${sig}`
 }
+
+describe('classifyRedirectScheme', () => {
+    it.each([
+        ['https://app.example.com/cb', 'web'],
+        ['http://127.0.0.1:8080/cb', 'loopback'],
+        ['fivucsas://callback', 'native'],
+        ['com.example.app:/oauth2redirect', 'native'],
+    ])('classifyRedirectScheme_WhenUriIs %s_ShouldReturn %s', (uri, kind) => {
+        expect(classifyRedirectScheme(uri)).toBe(kind)
+    })
+
+    it.each(['javascript:alert(1)', 'http://evil.example.com/cb', 'not a url'])(
+        'classifyRedirectScheme_WhenUriIsUnsafe %s_ShouldThrow',
+        (uri) => {
+            expect(() => classifyRedirectScheme(uri)).toThrow()
+        }
+    )
+})
 
 // ─── assertSafeRedirectScheme ──────────────────────────────────────
 

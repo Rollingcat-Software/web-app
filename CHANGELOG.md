@@ -14,7 +14,19 @@
 - Cancel on a native-app sign-in navigated to `new URL('fivucsas://callback').origin`,
   which is the string `"null"`, so the tab went to `/null`. It now returns
   `redirect_uri?error=access_denied&state=...` (RFC 6749 section 4.1.2.1) so the app ends
-  its sign-in. Web redirect URIs keep the previous behaviour.
+  its sign-in.
+- Every navigation to the query's `redirect_uri` made before a code is minted (Cancel and
+  the structured OAuth error redirect) now requires the server to confirm the URI: the
+  page sends `redirect_uri` to `GET /oauth2/clients/{id}/public` and navigates only when
+  the response says `redirect_uri_allowed: true` (identity-core-api
+  `fix/client-meta-redirect-check`). Otherwise Cancel goes back in history or closes the
+  tab, and an OAuth error stays on the page. Before this, a crafted link could make Cancel
+  open any app scheme, and the error redirect and the web Cancel trusted the query value.
+  Deploy the backend first; until then the server omits the flag and the page takes the
+  safe fallback.
+- One scheme policy: `classifyRedirectScheme` in `sdk/FivucsasAuth.ts` returns `web`,
+  `loopback` or `native` (and throws for a disallowed scheme); `assertSafeRedirectScheme`
+  and the hosted page both use it, replacing the separate `nativeAppRedirect.ts`.
 
 ### 2026-11-04 — Handle FACE_IMAGE_REQUIRED from the face-embedding liveness rule (gap Ü2)
 
