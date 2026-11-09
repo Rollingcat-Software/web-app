@@ -100,6 +100,8 @@ const LANDMARKS_478: NormalizedLandmark[] = Array.from({ length: 478 }, () => ({
     z: 0,
 }))
 const BEST_FRAME_IMAGE = 'data:image/jpeg;base64,/9j/LIVE'
+// The same mesh mapped into the crop's frame (what the aligner consumes).
+const CROP_LANDMARKS_478: NormalizedLandmark[] = LANDMARKS_478.map((p) => ({ ...p, x: 0.25, y: 0.4 }))
 
 function bindingConfig(on: boolean): PuzzleConfig {
     return {
@@ -165,7 +167,7 @@ describe('PuzzleStep — identity-binding (Phase 5)', () => {
         // Live frame arrives from the running puzzle session, then the gesture
         // completes — order mirrors the real component (capture at completion).
         await act(async () => {
-            capturedOnBestFrame?.(BEST_FRAME_IMAGE, LANDMARKS_478)
+            capturedOnBestFrame?.(BEST_FRAME_IMAGE, LANDMARKS_478, undefined, CROP_LANDMARKS_478)
             await Promise.resolve()
         })
         await act(async () => {
@@ -173,9 +175,10 @@ describe('PuzzleStep — identity-binding (Phase 5)', () => {
             await Promise.resolve()
         })
 
-        // SP-A's embedder ran on the live crop + its landmarks.
+        // SP-A's embedder ran on the live crop + the mesh in the crop's frame
+        // (never the camera-frame mesh, which would align the wrong region).
         expect(mockEmbed).toHaveBeenCalledOnce()
-        expect(mockEmbed).toHaveBeenCalledWith(BEST_FRAME_IMAGE, LANDMARKS_478)
+        expect(mockEmbed).toHaveBeenCalledWith(BEST_FRAME_IMAGE, CROP_LANDMARKS_478)
 
         expect(verifyStep).toHaveBeenCalledOnce()
         const [method, payload] = verifyStep.mock.calls[0]

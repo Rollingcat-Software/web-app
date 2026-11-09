@@ -14,13 +14,14 @@
  * legacy image upload and never block a login.
  *
  * ALIGNMENT: the embedder's contract is "already-aligned RGBA crop in". When the
- * caller supplies the FaceLandmarker 478-pt mesh captured with the frame, we run
- * `alignFace` (eye-landmark similarity transform → canonical eye positions) BEFORE
- * `preprocessFace`, which is what makes the client embedding self-consistent across
- * captures (probe and enrollment template both go through THIS identical aligner).
- * When landmarks are absent (e.g. BlazeFace fallback) or alignment is degenerate,
- * we fall back to the raw bbox crop — lower quality, but the login is never blocked.
- * See the Phase-0 spike report and `alignFace.ts` / `selfConsistency.test.ts`.
+ * caller supplies the FaceLandmarker 478-pt mesh captured with the frame, mapped
+ * into the crop's own frame (`mapLandmarksToFaceCrop`, which `useFaceDetection`'s
+ * `captureLandmarks` and the FACE puzzle both return), we run `alignFace`
+ * (five-point similarity transform to the canonical template) BEFORE
+ * `preprocessFace`. Probe and enrollment template both go through THIS identical
+ * aligner. When landmarks are absent (e.g. BlazeFace fallback) or alignment is
+ * degenerate, we fall back to the raw crop; the login is never blocked.
+ * See `alignFace.ts` (FACE_ALIGNMENT_VERSION) and `selfConsistency.test.ts`.
  */
 
 import { dataURLToImageData } from '@features/auth/utils/faceCropper'
@@ -59,8 +60,9 @@ async function getEmbedder(): Promise<FacenetEmbedder> {
  * Compute the client-side Facenet512 embedding for a captured FACE data-URL.
  *
  * @param imageDataUrl Cropped face JPEG data-URL (as the legacy path uploads).
- * @param landmarks    Optional 478-pt MediaPipe mesh captured with the SAME frame.
- *                     When present, the face is aligned (eyes → canonical positions)
+ * @param landmarks    Optional 478-pt MediaPipe mesh captured with the SAME frame,
+ *                     in the crop's frame (`mapLandmarksToFaceCrop`), NOT the camera
+ *                     frame. When present, the face is aligned (five keypoints → template)
  *                     before embedding, which is what gives the embedding client
  *                     self-consistency. When absent or alignment is degenerate, the
  *                     raw crop is embedded as-is (lower quality, login not blocked).

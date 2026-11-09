@@ -48,8 +48,15 @@ import { Jimp } from 'jimp'
 import * as ort from 'onnxruntime-web'
 import { preprocessFace, FACENET_INPUT_DIMS, FACENET_INPUT_SIZE, type RgbaImage } from '../facePreprocess'
 import { l2Normalize, cosineSimilarity, EMBEDDING_DIMENSION } from '../facenetEmbedder'
-import { alignFace, ALIGNED_OUTPUT_SIZE, type LandmarkArray, type Point2D } from '../alignFace'
-import { LEFT_IRIS, RIGHT_IRIS } from '@/lib/biometric-engine/core/constants'
+import {
+    alignFace,
+    estimateAlignmentTransform,
+    ALIGNED_OUTPUT_SIZE,
+    FACE_ALIGNMENT_TEMPLATE,
+    type LandmarkArray,
+    type Point2D,
+} from '../alignFace'
+import { LEFT_IRIS, RIGHT_IRIS, NOSE_TIP, MOUTH_LEFT, MOUTH_RIGHT } from '@/lib/biometric-engine/core/constants'
 
 const FIXTURE_DIR = path.resolve(__dirname, 'fixtures')
 const WASM_DIR =
@@ -292,5 +299,69 @@ describeOrSkip('alignFace — pose-invariance gate (the strong gate, needs model
         console.log(`  unaligned cosine = ${cosUnaligned.toFixed(4)}  vs  aligned cosine = ${cosAligned.toFixed(4)}`)
         // The aligner must do AT LEAST as well as the unaligned crop on this transform.
         expect(cosAligned).toBeGreaterThanOrEqual(cosUnaligned - 1e-3)
+    })
+})
+
+describe('estimateAlignmentTransform — 5-point fit and mirrored crops (no model needed)', () => {
+    const SIZE = 320
+
+    /** Template points in output pixels, image-left first (eyes, nose, mouth). */
+    const templatePx = (): Point2D[] =>
+        FACE_ALIGNMENT_TEMPLATE.map((p) => ({ x: p.x * ALIGNED_OUTPUT_SIZE, y: p.y * ALIGNED_OUTPUT_SIZE }))
+
+    /** A 478-point mesh whose five alignment points are the template pushed through `m`. */
+    function meshFromTemplate(m: Affine, mirror: boolean): Point2D[] {
+        const lms: Point2D[] = []
+        for (let i = 0; i < 478; i++) lms[i] = { x: 0.5, y: 0.5 }
+        // Unmirrored camera image: MediaPipe's 468/33/61 (the subject's right side)
+        // appear on the image left, which is the template's first point of each pair.
+        const idx = [LEFT_IRIS, RIGHT_IRIS, NOSE_TIP, MOUTH_LEFT, MOUTH_RIGHT]
+        templatePx().forEach((p, k) => {
+            const q = applyAffine(m, p)
+            lms[idx[k]] = { x: (mirror ? SIZE - q.x : q.x) / SIZE, y: q.y / SIZE }
+        })
+        return lms
+    }
+
+    function expectMapsToTemplate(forward: Affine, src: Point2D[], tolPx: number) {
+        const t = templatePx()
+        src.forEach((p, k) => {
+            const q = applyAffine(forward, { x: p.x * SIZE, y: p.y * SIZE })
+            expect(Math.hypot(q.x - t[k].x, q.y - t[k].y)).toBeLessThan(tolPx)
+        })
+    }
+
+    // Template -> source: rotate 12 deg, scale 1.4, shift into the 320 px crop.
+    const M = makeTransform(ALIGNED_OUTPUT_SIZE, ALIGNED_OUTPUT_SIZE, 12, 1.4, 0.4, 0.3)
+
+    it('estimateAlignmentTransform_WhenUnmirroredFiveKeypoints_ShouldMapThemOntoTemplate', () => {
+        const lms = meshFromTemplate(M, false)
+        const forward = estimateAlignmentTransform(lms, SIZE, SIZE)
+        expect(forward).not.toBeNull()
+        const src = [LEFT_IRIS, RIGHT_IRIS, NOSE_TIP, MOUTH_LEFT, MOUTH_RIGHT].map((i) => lms[i])
+        expectMapsToTemplate(forward!, src, 1e-6)
+    })
+
+    it('estimateAlignmentTransform_WhenCropIsMirrored_ShouldPairImageLeftPointsWithTemplateLeft', () => {
+        // The capture crop is mirrored, so the subject's right eye (468) is now on
+        // the image RIGHT. A fit that keeps the anatomical pairing rotates the face
+        // by about 180 degrees; the aligner must pair by image side instead.
+        const lms = meshFromTemplate(M, true)
+        const forward = estimateAlignmentTransform(lms, SIZE, SIZE)
+        expect(forward).not.toBeNull()
+        const imageOrder = [RIGHT_IRIS, LEFT_IRIS, NOSE_TIP, MOUTH_RIGHT, MOUTH_LEFT].map((i) => lms[i])
+        // The template is close to, not exactly, left-right symmetric.
+        expectMapsToTemplate(forward!, imageOrder, 1.5)
+        // Upright result: a positive scale on the diagonal, no half-turn.
+        expect(forward!.a).toBeGreaterThan(0)
+    })
+
+    it('estimateAlignmentTransform_WhenOnlyEyesPresent_ShouldFitEyesToTemplateEyes', () => {
+        const lms: Point2D[] = []
+        lms[LEFT_IRIS] = { x: 0.3, y: 0.45 }
+        lms[RIGHT_IRIS] = { x: 0.7, y: 0.45 }
+        const forward = estimateAlignmentTransform(lms, SIZE, SIZE)
+        expect(forward).not.toBeNull()
+        expectMapsToTemplate(forward!, [lms[LEFT_IRIS], lms[RIGHT_IRIS]], 1e-6)
     })
 })

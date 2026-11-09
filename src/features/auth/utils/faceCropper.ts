@@ -1,7 +1,7 @@
 /**
  * faceCropper.ts — Client-side face cropping utility.
  *
- * Always crops the face bounding box to a fixed 224×224 JPEG before sending
+ * Always crops the face bounding box to a fixed square JPEG (FACE_CROP_OUTPUT_SIZE) before sending
  * to the server. This eliminates the 200-730ms server-side detection step
  * because the server receives a tight face crop instead of a full 640×480 frame.
  *
@@ -15,95 +15,78 @@
  * @see CLIENT_SIDE_ML_PLAN.md Phase 4.2.1
  */
 
+import {
+  FACE_CROP_MIRRORED,
+  FACE_CROP_OUTPUT_SIZE,
+  FACE_CROP_PADDING,
+  computeFaceCropRect,
+  type NormalizedBox,
+} from './faceCropGeometry'
+
 /** Normalized bounding box returned by BlazeFace / useFaceDetection (0–1 range). */
-export interface FaceBoundingBox {
-  /** Normalized left edge (0–1, relative to video width). */
-  x: number
-  /** Normalized top edge (0–1, relative to video height). */
-  y: number
-  /** Normalized width (0–1). */
-  width: number
-  /** Normalized height (0–1). */
-  height: number
-}
+export type FaceBoundingBox = NormalizedBox
 
 /**
  * Crop a face from a video/canvas source to a square offscreen canvas.
  *
  * Algorithm:
- * 1. Convert normalized bbox to pixel coordinates.
- * 2. Add symmetric padding (default 20%) so ears/forehead are included.
- * 3. Clamp to the source dimensions (no out-of-bounds reads).
- * 4. Scale crop region to outputSize × outputSize.
- * 5. Mirror horizontally (selfie video is CSS-flipped, so we un-flip for server).
- * 6. Return JPEG data-URL at quality 0.85 (typically 8–18 KB for a face).
+ * 1. Take the padded square region around the face box (`computeFaceCropRect`,
+ *    the geometry `mapLandmarksToFaceCrop` also uses).
+ * 2. Draw the part of that region inside the frame at one uniform scale; any part
+ *    outside the frame stays black (no stretching at the frame edge).
+ * 3. Mirror horizontally (selfie video is CSS-flipped, so we un-flip for server).
+ * 4. Return a JPEG data-URL at quality 0.92.
  *
  * @param source      Live video element or an already-drawn canvas.
  * @param bbox        Normalized bounding box from BlazeFace / MediaPipe.
- * @param outputSize  Output square size in pixels. Default: 224.
- * @param padding     Fractional padding around the bbox. Default: 0.2 (20%).
+ * @param outputSize  Output square size in pixels. Default: FACE_CROP_OUTPUT_SIZE.
+ * @param padding     Fractional padding around the bbox. Default: FACE_CROP_PADDING.
  * @returns           Base64 JPEG data-URL string, or null on canvas failure.
  */
 export function cropFaceToDataURL(
   source: HTMLVideoElement | HTMLCanvasElement,
   bbox: FaceBoundingBox,
-  outputSize = 320,
-  padding = 0.2,
+  outputSize = FACE_CROP_OUTPUT_SIZE,
+  padding = FACE_CROP_PADDING,
 ): string | null {
   const srcWidth =
     source instanceof HTMLVideoElement ? source.videoWidth : source.width
   const srcHeight =
     source instanceof HTMLVideoElement ? source.videoHeight : source.height
 
-  if (srcWidth === 0 || srcHeight === 0) return null
+  const rect = computeFaceCropRect(srcWidth, srcHeight, bbox, padding)
+  if (!rect) return null
 
-  // --- 1. Pixel coordinates ---
-  const rawX = bbox.x * srcWidth
-  const rawY = bbox.y * srcHeight
-  const rawW = bbox.width * srcWidth
-  const rawH = bbox.height * srcHeight
+  // Visible part of the square region, in source pixels.
+  const sx0 = Math.max(0, rect.x)
+  const sy0 = Math.max(0, rect.y)
+  const sx1 = Math.min(srcWidth, rect.x + rect.size)
+  const sy1 = Math.min(srcHeight, rect.y + rect.size)
+  if (sx1 <= sx0 || sy1 <= sy0) return null
 
-  // --- 2. Add padding ---
-  const padW = rawW * padding
-  const padH = rawH * padding
-
-  // Make the crop square (use the larger dimension) so the 224×224 output
-  // doesn't distort the face aspect ratio.
-  const paddedW = rawW + padW * 2
-  const paddedH = rawH + padH * 2
-  const size = Math.max(paddedW, paddedH)
-  const centerX = rawX + rawW / 2
-  const centerY = rawY + rawH / 2
-
-  const cropX = centerX - size / 2
-  const cropY = centerY - size / 2
-
-  // --- 3. Clamp to source bounds ---
-  const clampedX = Math.max(0, cropX)
-  const clampedY = Math.max(0, cropY)
-  const clampedW = Math.min(srcWidth - clampedX, size - (clampedX - cropX))
-  const clampedH = Math.min(srcHeight - clampedY, size - (clampedY - cropY))
-
-  if (clampedW <= 0 || clampedH <= 0) return null
-
-  // --- 4. Draw to offscreen canvas at outputSize × outputSize ---
   const canvas = document.createElement('canvas')
   canvas.width = outputSize
   canvas.height = outputSize
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
 
-  // --- 5. Mirror horizontally to undo the CSS scaleX(-1) applied in the UI ---
-  ctx.translate(outputSize, 0)
-  ctx.scale(-1, 1)
+  // JPEG has no alpha: start from opaque black so the off-frame part is black.
+  ctx.fillStyle = '#000'
+  ctx.fillRect(0, 0, outputSize, outputSize)
 
+  if (FACE_CROP_MIRRORED) {
+    ctx.translate(outputSize, 0)
+    ctx.scale(-1, 1)
+  }
+
+  const scale = outputSize / rect.size
   ctx.drawImage(
     source,
-    clampedX, clampedY, clampedW, clampedH, // source rect
-    0, 0, outputSize, outputSize,             // dest rect
+    sx0, sy0, sx1 - sx0, sy1 - sy0,                       // source rect
+    (sx0 - rect.x) * scale, (sy0 - rect.y) * scale,       // dest origin
+    (sx1 - sx0) * scale, (sy1 - sy0) * scale,             // dest size
   )
 
-  // --- 6. Encode to JPEG ---
   return canvas.toDataURL('image/jpeg', 0.92)
 }
 
@@ -146,15 +129,15 @@ export async function dataURLToImageData(dataURL: string): Promise<ImageData | n
  *
  * @param videoEl     The live camera video element.
  * @param bbox        Normalized bounding box from useFaceDetection state.
- * @param outputSize  Output square size in pixels. Default: 224.
+ * @param outputSize  Output square size in pixels. Default: FACE_CROP_OUTPUT_SIZE.
  * @returns           Base64 JPEG data-URL, or null if no face available.
  */
 export function captureAndCropFace(
   videoEl: HTMLVideoElement,
   bbox: FaceBoundingBox | null,
-  outputSize = 320,
+  outputSize = FACE_CROP_OUTPUT_SIZE,
 ): string | null {
   if (!bbox) return null
   if (videoEl.readyState < 2) return null
-  return cropFaceToDataURL(videoEl, bbox, outputSize, 0.2)
+  return cropFaceToDataURL(videoEl, bbox, outputSize, FACE_CROP_PADDING)
 }
