@@ -302,7 +302,7 @@ describeOrSkip('alignFace — pose-invariance gate (the strong gate, needs model
     })
 })
 
-describe('estimateAlignmentTransform — 5-point fit and mirrored crops (no model needed)', () => {
+describe('estimateAlignmentTransform: 5-point fit and mirrored crops (no model needed)', () => {
     const SIZE = 320
 
     /** Template points in output pixels, image-left first (eyes, nose, mouth). */
@@ -363,5 +363,17 @@ describe('estimateAlignmentTransform — 5-point fit and mirrored crops (no mode
         const forward = estimateAlignmentTransform(lms, SIZE, SIZE)
         expect(forward).not.toBeNull()
         expectMapsToTemplate(forward!, [lms[LEFT_IRIS], lms[RIGHT_IRIS]], 1e-6)
+    })
+
+    it('estimateAlignmentTransform_WhenOnlyEyesPresentInMirroredCrop_ShouldStayUpright', () => {
+        // Mirrored crop: the subject's right eye (468) is on the image right. With no
+        // mouth to tell the side, the eyes are paired by image position.
+        const lms: Point2D[] = []
+        lms[LEFT_IRIS] = { x: 0.7, y: 0.45 }
+        lms[RIGHT_IRIS] = { x: 0.3, y: 0.45 }
+        const forward = estimateAlignmentTransform(lms, SIZE, SIZE)
+        expect(forward).not.toBeNull()
+        expect(forward!.a).toBeGreaterThan(0)
+        expectMapsToTemplate(forward!, [lms[RIGHT_IRIS], lms[LEFT_IRIS]], 1e-6)
     })
 })

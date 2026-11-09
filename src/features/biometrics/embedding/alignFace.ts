@@ -87,11 +87,12 @@ const REFERENCE_TEMPLATE_112: ReadonlyArray<readonly [number, number]> = [
 
 /**
  * Zoom applied to the reference template about the image centre (below 1 keeps
- * more forehead, chin and cheeks in the crop). Chosen on LFW View 1
- * (pairsDevTrain) through the browser pipeline; see fivucsas-papers
- * paper-A-system-edge/bench/lfw-browser/aligned/results.md.
+ * more forehead, chin and cheeks in the crop). Chosen among 0.6 to 1.0 by EER on
+ * LFW View 1 (pairsDevTrain, 2,193 usable pairs) through the browser pipeline:
+ * 0.9 gave 3.28%, 1.0 3.37%, 0.8 3.56%, 0.7 4.20%, 0.6 5.02% (overlapping 95%
+ * intervals). See fivucsas-papers paper-A-system-edge/bench/lfw-browser/aligned/.
  */
-const TEMPLATE_ZOOM = 0.8
+const TEMPLATE_ZOOM = 0.9
 
 /**
  * Canonical five-point template, as fractions of the output edge, in IMAGE order:
@@ -131,7 +132,8 @@ function eyeCentre(landmarks: LandmarkArray, iris: number, corner: number): Poin
  * in an unmirrored camera frame and the image right in the mirrored capture crop.
  * The side is decided from the geometry (the mouth lies below the eye line in the
  * face's own frame), so mirrored and unmirrored inputs both align upright.
- * Returns the two eyes only when the nose or a mouth corner is unavailable.
+ * Returns the two eyes only, ordered by image x, when the nose or a mouth corner is
+ * unavailable.
  */
 function resolveKeypoints(landmarks: LandmarkArray): Point2D[] | null {
     const eyeA = eyeCentre(landmarks, LEFT_IRIS, HEAD_POSE_LEFT_EYE)
@@ -141,7 +143,8 @@ function resolveKeypoints(landmarks: LandmarkArray): Point2D[] | null {
     const mouthA = landmarks[MOUTH_LEFT]
     const mouthB = landmarks[MOUTH_RIGHT]
     if (!isFinitePoint(nose) || !isFinitePoint(mouthA) || !isFinitePoint(mouthB)) {
-        return [eyeA, eyeB]
+        // No mouth to tell the side: pair the eyes by image position (upright faces).
+        return eyeA.x <= eyeB.x ? [eyeA, eyeB] : [eyeB, eyeA]
     }
     // z of (eyeB - eyeA) x (mouth centre - eye centre): positive when eyeA is on the
     // image left (y grows downward), negative when the image is mirrored.
