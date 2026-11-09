@@ -47,6 +47,7 @@ import { fetchLoginConfig } from '@features/auth/login-config'
 import type { LoginConfig } from '@domain/models/LoginConfig'
 import type { Layer1Continuation } from '@features/auth/login-shared/layer1Continuation'
 import { assertSafeRedirectScheme } from './sdk/FivucsasAuth'
+import { isNativeAppRedirect } from './nativeAppRedirect'
 import { config as envConfig } from '@config/env'
 import { scheduleFacenetPrefetch } from '@features/biometrics/embedding/prefetchFacenetModel'
 
@@ -271,6 +272,9 @@ export default function HostedLoginApp() {
     const [metaReloadKey, setMetaReloadKey] = useState(0)
     const [redirecting, setRedirecting] = useState(false)
     const [finalError, setFinalError] = useState<string | null>(null)
+    // Set when the code goes back to a native app (custom scheme): the browser may
+    // block the scripted hand-off, so the page also offers a tappable link.
+    const [appReturnUrl, setAppReturnUrl] = useState<string | null>(null)
     // Alternate sign-in surfaces shown alongside the password/MFA flow. Only one
     // can be active at a time; `null` means the default email/password+MFA flow.
     const [altFlow, setAltFlow] = useState<'approveLogin' | 'qrLogin' | null>(null)
@@ -540,7 +544,9 @@ export default function HostedLoginApp() {
                 const target = new URL(redirectUri)
                 target.searchParams.set('code', code)
                 if (config.state) target.searchParams.set('state', config.state)
-                window.location.replace(target.toString())
+                const targetUrl = target.toString()
+                if (isNativeAppRedirect(targetUrl)) setAppReturnUrl(targetUrl)
+                window.location.replace(targetUrl)
             } catch (err) {
                 setRedirecting(false)
                 const tenantLabel =
@@ -707,6 +713,20 @@ export default function HostedLoginApp() {
     )
 
     const handleCancel = useCallback(() => {
+        // A native app (custom scheme) has no web origin: hand it an RFC 6749
+        // section 4.1.2.1 `access_denied` so it ends its sign-in cleanly.
+        if (config.redirectUri && isNativeAppRedirect(config.redirectUri)) {
+            try {
+                assertSafeRedirectScheme(config.redirectUri)
+                const target = new URL(config.redirectUri)
+                target.searchParams.set('error', 'access_denied')
+                if (config.state) target.searchParams.set('state', config.state)
+                window.location.assign(target.toString())
+                return
+            } catch {
+                // fall through
+            }
+        }
         // Best-effort: return user to the origin of the redirect URI.
         if (config.redirectUri) {
             try {
@@ -718,7 +738,7 @@ export default function HostedLoginApp() {
             }
         }
         window.history.length > 1 ? window.history.back() : window.close()
-    }, [config.redirectUri])
+    }, [config.redirectUri, config.state])
 
     // ─── Render ─────────────────────────────────────────────────
 
@@ -944,6 +964,16 @@ export default function HostedLoginApp() {
                                 <Typography variant="body2" color="text.secondary" fontWeight={500}>
                                     {t('hosted.redirecting', { client: clientLabel })}
                                 </Typography>
+                                {appReturnUrl && (
+                                    <>
+                                        <Typography variant="body2" color="text.secondary" textAlign="center">
+                                            {t('hosted.appHandoffHint', { client: clientLabel })}
+                                        </Typography>
+                                        <Button variant="contained" component="a" href={appReturnUrl}>
+                                            {t('hosted.returnToApp')}
+                                        </Button>
+                                    </>
+                                )}
                             </Stack>
                         ) : finalError ? (
                             <Stack spacing={2}>

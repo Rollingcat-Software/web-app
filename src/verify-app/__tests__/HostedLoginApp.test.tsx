@@ -325,6 +325,72 @@ describe('HostedLoginApp — B8 surface behavior', () => {
         })
     })
 
+    it('handleLoginComplete_WhenRedirectIsNativeAppScheme_ShouldOfferATappableReturnLink', async () => {
+        // Android Chrome may refuse a scripted navigation to a custom scheme
+        // (fivucsas://) that is not tied to a fresh user gesture, leaving the
+        // user on the spinner. A real link to the same URL lets one tap finish
+        // the hand-off to the app.
+        setLocation(
+            '?client_id=fivucsas-mobile&redirect_uri=fivucsas%3A%2F%2Fcallback&state=s-1'
+        )
+        mockHttpGet.mockResolvedValue({
+            data: { client_id: 'fivucsas-mobile', client_name: 'FIVUCSAS Mobile' },
+        })
+        mockHttpPost.mockResolvedValue({
+            data: { code: 'code-1', redirect_uri: 'fivucsas://callback', state: 's-1' },
+        })
+
+        render(<HostedLoginApp />)
+        await waitFor(() => expect(stubRegistry.onComplete).toBeDefined())
+        await act(async () => {
+            stubRegistry.onComplete!({ accessToken: 'at', userId: 'u1', mfaSessionToken: 'mfa' })
+        })
+
+        const expected = 'fivucsas://callback?code=code-1&state=s-1'
+        const replace = window.location.replace as unknown as ReturnType<typeof vi.fn>
+        await waitFor(() => expect(replace).toHaveBeenCalledWith(expected))
+        const link = await screen.findByRole('link', { name: 'Return to the application' })
+        expect(link.getAttribute('href')).toBe(expected)
+    })
+
+    it('handleLoginComplete_WhenRedirectIsHttps_ShouldNotRenderAReturnLink', async () => {
+        setLocation('?client_id=c1&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb&state=s-2')
+        mockHttpGet.mockResolvedValue({ data: { client_id: 'c1', client_name: 'Acme' } })
+        mockHttpPost.mockResolvedValue({
+            data: { code: 'code-2', redirect_uri: 'https://app.example.com/cb', state: 's-2' },
+        })
+
+        render(<HostedLoginApp />)
+        await waitFor(() => expect(stubRegistry.onComplete).toBeDefined())
+        await act(async () => {
+            stubRegistry.onComplete!({ accessToken: 'at', userId: 'u1', mfaSessionToken: 'mfa' })
+        })
+
+        const replace = window.location.replace as unknown as ReturnType<typeof vi.fn>
+        await waitFor(() => expect(replace).toHaveBeenCalledTimes(1))
+        expect(screen.queryByRole('link', { name: 'Return to the application' })).toBeNull()
+    })
+
+    it('handleCancel_WhenRedirectIsNativeAppScheme_ShouldReturnAccessDeniedToTheApp', async () => {
+        // new URL('fivucsas://callback').origin is the string "null", so the old
+        // cancel path navigated the tab to /null instead of back to the app.
+        setLocation(
+            '?client_id=fivucsas-mobile&redirect_uri=fivucsas%3A%2F%2Fcallback&state=s-3'
+        )
+        mockHttpGet.mockResolvedValue({
+            data: { client_id: 'fivucsas-mobile', client_name: 'FIVUCSAS Mobile' },
+        })
+
+        render(<HostedLoginApp />)
+        await waitFor(() => expect(stubRegistry.onCancel).toBeDefined())
+        act(() => {
+            stubRegistry.onCancel!()
+        })
+
+        const assign = window.location.assign as unknown as ReturnType<typeof vi.fn>
+        expect(assign).toHaveBeenCalledWith('fivucsas://callback?error=access_denied&state=s-3')
+    })
+
     it('state echo preserved: caller-provided state appears in final redirect', async () => {
         setLocation(
             '?client_id=c1&redirect_uri=https%3A%2F%2Fapp.example.com%2Fcb&state=ECHO123'

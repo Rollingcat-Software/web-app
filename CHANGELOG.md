@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### 2026-11-09 - Hosted login: tappable hand-off back to a native app, and a working cancel
+
+- After MFA the hosted page sends the code to the client with a scripted
+  `window.location.replace`. For a native app (private-use scheme such as
+  `fivucsas://callback`, the Android app) a browser may refuse a scripted external-scheme
+  navigation, leaving the user on the "Redirecting" spinner while the code goes unused
+  (production 2026-11-09 08:22:25: code minted for `fivucsas-mobile`, never exchanged). The
+  page still navigates automatically, and now also shows `hosted.appHandoffHint` and a
+  "Return to the application" link to the same URL, so one tap completes the hand-off.
+- Cancel on a native-app sign-in navigated to `new URL('fivucsas://callback').origin`,
+  which is the string `"null"`, so the tab went to `/null`. It now returns
+  `redirect_uri?error=access_denied&state=...` (RFC 6749 section 4.1.2.1) so the app ends
+  its sign-in. Web redirect URIs keep the previous behaviour.
+
 ### 2026-11-04 — Handle FACE_IMAGE_REQUIRED from the face-embedding liveness rule (gap Ü2)
 
 - identity-core-api's new `app.auth.face-embedding-liveness.mode` (default AUDIT) can, in

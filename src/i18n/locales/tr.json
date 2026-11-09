@@ -1891,6 +1891,7 @@
     },
     "sessionLost": "Giriş oturumunuz sona erdi. Lütfen baştan başlayın.",
     "returnToApp": "Uygulamaya dön",
+    "appHandoffHint": "{{client}} açılmadıysa aşağıdaki düğmeye dokunun.",
     "loadError": {
       "title": "Bu giriş sayfasını yükleyemedik",
       "body": "Sunucularımıza bağlantı zaman aşımına uğradı veya başarısız oldu. Lütfen internet bağlantınızı kontrol edip tekrar deneyin.",
