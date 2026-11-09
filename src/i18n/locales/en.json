@@ -1304,7 +1304,7 @@
     "s9Title": "9. Governing Law and Dispute Resolution",
     "s9Body": "These Terms are governed by and construed in accordance with the laws of the Republic of Turkey. Any disputes arising from or relating to these Terms shall be subject to the exclusive jurisdiction of the courts of Istanbul, Turkey.",
     "s10Title": "10. Contact",
-    "s10Body": "For questions about these Terms of Service, contact: bilgisayar@marmara.edu.tr"
+    "s10Body": "For questions about these Terms of Service, contact: [CONTACT_EMAIL_TBD]"
   },
   "privacy": {
     "title": "Privacy Policy",
@@ -1335,7 +1335,7 @@
     "s8Title": "8. Data Security",
     "s8Body": "Our security measures include: TLS for data in transit; an encrypted (Fernet) copy of biometric embeddings at rest; a biometric service that is not publicly reachable and requires an API key; multi-tenant isolation enforced in the application layer (Hibernate tenant filter) and covered by automated tests in our CI pipeline; rate limiting and account lockout against brute-force attempts; and short-lived JWT access tokens with refresh token rotation.",
     "s9Title": "9. Contact",
-    "s9Body": "For privacy-related questions or to exercise your data rights, please email: bilgisayar@marmara.edu.tr. We will respond to data subject requests within 30 days, as required by KVKK."
+    "s9Body": "For privacy-related questions or to exercise your data rights, please email: [CONTACT_EMAIL_TBD]. We will respond to data subject requests within 30 days, as required by KVKK."
   },
   "biometricConsent": {
     "title": "Biometric Consent",

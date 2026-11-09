@@ -37,9 +37,20 @@ are not user-facing and were left as is.
   30 days ago (oldest `deleted_at` 2026-04-28 09:54), none purged. `s3Body` describes the
   configured 30-day purge; it is true only once the job is fixed in identity-core-api, deployed,
   and the backlog is drained.
-- **Merge blocker: the copy on Hetzner (row 9).** Either the owner deletes the FIVUCSAS volumes,
-  the snapshot and the `fivucsas-app` container on Hetzner (then remove the Hetzner sentence from
-  `s7Body` and record the deletion here), or the sentence stays.
+- **Copy on Hetzner (row 9), partly resolved 2026-11-09.** With the owner's approval the
+  FIVUCSAS data on Hetzner was deleted: databases `identity_core`, `biometric_db`, `v40t2` and
+  `v40test` dropped from the shared PostgreSQL volume (the other projects' databases kept); the
+  `fivucsas-app` container and the volumes `biometric-processor_biometric_uploads`,
+  `fivucsas-postgres-data`, `fivucsas-redis-data` and `fivucsas-biometric-models` removed; the
+  encrypted daily dumps `identity_core.sql.gz.gpg` and `biometric_db.sql.gz.gpg` (2026-09-25 to
+  2026-10-02) and `identity_core_staging_predrop_2026-06-06.sql.gz` deleted from
+  `/opt/projects/backups`. Still open: the Hetzner Cloud server snapshot
+  `pre-shutdown-2026-09-17` (whole-server image, also holds other projects; deleted only from the
+  Hetzner console by the owner). Remove the Hetzner sentence from `s7Body` once it is gone.
+- **Merge blocker: contact address.** `privacy.s9Body` and `terms.s10Body` (EN and TR) carry the
+  placeholder `[CONTACT_EMAIL_TBD]`. The owner does not use `bilgisayar@marmara.edu.tr`. KVKK
+  requires a working contact through which data subjects can exercise their rights; replace the
+  placeholder with an address the owner reads before merging.
 - **Not verified:** the borg encryption mode (needs `sudo borg info /data/borg`; record the
   result in row 10 before claiming encryption), whether the off-site sync currently succeeds
   (`/data/offsite.log` is not readable as `developer`), whether rclone moves pruned files to the
