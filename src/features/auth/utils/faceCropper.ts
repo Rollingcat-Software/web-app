@@ -34,7 +34,8 @@ export type FaceBoundingBox = NormalizedBox
  *    the geometry `mapLandmarksToFaceCrop` also uses).
  * 2. Draw the part of that region inside the frame at one uniform scale; any part
  *    outside the frame stays black (no stretching at the frame edge).
- * 3. Mirror horizontally (selfie video is CSS-flipped, so we un-flip for server).
+ * 3. Mirror horizontally (`FACE_CROP_MIRRORED`): the crop is the mirror image of
+ *    the raw camera frame, matching the CSS-flipped selfie preview.
  * 4. Return a JPEG data-URL at quality 0.92.
  *
  * @param source      Live video element or an already-drawn canvas.

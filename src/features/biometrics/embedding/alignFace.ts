@@ -1,10 +1,13 @@
 /**
  * alignFace — deterministic in-browser face aligner (client-side Facenet512).
  *
- * THE load-bearing step for client self-consistency. `preprocessFace` only owns
- * resize/pad/colour/scale and expects an ALREADY-ALIGNED crop; without an aligner
- * the embedding is computed from a raw bbox crop, so pose/scale/rotation vary
- * capture-to-capture. This module removes that variation by fitting five stable
+ * `preprocessFace` only owns resize/pad/colour/scale and expects an already
+ * aligned crop; without an aligner the embedding is computed from the raw box crop,
+ * so in-plane rotation and scale vary capture to capture. Alignment is expected to
+ * help with head roll on live captures; that is not measured. On LFW (View 2) it is
+ * neutral: EER 3.27% aligned against 3.44% for the unaligned crop, with overlapping
+ * intervals. The LFW gain from FACE_ALIGNMENT_VERSION 2 comes from the landmark
+ * frame fix below, not from the fit. This module fits five stable
  * landmarks (eye centres, nose tip, mouth corners) to a FIXED canonical template
  * with a least-squares 2D similarity transform (the standard five-point face
  * alignment).

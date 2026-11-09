@@ -17,8 +17,8 @@ export const FACE_CROP_OUTPUT_SIZE = 320
 export const FACE_CROP_PADDING = 0.2
 
 /**
- * The crop is mirrored horizontally (the selfie preview is CSS-flipped, and the
- * capture keeps that orientation). Server templates were enrolled from mirrored
+ * The crop is the mirror image of the raw (unmirrored) camera frame, so it matches
+ * the CSS-flipped selfie preview. Server templates were enrolled from mirrored
  * crops, so this stays as is; the landmark mapping applies the same flip.
  */
 export const FACE_CROP_MIRRORED = true

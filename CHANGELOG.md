@@ -9,10 +9,17 @@
   mapped from the wrong pixels. LFW through the browser pipeline (fivucsas-papers
   `paper-A-system-edge/bench/lfw-browser/aligned/`): View 2, 6,000 pairs, EER 8.92% and
   10-fold accuracy 91.78% as shipped; 3.27% (95% CI 2.80 to 3.74) and 97.03% with this fix.
+  The gain comes from the coordinate-frame fix: on the same View 2 run the unaligned crop
+  scores EER 3.44% and 97.06%, so the five-point fit is not measurably better than no
+  alignment on LFW.
 - New `features/auth/utils/faceCropGeometry.ts`: the one definition of the crop square
   (`computeFaceCropRect`, `FACE_CROP_OUTPUT_SIZE`, `FACE_CROP_PADDING`, `FACE_CROP_MIRRORED`)
   and `mapLandmarksToFaceCrop`. `cropFaceToDataURL` uses it and keeps a uniform scale when
-  the square leaves the frame (black outside) instead of stretching.
+  the square leaves the frame (black outside) instead of stretching. This also changes the
+  JPEG sent to the server on the default path (client embedding OFF) for a face near the
+  frame edge: the old crop stretched the clamped region, the new one keeps the scale and
+  fills black. The 22 server templates were enrolled from the old crops; the effect on the
+  server DeepFace path for such faces was not measured.
 - `captureLandmarks` (enrollment and verification) and the FACE puzzle's best frame
   (`onBestFrame` gains `cropLandmarks`) hand the aligner the mesh in the crop's frame.
 - `alignFace`: five-point least-squares similarity (iris centres, nose tip, mouth corners)
@@ -22,8 +29,11 @@
   A client-embedding template from a v1 build must be re-enrolled (existing Re-enroll
   action). Production ran with `VITE_CLIENT_SIDE_EMBEDDING` OFF and had no client-enrolled
   templates on 2026-11-09, so no stored template is affected today.
-- Tests: `faceCropGeometry.test.ts` (transform, clipped crop), `alignFace.test.ts` (five-point
-  fit, mirrored crop, eyes-only mirrored crop), `PuzzleStep.binding.test.tsx` (crop-frame mesh).
+- Tests: `faceCropGeometry.test.ts` (transform, clipped crop), `faceCropper.test.ts` (drawn
+  region and mirror agree with the mapping), `useFaceDetection.captureLandmarks.test.ts`
+  (crop-frame mesh from the hook), `FacePuzzle.bestFrame.test.tsx` (`cropLandmarks` argument),
+  `alignFace.test.ts` (five-point fit, mirrored crop, eyes-only mirrored crop),
+  `PuzzleStep.binding.test.tsx` (crop-frame mesh forwarded).
 
 ### 2026-11-04 — Handle FACE_IMAGE_REQUIRED from the face-embedding liveness rule (gap Ü2)
 
