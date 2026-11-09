@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### 2026-11-09 - Client face embedding: align the crop with landmarks in the crop's frame (K9)
+
+- Defect: `useFaceDetection.captureLandmarks` returned the mesh normalized to the camera
+  frame, but `embedCapturedFace` aligned the mirrored 320 px crop with it, so the eyes were
+  mapped from the wrong pixels. LFW through the browser pipeline (fivucsas-papers
+  `paper-A-system-edge/bench/lfw-browser/aligned/`): View 2, 6,000 pairs, EER 8.92% and
+  10-fold accuracy 91.78% as shipped; 3.27% (95% CI 2.80 to 3.74) and 97.03% with this fix.
+- New `features/auth/utils/faceCropGeometry.ts`: the one definition of the crop square
+  (`computeFaceCropRect`, `FACE_CROP_OUTPUT_SIZE`, `FACE_CROP_PADDING`, `FACE_CROP_MIRRORED`)
+  and `mapLandmarksToFaceCrop`. `cropFaceToDataURL` uses it and keeps a uniform scale when
+  the square leaves the frame (black outside) instead of stretching.
+- `captureLandmarks` (enrollment and verification) and the FACE puzzle's best frame
+  (`onBestFrame` gains `cropLandmarks`) hand the aligner the mesh in the crop's frame.
+- `alignFace`: five-point least-squares similarity (iris centres, nose tip, mouth corners)
+  to the reference five-point template at zoom 0.9 (chosen on LFW View 1), pairing points by
+  image side so a mirrored crop stays upright. `FACE_ALIGNMENT_VERSION = 2`.
+- Re-enrollment: the enroll-embedding API takes no metadata, so the version is not stored.
+  A client-embedding template from a v1 build must be re-enrolled (existing Re-enroll
+  action). Production ran with `VITE_CLIENT_SIDE_EMBEDDING` OFF and had no client-enrolled
+  templates on 2026-11-09, so no stored template is affected today.
+- Tests: `faceCropGeometry.test.ts` (transform, clipped crop), `alignFace.test.ts` (five-point
+  fit, mirrored crop, eyes-only mirrored crop), `PuzzleStep.binding.test.tsx` (crop-frame mesh).
+
 ### 2026-11-04 — Handle FACE_IMAGE_REQUIRED from the face-embedding liveness rule (gap Ü2)
 
 - identity-core-api's new `app.auth.face-embedding-liveness.mode` (default AUDIT) can, in
