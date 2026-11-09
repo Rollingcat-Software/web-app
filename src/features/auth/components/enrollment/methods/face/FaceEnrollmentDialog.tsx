@@ -75,8 +75,8 @@ export default function FaceEnrollmentDialog({
                     // aligned space (audit H2). GPU-LESS ENFORCEMENT: the CPU-only server 400s the
                     // image path when its flag is on, so a null embedding must NOT fall back to an
                     // image upload — surface a retryable error instead (mirrors MfaStepRenderer).
-                    // NOTE: optimize/template-fusion is not yet supported on the embedding enroll
-                    // route; a re-enroll replaces the template.
+                    // NOTE: optimize/template-fusion is not supported on the embedding enroll
+                    // route; the processor adds this sample to the stored ones and averages them.
                     const frontalImage = images[0]
                     const frontalLandmarks = captureLandmarks?.[0] ?? undefined
                     const embedding = await embedCapturedFace(frontalImage, frontalLandmarks ?? undefined)

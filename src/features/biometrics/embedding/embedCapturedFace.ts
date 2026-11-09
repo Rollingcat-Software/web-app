@@ -7,7 +7,7 @@
  * `cropFaceToDataURL` in `useFaceDetection`): a tight, mirror-corrected face
  * crop. We decode it to RGBA `ImageData` and hand it to `FacenetEmbedder.embed`,
  * which runs the production preprocess (aspect-fit 160×160, centre black-pad,
- * BGR, [0,1], NHWC) → Facenet512 ONNX (onnxruntime-web, WASM EP) → L2-normalize.
+ * RGB, [0,1], NHWC) → Facenet512 ONNX (onnxruntime-web, WASM EP) → L2-normalize.
  *
  * Resilient by design: returns `null` on ANY failure (no model, ORT load error,
  * decode failure, inference error) so the FACE submit path can fall back to the

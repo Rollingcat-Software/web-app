@@ -197,8 +197,10 @@ export class BiometricService {
      * The api gate is FAIL-CLOSED: it returns 403 when the tenant's
      * `app.auth.client-side-embedding` flag is off (so the caller must flip the
      * identity flag before the web flag), and 400 on a wrong-length vector. There
-     * is intentionally no `optimize`/template-fusion field on this route — a
-     * re-enroll replaces the stored template.
+     * is intentionally no `optimize`/template-fusion field on this route. The
+     * processor still adds the vector to the user's stored samples and matches
+     * against their average, so a re-enroll after a pipeline change must delete
+     * the old face enrollment first (see FACE_EMBEDDING_PIPELINE).
      *
      * @param userId    The user whose face template is being (re)enrolled.
      * @param embedding The L2-normalized 512-float Facenet512 vector.

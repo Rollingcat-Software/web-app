@@ -3,7 +3,7 @@
  * onnxruntime-web (WASM execution provider) and return an L2-normalized 512-d
  * face embedding.
  *
- * Pairs with `facePreprocess.preprocessFace` (NHWC, BGR, [0,1] tensor) and the
+ * Pairs with `facePreprocess.preprocessFace` (NHWC, RGB, [0,1] tensor) and the
  * browser MediaPipe aligner. See `facePreprocess.ts` and the spike report
  * `docs/THESIS_AUDIT_2026-06-11/16_facenet_browser_spike.md`.
  *

@@ -184,21 +184,32 @@ unchanged and is the default + fallback. See `docs/plans/CLIENT_SIDE_ML_PLAN.md`
   five-point **aligner** (`alignFace`, eye centres + nose tip + mouth corners, least-squares
   similarity to `FACE_ALIGNMENT_TEMPLATE`, `FACE_ALIGNMENT_VERSION = 2`) then
   DeepFace-parity preprocessing (aligned crop, aspect-preserving resize, centre
-  black-pad 160x160, `(1,160,160,3)` float32, **BGR**, **[0,1]**, `normalization=base`,
-  NOT prewhiten), Facenet512 via onnxruntime-web, L2-normalize. Keep BGR: it is what the
-  server's DeepFace templates use (image fallbacks mix the two paths). RGB is the model's
-  native order and scored better on LFW (fivucsas-papers bench), but switching needs the
-  server to switch too.
+  black-pad 160x160, `(1,160,160,3)` float32, **RGB** (`FACENET_CHANNEL_ORDER`), **[0,1]**,
+  `normalization=base`, NOT prewhiten), Facenet512 via onnxruntime-web, L2-normalize.
+- **Colour order is RGB (2026-11-09).** The Facenet512 weights (davidsandberg/facenet
+  Inception ResNet v1, 2018) were trained on RGB (`tf.image.decode_image`); DeepFace 0.0.98
+  flips its RGB face to BGR before the model and the browser used to copy that. On LFW
+  View 2 the browser pipeline scores EER 2.54% in RGB against 3.27% in BGR. The biometric
+  processor switches in the same change (its `FACENET_CHANNEL_ORDER`), so client and server
+  templates stay comparable; ship both together. `FACENET_CHANNEL_ORDER` in
+  `facePreprocess.ts` is the only place the order is defined, and `FACE_EMBEDDING_PIPELINE`
+  (`embeddingPipeline.ts`, `client-facenet512-align2-rgb`) is derived from it and the
+  alignment version. The enroll-embedding call does not send that id yet: identity-core-api's
+  MVC ObjectMapper is a plain `new ObjectMapper()` (`RedisMessagingConfig`), which fails on
+  unknown JSON fields, so the id needs an identity change first.
+- **Re-enrollment after a pipeline change:** the processor ACCUMULATES face samples (up to
+  five INDIVIDUAL rows) and matches against their average, so enrolling again on top of an
+  old template averages old and new embeddings. Delete the face enrollment first, then
+  enroll. Templates from before the RGB change carry no `embedding_pipeline` in
+  `face_embeddings.metadata`; all of them must be re-enrolled.
 - **Landmarks must be in the crop's frame (2026-11-09).** The mesh from FaceLandmarker is
   normalized to the unmirrored camera frame; the embedder aligns the mirrored 320 px crop.
   `features/auth/utils/faceCropGeometry.ts` is the ONE definition of the crop square
   (`computeFaceCropRect`, used by `cropFaceToDataURL`) and of the landmark mapping
   (`mapLandmarksToFaceCrop`, used by `useFaceDetection.captureLandmarks` and the FACE
   puzzle's `cropLandmarks`). Never pass the camera-frame mesh to `embedCapturedFace`
-  (v1 did: LFW EER 9.03% instead of about 3.5%). The enroll-embedding API takes no
-  metadata, so the alignment version is not stored; a client template enrolled by a v1
-  build must be re-enrolled (the existing Re-enroll action replaces it). Production had
-  the web flag OFF and no client-enrolled templates when v2 landed.
+  (v1 did: LFW EER 9.03% instead of about 3.5%). Production had the web flag OFF and no
+  client-enrolled templates when v2 landed.
 - **Model delivery:** the FP16 `facenet512-<sha256>.onnx` (~47 MB) is fetched from
   `app.fivucsas.com/models/` via the same `fetch-models` / `manifest.json` SHA256
   pattern as YOLO/Silero, then cached download-once (Service Worker CacheFirst +

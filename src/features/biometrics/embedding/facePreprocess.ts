@@ -7,16 +7,24 @@
  * DeepFace `Facenet512` model is fed, so the client embedding is self-consistent
  * with (and close to) the server's.
  *
- * Server ground truth — `DeepFace.represent(Facenet512, detector=mtcnn,
- * align=True, normalization="base")` then L2-normalize. The tensor handed to the
- * model (verified from the installed `deepface==0.0.98` source in spike report
+ * Geometry and scale follow `DeepFace.represent(Facenet512, normalization="base")`
+ * (verified from the installed `deepface==0.0.98` source in spike report
  * `docs/THESIS_AUDIT_2026-06-11/16_facenet_browser_spike.md` §1):
  *
  *   1. aspect-ratio-preserving resize to fit 160×160 (scale = min(160/h, 160/w))
  *   2. centre BLACK padding (constant 0) to exactly 160×160 — NOT a naive stretch
  *   3. pixels scaled to [0,1] (normalization="base" is the identity — NO prewhiten)
- *   4. colour order **BGR** (DeepFace flips channels internally; the final tensor
- *      is BGR). ⚠️ Feeding RGB instead drops parity cosine from 1.0 to ~0.86-0.95.
+ *   4. colour order **RGB** (`FACENET_CHANNEL_ORDER`). The weights are
+ *      davidsandberg/facenet's Inception ResNet v1, trained on images decoded by
+ *      `tf.image.decode_image(contents, 3)` (RGB; `src/facenet.py`,
+ *      `create_input_pipeline`), and DeepFace's own model page says FaceNet
+ *      expects 160×160 RGB images. DeepFace 0.0.98 `represent` nonetheless
+ *      flips the RGB face to BGR before the model (`# rgb to bgr`,
+ *      `modules/representation.py`), and the browser used to copy that flip.
+ *      Measured on LFW View 2 with the browser pipeline: RGB EER 2.54% (97.85%
+ *      10-fold accuracy) against BGR 3.27% (97.03%). The biometric processor
+ *      feeds RGB as well (its `FACENET_CHANNEL_ORDER`), so client and server
+ *      templates stay comparable.
  *   5. layout NHWC `(1, 160, 160, 3)` float32 (this ONNX export takes NHWC input)
  *
  * The OUTPUT 512-d vector is L2-normalized by the caller (see `facenetEmbedder`).
@@ -32,15 +40,32 @@
  * owns the resize/pad/colour/scale contract. Callers (browser) MUST align first.
  *
  * The colour-order and pixel-range contract are pinned here in ONE place so the
- * browser pipeline cannot silently drift (the RGB-vs-BGR result shows how easy
- * drift is).
+ * browser pipeline cannot silently drift: a wrong order raises no error, it only
+ * costs accuracy and breaks agreement with server templates.
  */
 
 /** Model input edge length. Facenet512 takes 160×160. */
 export const FACENET_INPUT_SIZE = 160;
 
-/** Channels (BGR). */
+/** Channel order of the model input tensor. */
+export type ChannelOrder = 'RGB' | 'BGR';
+
+/**
+ * The colour order Facenet512 was trained with (see the header). This is the
+ * single definition: `preprocessFace` packs this order and the pipeline id
+ * (`embeddingPipeline.ts`) is derived from it.
+ */
+export const FACENET_CHANNEL_ORDER: ChannelOrder = 'RGB';
+
+/** Channels per pixel in the tensor. */
 const CHANNELS = 3;
+
+/** Tensor slot of red, green and blue for each order. */
+const CHANNEL_SLOTS: Readonly<Record<ChannelOrder, readonly [number, number, number]>> = {
+  RGB: [0, 1, 2],
+  BGR: [2, 1, 0],
+};
+const [R_AT, G_AT, B_AT] = CHANNEL_SLOTS[FACENET_CHANNEL_ORDER];
 
 /**
  * A decoded image as tightly-packed RGBA bytes (canvas `ImageData` shape, also
@@ -99,9 +124,9 @@ function sampleBilinear(
 /**
  * Preprocess an (already-aligned) RGBA face crop into the Facenet512 input
  * tensor: aspect-preserving resize to fit 160×160, centre black-pad to 160×160,
- * scale to [0,1], **BGR** channel order, NHWC layout.
+ * scale to [0,1], `FACENET_CHANNEL_ORDER` channel order, NHWC layout.
  *
- * @returns Float32Array of length `1 * 160 * 160 * 3` (NHWC, BGR, [0,1]).
+ * @returns Float32Array of length `1 * 160 * 160 * 3` (NHWC, RGB, [0,1]).
  */
 export function preprocessFace(img: RgbaImage): Float32Array {
   const size = FACENET_INPUT_SIZE;
@@ -129,10 +154,9 @@ export function preprocessFace(img: RgbaImage): Float32Array {
       const dstX = x + offsetX;
       const dstY = y + offsetY;
       const di = (dstY * size + dstX) * CHANNELS;
-      // BGR order, scaled to [0,1].
-      tensor[di] = b / 255;
-      tensor[di + 1] = g / 255;
-      tensor[di + 2] = r / 255;
+      tensor[di + R_AT] = r / 255;
+      tensor[di + G_AT] = g / 255;
+      tensor[di + B_AT] = b / 255;
     }
   }
 

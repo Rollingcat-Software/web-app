@@ -8,7 +8,7 @@
  *
  * Pipeline under test (the real production contract):
  *   decode → [align] → preprocessFace (aspect-fit 160×160, centre black-pad,
- *   BGR, [0,1], NHWC) → Facenet512 ONNX (onnxruntime-web, WASM EP) → L2-normalize.
+ *   RGB, [0,1], NHWC) → Facenet512 ONNX (onnxruntime-web, WASM EP) → L2-normalize.
  *
  * ── Alignment caveat (read before trusting the numbers) ──────────────────────
  * The REAL browser path aligns each face with **MediaPipe FaceLandmarker**
