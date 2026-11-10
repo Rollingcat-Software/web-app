@@ -166,6 +166,20 @@ export interface PuzzleConfig {
 }
 
 /**
+ * The one set of PUZZLE config defaults, used by the flow builder (new layer,
+ * re-opened flow) and by the login client. It matches identity-core-api
+ * `PuzzleStepConfig` (DEFAULT_COUNT, DEFAULT_ALSO_MATCH_FACE_IDENTITY), so a
+ * missing or invalid field means the same thing on both sides, and never a
+ * weaker step: identity binding is ON unless explicitly `false` (fail closed),
+ * and 2 challenges is bio's "standard" floor under trace contract v2.
+ */
+export const PUZZLE_CONFIG_DEFAULTS: Readonly<Omit<PuzzleConfig, 'allowedChallengeTypes'>> = Object.freeze({
+    count: 2,
+    difficulty: 'medium',
+    alsoMatchFaceIdentity: true,
+})
+
+/**
  * Authentication Flow Step
  * Represents a single step in an authentication flow
  */

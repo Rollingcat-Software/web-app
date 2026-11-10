@@ -1,4 +1,9 @@
-import { AuthMethodType, type AuthFlowStep, type PuzzleConfig } from '@domain/models/AuthMethod'
+import {
+    AuthMethodType,
+    PUZZLE_CONFIG_DEFAULTS,
+    type AuthFlowStep,
+    type PuzzleConfig,
+} from '@domain/models/AuthMethod'
 
 /**
  * Per-step config serialization for the auth-flow builder.
@@ -76,10 +81,17 @@ export function parseStepConfig(config?: string): {
     if (Array.isArray(puzzle.allowedChallengeTypes)) {
         const difficulty = puzzle.difficulty
         out.puzzleConfig = {
-            allowedChallengeTypes: (puzzle.allowedChallengeTypes as unknown[]).map(String),
-            count: typeof puzzle.count === 'number' && puzzle.count >= 1 ? puzzle.count : 2,
-            difficulty: difficulty === 'easy' || difficulty === 'hard' ? difficulty : 'medium',
-            // defaults to the higher-assurance binding unless explicitly disabled
+            // non-string entries are dropped, exactly as the api's PuzzleStepConfig does
+            allowedChallengeTypes: (puzzle.allowedChallengeTypes as unknown[]).filter(
+                (c): c is string => typeof c === 'string' && c.trim() !== '',
+            ),
+            count:
+                typeof puzzle.count === 'number' && puzzle.count >= 1
+                    ? puzzle.count
+                    : PUZZLE_CONFIG_DEFAULTS.count,
+            difficulty:
+                difficulty === 'easy' || difficulty === 'hard' ? difficulty : PUZZLE_CONFIG_DEFAULTS.difficulty,
+            // binding stays ON unless explicitly disabled (fail closed)
             alsoMatchFaceIdentity: puzzle.alsoMatchFaceIdentity !== false,
         }
     }

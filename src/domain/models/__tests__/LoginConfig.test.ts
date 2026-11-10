@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { AuthMethodType } from '../AuthMethod'
+import { AuthMethodType, PUZZLE_CONFIG_DEFAULTS } from '../AuthMethod'
 import {
     normalizeLoginConfig,
     hasPasswordLayer1,
@@ -210,7 +210,7 @@ describe('PUZZLE step config (Phase-5 identity binding)', () => {
         })
     })
 
-    it('defaults alsoMatchFaceIdentity to TRUE and difficulty to medium when omitted', () => {
+    it('fills omitted fields from the shared fail-closed defaults (same as the api)', () => {
         const cfg = normalizeLoginConfig({
             layer1: {
                 identifierRequired: false,
@@ -219,10 +219,27 @@ describe('PUZZLE step config (Phase-5 identity binding)', () => {
         })!
         expect(cfg.layer1.methods[0].puzzleConfig).toEqual({
             allowedChallengeTypes: [],
-            count: 1,
-            difficulty: 'medium',
-            alsoMatchFaceIdentity: true,
+            ...PUZZLE_CONFIG_DEFAULTS,
         })
+        // identity-core-api PuzzleStepConfig: DEFAULT_COUNT = 2, binding ON
+        expect(PUZZLE_CONFIG_DEFAULTS).toEqual({ count: 2, difficulty: 'medium', alsoMatchFaceIdentity: true })
+    })
+
+    it('turns binding off only for an explicit false', () => {
+        const parse = (alsoMatchFaceIdentity: unknown) =>
+            normalizeLoginConfig({
+                layer1: {
+                    identifierRequired: true,
+                    methods: [{ type: 'PUZZLE' }],
+                    stepConfig: JSON.stringify({
+                        puzzleConfig: { allowedChallengeTypes: ['blink'], alsoMatchFaceIdentity },
+                    }),
+                },
+            })!.layer1.methods[0].puzzleConfig?.alsoMatchFaceIdentity
+        expect(parse(false)).toBe(false)
+        expect(parse(true)).toBe(true)
+        expect(parse(undefined)).toBe(true)
+        expect(parse('no')).toBe(true)
     })
 
     it('leaves non-PUZZLE methods without a puzzleConfig field', () => {

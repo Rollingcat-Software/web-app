@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { AuthMethodType, type AuthFlowStep, type PuzzleConfig } from '@domain/models/AuthMethod'
+import { AuthMethodType, PUZZLE_CONFIG_DEFAULTS, type AuthFlowStep, type PuzzleConfig } from '@domain/models/AuthMethod'
 import { serializeStepConfig, parseStepConfig } from '../stepConfig'
 
 const PUZZLE_CONFIG: PuzzleConfig = {
@@ -93,6 +93,20 @@ describe('parseStepConfig', () => {
         const parsed = parseStepConfig('{"allowedChallengeTypes":["COUNT"],"count":2,"difficulty":"easy"}')
         expect(parsed.puzzleConfig?.alsoMatchFaceIdentity).toBe(true)
         expect(parsed.puzzleConfig?.difficulty).toBe('easy')
+    })
+})
+
+describe('defaults', () => {
+    it('fills omitted fields from PUZZLE_CONFIG_DEFAULTS (binding ON, count 2), like the api', () => {
+        const parsed = parseStepConfig('{"puzzleConfig":{"allowedChallengeTypes":["blink"],"count":0}}')
+        expect(parsed.puzzleConfig).toEqual({ allowedChallengeTypes: ['blink'], ...PUZZLE_CONFIG_DEFAULTS })
+        expect(PUZZLE_CONFIG_DEFAULTS.alsoMatchFaceIdentity).toBe(true)
+        expect(PUZZLE_CONFIG_DEFAULTS.count).toBe(2)
+    })
+
+    it('drops non-string allow-list entries, like the api', () => {
+        const parsed = parseStepConfig('{"puzzleConfig":{"allowedChallengeTypes":[7,"blink",null," "]}}')
+        expect(parsed.puzzleConfig?.allowedChallengeTypes).toEqual(['blink'])
     })
 })
 

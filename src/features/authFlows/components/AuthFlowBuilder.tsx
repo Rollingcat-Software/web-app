@@ -37,6 +37,7 @@ import {
     type OperationType,
     type PuzzleConfig,
     DEFAULT_AUTH_METHODS,
+    PUZZLE_CONFIG_DEFAULTS,
     OPERATION_TYPE_OPTIONS,
     isOperationType,
     normalizeOperationType,
@@ -529,9 +530,7 @@ export function AuthFlowBuilder({
                                                                 <PuzzleLayerConfig
                                                                     value={step.puzzleConfig ?? {
                                                                         allowedChallengeTypes: [],
-                                                                        count: 2,
-                                                                        difficulty: 'medium',
-                                                                        alsoMatchFaceIdentity: true,
+                                                                        ...PUZZLE_CONFIG_DEFAULTS,
                                                                     }}
                                                                     onChange={(cfg) => updatePuzzleConfig(step.id, cfg)}
                                                                 />

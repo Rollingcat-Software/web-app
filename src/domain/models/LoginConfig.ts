@@ -22,7 +22,7 @@
  * is resilient to field-name / casing deltas while the contract settles.
  */
 
-import { AuthMethodType, isAuthMethodType, type PuzzleConfig } from './AuthMethod'
+import { AuthMethodType, PUZZLE_CONFIG_DEFAULTS, isAuthMethodType, type PuzzleConfig } from './AuthMethod'
 
 /** A single method offered at Layer 1. */
 export interface LoginConfigLayer1Method {
@@ -165,14 +165,15 @@ function puzzleConfigFrom(
     const raw = inline ?? stepConfigObject(stepField)?.puzzleConfig
     if (!raw) return undefined
     const difficulty: PuzzleConfig['difficulty'] =
-        raw.difficulty === 'easy' || raw.difficulty === 'hard' ? raw.difficulty : 'medium'
+        raw.difficulty === 'easy' || raw.difficulty === 'hard' ? raw.difficulty : PUZZLE_CONFIG_DEFAULTS.difficulty
     return {
         allowedChallengeTypes: Array.isArray(raw.allowedChallengeTypes)
             ? raw.allowedChallengeTypes.filter((c): c is string => typeof c === 'string')
             : [],
-        count: typeof raw.count === 'number' && raw.count >= 1 ? raw.count : 1,
+        count: typeof raw.count === 'number' && raw.count >= 1 ? raw.count : PUZZLE_CONFIG_DEFAULTS.count,
         difficulty,
-        alsoMatchFaceIdentity: raw.alsoMatchFaceIdentity ?? true,
+        // binding stays ON unless explicitly false (fail closed, same as the api)
+        alsoMatchFaceIdentity: raw.alsoMatchFaceIdentity !== false,
     }
 }
 
