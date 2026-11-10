@@ -87,6 +87,12 @@ interface RawStepConfig {
     puzzleConfig?: RawPuzzleConfig
 }
 
+/**
+ * The api (identity-core-api `LoginConfigResponse`) sends `stepConfig` as the
+ * step's raw JSON blob in a STRING field; an object is accepted too.
+ */
+type RawStepConfigField = RawStepConfig | string | null
+
 interface RawPuzzleConfig {
     allowedChallengeTypes?: string[]
     count?: number
@@ -101,7 +107,7 @@ interface RawMethod {
     supportsUsernameless?: boolean
     requiresEnrollment?: boolean
     puzzleConfig?: RawPuzzleConfig
-    stepConfig?: RawStepConfig
+    stepConfig?: RawStepConfigField
 }
 
 interface RawLaterStep {
@@ -109,7 +115,7 @@ interface RawLaterStep {
     stepOrder?: number
     methods?: RawMethod[]
     puzzleConfig?: RawPuzzleConfig
-    stepConfig?: RawStepConfig
+    stepConfig?: RawStepConfigField
 }
 
 export interface RawLoginConfig {
@@ -118,6 +124,8 @@ export interface RawLoginConfig {
     layer1?: {
         identifierRequired?: boolean
         methods?: RawMethod[]
+        /** Step-1 config blob (e.g. a Layer-1 PUZZLE's puzzleConfig). */
+        stepConfig?: RawStepConfigField
     }
     totalSteps?: number
     laterSteps?: RawLaterStep[]
@@ -138,11 +146,23 @@ function methodType(raw: RawMethod): AuthMethodType | null {
  * {@link AuthMethod}) so a tenant that omits it still gets identity binding —
  * the higher-assurance, safer default.
  */
+/** Accept `stepConfig` as the api's JSON string or as an object. */
+function stepConfigObject(field: RawStepConfigField | undefined): RawStepConfig | undefined {
+    if (field == null) return undefined
+    if (typeof field !== 'string') return field
+    try {
+        const parsed: unknown = JSON.parse(field)
+        return parsed && typeof parsed === 'object' ? (parsed as RawStepConfig) : undefined
+    } catch {
+        return undefined
+    }
+}
+
 function puzzleConfigFrom(
     inline: RawPuzzleConfig | undefined,
-    step: RawStepConfig | undefined,
+    stepField: RawStepConfigField | undefined,
 ): PuzzleConfig | undefined {
-    const raw = inline ?? step?.puzzleConfig
+    const raw = inline ?? stepConfigObject(stepField)?.puzzleConfig
     if (!raw) return undefined
     const difficulty: PuzzleConfig['difficulty'] =
         raw.difficulty === 'easy' || raw.difficulty === 'hard' ? raw.difficulty : 'medium'
@@ -175,7 +195,12 @@ export function normalizeLoginConfig(raw: RawLoginConfig | null | undefined): Lo
                 usernameless: Boolean(m.usernameless ?? m.supportsUsernameless ?? false),
                 requiresEnrollment: Boolean(m.requiresEnrollment ?? false),
                 ...(type === AuthMethodType.PUZZLE
-                    ? { puzzleConfig: puzzleConfigFrom(m.puzzleConfig, m.stepConfig) }
+                    ? {
+                          puzzleConfig: puzzleConfigFrom(
+                              m.puzzleConfig,
+                              m.stepConfig ?? raw.layer1?.stepConfig,
+                          ),
+                      }
                     : {}),
             }
         })

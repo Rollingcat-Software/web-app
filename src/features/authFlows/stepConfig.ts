@@ -25,6 +25,14 @@ function stepMethods(step: StepConfigFields): AuthMethodType[] {
 }
 
 /**
+ * The key that wraps a PUZZLE layer's settings inside the step config blob.
+ * The api reads ONLY this shape (`{"puzzleConfig":{...}}`, identity-core-api
+ * `PuzzleStepConfig`) and rejects anything else on save; the login-config
+ * endpoint hands the same blob back as `stepConfig`.
+ */
+export const PUZZLE_CONFIG_KEY = 'puzzleConfig'
+
+/**
  * Serialize a builder step's PUZZLE/FACE config into the `FlowStepSpec.config`
  * JSON string. Returns `undefined` for ordinary steps (or unconfigured ones), so
  * the payload shape is unchanged when there is nothing to persist.
@@ -32,7 +40,7 @@ function stepMethods(step: StepConfigFields): AuthMethodType[] {
 export function serializeStepConfig(step: StepConfigFields): string | undefined {
     const methods = stepMethods(step)
     if (methods.includes(AuthMethodType.PUZZLE) && step.puzzleConfig) {
-        return JSON.stringify(step.puzzleConfig)
+        return JSON.stringify({ [PUZZLE_CONFIG_KEY]: step.puzzleConfig })
     }
     if (methods.includes(AuthMethodType.FACE) && step.requireActivePuzzleLiveness) {
         return JSON.stringify({ requireActivePuzzleLiveness: true })
@@ -60,14 +68,19 @@ export function parseStepConfig(config?: string): {
 
     const out: { puzzleConfig?: PuzzleConfig; requireActivePuzzleLiveness?: boolean } = {}
 
-    if (Array.isArray(raw.allowedChallengeTypes)) {
-        const difficulty = raw.difficulty
+    // The api's shape is wrapped. A flat object is what this builder wrote
+    // before the contract was fixed; reading it lets such a flow be opened and
+    // re-saved (which writes the wrapped shape) instead of being lost.
+    const wrapped = raw[PUZZLE_CONFIG_KEY]
+    const puzzle = (wrapped && typeof wrapped === 'object' ? wrapped : raw) as Record<string, unknown>
+    if (Array.isArray(puzzle.allowedChallengeTypes)) {
+        const difficulty = puzzle.difficulty
         out.puzzleConfig = {
-            allowedChallengeTypes: (raw.allowedChallengeTypes as unknown[]).map(String),
-            count: typeof raw.count === 'number' && raw.count >= 1 ? raw.count : 2,
+            allowedChallengeTypes: (puzzle.allowedChallengeTypes as unknown[]).map(String),
+            count: typeof puzzle.count === 'number' && puzzle.count >= 1 ? puzzle.count : 2,
             difficulty: difficulty === 'easy' || difficulty === 'hard' ? difficulty : 'medium',
             // defaults to the higher-assurance binding unless explicitly disabled
-            alsoMatchFaceIdentity: raw.alsoMatchFaceIdentity !== false,
+            alsoMatchFaceIdentity: puzzle.alsoMatchFaceIdentity !== false,
         }
     }
     if (raw.requireActivePuzzleLiveness === true) {

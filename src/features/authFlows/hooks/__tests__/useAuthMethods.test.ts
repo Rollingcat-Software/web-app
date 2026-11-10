@@ -79,6 +79,18 @@ describe('useAuthMethods', () => {
         expect(result.current.warning).toBeNull()
     })
 
+    it('asks for the catalog of the edited tenant when a tenant is given', async () => {
+        const { result } = renderHook(() => useAuthMethods('tenant-1'), {
+            wrapper: createWrapper(),
+        })
+
+        await waitFor(() => {
+            expect(result.current.loading).toBe(false)
+        })
+
+        expect(mockAuthMethodRepo.listMethods).toHaveBeenCalledWith('tenant-1')
+    })
+
     it('should load methods from backend on mount', async () => {
         const { result } = renderHook(() => useAuthMethods(), {
             wrapper: createWrapper(),

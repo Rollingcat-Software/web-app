@@ -23,11 +23,12 @@ function step(partial: Partial<AuthFlowStep>): AuthFlowStep {
 }
 
 describe('serializeStepConfig', () => {
-    it('serializes a PUZZLE step puzzleConfig as the backend-shaped JSON blob', () => {
+    it('serializes a PUZZLE step under the "puzzleConfig" key the api reads', () => {
         const out = serializeStepConfig(step({ methodType: AuthMethodType.PUZZLE, puzzleConfig: PUZZLE_CONFIG }))
-        // must match the round-trip-tested backend shape exactly
+        // identity-core-api PuzzleStepConfig accepts ONLY this wrapped shape and
+        // rejects the bare object on save (it used to fail closed at login).
         expect(out).toBe(
-            '{"allowedChallengeTypes":["OBJECT_MATCH","COUNT"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}',
+            '{"puzzleConfig":{"allowedChallengeTypes":["OBJECT_MATCH","COUNT"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}}',
         )
     })
 
@@ -65,11 +66,21 @@ describe('parseStepConfig', () => {
         expect(parseStepConfig('not json')).toEqual({})
     })
 
-    it('parses a backend puzzle blob into puzzleConfig', () => {
+    it('parses the api puzzle blob ({"puzzleConfig":{...}}) into puzzleConfig', () => {
+        const parsed = parseStepConfig(
+            '{"puzzleConfig":{"allowedChallengeTypes":["OBJECT_MATCH","COUNT"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}}',
+        )
+        expect(parsed.puzzleConfig).toEqual(PUZZLE_CONFIG)
+    })
+
+    it('still reads a flow saved by the old builder (bare object), so it can be re-saved', () => {
         const parsed = parseStepConfig(
             '{"allowedChallengeTypes":["OBJECT_MATCH","COUNT"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}',
         )
         expect(parsed.puzzleConfig).toEqual(PUZZLE_CONFIG)
+        expect(serializeStepConfig(step({ methodType: AuthMethodType.PUZZLE, ...parsed }))).toContain(
+            '"puzzleConfig":',
+        )
     })
 
     it('parses a FACE blob into requireActivePuzzleLiveness', () => {

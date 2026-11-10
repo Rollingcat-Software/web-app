@@ -142,6 +142,53 @@ describe('PUZZLE step config (Phase-5 identity binding)', () => {
         })
     })
 
+    it('parses stepConfig sent by the api as a JSON STRING (later step)', () => {
+        // identity-core-api LoginConfigResponse.LaterStep.stepConfig is a String
+        // holding the raw auth_flow_steps.config blob.
+        const cfg = normalizeLoginConfig({
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+            laterSteps: [
+                {
+                    order: 2,
+                    methods: [{ type: 'PUZZLE' }],
+                    stepConfig:
+                        '{"puzzleConfig":{"allowedChallengeTypes":["blink","smile"],"count":2,"difficulty":"medium","alsoMatchFaceIdentity":true}}',
+                },
+            ],
+        })!
+        expect(cfg.laterSteps[0].puzzleConfig).toEqual({
+            allowedChallengeTypes: ['blink', 'smile'],
+            count: 2,
+            difficulty: 'medium',
+            alsoMatchFaceIdentity: true,
+        })
+    })
+
+    it('reads a Layer-1 PUZZLE config from layer1.stepConfig (JSON string)', () => {
+        const cfg = normalizeLoginConfig({
+            layer1: {
+                identifierRequired: true,
+                methods: [{ type: 'PUZZLE' }],
+                stepConfig:
+                    '{"puzzleConfig":{"allowedChallengeTypes":["blink"],"count":2,"alsoMatchFaceIdentity":false}}',
+            },
+        })!
+        expect(selectPuzzleConfig(cfg, 'PUZZLE')).toEqual({
+            allowedChallengeTypes: ['blink'],
+            count: 2,
+            difficulty: 'medium',
+            alsoMatchFaceIdentity: false,
+        })
+    })
+
+    it('ignores a stepConfig string that is not JSON', () => {
+        const cfg = normalizeLoginConfig({
+            layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },
+            laterSteps: [{ order: 2, methods: [{ type: 'PUZZLE' }], stepConfig: 'not json' }],
+        })!
+        expect(cfg.laterSteps[0].puzzleConfig).toBeUndefined()
+    })
+
     it('parses a nested stepConfig.puzzleConfig (Phase 2.4 envelope)', () => {
         const cfg = normalizeLoginConfig({
             layer1: { identifierRequired: true, methods: [{ type: 'PASSWORD' }] },

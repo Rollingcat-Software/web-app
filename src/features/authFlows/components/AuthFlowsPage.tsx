@@ -69,7 +69,11 @@ export default function AuthFlowsPage() {
     const logger = useService<ILogger>(TYPES.Logger)
     const { user } = useAuth()
     const { activeTenantId } = useActiveTenant()
-    const { authMethods, warning: authMethodWarning } = useAuthMethods()
+    // Same tenant resolution as `tenantId` below, so the builder's method list
+    // is the edited tenant's catalog (PUZZLE appears only where it is enabled).
+    const { authMethods, warning: authMethodWarning } = useAuthMethods(
+        activeTenantId ?? user?.tenantId ?? undefined,
+    )
     const { t } = useTranslation()
 
     const [flows, setFlows] = useState<AuthFlowResponse[]>([])
