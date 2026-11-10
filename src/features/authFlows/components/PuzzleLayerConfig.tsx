@@ -21,7 +21,8 @@ import {
     listBiometricPuzzlesByModality,
     listBiometricPuzzles,
 } from '@features/biometric-puzzles/biometricPuzzleRegistry'
-import { isRenderablePuzzleId } from '@features/biometric-puzzles/puzzleServerAction'
+import { puzzleIdToServerAction } from '@features/biometric-puzzles/puzzleServerAction'
+import type { BiometricPuzzleId } from '@features/biometric-puzzles/BiometricPuzzleId'
 
 interface PuzzleLayerConfigProps {
     value: PuzzleConfig
@@ -39,14 +40,22 @@ interface PuzzleLayerConfigProps {
  * so an admin can't configure a flow that issues a challenge the web cannot
  * render or satisfy. (The PUZZLE step also fails closed at runtime; this
  * prevents the misconfig up front.)
+ *
+ * A checkbox stores the SERVER ACTION (`blink`, `wave`, ...), not the registry
+ * id (`FACE_BLINK`): the api forwards `allowedChallengeTypes` to bio verbatim
+ * and bio accepts only its own ChallengeType values. A registry id saved here
+ * made every session create fail (B5, 2026-11-10).
  */
-const ALL_PUZZLES = listBiometricPuzzles().filter((p) => isRenderablePuzzleId(p.id))
-const FACE_PUZZLES = listBiometricPuzzlesByModality('face').filter((p) =>
-    isRenderablePuzzleId(p.id),
-)
-const HAND_PUZZLES = listBiometricPuzzlesByModality('hand').filter((p) =>
-    isRenderablePuzzleId(p.id),
-)
+function withServerAction<P extends { id: BiometricPuzzleId }>(puzzles: P[]) {
+    return puzzles.flatMap((puzzle) => {
+        const action = puzzleIdToServerAction(puzzle.id)
+        return action ? [{ puzzle, action }] : []
+    })
+}
+
+const ALL_PUZZLES = withServerAction(listBiometricPuzzles())
+const FACE_PUZZLES = withServerAction(listBiometricPuzzlesByModality('face'))
+const HAND_PUZZLES = withServerAction(listBiometricPuzzlesByModality('hand'))
 
 export function PuzzleLayerConfig({ value, onChange }: PuzzleLayerConfigProps) {
     const { t } = useTranslation()
@@ -94,15 +103,15 @@ export function PuzzleLayerConfig({ value, onChange }: PuzzleLayerConfigProps) {
                 </Typography>
                 <FormGroup>
                     <Grid container spacing={0}>
-                        {FACE_PUZZLES.map((puzzle) => (
+                        {FACE_PUZZLES.map(({ puzzle, action }) => (
                             <Grid item xs={12} sm={6} md={4} key={puzzle.id}>
                                 <FormControlLabel
                                     sx={{ m: 0, width: '100%' }}
                                     control={
                                         <Checkbox
                                             size="small"
-                                            checked={value.allowedChallengeTypes.includes(puzzle.id)}
-                                            onChange={() => toggleChallengeType(puzzle.id)}
+                                            checked={value.allowedChallengeTypes.includes(action)}
+                                            onChange={() => toggleChallengeType(action)}
                                         />
                                     }
                                     label={
@@ -122,15 +131,15 @@ export function PuzzleLayerConfig({ value, onChange }: PuzzleLayerConfigProps) {
                 </Typography>
                 <FormGroup>
                     <Grid container spacing={0}>
-                        {HAND_PUZZLES.map((puzzle) => (
+                        {HAND_PUZZLES.map(({ puzzle, action }) => (
                             <Grid item xs={12} sm={6} md={4} key={puzzle.id}>
                                 <FormControlLabel
                                     sx={{ m: 0, width: '100%' }}
                                     control={
                                         <Checkbox
                                             size="small"
-                                            checked={value.allowedChallengeTypes.includes(puzzle.id)}
-                                            onChange={() => toggleChallengeType(puzzle.id)}
+                                            checked={value.allowedChallengeTypes.includes(action)}
+                                            onChange={() => toggleChallengeType(action)}
                                         />
                                     }
                                     label={

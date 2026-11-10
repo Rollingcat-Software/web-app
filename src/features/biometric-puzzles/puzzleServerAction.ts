@@ -159,6 +159,36 @@ export function isRenderablePuzzleId(id: BiometricPuzzleId): boolean {
     return RENDERABLE_PUZZLE_IDS.has(id)
 }
 
+/** registry id → server action; the inverse of ACTION_TO_PUZZLE_ID (renderable ids only). */
+const PUZZLE_ID_TO_ACTION: Partial<Record<BiometricPuzzleId, PuzzleServerAction>> = Object.fromEntries(
+    Object.entries(ACTION_TO_PUZZLE_ID).map(([action, id]) => [id, action as PuzzleServerAction]),
+)
+
+/**
+ * The server action a renderable registry id stands for, or null when the web
+ * cannot render it. A PUZZLE step's `allowedChallengeTypes` holds these server
+ * actions: the api forwards the list to bio verbatim and bio accepts only its
+ * own ChallengeType values (identity-core-api `PuzzleChallengeType`).
+ */
+export function puzzleIdToServerAction(id: BiometricPuzzleId): PuzzleServerAction | null {
+    return PUZZLE_ID_TO_ACTION[id] ?? null
+}
+
+/**
+ * Normalize one stored `allowedChallengeTypes` entry to a renderable server
+ * action. Accepts the server action itself (case-insensitive) and, for flows
+ * the builder saved before it stored server actions, the registry id
+ * (`FACE_BLINK` → `blink`). Anything else (unknown, or an action the web cannot
+ * render) is null, so the builder drops it instead of keeping an entry no
+ * checkbox can clear.
+ */
+export function toRenderableServerAction(value: string): PuzzleServerAction | null {
+    const trimmed = value.trim()
+    const asAction = trimmed.toLowerCase() as PuzzleServerAction
+    if (ACTION_TO_PUZZLE_ID[asAction]) return asAction
+    return PUZZLE_ID_TO_ACTION[trimmed.toUpperCase() as BiometricPuzzleId] ?? null
+}
+
 // ---------------------------------------------------------------------------
 // Canonical metric key per server action (CV-3) — must match bio
 // ``app/application/services/challenge_metric_scorer.py`` ``ACTION_METRIC_KEY``.
