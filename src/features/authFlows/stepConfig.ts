@@ -4,6 +4,7 @@ import {
     type AuthFlowStep,
     type PuzzleConfig,
 } from '@domain/models/AuthMethod'
+import { toRenderableServerAction } from '@features/biometric-puzzles/puzzleServerAction'
 
 /**
  * Per-step config serialization for the auth-flow builder.
@@ -81,10 +82,18 @@ export function parseStepConfig(config?: string): {
     if (Array.isArray(puzzle.allowedChallengeTypes)) {
         const difficulty = puzzle.difficulty
         out.puzzleConfig = {
-            // non-string entries are dropped, exactly as the api's PuzzleStepConfig does
-            allowedChallengeTypes: (puzzle.allowedChallengeTypes as unknown[]).filter(
-                (c): c is string => typeof c === 'string' && c.trim() !== '',
-            ),
+            // Normalized to server actions: a flow saved before the builder stored
+            // server actions holds registry ids (FACE_BLINK), read here as `blink`
+            // so re-saving migrates it. Non-strings, unknown and unrenderable
+            // entries are dropped (no checkbox could clear them), duplicates once.
+            allowedChallengeTypes: [
+                ...new Set(
+                    (puzzle.allowedChallengeTypes as unknown[])
+                        .filter((c): c is string => typeof c === 'string')
+                        .map(toRenderableServerAction)
+                        .filter((c): c is NonNullable<typeof c> => c !== null),
+                ),
+            ],
             count:
                 typeof puzzle.count === 'number' && puzzle.count >= 1
                     ? puzzle.count

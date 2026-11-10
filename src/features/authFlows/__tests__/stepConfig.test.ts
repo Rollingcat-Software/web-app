@@ -3,7 +3,7 @@ import { AuthMethodType, PUZZLE_CONFIG_DEFAULTS, type AuthFlowStep, type PuzzleC
 import { serializeStepConfig, parseStepConfig } from '../stepConfig'
 
 const PUZZLE_CONFIG: PuzzleConfig = {
-    allowedChallengeTypes: ['OBJECT_MATCH', 'COUNT'],
+    allowedChallengeTypes: ['blink', 'wave'],
     count: 3,
     difficulty: 'medium',
     alsoMatchFaceIdentity: false,
@@ -28,7 +28,7 @@ describe('serializeStepConfig', () => {
         // identity-core-api PuzzleStepConfig accepts ONLY this wrapped shape and
         // rejects the bare object on save (it used to fail closed at login).
         expect(out).toBe(
-            '{"puzzleConfig":{"allowedChallengeTypes":["OBJECT_MATCH","COUNT"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}}',
+            '{"puzzleConfig":{"allowedChallengeTypes":["blink","wave"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}}',
         )
     })
 
@@ -68,14 +68,14 @@ describe('parseStepConfig', () => {
 
     it('parses the api puzzle blob ({"puzzleConfig":{...}}) into puzzleConfig', () => {
         const parsed = parseStepConfig(
-            '{"puzzleConfig":{"allowedChallengeTypes":["OBJECT_MATCH","COUNT"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}}',
+            '{"puzzleConfig":{"allowedChallengeTypes":["blink","wave"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}}',
         )
         expect(parsed.puzzleConfig).toEqual(PUZZLE_CONFIG)
     })
 
     it('still reads a flow saved by the old builder (bare object), so it can be re-saved', () => {
         const parsed = parseStepConfig(
-            '{"allowedChallengeTypes":["OBJECT_MATCH","COUNT"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}',
+            '{"allowedChallengeTypes":["FACE_BLINK","HAND_WAVE"],"count":3,"difficulty":"medium","alsoMatchFaceIdentity":false}',
         )
         expect(parsed.puzzleConfig).toEqual(PUZZLE_CONFIG)
         expect(serializeStepConfig(step({ methodType: AuthMethodType.PUZZLE, ...parsed }))).toContain(
@@ -90,7 +90,7 @@ describe('parseStepConfig', () => {
     })
 
     it('defaults alsoMatchFaceIdentity to true unless explicitly false', () => {
-        const parsed = parseStepConfig('{"allowedChallengeTypes":["COUNT"],"count":2,"difficulty":"easy"}')
+        const parsed = parseStepConfig('{"allowedChallengeTypes":["blink"],"count":2,"difficulty":"easy"}')
         expect(parsed.puzzleConfig?.alsoMatchFaceIdentity).toBe(true)
         expect(parsed.puzzleConfig?.difficulty).toBe('easy')
     })
@@ -107,6 +107,30 @@ describe('defaults', () => {
     it('drops non-string allow-list entries, like the api', () => {
         const parsed = parseStepConfig('{"puzzleConfig":{"allowedChallengeTypes":[7,"blink",null," "]}}')
         expect(parsed.puzzleConfig?.allowedChallengeTypes).toEqual(['blink'])
+    })
+})
+
+describe('challenge ids are server actions (B5)', () => {
+    it('reads registry ids saved by the old builder as server actions, so re-saving migrates them', () => {
+        const parsed = parseStepConfig(
+            '{"puzzleConfig":{"allowedChallengeTypes":["FACE_BLINK","FACE_RAISE_BOTH_BROWS","HAND_FINGER_COUNT"]}}',
+        )
+        expect(parsed.puzzleConfig?.allowedChallengeTypes).toEqual(['blink', 'raise_eyebrows', 'finger_count'])
+        expect(serializeStepConfig(step({ methodType: AuthMethodType.PUZZLE, ...parsed }))).toContain(
+            '"allowedChallengeTypes":["blink","raise_eyebrows","finger_count"]',
+        )
+    })
+
+    it('keeps server actions (case-insensitive) and collapses a registry id onto the same action once', () => {
+        const parsed = parseStepConfig('{"puzzleConfig":{"allowedChallengeTypes":["Blink","FACE_BLINK","wave"]}}')
+        expect(parsed.puzzleConfig?.allowedChallengeTypes).toEqual(['blink', 'wave'])
+    })
+
+    it('drops unknown and unrenderable entries no checkbox could clear', () => {
+        const parsed = parseStepConfig(
+            '{"puzzleConfig":{"allowedChallengeTypes":["OBJECT_MATCH","light","hold_position","HAND_SHAPE_TRACE","shape_trace","nod"]}}',
+        )
+        expect(parsed.puzzleConfig?.allowedChallengeTypes).toEqual(['nod'])
     })
 })
 

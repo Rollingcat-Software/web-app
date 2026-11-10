@@ -33,6 +33,7 @@ import {
 } from '@features/biometric-puzzles/biometricPuzzleRegistry'
 import {
     isRenderablePuzzleId,
+    puzzleIdToServerAction,
     RENDERABLE_PUZZLE_IDS,
 } from '@features/biometric-puzzles/puzzleServerAction'
 import { BiometricPuzzleId } from '@features/biometric-puzzles/BiometricPuzzleId'
@@ -125,6 +126,35 @@ describe('PuzzleLayerConfig', () => {
         expect(onChange).toHaveBeenCalledTimes(1)
         const emitted: PuzzleConfig = onChange.mock.calls[0][0]
         expect(emitted.allowedChallengeTypes).toHaveLength(1)
+    })
+
+    it('stores the SERVER ACTION bio accepts, never the registry id (B5)', () => {
+        const onChange = vi.fn()
+        render(<PuzzleLayerConfig value={defaultConfig} onChange={onChange} />)
+        const emitted = screen.getAllByRole('checkbox').slice(0, 21).map((box) => {
+            onChange.mockClear()
+            fireEvent.click(box)
+            return (onChange.mock.calls[0][0] as PuzzleConfig).allowedChallengeTypes[0]
+        })
+        const expected = [...RENDERABLE_PUZZLE_IDS].map((id) => puzzleIdToServerAction(id))
+        expect(new Set(emitted)).toEqual(new Set(expected))
+        expect(emitted).toContain('blink')
+        expect(emitted.some((c) => /^(FACE|HAND)_/.test(c))).toBe(false)
+    })
+
+    it('shows a stored server action as checked and unchecks it to the same value', () => {
+        const onChange = vi.fn()
+        render(
+            <PuzzleLayerConfig
+                value={{ ...defaultConfig, allowedChallengeTypes: ['blink'] }}
+                onChange={onChange}
+            />,
+        )
+        const blinkTitle = `${getBiometricPuzzle(BiometricPuzzleId.FACE_BLINK).i18nKey}.title`
+        const box = screen.getByText(blinkTitle).closest('label')!.querySelector('input[type="checkbox"]')!
+        expect((box as HTMLInputElement).checked).toBe(true)
+        fireEvent.click(box)
+        expect((onChange.mock.calls[0][0] as PuzzleConfig).allowedChallengeTypes).toEqual([])
     })
 
     it('toggling identity-binding switch calls onChange with updated alsoMatchFaceIdentity', () => {
