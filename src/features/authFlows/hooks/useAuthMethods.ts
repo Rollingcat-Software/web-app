@@ -16,8 +16,11 @@ interface UseAuthMethodsReturn {
  * Hook to fetch auth methods from backend with automatic fallback to defaults.
  * The repository itself returns DEFAULT_AUTH_METHODS on API failure,
  * so this hook always resolves with a usable list.
+ *
+ * Pass the tenant whose flows are being edited so the catalog includes methods
+ * enabled for that tenant only (e.g. PUZZLE on a canary tenant).
  */
-export function useAuthMethods(): UseAuthMethodsReturn {
+export function useAuthMethods(tenantId?: string): UseAuthMethodsReturn {
     const authMethodRepo = useService<AuthMethodRepository>(TYPES.AuthMethodRepository)
     const logger = useService<ILogger>(TYPES.Logger)
 
@@ -28,7 +31,7 @@ export function useAuthMethods(): UseAuthMethodsReturn {
     const refresh = useCallback(async () => {
         setLoading(true)
         try {
-            const methods = await authMethodRepo.listMethods()
+            const methods = await authMethodRepo.listMethods(tenantId || undefined)
             setAuthMethods(methods)
             // If we got back the exact default reference, the API likely failed
             if (methods === DEFAULT_AUTH_METHODS) {
@@ -43,7 +46,7 @@ export function useAuthMethods(): UseAuthMethodsReturn {
         } finally {
             setLoading(false)
         }
-    }, [authMethodRepo, logger])
+    }, [authMethodRepo, logger, tenantId])
 
     useEffect(() => {
         refresh()
