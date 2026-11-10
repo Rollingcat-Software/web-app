@@ -2,6 +2,20 @@
 
 ## [Unreleased]
 
+### 2026-11-10 - Public device benchmark page `/devbench` (Paper A)
+
+- New public route `/devbench` (no login): a 5 s countdown starts three runs of the
+  Facenet512 FP16 benchmark (onnxruntime-web 1.18.0, WASM, 1 thread, synthetic 1x160x160x3
+  input, cold session + first + 30 warm, p50/p95), the protocol of the earlier artifact page.
+  It reuses the SHA-256-verified model cache and the model already served at
+  `/models/facenet512-1ad91552.fp16.onnx`.
+- Device data is read from the browser without prompts (UA-CH high entropy, cores, memory,
+  WebGL renderer, browser, battery, timezone, language; no location). One optional name field.
+- Each run, failed ones included, is POSTed to identity-core-api `POST /devbench/runs`; runs
+  the server did not accept can be re-sent with one button. ROOT users get JSON/CSV export.
+- Run documents keep the artifact v3 field names (`tool` is `fivucsas devbench app v1`,
+  `source` is `app`, the fetch time is `timingsMs.modelFetch_appHost`).
+
 ### 2026-11-04 — Handle FACE_IMAGE_REQUIRED from the face-embedding liveness rule (gap Ü2)
 
 - identity-core-api's new `app.auth.face-embedding-liveness.mode` (default AUDIT) can, in

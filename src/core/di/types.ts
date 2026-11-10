@@ -30,6 +30,7 @@ export const TYPES = {
     DeviceRepository: Symbol.for('DeviceRepository'),
     GuestRepository: Symbol.for('GuestRepository'),
     OnboardingRepository: Symbol.for('OnboardingRepository'),
+    DevbenchRepository: Symbol.for('DevbenchRepository'),
 
     // Services
     AuthService: Symbol.for('AuthService'),

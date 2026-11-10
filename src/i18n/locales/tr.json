@@ -2491,7 +2491,8 @@
     "resetPassword": "Şifre Sıfırla",
     "terms": "Kullanım Şartları",
     "privacy": "Gizlilik Politikası",
-    "default": "FIVUCSAS"
+    "default": "FIVUCSAS",
+    "devbench": "Cihaz hız ölçümü"
   },
   "enrollments": {
     "detailsTitle": "Kayıt Ayrıntıları",
@@ -2560,5 +2561,60 @@
     "cancel": "İptal",
     "back": "Geri",
     "startFailed": "QR ile giriş başlatılamadı. Lütfen tekrar deneyin."
+  },
+  "devbench": {
+    "title": "Yüz modeli hız ölçümü",
+    "intro": "FIVUCSAS araştırması (Makale A). Yüz tanıma modelinin bu cihazda ne kadar hızlı çalıştığını ölçer. Kamera, fotoğraf, konum ve hesap kullanılmaz. Yaklaşık 3 dakika sürer.",
+    "specWasm": "WASM, 1 iş parçacığı",
+    "detecting": "Cihazınız algılanıyor...",
+    "yourDevice": "Cihazınız: {{details}}",
+    "type": {
+      "phone_tablet": "Telefon/Tablet",
+      "computer": "Bilgisayar"
+    },
+    "cores_one": "{{count}} çekirdek",
+    "cores_other": "{{count}} çekirdek",
+    "memory": "{{gb}} GB bellek",
+    "batteryCharging": "şarjda, pil %{{percent}}",
+    "batteryNotCharging": "şarjda değil, pil %{{percent}}",
+    "startsIn_one": "Ölçüm {{count}} saniye içinde başlıyor",
+    "startsIn_other": "Ölçüm {{count}} saniye içinde başlıyor",
+    "pressStart": "Hazır olunca \"Şimdi başlat\" düğmesine basın.",
+    "startNow": "Şimdi başlat",
+    "cancel": "İptal",
+    "keepCharging": "Cihazı şarja takın ve bu sayfada kalın. Model (yaklaşık 47 MB) bir kez indirilir, Wi-Fi önerilir. Gerisini sayfa kendisi yapar.",
+    "nameLabel": "Adınız (isteğe bağlı)",
+    "nameHelp": "Yalnızca teşekkür edebilmemiz için. İsterseniz boş bırakın.",
+    "warnNotCharging": "Cihaz şarjda değil. Ölçüm yine de yapılır, ama mümkünse şarja takın.",
+    "warnHidden": "Bu sayfa şu an arka planda. Lütfen bu sayfaya geri dönün ve açık tutun.",
+    "measuring": "Ölçülüyor",
+    "runOf": "{{run}} / {{total}}",
+    "progressLabel": "Ölçüm ilerlemesi",
+    "step": {
+      "download": "Model indiriliyor (yaklaşık {{mb}} MB)",
+      "session": "Model hazırlanıyor",
+      "first": "İlk çalıştırma",
+      "warm": "Ölçüm {{done}} / {{total}}"
+    },
+    "stayOnTab": "Lütfen bu sayfada kalın ve ekranı kapatmayın. Başka uygulamaya geçmeyin.",
+    "leftTab": "Ölçüm sırasında sayfadan ayrıldınız. Ölçüm yavaşlamış olabilir. Lütfen bitene kadar bu sayfada kalın.",
+    "doneTitle": "Bitti, teşekkürler!",
+    "failedTitle": "Ölçüm tamamlanamadı",
+    "runResult": "{{run}}. koşu: {{ms}} ms",
+    "outcome": {
+      "saved": "Sonuçlarınız gönderildi. Başka bir şey yapmanıza gerek yok.",
+      "partial": "Bazı koşular tamamlanamadı. Mümkünse ekranı açık tutup \"Yeniden ölç\" düğmesine basın.",
+      "failed": "Ölçüm yapılamadı ya da gönderilemedi. İnternet bağlantısını kontrol edin, ekranı açık tutun ve \"Yeniden ölç\" düğmesine basın.",
+      "notSent": "Ölçüm bitti, ama {{total}} sonuçtan {{unsent}} tanesi gönderilemedi. İnternet bağlantısını kontrol edip \"Sonuçları gönder\" düğmesine basın."
+    },
+    "otherDevice": "Bu sayfayı kapatabilirsiniz. Başka bir telefon ya da bilgisayarda da ölçerseniz çok yardımcı olur.",
+    "again": "Yeniden ölç",
+    "privacy": "Gönderilenler: süreler ve tarayıcınızın bildirdiği cihaz bilgileri (model, işlemci çekirdeği, bellek, grafik yongası, tarayıcı, pil düzeyi, saat dilimi, dil) ve yazdıysanız adınız. Kamera görüntüsü, konum ve IP adresi saklanmaz.",
+    "adminTitle": "Yönetici: tüm koşular",
+    "exportJson": "Tümünü indir (JSON)",
+    "exportCsv": "Tümünü indir (CSV)",
+    "technicalDetail": "Teknik ayrıntı: {{detail}}",
+    "resend": "Sonuçları gönder",
+    "sending": "Gönderiliyor..."
   }
 }
