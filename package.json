@@ -86,7 +86,7 @@
     "typescript": "^5.5.3",
     "vite": "^8.0.3",
     "vite-plugin-pwa": "^1.2.0",
-    "vitest": "^4.1.4"
+    "vitest": "^4.1.11"
   },
   "overrides": {
     "serialize-javascript": ">=7.0.5",
