@@ -1,0 +1,63 @@
+# Privacy claims audit (2026-11-02)
+
+Scope: user-facing privacy, terms, KVKK and security statements in
+`src/i18n/locales/{en,tr}.json` (`privacy.*`, `terms.s8Body`). EN and TR were
+changed identically; no i18n keys were renamed or added. Paths below are relative
+to the sibling repos (`biometric-processor`, `identity-core-api`, `FIVUCSAS`).
+
+| # | Claim | Old text (EN) | Evidence | New text (EN, summary) |
+|---|---|---|---|---|
+| 1 | Encryption at rest | "AES-256 encryption" (s2Body, s8Body) | `biometric-processor/app/infrastructure/security/embedding_cipher.py:27,39` (Fernet = AES-128-CBC + HMAC-SHA256); `pgvector_embedding_repository.py:31-36` (search column `embedding` is plaintext, `embedding_ciphertext` is Fernet) | Encrypted copy kept (Fernet: AES-128-CBC + HMAC-SHA256); the search vector is not encrypted at column level; DB internal-only and access-controlled |
+| 2 | TLS version | "TLS 1.3" (s2Body, s8Body) | `FIVUCSAS/infra/traefik/config/traefik.yml:39-40`, `dynamic.yml` (Let's Encrypt `tls:` blocks, no `minVersion`/TLS options pinned) | "TLS" |
+| 3 | Row-level security | "PostgreSQL row-level security defined as defense-in-depth" (s8Body) | RLS policies exist (`identity-core-api/.../V25__add_row_level_security.sql:9-41`) but `identity-core-api/docker-compose.prod.yml:27` connects as `postgres` (superuser bypasses RLS) and FORCE RLS is not enabled (identity-core-api#231) | Tenant isolation enforced in the application layer (Hibernate tenant filter) and covered by automated CI tests; RLS not mentioned |
+| 4 | fail2ban / security audits | "rate limiting and fail2ban", "regular security audits" (s8Body) | Traefik `rate-limit@file` middleware (`traefik.yml`); fail2ban only in the unused `scripts/deploy-ubuntu-coolify.sh:127`; no audit/pentest record found | "rate limiting and account lockout"; audits and fail2ban removed. Added: biometric service not public + API key (bio CLAUDE.md "Security") |
+| 5 | VERBİS | "We maintain a data processing inventory (VERBiS registration)" (s4Body) | No legal entity / VERBİS registration evidence in any repo | Removed (not replaced) |
+| 6 | Deletion on account deletion / consent withdrawal | "all biometric templates and personal data are permanently and irreversibly erased within 30 days" (s3Body); "all biometric enrollment data will be permanently deleted within 30 days" (terms.s8Body) | Per-method deletion calls bio: `ManageEnrollmentService.java:373-383` (`deleteFace`/`deleteVoice`). Account deletion enqueues FACE+VOICE rows in `biometric_deletion_outbox` (identity-core-api #279, Flyway V87 applied in production 2026-11-02 16:40:36). Purge: at the deployed commit ad967d6, `application-prod.yml:195-207` sets `app.purge.softDelete.enabled: ${APP_PURGE_SOFT_DELETE_ENABLED:true}`, and the running container has `SPRING_PROFILES_ACTIVE=prod` and `APP_PURGE_SOFT_DELETE_ENABLED=true` (the `:-false` in `docker-compose.prod.yml:67` does not apply). `SoftDeletePurgeJob.java` (`RETENTION_WINDOW = Duration.ofDays(30)`, daily at 03:30) hard-deletes the user row, cascades the identity tables, re-enqueues the FACE+VOICE outbox rows, and writes a `USER_HARD_PURGED` audit entry whose details contain the user id and email (`audit_logs.user_id` is ON DELETE SET NULL). Backups: `mordecai-backup.sh:11,47` dumps `identity_core` and `biometric_db` nightly and prunes with `--keep-daily=14 --keep-weekly=8 --keep-monthly=6` | Per-method deletion via Settings also requests bio template deletion; account deletion requests face+voice template deletion automatically (outbox, retried until bio confirms); other personal data is deactivated and permanently deleted automatically 30 days later; audit log entries are kept until their retention period ends; deleted data can remain in the nightly backups for up to about six months. **Merge blocker: the purge job fails in production, see Open points** |
+| 7 | Audit log retention | "minimum of 2 years as required by Turkish regulations" (s3Body) | `identity-core-api/.../V57__audit_logs_pg_partman.sql:32-33,268` (24 months; fail-soft if pg_partman absent) | "configured to be retained for 24 months"; no legal attribution |
+| 8 | Raw image / "never reversible" | "cannot be reverse-engineered into original biometric samples" (s2Body) | Client-side face embedding is the prod default (`APP_AUTH_CLIENT_SIDE_EMBEDDING=true`, identity-core-api CLAUDE.md; `FaceEnrollmentDialog.tsx:59-62`, `MfaStepRenderer.tsx:197`); voice audio, document scans, legacy paths still upload media (bio CLAUDE.md) | Face login/enrollment send only a 512-d vector, image not transmitted; voice, document scans and some fallback paths still upload media. Irreversibility claim dropped |
+| 9 | Hosting / cross-border transfer | (not stated) | Owner decision 2026-11-09: production runs on mordecai, a server in Turkey, and stays there. Verified read-only on 2026-11-09: `app.fivucsas.com` and `api.fivucsas.com` resolve to 95.70.201.79 (mordecai); the containers `fivucsas-app`, `identity-core-api`, `biometric-api` and `shared-postgres` (databases `identity_core`, `biometric_db`) run there. Hetzner deploy workflows were removed (web-app #263, identity-core-api #282). Residual copies on Hetzner (Nuremberg, Germany), checked read-only on 2026-11-09 over `ssh hetzner`: volume `shared-db_postgres_data` (790M, PostgreSQL 17, `PG_VERSION` dated 2026-03-13, `global/pg_control` last written 2026-10-02 03:25 UTC), whose `pg_database` file names `identity_core`, `identity_core_restore_drill`, `identity_core_staging` and `biometric_db`; volume `biometric-processor_biometric_uploads` (940K, one `.jpg` file); volumes `fivucsas-postgres-data` (8.0K), `fivucsas-biometric-models` and `shared-db_minio_data`; container `fivucsas-app` running there (frontend only; DNS does not point to it). `mordecai-infra/README.md:239` records a Hetzner snapshot `pre-shutdown-2026-09-17` (62.98 GB); whether it still exists was not checked | Application servers and databases are located in Turkey (s2Body, s4Body); s4Body points to s7Body for the parties outside Turkey. s7Body discloses the copy on the decommissioned Hetzner server in Germany as pending deletion, until the owner deletes it |
+| 10 | Third-party sharing | "Biometric data is never shared with ... third parties" (s7Body) | SMS: `SMS_PROVIDER=twilio-verify` in the running `identity-core-api` container. Email: `MAIL_HOST=smtp.hostinger.com` in the same container. Backups: `/etc/cron.d/mordecai` runs `mordecai-backup.sh` at 03:30 (pg_dump of `identity_core` and `biometric_db` into the borg repository `/data/borg`, retention as in row 6) and `mordecai-offsite.sh` at 05:00 (`rclone sync /data/borg gdrive:mordecai-backup/borg`, i.e. Google Drive; a sync, so the Drive copy follows the same pruning). The borg encryption mode was NOT verified (`/data/borg` is not readable as `developer`, and `borg info` needs root); the script comment and the `BORG_PASSPHRASE` export do not prove it, because borg's `authenticated` mode also takes a passphrase. Browser downloads: `index.html:25-42`, `src/config/cdn.ts:24` (jsDelivr), `src/lib/biometric-engine/core/FaceDetector.ts:42`, `src/lib/ml/BlazeFaceDetector.ts:89` (storage.googleapis.com). Google Fonts and api.qrserver.com appear only in CSP allow-lists; nothing loads from them | Not sold / not used for ads or profiling. Providers outside Turkey named with the data they receive: Twilio (phone number, code), Hostinger email (email address, message), Google Drive (database backups; no encryption claim until `borg info` output is recorded here), jsDelivr and Google storage (IP address and browser details of the model and library downloads; no biometric data) |
+| 11 | Fingerprint "templates" | "fingerprint templates (WebAuthn public key credentials)" (s1Biometric) | Fingerprint is WebAuthn-only (`ManageEnrollmentService.java:384-389`, identity CLAUDE.md P1.4) | Only a WebAuthn public key credential is stored; the fingerprint stays on the device |
+| 12 | Data Protection Officer | "contact our Data Protection Officer" (s9Title/s9Body) | No DPO appointment evidence | Section renamed "Contact"; same address and 30-day KVKK response kept |
+| 13 | Last updated | "April 2026" | n/a | "November 2026" |
+
+Kept unchanged (verified or non-technical): JWT refresh-token rotation (identity V50 `family_id`),
+KVKK art. 6 special-category / explicit consent, rights list (s6), GDPR section (s5), data export
+(`UserDataExportController.java:49`). Code comments saying "the raw image never leaves the device"
+are not user-facing and were left as is.
+
+## Open points (re-checked 2026-11-09)
+
+- **Merge blocker: the soft-delete purge fails in production.** The `identity-core-api` logs show
+  `jakarta.persistence.TransactionRequiredException: Executing an update/delete query` from
+  `SoftDeletePurgeJob.purgeBatch(SoftDeletePurgeJob.java:154)` (the `SET LOCAL` native query) at
+  03:30 on 2026-11-05, 06, 07, 08 and 09. `purge()` calls `purgeBatch()` on `this`, so the
+  `@Transactional(REQUIRES_NEW)` proxy is bypassed and no transaction is open. A read-only SELECT
+  on `identity_core.users` on 2026-11-09 found 19 soft-deleted users, all deleted more than
+  30 days ago (oldest `deleted_at` 2026-04-28 09:54), none purged. `s3Body` describes the
+  configured 30-day purge; it is true only once the job is fixed in identity-core-api, deployed,
+  and the backlog is drained.
+- **Copy on Hetzner (row 9), partly resolved 2026-11-09.** With the owner's approval the
+  FIVUCSAS data on Hetzner was deleted: databases `identity_core`, `biometric_db`, `v40t2` and
+  `v40test` dropped from the shared PostgreSQL volume (the other projects' databases kept); the
+  `fivucsas-app` container and the volumes `biometric-processor_biometric_uploads`,
+  `fivucsas-postgres-data`, `fivucsas-redis-data` and `fivucsas-biometric-models` removed; the
+  encrypted daily dumps `identity_core.sql.gz.gpg` and `biometric_db.sql.gz.gpg` (2026-09-25 to
+  2026-10-02) and `identity_core_staging_predrop_2026-06-06.sql.gz` deleted from
+  `/opt/projects/backups`. Still open: the Hetzner Cloud server snapshot
+  `pre-shutdown-2026-09-17` (whole-server image, also holds other projects; deleted only from the
+  Hetzner console by the owner). Remove the Hetzner sentence from `s7Body` once it is gone.
+- **Merge blocker: contact address.** `privacy.s9Body` and `terms.s10Body` (EN and TR) carry the
+  placeholder `[CONTACT_EMAIL_TBD]`. The owner does not use `bilgisayar@marmara.edu.tr`. KVKK
+  requires a working contact through which data subjects can exercise their rights; replace the
+  placeholder with an address the owner reads before merging.
+- **Not verified:** the borg encryption mode (needs `sudo borg info /data/borg`; record the
+  result in row 10 before claiming encryption), whether the off-site sync currently succeeds
+  (`/data/offsite.log` is not readable as `developer`), whether rclone moves pruned files to the
+  Google Drive trash (that would keep them up to 30 more days; the rclone config is root-only),
+  and the countries where Hostinger's mail servers and Google Drive store data. The text says
+  only that these providers are outside Turkey.
+- **Outside this repo:** `FIVUCSAS/CLAUDE.md`, the poster brief, and the public poster pages
+  `landing-website/public/poster/index.html:368` and
+  `landing-website/public/poster/files/fivucsas-poster.html:2742,3133,3283` still describe
+  Hetzner CX43 hosting.
