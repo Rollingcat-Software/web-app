@@ -2491,7 +2491,8 @@
     "resetPassword": "Reset Password",
     "terms": "Terms of Service",
     "privacy": "Privacy Policy",
-    "default": "FIVUCSAS"
+    "default": "FIVUCSAS",
+    "devbench": "Device speed test"
   },
   "enrollments": {
     "detailsTitle": "Enrollment Details",
@@ -2560,5 +2561,60 @@
     "cancel": "Cancel",
     "back": "Back",
     "startFailed": "Couldn't start QR sign-in. Please try again."
+  },
+  "devbench": {
+    "title": "Face model speed test",
+    "intro": "FIVUCSAS research (Paper A). Measures how fast the face recognition model runs on this device. No camera, no photos, no location, no account. It takes about 3 minutes.",
+    "specWasm": "WASM, 1 thread",
+    "detecting": "Checking your device...",
+    "yourDevice": "Your device: {{details}}",
+    "type": {
+      "phone_tablet": "Phone/Tablet",
+      "computer": "Computer"
+    },
+    "cores_one": "{{count}} core",
+    "cores_other": "{{count}} cores",
+    "memory": "{{gb}} GB memory",
+    "batteryCharging": "charging, battery {{percent}}%",
+    "batteryNotCharging": "not charging, battery {{percent}}%",
+    "startsIn_one": "The test starts in {{count}} second",
+    "startsIn_other": "The test starts in {{count}} seconds",
+    "pressStart": "Press \"Start now\" when you are ready.",
+    "startNow": "Start now",
+    "cancel": "Cancel",
+    "keepCharging": "Plug the device in and stay on this page. The model (about 47 MB) is downloaded once; Wi-Fi is better. The page does the rest.",
+    "nameLabel": "Your name (optional)",
+    "nameHelp": "Only so we can thank you. Leave it empty if you like.",
+    "warnNotCharging": "The device is not charging. The test still works, but please plug it in if you can.",
+    "warnHidden": "This page is in the background. Please come back to it and keep it open.",
+    "measuring": "Measuring",
+    "runOf": "{{run}} / {{total}}",
+    "progressLabel": "Test progress",
+    "step": {
+      "download": "Downloading the model (about {{mb}} MB)",
+      "session": "Preparing the model",
+      "first": "First run",
+      "warm": "Measuring {{done}} / {{total}}"
+    },
+    "stayOnTab": "Please stay on this page and keep the screen on. Do not switch to another app.",
+    "leftTab": "You left this page during the test. It may have slowed down. Please stay here until it finishes.",
+    "doneTitle": "Done, thank you!",
+    "failedTitle": "The test could not finish",
+    "runResult": "Run {{run}}: {{ms}} ms",
+    "outcome": {
+      "saved": "Your results were sent. There is nothing else to do.",
+      "partial": "Some runs did not finish. If you can, keep the screen on and press \"Test again\".",
+      "failed": "Nothing could be measured or sent. Please check the internet connection, keep the screen on and press \"Test again\".",
+      "notSent": "The test finished, but {{unsent}} of {{total}} results could not be sent. Please check the internet connection and press \"Send results\"."
+    },
+    "otherDevice": "You can close this page now. Testing another phone or computer helps us a lot.",
+    "again": "Test again",
+    "privacy": "What is sent: the timings and the device details your browser reports (model, processor cores, memory, graphics chip, browser, battery level, time zone, language), plus the name if you typed one. No camera image, no location, no IP address is stored.",
+    "adminTitle": "Admin: all runs",
+    "exportJson": "Download all (JSON)",
+    "exportCsv": "Download all (CSV)",
+    "technicalDetail": "Technical detail: {{detail}}",
+    "resend": "Send results",
+    "sending": "Sending..."
   }
 }
