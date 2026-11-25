@@ -49,6 +49,8 @@ import { OnboardingRepository } from '@core/repositories/OnboardingRepository'
 import type { IOnboardingRepository } from '@domain/interfaces/IOnboardingRepository'
 import { DevbenchRepository } from '@core/repositories/DevbenchRepository'
 import type { IDevbenchRepository } from '@domain/interfaces/IDevbenchRepository'
+import { AuthorTrialRepository } from '@core/repositories/AuthorTrialRepository'
+import type { IAuthorTrialRepository } from '@domain/interfaces/IAuthorTrialRepository'
 import { GuestService } from '@features/guests/services/GuestService'
 import { AuthService } from '@features/auth/services/AuthService'
 import { UserService } from '@features/users/services/UserService'
@@ -123,6 +125,7 @@ container.bind<VerificationRepository>(TYPES.VerificationRepository).to(Verifica
 container.bind<IGuestRepository>(TYPES.GuestRepository).to(GuestRepository).inSingletonScope()
 container.bind<IOnboardingRepository>(TYPES.OnboardingRepository).to(OnboardingRepository).inSingletonScope()
 container.bind<IDevbenchRepository>(TYPES.DevbenchRepository).to(DevbenchRepository).inSingletonScope()
+container.bind<IAuthorTrialRepository>(TYPES.AuthorTrialRepository).to(AuthorTrialRepository).inSingletonScope()
 
 // Bind services
 container.bind<IAuthService>(TYPES.AuthService).to(AuthService).inSingletonScope()

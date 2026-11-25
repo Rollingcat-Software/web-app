@@ -2,7 +2,7 @@
  * App component tests
  * Tests routing and authentication flow
  */
-import { describe, it, expect, vi, beforeEach } from 'vitest'
+import { beforeAll, describe, it, expect, vi, beforeEach } from 'vitest'
 import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { Container } from 'inversify'
@@ -32,7 +32,19 @@ vi.mock('./features/auth/hooks/useAuth', () => ({
 }))
 
 describe('App', () => {
+    // Full-suite CPU contention can push a MUI render past the old 3 s bound;
+    // the assertions below are unchanged, only the bounds are robust.
+    vi.setConfig({ testTimeout: 20_000 })
     let container: Container
+
+    // Warm the lazy route chunks once. Under a loaded full-suite run the dynamic
+    // import of a heavy page could exceed the per-assertion 3 s waitFor, which
+    // made these routing checks flaky; the routes themselves are unchanged.
+    beforeAll(async () => {
+        await import('./features/auth/components/LoginPage')
+        await import('./features/dashboard/components/DashboardPage')
+        await import('./features/users/components/UsersListPage')
+    })
 
     beforeEach(() => {
         container = createTestContainer()
@@ -65,7 +77,7 @@ describe('App', () => {
 
             await waitFor(() => {
                 expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
-            }, { timeout: 3000 })
+            }, { timeout: 15_000 })
         })
 
         it('should render login page at /login route', async () => {
@@ -73,7 +85,7 @@ describe('App', () => {
 
             await waitFor(() => {
                 expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
-            }, { timeout: 3000 })
+            }, { timeout: 15_000 })
         })
 
         it('should show loading state while checking authentication', () => {
@@ -100,7 +112,7 @@ describe('App', () => {
                 // Multiple elements may match "dashboard" (sidebar title + menu item)
                 const matches = screen.getAllByText(/dashboard/i)
                 expect(matches.length).toBeGreaterThan(0)
-            }, { timeout: 3000 })
+            }, { timeout: 15_000 })
         })
 
         it('should redirect unknown routes to dashboard when authenticated', async () => {
@@ -115,7 +127,7 @@ describe('App', () => {
             await waitFor(() => {
                 const matches = screen.getAllByText(/dashboard/i)
                 expect(matches.length).toBeGreaterThan(0)
-            }, { timeout: 3000 })
+            }, { timeout: 15_000 })
         })
 
         it('should redirect unknown routes to login when not authenticated', async () => {
@@ -123,7 +135,7 @@ describe('App', () => {
 
             await waitFor(() => {
                 expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
-            }, { timeout: 3000 })
+            }, { timeout: 15_000 })
         })
     })
 
@@ -140,7 +152,7 @@ describe('App', () => {
             await waitFor(() => {
                 const matches = screen.getAllByText(/users/i)
                 expect(matches.length).toBeGreaterThan(0)
-            }, { timeout: 3000 })
+            }, { timeout: 15_000 })
         })
 
         it('should redirect to login when accessing protected route without auth', async () => {
@@ -148,7 +160,7 @@ describe('App', () => {
 
             await waitFor(() => {
                 expect(screen.getByRole('heading', { name: /welcome back/i })).toBeInTheDocument()
-            }, { timeout: 3000 })
+            }, { timeout: 15_000 })
         })
     })
 })

@@ -61,7 +61,11 @@ function cspPlugin(): Plugin {
                 // X-Frame-Options removed: CSP frame-ancestors supersedes it
                 res.setHeader('X-XSS-Protection', '1; mode=block')
                 res.setHeader('Referrer-Policy', 'strict-origin-when-cross-origin')
-                res.setHeader('Permissions-Policy', 'camera=(), microphone=(), geolocation=()')
+                // Dev/prod parity: public/.htaccess already allows camera/microphone for
+                // same-origin pages (the biometric capture, enrollment and author-trial
+                // surfaces all need them). A blanket `camera=()` here silently broke every
+                // camera flow served by the dev server (and the author-trial Playwright run).
+                res.setHeader('Permissions-Policy', 'camera=(self), microphone=(self), geolocation=()')
 
                 next()
             })
@@ -249,7 +253,9 @@ export default defineConfig(({ mode }) => ({
         port: 3000,
         proxy: {
             '/api': {
-                target: 'http://localhost:8080',
+                // Default unchanged; the author-trial e2e points this at its
+                // local stub so the browser stays same-origin (no CORS/CSP gap).
+                target: process.env.VITE_DEV_API_PROXY || 'http://localhost:8080',
                 changeOrigin: true,
             },
         },

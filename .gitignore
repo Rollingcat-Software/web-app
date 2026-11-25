@@ -40,6 +40,7 @@ coverage
 test-results/
 playwright-report/
 e2e/.auth/
+e2e/author-trial/.artifacts/
 
 # Build
 build
