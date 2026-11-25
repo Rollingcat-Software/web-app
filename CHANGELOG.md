@@ -2,6 +2,29 @@
 
 ## [Unreleased]
 
+### 2026-11-25 - Authors-only trial page `/author-trial` (Paper B, BPCER/APCER)
+
+- New public route `/author-trial` (no dashboard login), per
+  `fivucsas-identity-core-api/docs/AUTHOR_TRIAL_CONTRACT.md`. Access-code gate
+  (`X-Author-Trial-Key`, code kept only in sessionStorage), pseudonymous participant
+  picker, auto-detected + editable device profile (localStorage profiles), genuine/attack
+  mode with instrument presets, and a Start/Stop loop that creates a REAL trial MFA
+  session per attempt and drives the shared `PuzzleStep` through `MfaStepRenderer`.
+- Every attempt: camera probe (label/resolution/fps/mean luma/clipped-pixel exposure),
+  `POST /author-trial/session`, real `POST /auth/mfa/step` verdict, then
+  `POST /author-trial/attempts/{id}/finish` with technical status only. AUTHENTICATED is
+  the only accept; STEP_COMPLETED and every failure are rejected; a 120 s per-attempt
+  timeout records error/abandoned. Live ring, challenge badge, statistics and feed.
+- One-time enrollment reuses `FaceEnrollmentFlow` and `embedCapturedFace`; only the
+  512-dim vector is posted to `/author-trial/enroll` (no raw image). With
+  `VITE_CLIENT_SIDE_EMBEDDING` off the page shows a configuration error instead.
+- CSV/JSON export comes from the server (`GET /author-trial/export`).
+- Dev-server `Permissions-Policy` now matches production (`camera=(self),
+  microphone=(self)`) so camera flows work on the dev server; the dev API proxy target
+  can be overridden with `VITE_DEV_API_PROXY` for the isolated e2e.
+- Runbook: `docs/AUTHOR_TRIAL.md`. E2E: `playwright.author-trial.config.ts` with a local
+  stub backend and Chromium fake camera (no server, no internet).
+
 ### 2026-11-10 - Public device benchmark page `/devbench` (Paper A)
 
 - New public route `/devbench` (no login): a 5 s countdown starts three runs of the

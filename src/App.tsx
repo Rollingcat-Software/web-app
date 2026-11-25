@@ -52,6 +52,7 @@ const PAGE_TITLE_KEYS: Record<string, string> = {
     '/terms': 'terms',
     '/privacy': 'privacy',
     '/devbench': 'devbench',
+    '/author-trial': 'authorTrial',
 }
 
 function PageTitle() {
@@ -119,6 +120,7 @@ const WidgetAuthPage = lazy(() => import('./pages/WidgetAuthPage'))
 const MyProfilePage = lazy(() => import('./pages/MyProfilePage'))
 const FaceDemoPage = lazy(() => import('./pages/FaceDemoPage'))
 const DevbenchPage = lazy(() => import('./pages/DevbenchPage'))
+const AuthorTrialPage = lazy(() => import('./pages/AuthorTrialPage'))
 
 /**
  * Loading fallback for lazy-loaded components
@@ -229,6 +231,7 @@ function App() {
                 <Route path="/verify-email" element={<VerifyEmailPage />} />
                 <Route path="/widget-auth" element={<WidgetAuthPage />} />
                 <Route path="/devbench" element={<ErrorBoundary><DevbenchPage /></ErrorBoundary>} />
+                <Route path="/author-trial" element={<ErrorBoundary><AuthorTrialPage /></ErrorBoundary>} />
                 <Route element={<PublicLayout />}>
                     <Route path="/terms" element={<TermsPage />} />
                     <Route path="/privacy" element={<PrivacyPage />} />
