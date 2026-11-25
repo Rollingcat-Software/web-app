@@ -57,6 +57,11 @@ can never turn a failure or a pending attempt into an accept.
    pseudonymous display names (`P1`..`P4`) and non-routable placeholder emails
    (for example `p1@trial.invalid`). Do not use the authors' real names or real
    addresses. Record the four user UUIDs as `P1_USER_ID`..`P4_USER_ID`.
+   Normal registration creates the accounts `ACTIVE`; the identifier-first trial
+   path does not require email verification, so the non-routable addresses never
+   need an inbox. If an account is not `ACTIVE` (status `INACTIVE`/`SUSPENDED`),
+   the trial session start answers `TRIAL_LOGIN_BEGIN_FAILED` — reactivate it in
+   the dashboard instead of editing the database.
 3. Seed the mapping. Run this SQL as the coordinator (replace the UUIDs):
 
 ```sql
@@ -116,10 +121,10 @@ identity-core-api (`docker-compose.prod.yml` environment block):
 |---|---|---|
 | `AUTHOR_TRIAL_ENABLED` | `true` | OFF -> every trial endpoint answers 404 |
 | `AUTHOR_TRIAL_ACCESS_CODE` | a long random shared code | wrong code -> 401 |
-| `AUTHOR_TRIAL_TENANT_IDS` | `TRIAL_TENANT_ID` | comma-separated allow-list |
+| `AUTHOR_TRIAL_TENANT_IDS` | `TRIAL_TENANT_ID` | EXACTLY one tenant; more than one disables the whole surface |
 | `APP_AUTH_CONFIG_DRIVEN_LOGIN_TENANTS` | `TRIAL_TENANT_ID` | identifier-first path |
 | `APP_AUTH_PUZZLE_LAYER_TENANTS` | `TRIAL_TENANT_ID` | PUZZLE as a flow layer |
-| `APP_AUTH_CLIENT_SIDE_EMBEDDING` + tenant list | ON for the trial tenant | embedding-only path |
+| `APP_AUTH_CLIENT_SIDE_EMBEDDING_TENANTS` | `TRIAL_TENANT_ID` | embedding-only path; the global `APP_AUTH_CLIENT_SIDE_EMBEDDING` may stay `false` |
 | `APP_AUTH_FACE_EMBEDDING_LIVENESS_MODE` | `AUDIT` (default) or `OFF` | keeps enrollment image-free; leave `APP_AUTH_FACE_EMBEDDING_LIVENESS_ENFORCE_TENANTS` empty. Record the mode: it is exported |
 | attested binding (`app.auth.attested-binding*`) | OFF | no browser can attest |
 
@@ -181,7 +186,11 @@ before the trial.
    becomes `Enrolled`.
 5. If the API answers `409 TRIAL_ENROLL_IMAGE_REQUIRED`, the tenant's
    face-embedding liveness mode is ENFORCE. Set it to AUDIT or OFF (section
-   3.3), then retry. Re-enrolling replaces the template.
+   3.3), then retry.
+6. If a re-enroll is ever needed (wrong capture, changed setup), clear the flag
+   for that code — `UPDATE author_trial_participants SET enrolled_at = NULL
+   WHERE tenant_id = '<uuid>' AND participant_code = 'P2';` — and reload the
+   page; the endpoint is idempotent and replaces the template.
 
 Do not enroll through the normal dashboard enrollment page: the trial
 enrollment endpoint performs the FACE/PUZZLE bookkeeping the analysis expects.

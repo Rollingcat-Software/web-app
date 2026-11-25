@@ -294,7 +294,10 @@ export default function AuthorTrialPage() {
         !!participantCode &&
         detection !== 'detecting' &&
         !state.participantsLoading &&
-        (mode === 'genuine' || (!!targetCode && targetCode !== participantCode))
+        (mode === 'genuine' ||
+            // The API rejects an attack attempt without an instrument name
+            // (TRIAL_INSTRUMENT_REQUIRED); do not let Start enter that retry loop.
+            (!!targetCode && targetCode !== participantCode && instrumentName.trim().length > 0))
     const device = deviceFromForm(deviceForm, detected)
     const deviceSummary = composeDeviceSummary(device)
 
