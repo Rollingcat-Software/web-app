@@ -20,10 +20,10 @@ Built with React 18 + TypeScript 5 + Vite 8 on Clean Architecture (InversifyJS D
 
 ## Status
 
-The following npm packages are **packaged but NOT yet published** to the public npm registry (`npm install @fivucsas/...` returns a 404 today) — integration is CDN-only until an operator completes the one-time publish setup:
-- `@fivucsas/auth-js` — vanilla, zero-dependency core SDK (planned)
-- `@fivucsas/auth-elements` — the `<fivucsas-verify>` Web Component (planned)
-- `@fivucsas/auth-react` — thin React wrapper (planned)
+The following npm packages are **packaged but NOT yet published** to the public npm registry (`npm install @fivucsas/...` returns a 404 today) - integration is CDN-only until an operator completes the one-time publish setup:
+- `@fivucsas/auth-js` - vanilla, zero-dependency core SDK (planned)
+- `@fivucsas/auth-elements` - the `<fivucsas-verify>` Web Component (planned)
+- `@fivucsas/auth-react` - thin React wrapper (planned)
 
 The package sources live under [`packages/`](packages) and are built from the canonical SDK source at `src/verify-app/sdk/`. See [SDK packaging & publishing](docs/SDK_PUBLISHING.md). (A token-gated GitHub Actions workflow will publish them on an `sdk-v*` tag once the operator setup in that doc is complete.)
 
